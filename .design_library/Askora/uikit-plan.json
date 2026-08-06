@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "headBoilerplate": "<link rel=\"stylesheet\" href=\"../../colors_and_type.css\">",
+  "corePreviewComponents": [
+    {
+      "slug": "button",
+      "reason": "fixed slot \"button\"; semantic=button:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/button.json",
+      "priority": 1,
+      "slot": "button"
+    },
+    {
+      "slug": "navigation",
+      "reason": "fixed slot \"navigation\"; semantic=sidebar:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/navigation.json",
+      "priority": 2,
+      "slot": "navigation"
+    },
+    {
+      "slug": "card",
+      "reason": "fixed slot \"card\"; semantic=card:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/card.json",
+      "priority": 3,
+      "slot": "card"
+    },
+    {
+      "slug": "tag",
+      "reason": "fixed slot \"tag\"; semantic=tag:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/tag.json",
+      "priority": 4,
+      "slot": "tag"
+    },
+    {
+      "slug": "avatar",
+      "reason": "fallback after fixed slots; semantic=avatar:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/avatar.json",
+      "priority": 5
+    },
+    {
+      "slug": "input",
+      "reason": "fallback after fixed slots; semantic=input:0.75; policy=fixed-slots-first",
+      "evidenceFile": "components/input.json",
+      "priority": 6
+    }
+  ],
+  "supportEvidenceComponents": [],
+  "allowedComponents": [
+    "button",
+    "navigation",
+    "card",
+    "tag",
+    "avatar",
+    "input"
+  ],
+  "screenBlueprints": [
+    {
+      "name": null,
+      "componentSlugs": [],
+      "role": "primary"
+    },
+    {
+      "name": null,
+      "componentSlugs": [],
+      "role": "secondary"
+    },
+    {
+      "name": null,
+      "componentSlugs": [],
+      "role": "secondary"
+    }
+  ],
+  "productContext": {
+    "kitType": "chat-workspace",
+    "productType": "AI Chat / Knowledge Base (SaaS)",
+    "dominantCopy": [],
+    "pageNames": [],
+    "selectedFrameNames": []
+  },
+  "selectionPolicy": "fixed-slots-first",
+  "slotAssignments": [
+    {
+      "slot": "button",
+      "slug": "button",
+      "reason": "semantic"
+    },
+    {
+      "slot": "navigation",
+      "slug": "navigation",
+      "reason": "name"
+    },
+    {
+      "slot": "card",
+      "slug": "card",
+      "reason": "semantic"
+    },
+    {
+      "slot": "tag",
+      "slug": "tag",
+      "reason": "semantic"
+    }
+  ],
+  "missingFixedSlots": [
+    "menu",
+    "table"
+  ],
+  "fallbackComponents": [
+    "avatar",
+    "input"
+  ],
+  "needsNarrative": false,
+  "forbiddenInventedComponents": [],
+  "lowConfidence": false,
+  "warnings": [
+    "missing-fixed-slot:menu",
+    "missing-fixed-slot:table"
+  ]
+}

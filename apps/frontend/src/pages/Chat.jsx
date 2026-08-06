@@ -1,0 +1,306 @@
+import { useState, useEffect, useRef } from 'react'
+import { Send, Plus, Sparkles, Clock, Lightbulb, ChevronRight } from 'lucide-react'
+import Sidebar from '../components/Sidebar'
+import { useAuth } from '../hooks/useAuth'
+import * as dialogApi from '../api/dialog'
+import './Chat.css'
+
+const demoSubjects = [
+  { id: 'math', name: '数学', icon: '📐', kps: ['一元二次方程', '函数与导数', '概率统计', '几何证明'] },
+  { id: 'chinese', name: '语文', icon: '📚', kps: ['文言文阅读', '现代文赏析', '写作技巧', '诗词鉴赏'] },
+  { id: 'english', name: '英语', icon: '🌍', kps: ['语法时态', '阅读理解', '写作表达', '词汇积累'] },
+  { id: 'physics', name: '物理', icon: '⚛️', kps: ['力学运动', '电磁感应', '光学原理', '热力学'] },
+]
+
+export default function Chat() {
+  const { user } = useAuth()
+  const [sessions, setSessions] = useState([])
+  const [activeSession, setActiveSession] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [streaming, setStreaming] = useState(false)
+  const [showSubjectPicker, setShowSubjectPicker] = useState(true)
+  const [selectedSubject, setSelectedSubject] = useState(null)
+  const [pageError, setPageError] = useState('')
+  const messagesEndRef = useRef(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  useEffect(() => {
+    if (localStorage.getItem('demo_mode') !== 'true') loadSessions()
+  }, [])
+
+  const loadSessions = async () => {
+    try {
+      const data = await dialogApi.getSessions()
+      setSessions(data.items || [])
+    } catch {
+      if (localStorage.getItem('demo_mode') !== 'true') {
+        setPageError('历史会话加载失败，请检查后端服务')
+      }
+    }
+  }
+
+  const startNewSession = async (subject, kp) => {
+    if (localStorage.getItem('demo_mode') === 'true') {
+      setActiveSession({ id: 'demo-' + Date.now(), subject, knowledge_point: kp })
+      setShowSubjectPicker(false)
+      setMessages([
+        {
+          role: 'assistant',
+          content: `这是本地演示对话。关于“${kp}”，你觉得它最核心的概念是什么？`,
+          timestamp: new Date().toISOString(),
+        },
+      ])
+      return
+    }
+
+    try {
+      const session = await dialogApi.createSession(subject, kp)
+      setActiveSession(session)
+      setSessions((current) => [session, ...current])
+      setShowSubjectPicker(false)
+      setMessages([])
+      setPageError('')
+    } catch {
+      setPageError('创建会话失败。演示模式只会在登录页由你主动开启。')
+    }
+  }
+
+  const handleSend = async () => {
+    if (!input.trim() || loading || streaming) return
+
+    const content = input.trim()
+    const clientMessageId = `local-${Date.now()}`
+    const userMsg = {
+      id: clientMessageId,
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, userMsg])
+    setInput('')
+    setLoading(true)
+
+    try {
+      if (activeSession?.id?.startsWith('demo-')) {
+        // 演示模式模拟响应
+        setTimeout(() => {
+          const replies = [
+            '这个想法很有意思！你能再说说为什么会这么想吗？',
+            '很好的观察。那你觉得，如果换一个角度来看，会有什么不同？',
+            '你已经接近答案了。让我再问一个问题：你能举一个生活中的例子吗？',
+            '非常棒！那我们来深入一下。假设条件变了，结果会怎么变化呢？',
+            '思考得很深入。现在让我们把这些整理一下，你能总结出核心规律吗？',
+          ]
+          const reply = replies[Math.floor(Math.random() * replies.length)]
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: reply, timestamp: new Date().toISOString() },
+          ])
+          setLoading(false)
+        }, 1200)
+        return
+      }
+
+      const data = await dialogApi.sendMessage(activeSession.id, content)
+      // 兼容后端两种返回结构：
+      // 1) 新结构：{ message: { content, ... }, session, ... }
+      // 2) 平结构：{ content: string, ... } 或历史兼容层
+      const assistantContent =
+        data?.message?.content ??
+        data?.content ??
+        (typeof data?.message === 'string' ? data.message : '')
+
+      const assistantRole = (data?.message?.role === 'assistant' || !data?.message?.role) ? 'assistant' : data?.message?.role
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: assistantRole,
+          content: assistantContent || '（服务返回为空，请重试）',
+          timestamp: data?.message?.created_at || new Date().toISOString(),
+          moderation: data?.moderation,
+        },
+      ])
+    } catch (err) {
+      const errData = err.response?.data?.error
+      const msgByCode = {
+        'BIZ-0003': '这个会话已经结束，请新建会话后继续。',
+      }
+      setMessages((prev) => prev.filter((message) => message.id !== clientMessageId))
+      setInput(content)
+      setPageError(msgByCode[errData?.code] || errData?.message || '消息发送失败，请重试。')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const handleSelectSubject = (subject) => {
+    setSelectedSubject(subject)
+  }
+
+  const handleSelectKp = (kp) => {
+    startNewSession(selectedSubject.id, kp)
+  }
+
+  return (
+    <div className="app-container">
+      <Sidebar />
+
+      <main className="main-content">
+        <div className="page-header">
+          <h1 className="page-title">对话学习</h1>
+          <p className="page-subtitle">通过苏格拉底式提问，引导你主动思考</p>
+        </div>
+        {pageError && <div className="error-msg" role="alert">{pageError}</div>}
+
+        {showSubjectPicker ? (
+          <div className="subject-picker">
+            <div className="picker-header">
+              <Sparkles size={20} />
+              <h2>选择学科开始学习</h2>
+            </div>
+
+            {!selectedSubject ? (
+              <div className="subject-grid">
+                {demoSubjects.map((subj) => (
+                  <button
+                    type="button"
+                    key={subj.id}
+                    className="subject-card"
+                    onClick={() => handleSelectSubject(subj)}
+                  >
+                    <div className="subject-icon">{subj.icon}</div>
+                    <div className="subject-name">{subj.name}</div>
+                    <ChevronRight size={16} className="subject-arrow" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="kp-picker">
+                <button className="back-btn" onClick={() => setSelectedSubject(null)}>
+                  ← 返回学科选择
+                </button>
+                <h3 style={{ marginBottom: 16 }}>{selectedSubject.icon} {selectedSubject.name} - 选择知识点</h3>
+                <div className="kp-grid">
+                  {selectedSubject.kps.map((kp) => (
+                    <button type="button" key={kp} className="kp-card" onClick={() => handleSelectKp(kp)}>
+                      <Lightbulb size={18} />
+                      <span>{kp}</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="recent-sessions">
+              <h3><Clock size={16} /> 最近对话</h3>
+              {sessions.length > 0 ? (
+                <div className="session-list">
+                  {sessions.slice(0, 5).map((s) => (
+                    <button
+                      type="button"
+                      key={s.id}
+                      className="session-item"
+                      onClick={() => {
+                        setActiveSession(s)
+                        setShowSubjectPicker(false)
+                        dialogApi.getMessages(s.id).then((d) => setMessages(d.items || [])).catch(() => {})
+                      }}
+                    >
+                      <div className="session-title">{s.knowledge_point || s.subject}</div>
+                      <div className="session-time">{new Date(s.created_at).toLocaleDateString()}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">暂无历史对话</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="chat-area">
+            <div className="chat-header">
+              <div>
+                <h2>{activeSession?.knowledge_point || activeSession?.subject}</h2>
+                <span className="tag tag-info">{activeSession?.subject}</span>
+              </div>
+              <button className="btn btn-secondary" onClick={() => setShowSubjectPicker(true)}>
+                <Plus size={16} />
+                新对话
+              </button>
+            </div>
+
+            <div className="chat-messages">
+              {messages.length === 0 && (
+                <div className="empty-state">输入你的问题或想法，开始这一轮学习。</div>
+              )}
+              {messages.map((msg, i) => (
+                <div key={i} className={`message ${msg.role}`}>
+                  <div className="message-avatar">
+                    {msg.role === 'user' ? '我' : '苏'}
+                  </div>
+                  <div className="message-bubble">
+                    <p>{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="message assistant">
+                  <div className="message-avatar">苏</div>
+                  <div className="message-bubble thinking">
+                    <span className="dot" />
+                    <span className="dot" />
+                    <span className="dot" />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="chat-input-area">
+              <div className="input-wrapper">
+                <textarea
+                  className="chat-input"
+                  placeholder="输入你的想法..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  aria-label="对话输入"
+                />
+                <button
+                  className="send-btn"
+                  onClick={handleSend}
+                  disabled={!input.trim() || loading}
+                  aria-label="发送消息"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+              <p className="input-hint">
+                AI 生成内容仅供学习参考，请独立思考；系统不会声称未经验证的审核结果
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}

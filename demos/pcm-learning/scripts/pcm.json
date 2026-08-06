@@ -1,0 +1,337 @@
+{
+  "meta": {
+    "title": "苏格拉底导学 · 纺织面料中的相变材料（PCM）",
+    "icon": "🌡️",
+    "description": "一问一答 · 循循善诱 · 让结论从你的口中生长出来",
+    "themeColor": "amber",
+    "accentColor": "cyan"
+  },
+  "stages": [
+    { "id": 1, "icon": "🧊", "name": "三态与潜热" },
+    { "id": 2, "icon": "🌡️", "name": "固液相变储热" },
+    { "id": 3, "icon": "📦", "name": "微胶囊封装" },
+    { "id": 4, "icon": "🚧", "name": "应用与局限" }
+  ],
+  "order": ["q1","q2","q3","s1","q4","q5","q6","s2","q7","q8","q9","s3","q11","q12","q13","q14","fin"],
+  "nodes": {
+    "q1": {
+      "id": "q1",
+      "type": "question",
+      "stage": 1,
+      "label": "问题 1",
+      "title": "融化：吸热 or 放热？",
+      "ask": "🧊 第一个问题，我们从最基础的现象出发。<br><br>想象一下：夏天，你从冰箱里拿出一块冰，握在手心。冰块慢慢融化，你感觉手心凉凉的。<br><br><b>那么——冰融化变成水，这个过程是「吸热」还是「放热」？</b><br>换句话说：它是在从周围环境「拿走」热量，还是在向周围「送出」热量？<br><br><span class=\"text-slate-400\">请说出你的判断，最好也说说理由。</span>",
+      "chips": ["吸热","放热","我不确定"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["吸热","吸收","吸走","带走热量","拿走热量","融化需要能量","融化要能量","融化要热量"],
+        "wrongKeywords": ["放热","释放"]
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 正确！</b>融化是<b>吸热</b>过程。<br><br>冰的分子原本被牢牢「锁」在晶体结构里；融化时，分子需要获得能量来挣脱分子间作用力——这些能量正是从你的手心「吸走」的，所以手心会变凉。<br><br>这就像<b>拆房子需要花力气</b>：物质状态改变（结构重组）需要能量。请记住这个心象，它是理解一切相变材料的钥匙。🔑",
+      "hints": [
+        "想一想热量的流动规律：热量总是从高温物体流向低温物体。你的手心比冰块热——所以热量是从手心流向冰块，还是从冰块流向手心？<br><br>热量从手心「跑」到冰块上，这正说明：是冰块从你的手<b>吸走</b>了热量。那么融化是吸热还是放热呢？",
+        "再给你一个生活证据：夏天出汗会觉得凉快，因为汗液蒸发（液态→气态）时从皮肤吸热。蒸发和融化一样，都是分子「挣脱束缚」的过程——<b>挣脱束缚需要获得能量，还是释放能量？</b>"
+      ],
+      "reveal": "答案是<b>吸热</b>。🧊 冰的分子原本被「锁」在有序的晶体结构里，融化时分子要挣脱束缚，必须获得能量——这些能量正是从你的手心吸走的。<br><br>记住这个心象：<b>「挣脱需要能量」</b>，后面会反复用到。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q2": {
+      "id": "q2",
+      "type": "question",
+      "stage": 1,
+      "label": "问题 2",
+      "title": "结冰：吸热 or 放热？",
+      "ask": "很好，你已经迈出了第一步。现在<b>反过来推演</b>：<br><br>一杯水放进冰箱冷冻室，慢慢结成冰。<b>水结冰，是吸热还是放热？</b><br><br><span class=\"text-slate-400\">请给出你的判断和理由。</span>",
+      "chips": ["放热","吸热","我不确定"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["放热","释放","散热","放出","交出"],
+        "wrongKeywords": ["吸热","吸收"]
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 漂亮！</b>结冰（凝固）是<b>放热</b>过程：水分子从自由运动变为被「锁」进晶体结构，<b>释放</b>出多余的能量。<br><br>给你一个真实案例：北方果农在霜冻夜给果园洒水——水结冰时放出的热量，足以保护果树不被冻坏。这就是「凝固放热」的威力。<br><br>现在我们已经握住两块基石：<b>融化吸热、凝固放热</b>。这种状态变化时吸收或释放的能量，物理学上叫——<b>潜热（Latent Heat）</b>。",
+      "hints": [
+        "回想你刚推导出的结论：融化是吸热——正着走要「花」能量。而结冰是融化的<b>逆过程</b>。<br><br>正着走花能量，倒着走呢？能量是被「吐」出来，还是继续「吞」进去？",
+        "再从分子角度想：水分子结冰时，从自由运动的状态被「锁」进整齐的晶体结构——就像自由的人被约束起来。<b>被约束的过程，是「交出」能量还是「索取」能量？</b>"
+      ],
+      "reveal": "答案是<b>放热</b>。结冰是融化的逆过程：分子从自由状态进入有序晶体，「多余」的能量被释放出来。<br><br>这正是果农洒水防霜冻的科学原理。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q3": {
+      "id": "q3",
+      "type": "question",
+      "stage": 1,
+      "label": "问题 3",
+      "title": "蒸汽烫伤之谜",
+      "ask": "现在做一道「烧脑」题，检验你是否真正理解了潜热：<br><br>同样都是 100°C——一盆 100°C 的开水，和一团 100°C 的水蒸气，<b>哪个烫伤更严重？为什么？</b>",
+      "chips": ["水蒸气更严重","开水更严重","一样严重"],
+      "judge": {
+        "mode": "compound",
+        "groups": [
+          { "keywords": ["蒸汽","蒸气","水汽"] },
+          { "keywords": ["严重","厉害","烫伤","凝结","液化","放热","潜热","能量"] }
+        ],
+        "allGroupsRequired": true
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 完全正确！</b>100°C 的水蒸气烫伤远比 100°C 的开水严重。<br><br>原因正是<b>潜热</b>：水蒸气在皮肤上凝结成水（液化）时，会额外释放大量潜热——它是「看不见的巨额能量」，全部交给了你的皮肤。<br><br>至此，阶段一的核心已齐：<br>· 融化吸热 / 凝固放热 / 液化放热……<br>· <b>潜热</b>：相变时吸收或释放的热量，不改变温度，但能量巨大<br><br><b class=\"text-amber-300\">关键洞察：如果我们能「驾驭」这些相变，就等于掌握了一个热量开关！</b>",
+      "hints": [
+        "两者温度相同，都是 100°C，所以「温度」本身不是答案。<br><br>关键差别在于：水蒸气碰到你皮肤的一瞬间，会发生什么<b>状态变化</b>？——它会凝结成水。这个变化是吸热还是放热？放出的热量去了哪里？",
+        "还记得 Q2 的结论吗？<b>液化（凝结）是放热过程</b>。100°C 的水蒸气在皮肤上凝结成水时，会额外释放大量的<b>凝结潜热</b>——这笔「隐形」的能量，全部交给了你的皮肤。现在你能判断了吗？"
+      ],
+      "reveal": "答案是<b>水蒸气烫伤更严重</b>。它除了降温到体温所释放的热量，还要额外释放凝结潜热——这部分能量远大于同温度的开水。<br><br>所以物理课本会警告：<b>蒸汽烫伤比开水烫伤更危险</b>。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "s1": {
+      "id": "s1",
+      "type": "summary",
+      "stage": 1,
+      "label": "🏁 小结",
+      "title": "里程碑①：物质三态与潜热",
+      "ask": "<div class=\"text-amber-300 font-bold mb-3\">🏁 里程碑①：物质三态与潜热</div><div class=\"space-y-2 text-sm leading-6\"><div>✅ 融化（固→液）＝ <b>吸热</b>：分子挣脱束缚，需要能量</div><div>✅ 凝固（液→固）＝ <b>放热</b>：分子回归有序，释放能量</div><div>✅ 潜热 ＝ 相变时吸收/释放的「隐形」热量：温度不变，能量巨大</div><div class=\"pt-2 border-t border-slate-700/60 text-slate-300\">核心心象：<b class=\"text-cyan-300\">状态改变 ＝ 能量进出</b>。拆房花力气，建房出力气。</div><div class=\"text-slate-400\">下一站：把这块「能量海绵」变成可穿戴的调温材料。</div></div><button onclick=\"advance()\" class=\"mt-4 text-sm px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 transition font-bold\">继续探索 →</button>"
+    },
+    "q4": {
+      "id": "q4",
+      "type": "question",
+      "stage": 2,
+      "label": "问题 1",
+      "title": "升温时：PCM 在做什么？",
+      "ask": "进入第二阶段。现在请把目光投向一种神奇的材料：<br><br>它像蜡一样，<b>熔点恰好是 28°C</b>——正好落在人体舒适温度区间（约 26~28°C）。<br><br>夏天，室温升到 32°C，你穿着含有这种材料的衣服。请推演：<b>这时衣服里的材料会发生什么？对你的体感有什么影响？</b>",
+      "chips": ["材料开始融化，吸热降温","材料开始凝固，放热升温","没有变化"],
+      "judge": {
+        "mode": "compound",
+        "groups": [
+          { "keywords": ["融化","熔化"] },
+          { "keywords": ["吸热","吸收","带走","凉爽","降温","变凉","凉快"] }
+        ],
+        "allGroupsRequired": true
+      },
+      "wrongKeywords": ["凝固","放热","升温","变热","没有变化","不变"],
+      "correct": "<b class=\"text-emerald-300\">✓ 推演正确！</b>当室温超过 28°C：<br><br>· 材料开始<b>融化</b>（固→液）<br>· 融化<b>吸热</b>——它从你的身体和周围空气中「偷走」热量<br>· 你的体感：<b>凉爽</b> 🧊<br>· 而且，在它完全融化之前，材料的温度会一直「卡」在 28°C 附近——这就是<b>恒温</b>的秘密<br><br>这就是 PCM（Phase Change Material，相变材料）的<b>降温原理</b>。它像一个「热量缓冲器」，把升温的势头「吞」了下去。",
+      "hints": [
+        "复习一下 Q1 的结论：<b>融化是吸热还是放热？</b><br><br>室温 32°C 已经超过了材料的熔点 28°C——材料会开始融化。融化需要热量，它会从谁那里「拿」？被拿走热量的一方，温度会怎样？",
+        "把衣服里的材料想象成一块「熔点 28°C 的冰」。🧊 冰块融化时会让周围变凉——那么这块「蜡」开始融化时，你的身体会感觉……？"
+      ],
+      "reveal": "当室温超过 28°C，材料开始<b>融化</b>——融化是吸热过程，它从你的身体和周围空气「偷走」热量，让你感觉<b>凉爽</b>。<br><br>注意：在完全融化之前，材料的温度会一直「卡」在 28°C 附近——这就是「恒温」的由来。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q5": {
+      "id": "q5",
+      "type": "question",
+      "stage": 2,
+      "label": "问题 2",
+      "title": "降温时：PCM 在做什么？",
+      "ask": "很好，正向推演完成。现在来<b>反向场景</b>：<br><br>夜晚，室温降到 18°C。衣服里的 PCM 此刻已经是<b>液态</b>（白天融化完了）。<br><br><b>请推演：接下来会发生什么？它对你有什么帮助？</b>",
+      "chips": ["凝固放热，感到温暖","继续吸热，感觉更冷","没有变化"],
+      "judge": {
+        "mode": "compound",
+        "groups": [
+          { "keywords": ["凝固","结冰","固化","结晶","变回固体"] },
+          { "keywords": ["放热","释放","温暖","暖和","变暖","保暖","热量"] }
+        ],
+        "allGroupsRequired": true
+      },
+      "wrongKeywords": ["融化","吸热","更冷"],
+      "correct": "<b class=\"text-emerald-300\">✓ 完美！</b>温度下降后：<br><br>· 液态 PCM 开始<b>凝固</b>（液→固）<br>· 凝固<b>放热</b>——把白天「吞」进去的热量释放出来<br>· 你的体感：<b>温暖</b> ☀️<br><br>现在，完整的循环已经出现：<br><br><div class=\"text-center space-y-1 my-2\"><div class=\"text-cyan-300\">🌡️ 热了 → 融化吸热 → 凉爽</div><div class=\"text-slate-500\">⇅ 双向调节 ⇅</div><div class=\"text-amber-300\">❄️ 冷了 → 凝固放热 → 温暖</div></div>这件衣服，就是一台<b>被动空调</b>！",
+      "hints": [
+        "温度降到 18°C，已经低于熔点 28°C。液态的 PCM 会发生什么<b>状态变化</b>？——它会开始凝固。<br><br>还记得 Q2 的结论吗？<b>凝固是吸热还是放热？</b>放出的热量去了哪里？谁受益？",
+        "回忆果园洒水防霜冻的故事：水结冰放热，保护了果树。现在这块「蜡」在 18°C 的夜里开始凝固——它放出的热量会温暖谁？你会感觉更冷，还是更暖？"
+      ],
+      "reveal": "温度降到 28°C 以下，液态 PCM 开始<b>凝固</b>——凝固<b>放热</b>，把白天储存的热量释放出来，温暖你的身体。<br><br>这就是「双向调温」：热了吸热、冷了放热。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q6": {
+      "id": "q6",
+      "type": "question",
+      "stage": 2,
+      "label": "问题 3",
+      "title": "极端温度下还灵吗？",
+      "ask": "<b>关键追问</b>来了，请用你已经建立的逻辑去判断：<br><br>这种熔点 28°C 的 PCM 材料——<b>能在零下 10°C 的雪地里让你保持温暖吗？能在 40°C 的沙漠里让你保持凉爽吗？为什么？</b>",
+      "chips": ["都不能，只在熔点附近有效","都能","能，但效果减弱"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["不能","不行","无法","有限","只","熔点","范围","缓冲","不会发生相变"],
+        "wrongKeywords": []
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 一针见血！</b><b>都不能</b>。PCM 的调温能力有两条边界：<br><br><b>① 温度边界</b>：只在熔点附近（±几度）有效——偏离太远，根本不会发生相变；<br><b>② 能量边界</b>：只能「缓冲」热量，不能「制造」热量——全部融化/凝固后，就变回普通材料。<br><br>所以它是<b>缓冲器</b>，不是<b>空调机</b>。这个认知，是下一阶段讨论「局限」的伏笔。",
+      "hints": [
+        "想想：28°C 熔点的材料，在零下 10°C 的环境中会发生相变吗？——它早就冻得硬邦邦了，根本不会融化，也就<b>没有相变、没有潜热</b>。没有潜热，它拿什么调温？",
+        "PCM 只在「正在融化」或「正在凝固」的<b>过程中</b>才吸收/释放潜热。环境温度远远偏离熔点，它要么早就化完了，要么早就冻实了——它还能吸热或放热吗？"
+      ],
+      "reveal": "<b>都不能</b>。PCM 的调温能力有两条边界：<br>① <b>温度边界</b>：只在熔点附近有效，偏离太远不会发生相变；<br>② <b>能量边界</b>：只能「缓冲」热量，不能制造热量——全部融化后不再吸热，全部凝固后不再放热。<br><br>它是「缓冲器」，不是「空调机」。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "s2": {
+      "id": "s2",
+      "type": "summary",
+      "stage": 2,
+      "label": "🏁 小结",
+      "title": "里程碑②：PCM 工作循环",
+      "ask": "<div class=\"text-amber-300 font-bold mb-3\">🏁 里程碑②：PCM 工作循环</div><div class=\"space-y-2 text-sm leading-6\"><div>✅ 升过熔点 → <b>融化吸热</b> → 环境降温，材料温度「卡」在熔点附近</div><div>✅ 降过熔点 → <b>凝固放热</b> → 环境升温</div><div>✅ 储热量公式：<b>Q = m × L</b>（质量 × 比潜热）</div><div>✅ 两条边界：只在熔点附近有效；只缓冲、不制造</div></div><svg viewBox=\"0 0 340 120\" class=\"w-full mt-4 rounded-lg bg-slate-950/60 border border-slate-700/50 p-2\"><defs><linearGradient id=\"pcmg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#22d3ee\"/><stop offset=\".5\" stop-color=\"#fbbf24\"/><stop offset=\"1\" stop-color=\"#22d3ee\"/></linearGradient></defs><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"112\" stroke=\"#334155\" stroke-width=\"1.5\"/><line x1=\"12\" y1=\"112\" x2=\"330\" y2=\"112\" stroke=\"#334155\" stroke-width=\"1.5\"/><path class=\"draw\" d=\"M12,95 L58,38 L242,38 L328,100\" fill=\"none\" stroke=\"url(#pcmg)\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"58\" y1=\"38\" x2=\"242\" y2=\"38\" stroke=\"#fbbf24\" stroke-width=\"1\" stroke-dasharray=\"4 4\" opacity=\".5\"/><text x=\"14\" y=\"128\" fill=\"#64748b\" font-size=\"10\">❄️ 18°C</text><text x=\"240\" y=\"30\" fill=\"#fbbf24\" font-size=\"10\" font-weight=\"bold\">28°C 平台期（恒温）</text><text x=\"300\" y=\"128\" fill=\"#64748b\" font-size=\"10\">🔥 32°C</text><text x=\"66\" y=\"24\" fill=\"#94a3b8\" font-size=\"9\">融化吸热 · 温度不再上升</text><text x=\"200\" y=\"88\" fill=\"#94a3b8\" font-size=\"9\">凝固放热 · 温度不再下降</text><circle cx=\"242\" cy=\"38\" r=\"3.5\" fill=\"#fbbf24\"/><circle cx=\"58\" cy=\"38\" r=\"3.5\" fill=\"#22d3ee\"/></svg><div class=\"text-[11px] text-slate-500 mt-2\">上图即 PCM 的「温度-时间」曲线：横轴时间，纵轴温度——注意融化/凝固阶段出现的温度平台。</div><button onclick=\"advance()\" class=\"mt-4 text-sm px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 transition font-bold\">继续探索 →</button>"
+    },
+    "q7": {
+      "id": "q7",
+      "type": "question",
+      "stage": 3,
+      "label": "问题 1",
+      "title": "裸 PCM 的三大问题",
+      "ask": "现在进入「工程难题」环节，请切换身份为工程师：<br><br>PCM 融化后是<b>液体</b>，会流动。如果我们把液态 PCM 直接浸渍进织物，或者直接纺成纤维，<b>会出现哪些问题？</b><br><br><span class=\"text-slate-400\">（请从穿着和使用角度思考）</span>",
+      "chips": ["会泄漏流失","手感变差","不耐洗涤"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["漏","渗","流出","流走","流失","滴","手感","油腻","硬","粘","闷","滑","硌","洗","搓"],
+        "wrongKeywords": []
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 说到点子上了！</b>直接使用会撞上三堵墙：<br><br><b>1. 泄漏流失</b> 💧：融化后变成液体，几次循环就流光了，调温功能随之失效<br><b>2. 手感劣化</b> 🧽：蜡质让织物僵硬、油腻、不透气<br><b>3. 不耐洗涤</b> 🌀：洗衣机一搅，PCM 所剩无几<br><br>所以，科学家需要给 PCM 造一个「笼子」——这就是下一问的主角：<b>微胶囊</b>。",
+      "hints": [
+        "想象你把石蜡浸进一件 T 恤，穿上它，体温超过 28°C 后蜡融化了……液体会怎样？——它会<b>流动、渗出</b>，弄脏衣服和皮肤。<br><br>再想想：洗衣服的时候，蜡会不会被洗掉？这样的衣服穿在身上舒服吗？",
+        "液态的东西待在纤维缝隙里：① 会漏；② 会让布料又硬又滑又油腻；③ 洗衣机一搅，蜡就没了。你穿的到底是衣服，还是「蜡烛」？🕯️"
+      ],
+      "reveal": "直接使用会撞上三堵墙：<b>泄漏</b>（融化后流失，几次就失效）、<b>手感差</b>（蜡质让织物僵硬油腻）、<b>不耐洗</b>（洗涤即脱落）。<br><br>所以科学家必须给 PCM 造一个「笼子」——这就是<b>微胶囊技术</b>。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q8": {
+      "id": "q8",
+      "type": "question",
+      "stage": 3,
+      "label": "问题 2",
+      "title": "微胶囊壳的要求",
+      "ask": "好，解决方案呼之欲出——<b>微胶囊（Microcapsule）</b>：把微小的 PCM 液滴，包进一层薄薄的「壳」里，就像包着药粉的胶囊。💊<br><br>请你以工程师身份推断：<b>这层「壳」必须满足哪些关键要求？</b><br><br><span class=\"text-slate-400\">（至少说出两点）</span>",
+      "chips": ["密封不漏","坚固耐洗","导热良好"],
+      "judge": {
+        "mode": "multi-dim",
+        "dimensions": [
+          { "keywords": ["密封","不漏","不渗","包住","封闭","防漏"], "label": "密封性" },
+          { "keywords": ["坚固","结实","耐磨","耐洗","耐压","耐揉","强度","抗压","不易破","牢固"], "label": "机械强度" },
+          { "keywords": ["导热","传热","热量","热能","穿透","通过","热传导","透热"], "label": "导热性" },
+          { "keywords": ["微小","粒径","细","柔软","不硌"], "label": "粒径微小" }
+        ],
+        "correctThreshold": 2,
+        "partialThreshold": 1
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 工程师思维上线！</b>壳的关键要求：<br><br><b>① 密封性</b> 🔒 —— PCM 绝对不能泄漏（否则前功尽弃）<br><b>② 机械强度</b> 💪 —— 耐摩擦、耐洗涤、耐挤压<br><b>③ 导热性</b> 🔥 —— 热量要能穿透壳壁，相变才能发生<br><b>④ 粒径微小</b> 🪶 —— 几到几十微米，不硌皮肤、手感柔软<br><br><span class=\"text-slate-400\">（市售微胶囊常用三聚氰胺-甲醛、聚脲等树脂作壁材，石蜡、脂肪酸作芯材。）</span>",
+      "partial": "方向对！你已经想到了「<b>{{match}}</b>」这个要点。✅<br><br>再深入想想：胶囊要在洗衣机里翻滚、被身体摩擦、被反复揉搓——它还需要什么「抗打击」能力？另外，热量必须能穿过壳壁才能触发里面的相变——壳还需要什么？<br><br><span class=\"text-slate-400\">（答到两点即可过关）</span>",
+      "hints": [
+        "从三个角度想：<br>① PCM 要「逃」出来吗？→ 壳必须<b>密封</b>；<br>② 衣服要洗、要揉、要穿——壳会承受什么？→ 必须<b>坚固耐磨</b>；<br>③ PCM 要感知温度才能吸热放热，热量怎么进胶囊？→ 壳还要<b>导热</b>。",
+        "想象一颗装满水的气球：① 水不能漏——壳要密封；② 你捏它、揉它、扔进洗衣机——壳要结实；③ 想让里面的水变热，热量得穿过气球皮——壳还要能<b>导热</b>。<br><br>三点，缺一不可。"
+      ],
+      "reveal": "壳的四大要求：<b>① 密封</b>（PCM 不得泄漏）；<b>② 坚固</b>（耐摩擦、耐洗涤、耐挤压）；<b>③ 导热</b>（热量要能顺利穿透壳壁，否则相变无法发生）；<b>④ 微小</b>（粒径几到几十微米，手感柔软、不硌皮肤）。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q9": {
+      "id": "q9",
+      "type": "question",
+      "stage": 3,
+      "label": "问题 3",
+      "title": "两条工艺路线",
+      "ask": "胶囊造好了，最后一个工程问题：<b>怎么把微胶囊「安装」进纺织品？</b><br><br>科学家有两条主流路线，请推测并具体说明：<br>· 路线 A：「<b>从源头混入</b>」——让胶囊成为纤维的一部分<br>· 路线 B：「<b>从表面附着</b>」——把胶囊固定在织物表面<br><br><span class=\"text-slate-400\">它们分别是怎么做的？</span>",
+      "chips": ["纺丝时混入原液","涂层/印花固定","我不确定"],
+      "judge": {
+        "mode": "multi-dim",
+        "dimensions": [
+          { "keywords": ["纺丝","纺纱","熔融","挤出","纺入","原液","混入","纤维里","纤维内","纤维中"], "label": "共混纺丝" },
+          { "keywords": ["涂层","涂布","印花","浸轧","粘合","喷涂","后整理","表面","附着"], "label": "涂层整理" }
+        ],
+        "correctThreshold": 2,
+        "partialThreshold": 1
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 两条路线都被你推导出来了！</b><br><br><b>路线 A｜共混纺丝（内嵌）</b>🧵：微胶囊混入纺丝原液，纤维「天生」就含 PCM。<br><span class=\"text-slate-400\">代表产品：Outlast 纤维。优点：耐久；缺点：工艺复杂、对胶囊强度要求高。</span><br><br><b>路线 B｜涂层整理（外挂）</b>🎨：微胶囊与粘合剂调成浆料，涂布 / 印花 / 浸轧在织物表面。<br><span class=\"text-slate-400\">优点：成本低、适用面广；缺点：耐洗性较差。</span><br><br>两条路线殊途同归：让「热量缓冲器」住进纺织品。",
+      "partial": "你已经猜中了一条路线——「<b>{{match}}</b>」！✅ 那另一条呢？<br><br>回想纤维是怎么诞生的：聚合物熔融或溶解后<b>纺丝</b>——能不能在纺丝液里直接加胶囊？布织好之后还能做什么「后整理」——<b>涂层、印花、浸轧</b>？",
+      "hints": [
+        "「从源头混入」：纤维是怎么诞生的？——把聚合物熔融或溶解后<b>纺丝</b>。能不能在纺丝液里直接加入微胶囊？<br><br>「从表面附着」：布织好之后，还能做什么？——<b>涂层、印花、浸轧</b>等后整理。",
+        "两条路线：<b>① 内嵌</b>——微胶囊混进纺丝原液，纺出来的纤维「天生」就含 PCM（更耐用）；<b>② 外挂</b>——把微胶囊和粘合剂调成浆料，涂/印在织物表面（更便宜）。<br><br>猜猜哪条更耐用、哪条更便宜？"
+      ],
+      "reveal": "路线 A：<b>共混纺丝</b>——把微胶囊加入纺丝原液，纤维内部自带 PCM（如 Outlast 纤维），最耐久但工艺复杂。<br><br>路线 B：<b>涂层整理</b>——微胶囊 + 粘合剂调浆，涂布或印花在织物表面，成本低但耐洗性差。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "s3": {
+      "id": "s3",
+      "type": "summary",
+      "stage": 3,
+      "label": "🏁 小结",
+      "title": "里程碑③：微胶囊封装技术",
+      "ask": "<div class=\"text-amber-300 font-bold mb-3\">🏁 里程碑③：微胶囊封装技术</div><div class=\"space-y-2 text-sm leading-6\"><div>✅ <b>为什么要封装</b>：裸 PCM 会泄漏、手感差、不耐洗</div><div>✅ <b>结构</b>：芯材（PCM）＋ 壁材（高分子树脂）＝ 微型「热量胶囊」</div><div>✅ <b>壳的四大要求</b>：密封 · 坚固 · 导热 · 微小</div><div>✅ <b>两大工艺</b>：共混纺丝（内嵌·耐久）／涂层整理（外挂·便宜）</div><div class=\"pt-2 border-t border-slate-700/60 text-slate-300\">现在，一件「会呼吸温度」的智能调温织物已经完整成形。🌡️</div><div class=\"text-slate-400\">下一站：冷静下来，审视它的<b>真实局限</b>。</div></div><button onclick=\"advance()\" class=\"mt-4 text-sm px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 transition font-bold\">继续探索 →</button>"
+    },
+    "q11": {
+      "id": "q11",
+      "type": "question",
+      "stage": 4,
+      "label": "问题 1",
+      "title": "主动空调还是被动缓冲？",
+      "ask": "最后一站。请运用全部知识，做一次冷静的<b>工程判断</b>：<br><br>这种 PCM 调温纺织品——<br>① 它是「主动调温」（像空调持续制冷），还是「被动缓冲」（像保温杯减缓变化）？<br>② 它能在 35°C 的户外，让你持续凉爽<b>一整天</b>吗？为什么？",
+      "chips": ["被动缓冲，不能持续","主动调温，可以持续","能持续几小时"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["被动","缓冲","不能","有限","不是主动","无法","短暂","一段时间","几小时"],
+        "wrongKeywords": []
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 判断精准！</b>它是<b>被动缓冲器</b>，不是主动空调：<br><br>· 只能<b>短暂、有限</b>地减缓温度波动<br>· 调温时长 ≈ 微胶囊含量 × 潜热 ÷ 热流速率（通常只有几十分钟到几小时）<br>· 全部融化后即失效，直到凝固才「复活」<br><br>这就是 Outlast 最初用在<b>宇航服</b>上的原因——宇航员要应对的是剧烈但<b>短暂</b>的温差冲击。",
+      "hints": [
+        "回到 Q6 的结论：PCM <b>不制造能量</b>，只「暂存」能量。它储存的热量是有限的——取决于什么？对，<b>质量 × 潜热</b>。<br><br>全部融化之后呢？它还能吸热吗？",
+        "保温杯里的冰块能让你凉快一整天吗？🧊 冰全部化成水后就不再吸热了。PCM 同理：全部融化后，它就从「调温器」变回一块普通材料。所以答案是……？"
+      ],
+      "reveal": "它是<b>被动缓冲器</b>：只能短暂、有限地减缓温度波动，不能持续制冷。<br><br>调温时长 ≈ 微胶囊含量 × 潜热 ÷ 热流速率。所以 Outlast 最初用于<b>宇航服</b>——应对剧烈但短暂的温差冲击，而不是全天候空调。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q12": {
+      "id": "q12",
+      "type": "question",
+      "stage": 4,
+      "label": "问题 2",
+      "title": "理论循环 vs 实际失效",
+      "ask": "那么，<b>这种材料会「用完」吗？</b>请区分「理论」与「实际」两个层面回答：<br><br>① 理论上，融化 → 凝固 → 再融化……可以循环多少次？<br>② 实际穿着中，什么因素会让它「失效」？",
+      "chips": ["理论无限循环","洗涤摩擦会破损","紫外线老化"],
+      "judge": {
+        "mode": "multi-dim",
+        "dimensions": [
+          { "keywords": ["循环","可逆","无限","重复","物理"], "label": "理论可逆循环" },
+          { "keywords": ["洗","摩擦","磨","破损","破裂","破","泄漏","漏","老化","紫外线","化学","揉"], "label": "实际耐久性" }
+        ],
+        "correctThreshold": 2,
+        "partialThreshold": 1
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 理论与现实分得清！</b><br><br><b>① 理论</b>：相变是纯<b>物理变化</b>（无化学损耗），可循环<b>成千上万次</b>；<br><b>② 实际</b>：微胶囊壳在<b>洗涤、摩擦、紫外线、化学试剂</b>作用下逐渐破损 → 芯材泄漏 → 调温性能衰减。<br><br>所以行业里有个硬指标：<b>耐洗次数</b>（Outlast 宣称可达 50 次以上）。",
+      "partial": "你说到了「<b>{{match}}</b>」这一半！✅ 但还缺另一半：<br><br>① 理论层面：相变是物理变化还是化学变化？融化-凝固可逆吗？<br>② 实际层面：想想 Q8 里那层「壳」——衣服要洗、要揉、要穿好几年，壳会怎样？",
+      "hints": [
+        "理论：相变是<b>物理变化</b>还是化学变化？融化-凝固可逆吗？<br><br>实际：回想 Q8 里那层「壳」——衣服要洗、要揉、要穿好几年。<b>壳破了会怎样？</b>",
+        "三个关键词：<b>洗涤</b>（机械力）、<b>摩擦</b>（穿着运动）、<b>老化</b>（时间/紫外线）。<br><br>壳破 → 芯材泄漏 → 调温失效。所以「耐洗次数」是这类产品的生命线。"
+      ],
+      "reveal": "理论上，相变是纯物理变化，可逆循环<b>成千上万次</b>；实际上，微胶囊壳在<b>洗涤、摩擦、紫外线、化学试剂</b>作用下会破损，芯材泄漏，性能衰减。<br><br>因此「耐洗次数」是衡量品质的核心指标。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q13": {
+      "id": "q13",
+      "type": "question",
+      "stage": 4,
+      "label": "问题 3",
+      "title": "三大现实局限",
+      "ask": "最后一问，请戴上「产品经理」的帽子：<br><br>除了耐洗性，这种智能调温纺织品还有哪些<b>现实局限</b>？<br>请从三个维度各说一点：<b>① 调温能力　② 穿着体验　③ 成本</b>",
+      "chips": ["幅度小（2~4°C）","闷热不透气","成本高"],
+      "judge": {
+        "mode": "multi-dim",
+        "dimensions": [
+          { "keywords": ["幅度","温差","2~4","2-4","短暂","时间","时长","持续","几度","℃"], "label": "调温能力" },
+          { "keywords": ["手感","透气","闷","厚","硬","舒适","重","体验"], "label": "穿着体验" },
+          { "keywords": ["成本","贵","价格","工艺","经济"], "label": "成本" }
+        ],
+        "correctThreshold": 2,
+        "partialThreshold": 1
+      },
+      "correct": "<b class=\"text-emerald-300\">✓ 产品思维满分！</b>三大现实局限：<br><br><div class=\"space-y-1.5\"><div><b>① 调温能力</b> 🌡️：幅度有限（通常仅 2~4°C）、持续时间有限（蓄热总量约束）</div><div><b>② 穿着体验</b> 👕：微胶囊与粘合剂影响手感、透气性下降，可能更闷热</div><div><b>③ 成本</b> 💰：微胶囊化 + 特殊纺丝工艺复杂，价格偏高</div></div><br>理解局限，才能正确期待：<b>它不是「空调服」，而是「热波动缓冲器」。</b>",
+      "partial": "「<b>{{match}}</b>」这个维度说得好！✅ 另外两个维度呢？<br><br>——它能调节的温度幅度到底有多大？（想想 Q6 的「温度边界」）<br>——衣服里多了胶囊和粘合剂，穿起来和普通 T 恤有什么差别？<br>——微胶囊化 + 特殊纺丝工艺，价格会便宜吗？",
+      "hints": [
+        "三个维度逐个想：<br><b>① 调温能力</b>——它缓冲的温差有多大？（很小，通常只有 2~4°C）<br><b>② 穿着体验</b>——衣服里多了胶囊和粘合剂，手感和透气性会？<br><b>③ 成本</b>——微胶囊化 + 特殊纺丝工艺，贵不贵？",
+        "对比普通 T 恤：它可能更厚、更闷、更硬、更贵。<br><br>调温幅度通常只有 2~4°C——是「体感舒适度」的改善，不是「冰火两重天」。"
+      ],
+      "reveal": "三大现实局限：<b>① 性能</b>——调温幅度有限（通常 2~4°C）、持续时间有限；<b>② 体验</b>——胶囊和粘合剂影响手感、透气性，甚至增加闷热感；<b>③ 经济</b>——工艺复杂、成本高，目前主要用于高端户外、军警、医疗等专业场景。<br><br><button onclick=\"advance()\" class=\"mt-2 text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 transition\">继续探索 →</button>"
+    },
+    "q14": {
+      "id": "q14",
+      "type": "question",
+      "stage": 4,
+      "label": "问题 4",
+      "title": "费曼收尾：一句话解释",
+      "ask": "最后一个问题，也是苏格拉底式学习的经典收尾——<b>费曼技巧</b>：<br><br>假如你的朋友问你：「这种衣服到底是怎么调温的？」<br><br><b>请用一两句话，把 PCM 调温纺织品的原理讲给他听。</b><br><br><span class=\"text-slate-400\">（放心，这一题没有标准答案——能用自己的话说清楚，就是真懂了。）</span>",
+      "chips": [],
+      "judge": {
+        "mode": "always"
+      },
+      "correct": "<b class=\"text-emerald-300\">说得真好！</b>能用一句话讲清楚，才算真正理解。🎓<br><br>（如果还想对照，参考版本是：「衣服里的微胶囊装着一种 28°C 熔点的蜡——热了它就融化吸热让你凉快，冷了它就凝固放热让你暖和，反复循环，像一块随身携带的『热量海绵』。」）<br><br>现在，请接收你的结业证书——推导全景图！🏆"
+    },
+    "fin": {
+      "id": "fin",
+      "type": "summary",
+      "stage": 4,
+      "label": "🎓 结业",
+      "title": "推导完成！PCM 智能调温纺织品全景图",
+      "ask": "<div class=\"text-center\"><div class=\"text-4xl mb-2\">🏆🎓🌡️</div><div class=\"text-amber-300 font-bold text-lg mb-4\">推导完成！PCM 智能调温纺织品全景图</div></div><div class=\"space-y-2.5 text-sm leading-6\"><div class=\"border border-slate-700/60 rounded-lg p-3 bg-slate-950/50\"><div class=\"text-cyan-300 font-bold mb-1\">🧊 物理根基</div><div>相变伴随潜热——融化吸热、凝固放热；状态改变 ＝ 能量进出</div></div><div class=\"border border-slate-700/60 rounded-lg p-3 bg-slate-950/50\"><div class=\"text-cyan-300 font-bold mb-1\">🎯 材料核心</div><div>熔点落在舒适温区的 PCM（石蜡、脂肪酸、多元醇…），Q = m × L</div></div><div class=\"border border-slate-700/60 rounded-lg p-3 bg-slate-950/50\"><div class=\"text-cyan-300 font-bold mb-1\">📦 工程封装</div><div>微胶囊（密封 · 坚固 · 导热 · 微小）→ 纺丝内嵌 / 涂层外挂</div></div><div class=\"border border-slate-700/60 rounded-lg p-3 bg-slate-950/50\"><div class=\"text-cyan-300 font-bold mb-1\">🌡️ 系统表现</div><div>被动缓冲、双向调温、循环使用——热了吸热，冷了放热</div></div><div class=\"border border-slate-700/60 rounded-lg p-3 bg-slate-950/50\"><div class=\"text-cyan-300 font-bold mb-1\">🚧 现实边界</div><div>幅度小（2~4°C）、时长有限、耐洗性制约、成本偏高</div></div><div class=\"pt-2 text-center font-display text-amber-200 text-base\">「它不制造温度，只管理温度的节奏。」</div></div><button onclick=\"restart()\" class=\"mt-5 w-full text-sm px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500/20 to-amber-500/20 border border-amber-400/40 text-amber-200 hover:from-cyan-500/30 hover:to-amber-500/30 transition font-bold\">🔄 重新开始导学（换一种答法，看看导师会怎么追问）</button>"
+    }
+  }
+}

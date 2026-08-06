@@ -1,0 +1,131 @@
+# 数学·代数策略配置
+strategies:
+  - id: "yaml_algebra_linear_concept"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "linear_equations"
+    name: "线性方程核心概念"
+    description: "理解线性方程ax+b=c的结构和解法"
+    prompt_template: "学生正在学习线性方程。引导理解：{concept}\n提问：方程3x+5=14中，x代表什么？如何求x的值？"
+    follow_up_strategies: ["yaml_algebra_linear_error"]
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_linear_error"
+    level_1_goal: "monitoring"
+    level_2_skill: "error_analysis"
+    level_3_context: "linear_equations"
+    name: "线性方程错误分析"
+    description: "分析移项、计算中的常见错误"
+    prompt_template: "学生解线性方程出错。引导分析：{student_state}\n提问：你在移项时是否改变了符号？检查每一步的运算。"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_linear_identity"
+    level_1_goal: "core_guidance"
+    level_2_skill: "guided_discovery"
+    level_3_context: "linear_equations"
+    name: "线性方程恒等发现"
+    description: "通过发现学习方程恒等变形"
+    prompt_template: "引导发现：{concept}\n提问：解方程2(x+3)=2x+6后，你发现了什么？这说明了什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_quadratic_factor"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "quadratic_equations"
+    name: "二次方程因式分解"
+    description: "理解因式分解法解二次方程"
+    prompt_template: "学生学习二次方程。引导理解：{concept}\n提问：x²-5x+6=0如何因式分解？为什么这种方法有效？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_quadratic_formula"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "quadratic_equations"
+    name: "二次方程求根公式"
+    description: "理解求根公式和判别式"
+    prompt_template: "引导理解：{concept}\n提问：求根公式x=(-b±√(b²-4ac))/(2a)中，判别式b²-4ac的意义是什么？"
+    follow_up_strategies: ["yaml_algebra_quadratic_error"]
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_quadratic_error"
+    level_1_goal: "monitoring"
+    level_2_skill: "error_analysis"
+    level_3_context: "quadratic_equations"
+    name: "二次方程错误分析"
+    description: "分析判别式计算和公式应用错误"
+    prompt_template: "学生解二次方程出错。引导分析：{student_state}\n提问：你的判别式计算正确吗？公式中的符号是否带对了？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_function_domain"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "functions"
+    name: "函数定义域"
+    description: "理解函数定义域的确定方法"
+    prompt_template: "学生学习函数。引导理解：{concept}\n提问：函数f(x)=1/(x-2)的定义域是什么？为什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_function_graph"
+    level_1_goal: "core_guidance"
+    level_2_skill: "analogy"
+    level_3_context: "functions"
+    name: "函数图像类比"
+    description: "通过图像直观理解函数性质"
+    prompt_template: "使用类比：{concept}\n提问：函数图像就像心电图，它能告诉我们函数的'健康状况'。从图像上你能看出什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_inequality_sign"
+    level_1_goal: "monitoring"
+    level_2_skill: "error_analysis"
+    level_3_context: "inequalities"
+    name: "不等式符号错误"
+    description: "分析不等式变号问题"
+    prompt_template: "学生解不等式出错。引导分析：{student_state}\n提问：不等式两边乘以负数时，不等号方向应该怎样变化？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_algebra_self_explain"
+    level_1_goal: "core_guidance"
+    level_2_skill: "self_explanation"
+    level_3_context: "linear_equations"
+    name: "代数自我解释"
+    description: "通过解释深化代数理解"
+    prompt_template: "学生解对了代数题。要求解释：\n提问：你能一步步解释你的解题过程吗？为什么选择这种方法而不是其他？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true

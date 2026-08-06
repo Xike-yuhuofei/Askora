@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avatar - Askora Design System</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+/* Page scaffold — NOT extracted */
+body { margin: 0; padding: 12px; background: var(--color-surface); font-family: var(--font-sans); color: var(--color-on-surface); }
+.row { display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; }
+.label { font-size: var(--font-size-caption); color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; width: 92px; flex-shrink: 0; }
+hr.divider { border: none; border-top: 1px solid var(--color-rule); margin: var(--space-4) 0; }
+
+/* @component-css-start */
+.avatar { display: inline-flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; font-weight: 600; font-family: var(--font-sans); }
+.avatar.size-xs { width: 16px; height: 16px; font-size: 9px; }
+.avatar.size-sm { width: 24px; height: 24px; font-size: 11px; }
+.avatar.size-md { width: 32px; height: 32px; font-size: 13px; }
+.avatar.size-lg { width: 40px; height: 40px; font-size: 15px; }
+.avatar.circle { border-radius: var(--radius-full); }
+.avatar.rounded { border-radius: var(--radius-sm); }
+.avatar.assistant { background: var(--color-primary); color: var(--color-on-primary); }
+.avatar.user { background: var(--color-surface-container-high); color: var(--color-on-surface); }
+.avatar.system { background: var(--color-surface-container); color: var(--color-muted-foreground); }
+.avatar .status { position: absolute; bottom: -1px; right: -1px; border-radius: var(--radius-full); border: 2px solid var(--color-surface); }
+.avatar.size-xs .status { width: 5px; height: 5px; border-width: 1px; bottom: 0; right: 0; }
+.avatar.size-sm .status { width: 6px; height: 6px; border-width: 1px; }
+.avatar.size-md .status { width: 8px; height: 8px; }
+.avatar.size-lg .status { width: 10px; height: 10px; bottom: -2px; right: -2px; }
+.avatar .status.online { background: var(--color-success); }
+.avatar .status.away { background: var(--color-warning); }
+.avatar .status.typing { background: var(--color-primary); animation: avatar-pulse 1.5s ease-in-out infinite; }
+@keyframes avatar-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.2); } }
+/* @component-css-end */
+</style>
+</head>
+<body>
+
+<div class="row">
+  <span class="label">助手</span>
+  <div class="avatar assistant rounded size-xs">AI</div>
+  <div class="avatar assistant rounded size-sm">AI</div>
+  <div class="avatar assistant rounded size-md">AI</div>
+  <div class="avatar assistant rounded size-lg">AI</div>
+</div>
+
+<div class="row">
+  <span class="label">用户</span>
+  <div class="avatar user circle size-xs">张</div>
+  <div class="avatar user circle size-sm">张</div>
+  <div class="avatar user circle size-md">张</div>
+  <div class="avatar user circle size-lg">张</div>
+</div>
+
+<hr class="divider">
+
+<div class="row">
+  <span class="label">状态</span>
+  <div class="avatar user circle size-md">张</div>
+  <div class="avatar user circle size-md">张<span class="status online"></span></div>
+  <div class="avatar user circle size-md">张<span class="status away"></span></div>
+  <div class="avatar user circle size-md">张<span class="status typing"></span></div>
+</div>
+
+<div class="row">
+  <span class="label">系统</span>
+  <div class="avatar system circle size-xs">i</div>
+  <div class="avatar system circle size-sm">i</div>
+  <div class="avatar system circle size-md">i</div>
+</div>
+
+</body>
+</html>

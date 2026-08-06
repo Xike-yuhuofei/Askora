@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "slug": "avatar",
+  "name": "Avatar",
+  "category": "Data Display",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    { "type": "avatar", "evidence": "User profile image or initials" },
+    { "type": "icon-avatar", "evidence": "AI assistant branded icon avatar" }
+  ],
+  "variantDimensions": {
+    "type": ["user", "assistant", "system"],
+    "size": ["xs", "sm", "md", "lg"],
+    "status": ["none", "online", "away", "typing"],
+    "shape": ["circle", "rounded"]
+  },
+  "representativeVariants": [
+    {
+      "name": "Assistant MD",
+      "whySelected": "AI assistant avatar in chat messages — branded icon style",
+      "traits": { "type": "assistant", "size": "md", "status": "none", "shape": "rounded" },
+      "childrenDigest": "Brand-colored rounded square background with white AI icon, 32px size"
+    },
+    {
+      "name": "User MD",
+      "whySelected": "User avatar in chat and sidebar",
+      "traits": { "type": "user", "size": "md", "status": "online", "shape": "circle" },
+      "childrenDigest": "Circular user image + green online status dot bottom-right, 32px size"
+    },
+    {
+      "name": "Assistant Typing SM",
+      "whySelected": "Small typing indicator avatar in message input area",
+      "traits": { "type": "assistant", "size": "sm", "status": "typing", "shape": "rounded" },
+      "childrenDigest": "Small assistant icon + pulsing animation indicator, 24px size"
+    },
+    {
+      "name": "System XS",
+      "whySelected": "System message indicator icon",
+      "traits": { "type": "system", "size": "xs", "status": "none", "shape": "circle" },
+      "childrenDigest": "Small circular icon with info symbol, muted gray, 16px size"
+    }
+  ],
+  "anatomy": ["Container / Background", "Image or Icon", "Status Indicator (optional)", "Status Ring (optional)"],
+  "structurePatterns": [
+    "User avatars are circular; assistant avatars use rounded square (Apple icon style)",
+    "Status indicators positioned at bottom-right, overlapping slightly",
+    "Assistant avatars use brand gradient background with white icon"
+  ],
+  "usageHints": {
+    "assistant": "AI response messages, typing indicators, assistant branding",
+    "user": "User messages, profile display, participant list",
+    "system": "System messages, notifications, info indicators"
+  },
+  "doNotInvent": ["Avatar group / stack", "Editable avatar uploader", "Avatar with badge count"],
+  "unknowns": ["Assistant icon design (specific AI symbol)", "Status indicator exact positioning"],
+  "keyInsightSeed": "User and AI assistant avatars with status indicators for chat presence and typing state"
+}

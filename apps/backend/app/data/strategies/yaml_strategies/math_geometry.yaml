@@ -1,0 +1,79 @@
+# 数学·几何策略配置
+strategies:
+  - id: "yaml_geometry_triangle_congruent"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "triangles"
+    name: "三角形全等判定"
+    description: "理解SSS/SAS/ASA/AAS/HL判定定理"
+    prompt_template: "学生学习三角形全等。引导理解：{concept}\n提问：三角形全等的判定方法有哪些？每种方法需要什么条件？"
+    follow_up_strategies: ["yaml_geometry_triangle_error"]
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_geometry_triangle_area"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "triangles"
+    name: "三角形面积公式"
+    description: "理解三角形面积的多种求法"
+    prompt_template: "引导理解：{concept}\n提问：三角形面积公式有哪些形式？不同公式适用于什么条件？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_geometry_triangle_error"
+    level_1_goal: "monitoring"
+    level_2_skill: "error_analysis"
+    level_3_context: "triangles"
+    name: "几何证明错误分析"
+    description: "分析证明中的逻辑漏洞"
+    prompt_template: "学生几何证明出错。引导分析：{student_state}\n提问：你的证明中有没有跳过的步骤？每一步都有依据吗？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_geometry_circle_properties"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "circles"
+    name: "圆的基本性质"
+    description: "理解圆的切线、弧、圆心角等性质"
+    prompt_template: "学生学习圆。引导理解：{concept}\n提问：圆的切线有什么性质？圆心角和圆周角的关系？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_geometry_circle_proof"
+    level_1_goal: "core_guidance"
+    level_2_skill: "guided_discovery"
+    level_3_context: "circles"
+    name: "圆的证明引导发现"
+    description: "引导发现圆的几何规律"
+    prompt_template: "引导发现：{concept}\n提问：从圆外一点引两条切线，它们的长度有什么关系？你能证明吗？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_geometry_coord_distance"
+    level_1_goal: "core_guidance"
+    level_2_skill: "analogy"
+    level_3_context: "coordinate_geometry"
+    name: "坐标几何距离公式"
+    description: "理解坐标系中距离和中点公式"
+    prompt_template: "使用类比：{concept}\n提问：在坐标系中，两点间距离公式就像勾股定理的应用。你能推导出来吗？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true

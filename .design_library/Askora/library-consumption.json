@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "tokenSource": "css.json",
+  "componentEvidenceIndex": "components/index.json",
+  "uikitPlan": "uikit-plan.json",
+  "recommendedReadOrder": [
+    "SKILL.md",
+    "css.json",
+    "components/index.json",
+    "components/{slug}.json",
+    "preview/component-{slug}.html",
+    "ui_kits/chat-workspace/index.html"
+  ],
+  "coreComponents": ["button", "card", "input", "navigation"],
+  "supportComponents": ["avatar", "tag"]
+}

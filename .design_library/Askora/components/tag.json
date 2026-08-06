@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "slug": "tag",
+  "name": "Tag",
+  "category": "Data Display",
+  "sourceKind": "from-scratch",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    { "type": "tag", "evidence": "Small label for categorization and status" },
+    { "type": "chip", "evidence": "Interactive filter chips for knowledge base filtering" }
+  ],
+  "variantDimensions": {
+    "variant": ["filled", "outlined", "soft"],
+    "color": ["default", "primary", "success", "warning", "error"],
+    "size": ["sm", "md"],
+    "interactive": [false, true]
+  },
+  "representativeVariants": [
+    {
+      "name": "Soft Primary MD",
+      "whySelected": "Knowledge category tags with soft background (Apple style)",
+      "traits": { "variant": "soft", "color": "primary", "size": "md", "interactive": false },
+      "childrenDigest": "Tag label with soft blue background and blue text, pill shape, 24px height"
+    },
+    {
+      "name": "Outlined Default SM",
+      "whySelected": "Conversation labels and secondary metadata tags",
+      "traits": { "variant": "outlined", "color": "default", "size": "sm", "interactive": false },
+      "childrenDigest": "Tag label with subtle border and gray text, pill shape, 20px height"
+    },
+    {
+      "name": "Filled Success SM",
+      "whySelected": "Status indicators for completed/synced state",
+      "traits": { "variant": "filled", "color": "success", "size": "sm", "interactive": false },
+      "childrenDigest": "Tag label with green background and white text, pill shape, 20px height"
+    },
+    {
+      "name": "Interactive Soft MD",
+      "whySelected": "Filter chips in knowledge base sidebar",
+      "traits": { "variant": "soft", "color": "default", "size": "md", "interactive": true },
+      "childrenDigest": "Filter label with close icon, soft gray background, hover darkens, pill shape"
+    }
+  ],
+  "anatomy": ["Container", "Label Text", "Leading Icon (optional)", "Trailing Icon / Close (optional)"],
+  "structurePatterns": [
+    "Pill shape for all tags (consistent with Apple design language)",
+    "Soft variant uses low-opacity background with matching text color",
+    "Interactive tags have hover and active states",
+    "Close icon on interactive filter chips"
+  ],
+  "usageHints": {
+    "soft": "Knowledge categories, content types — most common style",
+    "outlined": "Secondary labels, metadata, less important tags",
+    "filled": "Status indicators, high-emphasis labels",
+    "interactive": "Filter chips, removable tags"
+  },
+  "doNotInvent": ["Tag input with auto-complete", "Drag-and-drop tag reordering", "Tag color picker"],
+  "unknowns": ["Exact color mapping for all tag variants", "Tag truncation behavior with long text"],
+  "keyInsightSeed": "Knowledge tags and conversation labels with Apple-style vibrant colors and soft backgrounds"
+}

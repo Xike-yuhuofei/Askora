@@ -1,0 +1,105 @@
+.notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: noticeFadeIn 0.2s ease;
+}
+
+@keyframes noticeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.notice-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  text-align: center;
+  animation: noticePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes noticePop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.notice-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.notice-close:hover {
+  background: rgba(26, 34, 56, 0.06);
+}
+
+.notice-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice-warn .notice-icon {
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--warning);
+}
+
+.notice-danger .notice-icon {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--danger);
+}
+
+.notice-info .notice-icon {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
+}
+
+.notice-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.notice-message {
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.notice-detail {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.notice-btn {
+  width: 100%;
+  justify-content: center;
+}

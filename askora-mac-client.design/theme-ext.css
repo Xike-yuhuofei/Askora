@@ -1,0 +1,19 @@
+/*
+ * Askora Mac Client — Extended Apple Design Library Tokens
+ * Adds semantic radius/size aliases required by Tailwind theme bridge.
+ * All values derived from the Apple Design Library's base tokens.
+ */
+
+:root {
+  /* Radius scale — derived from base --radius (1.2rem = 19.2px) */
+  --apple-radius-sm: calc(var(--radius) * 0.5);   /* ~9.6px */
+  --apple-radius-md: var(--radius);                /* 19.2px */
+  --apple-radius-lg: calc(var(--radius) * 1.5);   /* ~28.8px */
+  --apple-radius-xl: calc(var(--radius) * 2);     /* ~38.4px */
+  
+  /* Size / control height scale */
+  --apple-size-sm: 32px;
+  --apple-size-md: 40px;
+  --apple-size-lg: 48px;
+  --apple-size-xl: 56px;
+}

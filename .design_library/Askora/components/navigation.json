@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "slug": "navigation",
+  "name": "Navigation",
+  "category": "Navigation",
+  "sourceKind": "from-scratch",
+  "confidence": "high",
+  "semanticTypeCandidates": [
+    { "type": "sidebar", "evidence": "Left navigation panel with sections and items" },
+    { "type": "nav-list", "evidence": "Vertical list of navigation items with icons" }
+  ],
+  "variantDimensions": {
+    "section": ["workspace", "conversations", "knowledge", "settings"],
+    "itemState": ["default", "active", "hover", "disabled"],
+    "density": ["compact", "normal", "spacious"],
+    "hasBadge": [true, false]
+  },
+  "representativeVariants": [
+    {
+      "name": "Conversation List Item",
+      "whySelected": "Core navigation item showing chat history entries",
+      "traits": { "section": "conversations", "itemState": "default", "density": "normal", "hasBadge": false },
+      "childrenDigest": "Icon + title truncation + timestamp + hover menu, 48px height, subtle hover background"
+    },
+    {
+      "name": "Active Nav Item",
+      "whySelected": "Currently selected conversation or section",
+      "traits": { "section": "conversations", "itemState": "active", "density": "normal", "hasBadge": false },
+      "childrenDigest": "Icon + title + accent indicator bar on left, brand tinted background, bold text"
+    },
+    {
+      "name": "Knowledge Section",
+      "whySelected": "Knowledge base navigation with nested items",
+      "traits": { "section": "knowledge", "itemState": "default", "density": "compact", "hasBadge": true },
+      "childrenDigest": "Section header + expand/collapse + child items, document count badges"
+    },
+    {
+      "name": "Workspace Header",
+      "whySelected": "Top of sidebar with workspace switcher and new chat button",
+      "traits": { "section": "workspace", "itemState": "default", "density": "spacious", "hasBadge": false },
+      "childrenDigest": "Workspace name + dropdown arrow + new chat primary button, top-aligned"
+    }
+  ],
+  "anatomy": ["Sidebar Container", "Workspace Header", "Section Groups", "Nav Item (Icon + Label + Badge + Actions)", "Active Indicator", "Footer (user profile)"],
+  "structurePatterns": [
+    "260px fixed width sidebar (Apple-style side nav)",
+    "Section groups with collapsible headers",
+    "Active items show a 3px accent bar on the leading edge",
+    "User profile and settings pinned to bottom"
+  ],
+  "usageHints": {
+    "conversations": "Chat history list with recent conversations",
+    "knowledge": "Knowledge base sections and document libraries",
+    "workspace": "Top-level workspace switching and new item creation",
+    "settings": "Bottom-aligned settings and profile access"
+  },
+  "doNotInvent": ["Drag-and-drop reordering", "Multi-select checkboxes", "Collapsible sidebar to icons-only"],
+  "unknowns": ["Sidebar collapse behavior", "Keyboard navigation shortcuts"],
+  "keyInsightSeed": "Left sidebar navigation with conversation list, knowledge base sections, and workspace switcher"
+}

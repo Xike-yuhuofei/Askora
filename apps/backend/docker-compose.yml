@@ -1,0 +1,3 @@
+# 兼容从 apps/backend 目录启动；推荐在项目根目录使用 docker-compose.yml。
+include:
+  - ../../docker-compose.yml

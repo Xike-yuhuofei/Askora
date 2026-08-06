@@ -1,0 +1,137 @@
+{
+  "data": [
+    {
+      "id": "page-chat",
+      "type": "page",
+      "title": "Socratic 对话主界面",
+      "device": "desktop",
+      "version": 1,
+      "createdAt": 1754409600,
+      "canvasData": {
+        "x": 36,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 2405,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-c1d17627",
+          "measuredAt": 1785918655235
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/chat.html"
+      }
+    },
+    {
+      "id": "page-chat-traework-p0",
+      "type": "page",
+      "title": "Socratic 对话主界面 - Trae Work 风格 P0",
+      "device": "desktop",
+      "version": 1,
+      "createdAt": 1785921600,
+      "canvasData": {
+        "x": 900,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 2240,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-d6d56389",
+          "measuredAt": 1785929221736
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/chat-traework-p0.html"
+      }
+    },
+    {
+      "id": "page-dashboard",
+      "type": "page",
+      "title": "学习仪表盘",
+      "device": "desktop",
+      "version": 1,
+      "createdAt": 1754409600,
+      "canvasData": {
+        "x": 468,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1829,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-551b2778",
+          "measuredAt": 1785917992099
+        },
+        "deviceType": "freeSize",
+        "windowSize": {
+          "width": 1440,
+          "height": 915
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dashboard.html"
+      }
+    },
+    {
+      "id": "page-drill",
+      "type": "page",
+      "title": "练习模式",
+      "device": "desktop",
+      "version": 1,
+      "createdAt": 1754409600,
+      "canvasData": {
+        "x": 468,
+        "y": 624,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 1529,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-ad31a3b3",
+          "measuredAt": 1785923551537
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/drill.html"
+      }
+    },
+    {
+      "id": "page-inquiry",
+      "type": "page",
+      "title": "探究模式",
+      "device": "desktop",
+      "version": 1,
+      "createdAt": 1754409600,
+      "canvasData": {
+        "x": 468,
+        "y": 312,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-162625b9",
+          "measuredAt": 1785917811349
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/inquiry.html"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": false,
+    "deviceType": "desktop",
+    "designLibrary": {
+      "id": "dl_builtin_apple",
+      "name": "苹果",
+      "version": "",
+      "scope": "built-in-global",
+      "path": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple",
+      "versionSource": "selected-context"
+    },
+    "visualEditorEnabled": false
+  }
+}

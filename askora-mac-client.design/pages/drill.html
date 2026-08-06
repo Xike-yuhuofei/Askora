@@ -1,0 +1,2057 @@
+<!doctype html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Askora - 练习模式</title>
+    <style id="theme-vars">
+/*
+ * Pinguo design tokens
+ * Brand: Pinguo
+ * Domain: Consumer imaging product
+ * Style: Restrained, elegant, Apple-inspired
+ * Theme mode: light-dark
+ * Source language: zh
+ * Output language: en
+ *
+ * Color architecture (two layers):
+ *   1. Primitive palette - six categories. brand / background / text / icon
+ *      are each a 10-step scale (50 lightest to 900 darkest). state-success and
+ *      state-error are functional colors anchored on Apple system colors.
+ *      Anchors follow Apple Human Interface Guidelines system colors
+ *      (System Blue #007AFF, System Green #34C759, System Red #FF3B30,
+ *      system grays / label / background colors).
+ *   2. Semantic tokens - :root (light) and .dark map roles onto primitives.
+ *      Components and UI kits must only consume the semantic tokens below.
+ */
+
+/* @group-priority: brand, background, text, icon, state-success, state-error */
+
+:root {
+  
+  /* solo-design consumption aliases: explicit prefix for fill-html-head.mjs */
+  --apple-background: var(--background, #ffffff);
+  --apple-foreground: var(--foreground, #0f172a);
+  --apple-card: var(--card, var(--background));
+  --apple-card-foreground: var(--card-foreground, var(--foreground));
+  --apple-popover: var(--popover, var(--card));
+  --apple-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --apple-primary: var(--primary, #111827);
+  --apple-primary-foreground: var(--primary-foreground, #ffffff);
+  --apple-secondary: var(--secondary, var(--muted, var(--card)));
+  --apple-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --apple-muted: var(--muted, var(--card));
+  --apple-muted-foreground: var(--muted-foreground, var(--foreground));
+  --apple-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --apple-accent-foreground: var(--accent-foreground, var(--foreground));
+  --apple-destructive: var(--destructive, #ef4444);
+  --apple-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --apple-border: var(--border, currentColor);
+  --apple-input: var(--input, var(--border));
+  --apple-ring: var(--ring, var(--primary));
+  --apple-chart-1: var(--chart-1, var(--primary));
+  --apple-chart-2: var(--chart-2, var(--secondary, var(--primary)));
+  --apple-chart-3: var(--chart-3, var(--accent, var(--primary)));
+  --apple-chart-4: var(--chart-4, var(--muted-foreground, var(--foreground)));
+  --apple-chart-5: var(--chart-5, var(--foreground));
+  --apple-sidebar: var(--sidebar, var(--background));
+  --apple-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --apple-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --apple-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --apple-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --apple-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+/* ===== PRIMITIVE PALETTE ===== */
+
+  /* brand */
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff; /* @primary */
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  /* background */
+  --background-50: #ffffff;
+  --background-100: #f7f7fa;
+  --background-200: #f2f2f7;
+  --background-300: #e5e5ea;
+  --background-400: #d1d1d6;
+  --background-500: #aeaeb2;
+  --background-600: #8e8e93;
+  --background-700: #3a3a3c;
+  --background-800: #1c1c1e;
+  --background-900: #000000;
+
+  /* text */
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  /* icon */
+  --icon-50: #f5f5f7;
+  --icon-100: #e5e5ea;
+  --icon-200: #d1d1d6;
+  --icon-300: #c7c7cc;
+  --icon-400: #aeaeb2;
+  --icon-500: #8e8e93;
+  --icon-600: #6e6e73;
+  --icon-700: #48484a;
+  --icon-800: #2c2c2e;
+  --icon-900: #1d1d1f;
+
+  /* state-success */
+  --state-success: #34c759; /* @primary */
+  --state-success-dark: #30d158;
+  --state-success-surface: #e9f9ee;
+  --state-success-foreground: #ffffff;
+
+  /* state-error */
+  --state-error: #ff3b30; /* @primary */
+  --state-error-dark: #ff453a;
+  --state-error-surface: #ffecea;
+  --state-error-foreground: #ffffff;
+
+  /* ===== SEMANTIC ROLES ===== */
+
+  /* semantic */
+  --background: var(--background-50);
+  --foreground: var(--text-800);
+  --card: var(--background-50);
+  --card-foreground: var(--text-800);
+  --popover: var(--background-50);
+  --popover-foreground: var(--text-900);
+
+  --primary: var(--brand-500);
+  --primary-foreground: var(--background-50);
+  --secondary: var(--background-200);
+  --secondary-foreground: var(--text-800);
+  --muted: var(--background-200);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-100);
+  --accent-foreground: var(--text-800);
+  --destructive: var(--state-error);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-300);
+  --input: var(--background-400);
+  --ring: var(--brand-500);
+
+  --icon: var(--icon-900);
+  --icon-muted: var(--icon-500);
+
+  /* chart */
+  --chart-1: var(--state-success);
+  --chart-2: var(--brand-500);
+  --chart-3: #ff9500;
+  --chart-4: #5856d6;
+  --chart-5: #af52de;
+
+  /* sidebar */
+  --sidebar: var(--background-200);
+  --sidebar-foreground: var(--text-800);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--background-50);
+  --sidebar-accent: var(--background-300);
+  --sidebar-accent-foreground: var(--text-800);
+  --sidebar-border: var(--background-300);
+  --sidebar-ring: var(--brand-500);
+
+  /* TYPOGRAPHY */
+  --font-sans: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-serif: DM Sans, ui-sans-serif, sans-serif, system-ui;
+  --font-mono: JetBrains Mono, monospace;
+  --tracking-normal: 0em;
+
+  /* RADIUS */
+  --radius: 1.2rem;
+
+  /* SHADOWS */
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04); /* Hairline */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04); /* Subtle */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05); /* Card */
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05); /* Raised */
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05); /* Card Hover */
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05); /* Float */
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06); /* Overlay */
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.12); /* Modal */
+
+  /* SPACING */
+  --spacing: 0.24rem;
+}
+
+/* ===== SEMANTIC ROLES - dark (primitive palette inherited) ===== */
+.dark {
+  --background: var(--background-900);
+  --foreground: var(--text-50);
+  --card: var(--background-800);
+  --card-foreground: var(--text-50);
+  --popover: var(--background-700);
+  --popover-foreground: var(--text-50);
+
+  --primary: var(--brand-400);
+  --primary-foreground: var(--background-900);
+  --secondary: var(--background-800);
+  --secondary-foreground: var(--text-50);
+  --muted: var(--background-800);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-700);
+  --accent-foreground: var(--text-50);
+  --destructive: var(--state-error-dark);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success-dark);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-700);
+  --input: var(--background-700);
+  --ring: var(--brand-400);
+
+  --icon: var(--icon-50);
+  --icon-muted: var(--icon-500);
+
+  --chart-1: var(--state-success-dark);
+  --chart-2: var(--brand-400);
+  --chart-3: #ff9f0a;
+  --chart-4: #5e5ce6;
+  --chart-5: #bf5af2;
+
+  --sidebar: var(--background-800);
+  --sidebar-foreground: var(--text-50);
+  --sidebar-primary: var(--brand-400);
+  --sidebar-primary-foreground: var(--background-900);
+  --sidebar-accent: var(--background-700);
+  --sidebar-accent-foreground: var(--text-50);
+  --sidebar-border: var(--background-700);
+  --sidebar-ring: var(--brand-400);
+
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.30);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.36), 0 1px 3px -1px rgba(0, 0, 0, 0.36);
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.40), 0 1px 2px -1px rgba(0, 0, 0, 0.36);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.44), 0 2px 4px -2px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.50), 0 4px 8px -4px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(0, 0, 0, 0.44);
+  --shadow-2xl: 0 24px 64px -12px rgba(0, 0, 0, 0.60);
+}
+/*
+ * Askora Mac Client — Extended Apple Design Library Tokens
+ * Adds semantic radius/size aliases required by Tailwind theme bridge.
+ * All values derived from the Apple Design Library's base tokens.
+ */
+
+:root {
+  /* Radius scale — derived from base --radius (1.2rem = 19.2px) */
+  --apple-radius-sm: calc(var(--radius) * 0.5);   /* ~9.6px */
+  --apple-radius-md: var(--radius);                /* 19.2px */
+  --apple-radius-lg: calc(var(--radius) * 1.5);   /* ~28.8px */
+  --apple-radius-xl: calc(var(--radius) * 2);     /* ~38.4px */
+  
+  /* Size / control height scale */
+  --apple-size-sm: 32px;
+  --apple-size-md: 40px;
+  --apple-size-lg: 48px;
+  --apple-size-xl: 56px;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--apple-background);
+    --color-foreground: var(--apple-foreground);
+    --color-card: var(--apple-card);
+    --color-card-foreground: var(--apple-card-foreground);
+    --color-popover: var(--apple-popover);
+    --color-popover-foreground: var(--apple-popover-foreground);
+    --color-primary: var(--apple-primary);
+    --color-primary-foreground: var(--apple-primary-foreground);
+    --color-secondary: var(--apple-secondary);
+    --color-secondary-foreground: var(--apple-secondary-foreground);
+    --color-muted: var(--apple-muted);
+    --color-muted-foreground: var(--apple-muted-foreground);
+    --color-accent: var(--apple-accent);
+    --color-accent-foreground: var(--apple-accent-foreground);
+    --color-destructive: var(--apple-destructive);
+    --color-destructive-foreground: var(--apple-destructive-foreground);
+    --color-border: var(--apple-border);
+    --color-input: var(--apple-input);
+    --color-ring: var(--apple-ring);
+    --color-chart-1: var(--apple-chart-1);
+    --color-chart-2: var(--apple-chart-2);
+    --color-chart-3: var(--apple-chart-3);
+    --color-chart-4: var(--apple-chart-4);
+    --color-chart-5: var(--apple-chart-5);
+    --color-sidebar: var(--apple-sidebar);
+    --color-sidebar-foreground: var(--apple-sidebar-foreground);
+    --color-sidebar-primary: var(--apple-sidebar-primary);
+    --color-sidebar-primary-foreground: var(--apple-sidebar-primary-foreground);
+    --color-sidebar-accent: var(--apple-sidebar-accent);
+    --color-sidebar-accent-foreground: var(--apple-sidebar-accent-foreground);
+    --radius-sm: var(--apple-radius-sm);
+    --radius-md: var(--apple-radius-md);
+    --radius-lg: var(--apple-radius-lg);
+    --radius-xl: var(--apple-radius-xl);
+  }
+  @layer base {
+    body { background: var(--apple-background); color: var(--apple-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--apple-background); }
+      .text-background { color: var(--apple-background); }
+      .border-background { border-color: var(--apple-background); }
+      .ring-background { --tw-ring-color: var(--apple-background); }
+      .bg-foreground { background-color: var(--apple-foreground); }
+      .text-foreground { color: var(--apple-foreground); }
+      .border-foreground { border-color: var(--apple-foreground); }
+      .ring-foreground { --tw-ring-color: var(--apple-foreground); }
+      .bg-card { background-color: var(--apple-card); }
+      .text-card { color: var(--apple-card); }
+      .border-card { border-color: var(--apple-card); }
+      .ring-card { --tw-ring-color: var(--apple-card); }
+      .bg-card-foreground { background-color: var(--apple-card-foreground); }
+      .text-card-foreground { color: var(--apple-card-foreground); }
+      .border-card-foreground { border-color: var(--apple-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--apple-card-foreground); }
+      .bg-popover { background-color: var(--apple-popover); }
+      .text-popover { color: var(--apple-popover); }
+      .border-popover { border-color: var(--apple-popover); }
+      .ring-popover { --tw-ring-color: var(--apple-popover); }
+      .bg-popover-foreground { background-color: var(--apple-popover-foreground); }
+      .text-popover-foreground { color: var(--apple-popover-foreground); }
+      .border-popover-foreground { border-color: var(--apple-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--apple-popover-foreground); }
+      .bg-primary { background-color: var(--apple-primary); }
+      .text-primary { color: var(--apple-primary); }
+      .border-primary { border-color: var(--apple-primary); }
+      .ring-primary { --tw-ring-color: var(--apple-primary); }
+      .bg-primary-foreground { background-color: var(--apple-primary-foreground); }
+      .text-primary-foreground { color: var(--apple-primary-foreground); }
+      .border-primary-foreground { border-color: var(--apple-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--apple-primary-foreground); }
+      .bg-secondary { background-color: var(--apple-secondary); }
+      .text-secondary { color: var(--apple-secondary); }
+      .border-secondary { border-color: var(--apple-secondary); }
+      .ring-secondary { --tw-ring-color: var(--apple-secondary); }
+      .bg-secondary-foreground { background-color: var(--apple-secondary-foreground); }
+      .text-secondary-foreground { color: var(--apple-secondary-foreground); }
+      .border-secondary-foreground { border-color: var(--apple-secondary-foreground); }
+      .ring-secondary-foreground { --tw-ring-color: var(--apple-secondary-foreground); }
+      .bg-muted { background-color: var(--apple-muted); }
+      .text-muted { color: var(--apple-muted); }
+      .border-muted { border-color: var(--apple-muted); }
+      .ring-muted { --tw-ring-color: var(--apple-muted); }
+      .bg-muted-foreground { background-color: var(--apple-muted-foreground); }
+      .text-muted-foreground { color: var(--apple-muted-foreground); }
+      .border-muted-foreground { border-color: var(--apple-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--apple-muted-foreground); }
+      .bg-accent { background-color: var(--apple-accent); }
+      .text-accent { color: var(--apple-accent); }
+      .border-accent { border-color: var(--apple-accent); }
+      .ring-accent { --tw-ring-color: var(--apple-accent); }
+      .bg-accent-foreground { background-color: var(--apple-accent-foreground); }
+      .text-accent-foreground { color: var(--apple-accent-foreground); }
+      .border-accent-foreground { border-color: var(--apple-accent-foreground); }
+      .ring-accent-foreground { --tw-ring-color: var(--apple-accent-foreground); }
+      .bg-destructive { background-color: var(--apple-destructive); }
+      .text-destructive { color: var(--apple-destructive); }
+      .border-destructive { border-color: var(--apple-destructive); }
+      .ring-destructive { --tw-ring-color: var(--apple-destructive); }
+      .bg-destructive-foreground { background-color: var(--apple-destructive-foreground); }
+      .text-destructive-foreground { color: var(--apple-destructive-foreground); }
+      .border-destructive-foreground { border-color: var(--apple-destructive-foreground); }
+      .ring-destructive-foreground { --tw-ring-color: var(--apple-destructive-foreground); }
+      .bg-border { background-color: var(--apple-border); }
+      .text-border { color: var(--apple-border); }
+      .border-border { border-color: var(--apple-border); }
+      .ring-border { --tw-ring-color: var(--apple-border); }
+      .bg-input { background-color: var(--apple-input); }
+      .text-input { color: var(--apple-input); }
+      .border-input { border-color: var(--apple-input); }
+      .ring-input { --tw-ring-color: var(--apple-input); }
+      .bg-ring { background-color: var(--apple-ring); }
+      .text-ring { color: var(--apple-ring); }
+      .border-ring { border-color: var(--apple-ring); }
+      .ring-ring { --tw-ring-color: var(--apple-ring); }
+      .bg-chart-1 { background-color: var(--apple-chart-1); }
+      .text-chart-1 { color: var(--apple-chart-1); }
+      .border-chart-1 { border-color: var(--apple-chart-1); }
+      .ring-chart-1 { --tw-ring-color: var(--apple-chart-1); }
+      .bg-chart-2 { background-color: var(--apple-chart-2); }
+      .text-chart-2 { color: var(--apple-chart-2); }
+      .border-chart-2 { border-color: var(--apple-chart-2); }
+      .ring-chart-2 { --tw-ring-color: var(--apple-chart-2); }
+      .bg-chart-3 { background-color: var(--apple-chart-3); }
+      .text-chart-3 { color: var(--apple-chart-3); }
+      .border-chart-3 { border-color: var(--apple-chart-3); }
+      .ring-chart-3 { --tw-ring-color: var(--apple-chart-3); }
+      .bg-chart-4 { background-color: var(--apple-chart-4); }
+      .text-chart-4 { color: var(--apple-chart-4); }
+      .border-chart-4 { border-color: var(--apple-chart-4); }
+      .ring-chart-4 { --tw-ring-color: var(--apple-chart-4); }
+      .bg-chart-5 { background-color: var(--apple-chart-5); }
+      .text-chart-5 { color: var(--apple-chart-5); }
+      .border-chart-5 { border-color: var(--apple-chart-5); }
+      .ring-chart-5 { --tw-ring-color: var(--apple-chart-5); }
+      .bg-sidebar { background-color: var(--apple-sidebar); }
+      .text-sidebar { color: var(--apple-sidebar); }
+      .border-sidebar { border-color: var(--apple-sidebar); }
+      .ring-sidebar { --tw-ring-color: var(--apple-sidebar); }
+      .bg-sidebar-foreground { background-color: var(--apple-sidebar-foreground); }
+      .text-sidebar-foreground { color: var(--apple-sidebar-foreground); }
+      .border-sidebar-foreground { border-color: var(--apple-sidebar-foreground); }
+      .ring-sidebar-foreground { --tw-ring-color: var(--apple-sidebar-foreground); }
+      .bg-sidebar-primary { background-color: var(--apple-sidebar-primary); }
+      .text-sidebar-primary { color: var(--apple-sidebar-primary); }
+      .border-sidebar-primary { border-color: var(--apple-sidebar-primary); }
+      .ring-sidebar-primary { --tw-ring-color: var(--apple-sidebar-primary); }
+      .bg-sidebar-primary-foreground { background-color: var(--apple-sidebar-primary-foreground); }
+      .text-sidebar-primary-foreground { color: var(--apple-sidebar-primary-foreground); }
+      .border-sidebar-primary-foreground { border-color: var(--apple-sidebar-primary-foreground); }
+      .ring-sidebar-primary-foreground { --tw-ring-color: var(--apple-sidebar-primary-foreground); }
+      .bg-sidebar-accent { background-color: var(--apple-sidebar-accent); }
+      .text-sidebar-accent { color: var(--apple-sidebar-accent); }
+      .border-sidebar-accent { border-color: var(--apple-sidebar-accent); }
+      .ring-sidebar-accent { --tw-ring-color: var(--apple-sidebar-accent); }
+      .bg-sidebar-accent-foreground { background-color: var(--apple-sidebar-accent-foreground); }
+      .text-sidebar-accent-foreground { color: var(--apple-sidebar-accent-foreground); }
+      .border-sidebar-accent-foreground { border-color: var(--apple-sidebar-accent-foreground); }
+      .ring-sidebar-accent-foreground { --tw-ring-color: var(--apple-sidebar-accent-foreground); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8ecf4,#d1d9e6);padding:20px;">
+
+<!-- ===== App Shell ===== -->
+<div class="app-shell" id="app-shell">
+
+  <!-- ===== Title Bar ===== -->
+  <div class="title-bar" id="title-bar">
+    <div class="traffic-lights">
+      <div class="traffic-light red"></div>
+      <div class="traffic-light yellow"></div>
+      <div class="traffic-light green"></div>
+    </div>
+    <div class="title-bar-title">Askora</div>
+  </div>
+
+  <!-- ===== Main Content ===== -->
+  <div class="main-content">
+
+    <!-- ===== Left Sidebar ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="app-icon">A</div>
+        <div class="app-title">Askora</div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">学习</div>
+          <div class="nav-item">
+            <span class="icon icon-message"></span>
+            <span>苏格拉底对话</span>
+          </div>
+          <div class="nav-item active">
+            <span class="icon icon-pen"></span>
+            <span>练习模式</span>
+          </div>
+          <div class="nav-submenu">
+            <div class="nav-subitem active">
+              <span class="nav-subitem-indicator"></span>
+              <span>变式练习</span>
+            </div>
+            <div class="nav-subitem">
+              <span class="nav-subitem-indicator"></span>
+              <span>错题巩固</span>
+            </div>
+            <div class="nav-subitem">
+              <span class="nav-subitem-indicator"></span>
+              <span>专项训练</span>
+            </div>
+          </div>
+          <div class="nav-item">
+            <span class="icon icon-box"></span>
+            <span>探究模式</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">数据</div>
+          <div class="nav-item">
+            <span class="icon icon-house"></span>
+            <span>学习仪表盘</span>
+          </div>
+          <div class="nav-item">
+            <span class="icon icon-folder-open"></span>
+            <span>错题本</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">系统</div>
+          <div class="nav-item">
+            <span class="icon icon-user"></span>
+            <span>设置</span>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer" id="sidebar-footer">
+        <div class="user-avatar">李</div>
+        <div class="user-info">
+          <div class="user-name">李同学</div>
+          <div class="user-level">初三 · 数学</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== Center Practice Area ===== -->
+    <main class="practice-area" id="practice-area">
+
+      <!-- Progress Header -->
+      <div class="progress-header" id="progress-header">
+        <div class="progress-top-row">
+          <div class="progress-title-block">
+            <span class="practice-badge">
+              <span class="icon icon-pen icon-sm"></span>
+              变式练习
+            </span>
+            <h1 class="practice-title">一元一次方程 - 变式练习</h1>
+          </div>
+          <div class="progress-stats">
+            <div class="stat-item">
+              <span class="icon icon-circle-check" style="color:var(--state-success)"></span>
+              <span>正确率 <strong>2/3</strong> (67%)</span>
+            </div>
+            <div class="stat-item timer">
+              <span class="icon icon-play icon-sm" style="color:var(--text-500)"></span>
+              <strong>05:23</strong>
+            </div>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:11px;color:var(--muted-foreground);font-weight:500;">第 3 题 / 共 10 题</span>
+          <span style="font-size:11px;color:var(--primary);font-weight:600;">30%</span>
+        </div>
+      </div>
+
+      <!-- Question Section -->
+      <div class="question-section" id="question-section">
+
+        <!-- Question Card -->
+        <div class="question-card" id="question-card">
+          <div class="question-card-header">
+            <span class="question-type-tag">
+              <span class="icon icon-pen icon-sm"></span>
+              变式练习 · 基础巩固
+            </span>
+            <div class="difficulty" title="难度：中等">
+              <span class="icon icon-star"></span>
+              <span class="icon icon-star"></span>
+              <span class="icon icon-star empty"></span>
+            </div>
+          </div>
+
+          <div class="question-number">题目 3</div>
+          <div class="question-text">解方程：</div>
+          <div class="question-math">3(x - 2) + 5 = 2x + 1</div>
+
+          <div class="knowledge-tags">
+            <span class="k-tag">
+              <span class="icon icon-tag"></span>
+              移项
+            </span>
+            <span class="k-tag">
+              <span class="icon icon-tag"></span>
+              合并同类项
+            </span>
+            <span class="k-tag">
+              <span class="icon icon-tag"></span>
+              去括号
+            </span>
+          </div>
+        </div>
+
+        <!-- Answer Card -->
+        <div class="answer-card" id="answer-card">
+          <div class="answer-label">你的答案</div>
+          <div class="answer-input-wrapper">
+            <div class="answer-field">
+              <span class="answer-prefix">x =</span>
+              <input class="answer-input" type="text" value="2" placeholder="输入答案...">
+            </div>
+            <div class="math-toolbar" title="数学符号工具栏">
+              <button class="math-btn">/</button>
+              <button class="math-btn">²</button>
+              <button class="math-btn">√</button>
+              <button class="math-btn">π</button>
+            </div>
+          </div>
+
+          <button class="draft-toggle">
+            <span class="icon icon-chevron-down icon-sm"></span>
+            草稿区（已收起）
+          </button>
+
+          <div class="action-row">
+            <button class="btn btn-hint">
+              <span class="icon icon-circle-question icon-sm"></span>
+              提示
+            </button>
+            <button class="btn btn-secondary">
+              跳过
+            </button>
+            <button class="btn btn-primary btn-submit">
+              <span class="icon icon-send icon-sm"></span>
+              提交答案
+            </button>
+          </div>
+        </div>
+
+        <!-- Hint Panel (expanded state preview) -->
+        <div class="hint-panel" id="hint-panel">
+          <div class="hint-panel-title">
+            <span class="icon icon-lightbulb icon-sm"></span>
+            多级提示
+          </div>
+          <div class="hint-levels">
+            <div class="hint-level active">
+              <div class="hint-level-badge">1</div>
+              <div class="hint-level-content">
+                <div class="hint-level-label">概念提示</div>
+                <div class="hint-level-text">一元一次方程的核心是通过移项和合并同类项，将方程化为 x = a 的形式。</div>
+              </div>
+            </div>
+            <div class="hint-level">
+              <div class="hint-level-badge">2</div>
+              <div class="hint-level-content">
+                <div class="hint-level-label">步骤提示</div>
+                <div class="hint-level-text">先去括号，再把含 x 的项移到左边，常数项移到右边，注意变号。</div>
+              </div>
+            </div>
+            <div class="hint-level locked">
+              <div class="hint-level-badge">3</div>
+              <div class="hint-level-content">
+                <div class="hint-level-label">答案提示</div>
+                <div class="hint-level-text">需先尝试作答后解锁</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Card (错误状态预览) -->
+        <div class="feedback-card feedback-wrong" id="feedback-card">
+          <div class="feedback-header">
+            <div class="feedback-icon wrong">
+              <span class="icon icon-circle-alert icon-lg"></span>
+            </div>
+            <div>
+              <div class="feedback-title wrong">再想想</div>
+              <div class="feedback-desc">答案不正确，让苏格拉底引导你找到正确思路</div>
+            </div>
+          </div>
+          <div class="socratic-question">
+            <strong>苏格拉底引导</strong>
+            你在去括号的时候，3 乘以 -2 等于多少？再检查一下移项时符号的变化——等号两边移项要变号哦。
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ===== Right Panel ===== -->
+    <aside class="right-panel" id="right-panel">
+
+      <!-- Question Navigation -->
+      <div class="panel-section" id="question-nav">
+        <div class="panel-title">
+          <span>题目导航</span>
+          <span class="icon icon-grid" style="width:14px;height:14px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:block;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </span>
+        </div>
+        <div class="question-grid">
+          <div class="q-cell correct" title="第1题 - 答对了"><span class="icon icon-check icon-sm"></span></div>
+          <div class="q-cell wrong" title="第2题 - 答错了"><span style="font-size:14px;font-weight:700;">2</span></div>
+          <div class="q-cell current" title="第3题 - 当前">3</div>
+          <div class="q-cell unanswered" title="第4题 - 未答">4</div>
+          <div class="q-cell unanswered" title="第5题 - 未答">5</div>
+          <div class="q-cell unanswered" title="第6题 - 未答">6</div>
+          <div class="q-cell unanswered" title="第7题 - 未答">7</div>
+          <div class="q-cell unanswered" title="第8题 - 未答">8</div>
+          <div class="q-cell unanswered" title="第9题 - 未答">9</div>
+          <div class="q-cell unanswered" title="第10题 - 未答">10</div>
+        </div>
+      </div>
+
+      <!-- Related Knowledge Points -->
+      <div class="panel-section" id="knowledge-points">
+        <div class="panel-title">
+          <span>相关知识点</span>
+          <span class="icon icon-tag" style="width:14px;height:14px;"></span>
+        </div>
+        <div class="kp-list">
+          <div class="kp-item">
+            <div class="kp-icon">
+              <span class="icon icon-tag"></span>
+            </div>
+            <div class="kp-info">
+              <div class="kp-name">移项法则</div>
+              <div class="kp-mastery-bar">
+                <div class="kp-mastery-fill high"></div>
+              </div>
+            </div>
+            <span class="kp-pct">85%</span>
+          </div>
+          <div class="kp-item">
+            <div class="kp-icon">
+              <span class="icon icon-tag"></span>
+            </div>
+            <div class="kp-info">
+              <div class="kp-name">合并同类项</div>
+              <div class="kp-mastery-bar">
+                <div class="kp-mastery-fill medium"></div>
+              </div>
+            </div>
+            <span class="kp-pct">60%</span>
+          </div>
+          <div class="kp-item">
+            <div class="kp-icon">
+              <span class="icon icon-tag"></span>
+            </div>
+            <div class="kp-info">
+              <div class="kp-name">去括号</div>
+              <div class="kp-mastery-bar">
+                <div class="kp-mastery-fill low"></div>
+              </div>
+            </div>
+            <span class="kp-pct">35%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wrong Answer Book -->
+      <div class="panel-section" id="wrong-book">
+        <div class="panel-title">
+          <span>错题本</span>
+          <span class="icon icon-folder" style="width:14px;height:14px;"></span>
+        </div>
+        <div class="wrong-book-entry">
+          <div class="wrong-book-icon">
+            <span class="icon icon-folder-open"></span>
+          </div>
+          <div class="wrong-book-info">
+            <div class="wrong-book-title">历史错题</div>
+            <div class="wrong-book-count">共 12 道待复习</div>
+          </div>
+          <span class="icon icon-chevron-right wrong-book-arrow"></span>
+        </div>
+      </div>
+
+      <!-- Practice Stats -->
+      <div class="panel-section" id="practice-stats">
+        <div class="panel-title">
+          <span>本次练习统计</span>
+          <span class="icon icon-thumbs-up" style="width:14px;height:14px;"></span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-value accuracy">67%</div>
+            <div class="stat-card-label">正确率</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-value speed">1'47"</div>
+            <div class="stat-card-label">平均用时</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-value">2</div>
+            <div class="stat-card-label">已答对</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-value" style="color:var(--state-error);">1</div>
+            <div class="stat-card-label">已答错</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+
+</div>
+
+    <style>
+/* ===== Design Tokens: Apple (light) ===== */
+:root {
+  --apple-background: var(--background, #ffffff);
+  --apple-foreground: var(--foreground, #0f172a);
+  --apple-card: var(--card, var(--background));
+  --apple-card-foreground: var(--card-foreground, var(--foreground));
+  --apple-popover: var(--popover, var(--card));
+  --apple-popover-foreground: var(--popover-foreground, var(--card-foreground, var(--foreground)));
+  --apple-primary: var(--primary, #111827);
+  --apple-primary-foreground: var(--primary-foreground, #ffffff);
+  --apple-secondary: var(--secondary, var(--muted, var(--card)));
+  --apple-secondary-foreground: var(--secondary-foreground, var(--foreground));
+  --apple-muted: var(--muted, var(--card));
+  --apple-muted-foreground: var(--muted-foreground, var(--foreground));
+  --apple-accent: var(--accent, var(--secondary, var(--muted, var(--card))));
+  --apple-accent-foreground: var(--accent-foreground, var(--foreground));
+  --apple-destructive: var(--destructive, #ef4444);
+  --apple-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --apple-border: var(--border, currentColor);
+  --apple-input: var(--input, var(--border));
+  --apple-ring: var(--ring, var(--primary));
+  --apple-sidebar: var(--sidebar, var(--background));
+  --apple-sidebar-foreground: var(--sidebar-foreground, var(--foreground));
+  --apple-sidebar-primary: var(--sidebar-primary, var(--primary));
+  --apple-sidebar-primary-foreground: var(--sidebar-primary-foreground, var(--primary-foreground));
+  --apple-sidebar-accent: var(--sidebar-accent, var(--accent, var(--muted, var(--card))));
+  --apple-sidebar-accent-foreground: var(--sidebar-accent-foreground, var(--accent-foreground, var(--foreground)));
+
+  --brand-50: #e8f2ff;
+  --brand-100: #cfe5ff;
+  --brand-200: #9fcbff;
+  --brand-300: #66abff;
+  --brand-400: #2e8dff;
+  --brand-500: #007aff;
+  --brand-600: #0064d6;
+  --brand-700: #004fad;
+  --brand-800: #003b82;
+  --brand-900: #00275a;
+
+  --background-50: #ffffff;
+  --background-100: #f7f7fa;
+  --background-200: #f2f2f7;
+  --background-300: #e5e5ea;
+  --background-400: #d1d1d6;
+  --background-500: #aeaeb2;
+  --background-600: #8e8e93;
+  --background-700: #3a3a3c;
+  --background-800: #1c1c1e;
+  --background-900: #000000;
+
+  --text-50: #f5f5f7;
+  --text-100: #e3e3e8;
+  --text-200: #c7c7cc;
+  --text-300: #aeaeb2;
+  --text-400: #8e8e93;
+  --text-500: #6e6e73;
+  --text-600: #48484a;
+  --text-700: #3c3c43;
+  --text-800: #1d1d1f;
+  --text-900: #000000;
+
+  --icon-50: #f5f5f7;
+  --icon-100: #e5e5ea;
+  --icon-200: #d1d1d6;
+  --icon-300: #c7c7cc;
+  --icon-400: #aeaeb2;
+  --icon-500: #8e8e93;
+  --icon-600: #6e6e73;
+  --icon-700: #48484a;
+  --icon-800: #2c2c2e;
+  --icon-900: #1d1d1f;
+
+  --state-success: #34c759;
+  --state-success-dark: #30d158;
+  --state-success-surface: #e9f9ee;
+  --state-success-foreground: #ffffff;
+
+  --state-error: #ff3b30;
+  --state-error-dark: #ff453a;
+  --state-error-surface: #ffecea;
+  --state-error-foreground: #ffffff;
+
+  --background: var(--background-50);
+  --foreground: var(--text-800);
+  --card: var(--background-50);
+  --card-foreground: var(--text-800);
+  --popover: var(--background-50);
+  --popover-foreground: var(--text-900);
+
+  --primary: var(--brand-500);
+  --primary-foreground: var(--background-50);
+  --secondary: var(--background-200);
+  --secondary-foreground: var(--text-800);
+  --muted: var(--background-200);
+  --muted-foreground: var(--text-400);
+  --accent: var(--background-100);
+  --accent-foreground: var(--text-800);
+  --destructive: var(--state-error);
+  --destructive-foreground: var(--state-error-foreground);
+  --success: var(--state-success);
+  --success-foreground: var(--state-success-foreground);
+  --border: var(--background-300);
+  --input: var(--background-400);
+  --ring: var(--brand-500);
+
+  --icon: var(--icon-900);
+  --icon-muted: var(--icon-500);
+
+  --chart-1: var(--state-success);
+  --chart-2: var(--brand-500);
+  --chart-3: #ff9500;
+  --chart-4: #5856d6;
+  --chart-5: #af52de;
+
+  --sidebar: var(--background-200);
+  --sidebar-foreground: var(--text-800);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: var(--background-50);
+  --sidebar-accent: var(--background-300);
+  --sidebar-accent-foreground: var(--text-800);
+  --sidebar-border: var(--background-300);
+  --sidebar-ring: var(--brand-500);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Menlo", monospace;
+  --tracking-normal: 0em;
+
+  --radius: 1.2rem;
+  --radius-sm: 0.6rem;
+  --radius-lg: 1.6rem;
+
+  --shadow-2xs: 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.05);
+  --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 16px 40px -10px rgba(0, 0, 0, 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.06);
+
+  --spacing: 0.25rem;
+}
+
+/* ===== Reset & Base ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background-100);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Icon System (css-mask) ===== */
+.icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  flex-shrink: 0;
+}
+.icon-sm { width: 14px; height: 14px; }
+.icon-lg { width: 20px; height: 20px; }
+.icon-xl { width: 28px; height: 28px; }
+
+.icon-house { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/house.svg'); mask-image: url('../assets/icons/dl_builtin_apple/house.svg'); }
+.icon-message { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/message-circle-more.svg'); mask-image: url('../assets/icons/dl_builtin_apple/message-circle-more.svg'); }
+.icon-pen { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/pen-line.svg'); mask-image: url('../assets/icons/dl_builtin_apple/pen-line.svg'); }
+.icon-user { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/user.svg'); mask-image: url('../assets/icons/dl_builtin_apple/user.svg'); }
+.icon-check { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/check.svg'); mask-image: url('../assets/icons/dl_builtin_apple/check.svg'); }
+.icon-chevron-right { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/chevron-right.svg'); mask-image: url('../assets/icons/dl_builtin_apple/chevron-right.svg'); }
+.icon-chevron-down { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/chevron-down.svg'); mask-image: url('../assets/icons/dl_builtin_apple/chevron-down.svg'); }
+.icon-chevron-up { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/chevron-up.svg'); mask-image: url('../assets/icons/dl_builtin_apple/chevron-up.svg'); }
+.icon-send { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/send-horizontal.svg'); mask-image: url('../assets/icons/dl_builtin_apple/send-horizontal.svg'); }
+.icon-circle-check { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/circle-check.svg'); mask-image: url('../assets/icons/dl_builtin_apple/circle-check.svg'); }
+.icon-circle-alert { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/circle-alert.svg'); mask-image: url('../assets/icons/dl_builtin_apple/circle-alert.svg'); }
+.icon-circle-question { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/circle-question-mark.svg'); mask-image: url('../assets/icons/dl_builtin_apple/circle-question-mark.svg'); }
+.icon-star { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/star.svg'); mask-image: url('../assets/icons/dl_builtin_apple/star.svg'); }
+.icon-tag { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/tag.svg'); mask-image: url('../assets/icons/dl_builtin_apple/tag.svg'); }
+.icon-folder { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/folder.svg'); mask-image: url('../assets/icons/dl_builtin_apple/folder.svg'); }
+.icon-folder-open { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/folder-open.svg'); mask-image: url('../assets/icons/dl_builtin_apple/folder-open.svg'); }
+.icon-arrow-right { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/arrow-right.svg'); mask-image: url('../assets/icons/dl_builtin_apple/arrow-right.svg'); }
+.icon-lightbulb { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/circle-question-mark.svg'); mask-image: url('../assets/icons/dl_builtin_apple/circle-question-mark.svg'); }
+.icon-box { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/box.svg'); mask-image: url('../assets/icons/dl_builtin_apple/box.svg'); }
+.icon-thumbs-up { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/thumbs-up.svg'); mask-image: url('../assets/icons/dl_builtin_apple/thumbs-up.svg'); }
+.icon-thumbs-down { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/thumbs-down.svg'); mask-image: url('../assets/icons/dl_builtin_apple/thumbs-down.svg'); }
+.icon-play { -webkit-mask-image: url('../assets/icons/dl_builtin_apple/circle-play.svg'); mask-image: url('../assets/icons/dl_builtin_apple/circle-play.svg'); }
+
+/* ===== App Shell (Mac Window) ===== */
+.app-shell {
+  width: 1280px;
+  height: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===== Title Bar (Mac Traffic Lights) ===== */
+.title-bar {
+  height: 38px;
+  background: var(--background-200);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.traffic-lights {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0,0,0,0.1);
+}
+.traffic-light.red { background: #ff5f57; }
+.traffic-light.yellow { background: #febc2e; }
+.traffic-light.green { background: #28c840; }
+
+.title-bar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-600);
+}
+
+/* ===== Main Content Layout ===== */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 240px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.sidebar-header {
+  padding: 20px 16px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.app-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sidebar-foreground);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 8px;
+  overflow-y: auto;
+}
+
+.nav-section {
+  margin-bottom: 16px;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  letter-spacing: 0.08em;
+  padding: 0 8px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--sidebar-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  margin-bottom: 2px;
+}
+
+.nav-item:hover {
+  background: var(--sidebar-accent);
+}
+
+.nav-item.active {
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+}
+
+.nav-item .icon {
+  color: var(--icon-muted);
+}
+.nav-item.active .icon {
+  color: var(--sidebar-primary-foreground);
+}
+
+.nav-submenu {
+  margin-left: 26px;
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 1px;
+}
+
+.nav-subitem:hover {
+  color: var(--sidebar-foreground);
+  background: var(--sidebar-accent);
+}
+
+.nav-subitem.active {
+  color: var(--sidebar-primary);
+  font-weight: 600;
+}
+
+.nav-subitem-indicator {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sidebar-primary);
+  opacity: 0;
+}
+.nav-subitem.active .nav-subitem-indicator {
+  opacity: 1;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--chart-4), var(--chart-5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sidebar-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-level {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+
+/* ===== Center Content (Practice Area) ===== */
+.practice-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-100);
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ===== Progress Bar ===== */
+.progress-header {
+  padding: 20px 28px 16px;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.progress-title-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.practice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.practice-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.progress-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.stat-item strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.stat-item.timer {
+  color: var(--text-600);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: var(--background-200);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, var(--brand-400), var(--brand-500));
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* ===== Question Card Area ===== */
+.question-section {
+  flex: 1;
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.question-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-md);
+}
+
+.question-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.question-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--background-100);
+  color: var(--text-600);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.difficulty {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.difficulty .icon-star {
+  width: 14px;
+  height: 14px;
+  color: var(--chart-3);
+}
+.difficulty .icon-star.empty {
+  color: var(--background-300);
+}
+
+.question-number {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.question-text {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.4;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.question-math {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-700);
+  padding: 20px 24px;
+  background: var(--background-100);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.knowledge-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.k-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--state-success-surface);
+  color: #248a3d;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.k-tag .icon-tag {
+  width: 11px;
+  height: 11px;
+  opacity: 0.7;
+}
+
+/* ===== Answer Area ===== */
+.answer-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.answer-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.answer-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.answer-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1.5px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--background);
+  transition: all 0.18s ease;
+  box-shadow: var(--shadow-xs);
+}
+
+.answer-field:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.answer-prefix {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.answer-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.answer-input::placeholder {
+  color: var(--text-300);
+  font-weight: 400;
+}
+
+.math-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--background-100);
+  border-radius: 8px;
+}
+
+.math-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-600);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.math-btn:hover {
+  background: var(--background-200);
+  color: var(--foreground);
+}
+
+/* ===== Draft Area Toggle ===== */
+.draft-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  border: none;
+  background: transparent;
+  margin-bottom: 14px;
+}
+
+.draft-toggle:hover {
+  color: var(--primary);
+}
+
+.draft-area {
+  padding: 14px 16px;
+  background: var(--background-100);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  margin-bottom: 14px;
+  min-height: 60px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-500);
+  line-height: 1.6;
+}
+
+/* ===== Action Buttons ===== */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--foreground);
+  font: 600 13px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3);
+}
+
+.btn-primary:hover {
+  filter: brightness(0.95);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.btn-secondary:hover {
+  background: var(--muted);
+}
+
+.btn-hint {
+  background: var(--background-100);
+  color: var(--text-600);
+  border: 1px solid var(--border);
+}
+
+.btn-hint:hover {
+  background: var(--background-200);
+  color: var(--foreground);
+}
+
+.btn-submit {
+  margin-left: auto;
+}
+
+/* ===== Feedback Area ===== */
+.feedback-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.feedback-correct {
+  border-color: rgba(52, 199, 89, 0.3);
+  background: linear-gradient(135deg, var(--state-success-surface), var(--card));
+}
+
+.feedback-wrong {
+  border-color: rgba(255, 59, 48, 0.3);
+  background: linear-gradient(135deg, var(--state-error-surface), var(--card));
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.feedback-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feedback-icon.correct {
+  background: var(--state-success);
+  color: white;
+}
+
+.feedback-icon.wrong {
+  background: var(--state-error);
+  color: white;
+}
+
+.feedback-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.feedback-title.correct { color: #248a3d; }
+.feedback-title.wrong { color: #d70015; }
+
+.feedback-desc {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  margin-bottom: 14px;
+}
+
+.socratic-question {
+  background: var(--background);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border-left: 3px solid var(--primary);
+  font-size: 13px;
+  color: var(--text-700);
+  line-height: 1.5;
+}
+
+.socratic-question strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+/* ===== Hint Levels (shown as expanded) ===== */
+.hint-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.hint-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hint-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint-level {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--background-100);
+  border: 1px solid var(--border);
+}
+
+.hint-level-badge {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--background-200);
+  color: var(--text-500);
+}
+
+.hint-level.active .hint-level-badge {
+  background: var(--primary);
+  color: white;
+}
+
+.hint-level-content {
+  flex: 1;
+}
+
+.hint-level-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-600);
+  margin-bottom: 3px;
+}
+
+.hint-level.active .hint-level-label {
+  color: var(--foreground);
+}
+
+.hint-level-text {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.hint-level.active .hint-level-text {
+  color: var(--text-600);
+}
+
+.hint-level.locked .hint-level-text {
+  color: var(--text-300);
+  font-style: italic;
+}
+
+/* ===== Right Panel ===== */
+.right-panel {
+  width: 280px;
+  background: var(--sidebar);
+  border-left: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow-y: auto;
+}
+
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title .icon {
+  color: var(--icon-muted);
+}
+
+/* ===== Question Navigation Grid ===== */
+.question-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.q-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1.5px solid transparent;
+}
+
+.q-cell.unanswered {
+  background: var(--background);
+  color: var(--text-500);
+  border-color: var(--border);
+}
+
+.q-cell.unanswered:hover {
+  border-color: var(--text-400);
+  color: var(--foreground);
+}
+
+.q-cell.current {
+  background: var(--background);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.q-cell.correct {
+  background: var(--state-success);
+  color: white;
+  border-color: var(--state-success);
+}
+
+.q-cell.wrong {
+  background: var(--state-error);
+  color: white;
+  border-color: var(--state-error);
+}
+
+.q-cell .icon-check {
+  width: 12px;
+  height: 12px;
+}
+
+/* ===== Knowledge Points ===== */
+.kp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.kp-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--brand-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-500);
+  flex-shrink: 0;
+}
+
+.kp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.kp-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 3px;
+}
+
+.kp-mastery-bar {
+  height: 4px;
+  background: var(--background-200);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.kp-mastery-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.kp-mastery-fill.high { background: var(--state-success); width: 85%; }
+.kp-mastery-fill.medium { background: var(--chart-3); width: 60%; }
+.kp-mastery-fill.low { background: var(--state-error); width: 35%; }
+
+.kp-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+
+/* ===== Wrong Answer Book Entry ===== */
+.wrong-book-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wrong-book-entry:hover {
+  border-color: var(--primary);
+  background: var(--brand-50);
+}
+
+.wrong-book-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--state-error-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--state-error);
+  flex-shrink: 0;
+}
+
+.wrong-book-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.wrong-book-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.wrong-book-count {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.wrong-book-arrow {
+  color: var(--icon-muted);
+}
+
+/* ===== Practice Stats ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-card {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.stat-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 2px;
+}
+
+.stat-card-label {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.stat-card-value.accuracy { color: var(--state-success); }
+.stat-card-value.speed { color: var(--primary); }
+
+/* ===== Utility ===== */
+.spacer { flex: 1; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--background-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--background-400);
+}
+</style>
+</body>
+</html>

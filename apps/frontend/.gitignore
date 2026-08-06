@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+.DS_Store
+.env
+.env.local
+*.log
+icon.iconset/
+icon_source.png
+resources/backend/askora-backend

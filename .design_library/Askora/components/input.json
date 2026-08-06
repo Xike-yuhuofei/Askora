@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "slug": "input",
+  "name": "Input",
+  "category": "Forms",
+  "sourceKind": "from-scratch",
+  "confidence": "high",
+  "semanticTypeCandidates": [
+    { "type": "input", "evidence": "Text input field for search and forms" },
+    { "type": "textarea", "evidence": "Multi-line chat input with auto-grow" }
+  ],
+  "variantDimensions": {
+    "type": ["text", "search", "textarea"],
+    "size": ["sm", "md", "lg"],
+    "state": ["default", "focus", "disabled", "error"],
+    "withIcon": ["none", "leading", "trailing", "both"]
+  },
+  "representativeVariants": [
+    {
+      "name": "Chat Input",
+      "whySelected": "Primary chat message input with auto-grow and send button",
+      "traits": { "type": "textarea", "size": "lg", "state": "default", "withIcon": "both" },
+      "childrenDigest": "Attachment icon left + multi-line text area + send button right, rounded pill shape, min 48px height"
+    },
+    {
+      "name": "Search Input",
+      "whySelected": "Sidebar search for conversations and knowledge base",
+      "traits": { "type": "search", "size": "md", "state": "default", "withIcon": "leading" },
+      "childrenDigest": "Search icon + placeholder text, rounded pill, 40px height, subtle background"
+    },
+    {
+      "name": "Text Input MD",
+      "whySelected": "Standard form input for settings and dialogs",
+      "traits": { "type": "text", "size": "md", "state": "default", "withIcon": "none" },
+      "childrenDigest": "Label + input field + helper text, 40px height, rounded corners, bordered"
+    },
+    {
+      "name": "Text Input Error",
+      "whySelected": "Error state for form validation",
+      "traits": { "type": "text", "size": "md", "state": "error", "withIcon": "trailing" },
+      "childrenDigest": "Input field with red border + error icon + error message text below"
+    }
+  ],
+  "anatomy": ["Label (optional)", "Container", "Leading Icon (optional)", "Input Field", "Trailing Icon/Button (optional)", "Helper Text (optional)", "Error Text (state)"],
+  "structurePatterns": [
+    "Chat textarea auto-grows up to max height then scrolls",
+    "Search inputs use pill shape with subtle background fill",
+    "Form inputs use bordered style with clear focus ring"
+  ],
+  "usageHints": {
+    "chat": "Primary message composition at bottom of chat canvas",
+    "search": "Sidebar and modal search fields",
+    "text": "Standard form inputs in settings and dialogs"
+  },
+  "doNotInvent": ["Rich text editor toolbar", "Code block editor", "File upload drag-and-drop zone"],
+  "unknowns": ["Chat input max height before scroll", "Auto-suggest dropdown behavior"],
+  "keyInsightSeed": "Chat-optimized input with send button, attachment support, and growing text area for multi-line messages"
+}

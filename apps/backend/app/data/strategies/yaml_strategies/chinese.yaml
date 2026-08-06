@@ -1,0 +1,66 @@
+# 语文策略配置
+strategies:
+  - id: "yaml_chinese_reading_analysis"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "reading_comprehension"
+    name: "语文文本分析"
+    description: "引导学生分析文本的写作手法和主题"
+    prompt_template: "学生学习语文阅读。引导分析：{concept}\n提问：这段文字用了什么修辞手法？作者想表达的核心情感是什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_chinese_writing_outline"
+    level_1_goal: "planning"
+    level_2_skill: "strategy_selection"
+    level_3_context: "essay_writing"
+    name: "语文写作构思"
+    description: "引导学生进行议论文结构构思"
+    prompt_template: "学生进行写作。引导构思：{concept}\n提问：你的文章打算从哪几个角度来论证中心论点？每个部分用什么论据？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_chinese_classical_meaning"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "classical_chinese"
+    name: "文言文字词理解"
+    description: "引导学生理解文言文关键字词"
+    prompt_template: "学生学习文言文。引导理解：{concept}\n提问：这里的'之'是什么意思？它的用法有哪些？能举例说明吗？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_chinese_appreciation"
+    level_1_goal: "core_guidance"
+    level_2_skill: "guided_discovery"
+    level_3_context: "reading_comprehension"
+    name: "语文鉴赏引导"
+    description: "引导学生鉴赏文学作品的美"
+    prompt_template: "引导鉴赏：{concept}\n提问：读完这首诗，你感受到了什么样的意境？哪些词语特别打动你？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_chinese_self_explain"
+    level_1_goal: "core_guidance"
+    level_2_skill: "self_explanation"
+    level_3_context: "reading_comprehension"
+    name: "语文自我解释"
+    description: "要求学生解释语文理解"
+    prompt_template: "学生答对了语文阅读题。要求解释：\n提问：你能说说你是从哪里找到答案的吗？这个答案的依据是什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true

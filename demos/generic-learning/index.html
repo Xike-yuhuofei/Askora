@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>苏格拉底导学 · 通用学习工具</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --cold:#22d3ee; --hot:#fbbf24; }
+  html,body{ height:100%; }
+  body{
+    font-family:'Noto Sans SC',system-ui,sans-serif;
+    background:#070b16;
+    color:#e2e8f0;
+    background-image:
+      radial-gradient(900px 400px at 10% -10%, rgba(34,211,238,.09), transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, rgba(251,191,36,.08), transparent 60%),
+      linear-gradient(rgba(148,163,184,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.04) 1px, transparent 1px);
+    background-size:auto,auto,44px 44px,44px 44px;
+  }
+  .font-display{ font-family:'Noto Serif SC',serif; }
+  .glass{ background:rgba(15,23,42,.72); backdrop-filter:blur(10px); border:1px solid rgba(148,163,184,.14); }
+  .msg{ animation:fadeUp .38s ease both; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+  .bubble-tutor{
+    background:linear-gradient(160deg,#111a30,#0d1424);
+    border:1px solid rgba(34,211,238,.22);
+    box-shadow:0 4px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .bubble-user{
+    background:linear-gradient(135deg,#3b2a10,#241a08);
+    border:1px solid rgba(251,191,36,.3);
+  }
+  .bubble-summary{
+    background:linear-gradient(160deg,#101c2e,#0b1422);
+    border:1px solid rgba(251,191,36,.35);
+    box-shadow:0 0 40px rgba(251,191,36,.06);
+  }
+  .chip{
+    border:1px solid rgba(103,232,249,.35); color:#a5f3fc;
+    transition:all .15s ease;
+  }
+  .chip:hover{ background:rgba(34,211,238,.15); transform:translateY(-1px); }
+  .dots span{ width:7px;height:7px;border-radius:50%;background:#67e8f9;display:inline-block;margin-right:5px;animation:blink 1.1s infinite; }
+  .dots span:nth-child(2){ animation-delay:.18s; }
+  .dots span:nth-child(3){ animation-delay:.36s; }
+  @keyframes blink{ 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+  .draw{ stroke-dasharray:640; stroke-dashoffset:640; animation:draw 2.6s ease forwards .4s; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  .rail-node{ transition:all .2s ease; cursor:default; }
+  .rail-node.done{ color:#94a3b8; }
+  .rail-node.done::before{ content:'✓ '; color:#34d399; }
+  .rail-node.current{ color:#fbbf24; border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.07); }
+  .rail-node.current::before{ content:'▸ '; }
+  .progbar{ transition:width .6s cubic-bezier(.4,0,.2,1); }
+  .scroll-thin::-webkit-scrollbar{ width:6px; }
+  .scroll-thin::-webkit-scrollbar-thumb{ background:rgba(148,163,184,.25); border-radius:8px; }
+  .scroll-thin::-webkit-scrollbar-track{ background:transparent; }
+  textarea{ resize:none; }
+  textarea:focus{ outline:none; }
+  input, textarea, select { font-family:inherit; }
+
+  /* 导航标签 */
+  .nav-tab{
+    padding:6px 14px;
+    border-radius:8px;
+    font-size:13px;
+    color:#94a3b8;
+    cursor:pointer;
+    transition:all .15s;
+    white-space:nowrap;
+  }
+  .nav-tab:hover{ color:#e2e8f0; background:rgba(148,163,184,.1); }
+  .nav-tab.active{ color:#fbbf24; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); }
+
+  /* 脚本卡片 */
+  .script-card{
+    border:1px solid rgba(148,163,184,.2);
+    background:rgba(15,23,42,.6);
+    transition:all .2s ease;
+    cursor:pointer;
+  }
+  .script-card:hover{
+    border-color:rgba(34,211,238,.5);
+    background:rgba(34,211,238,.08);
+    transform:translateY(-2px);
+  }
+
+  /* 弹窗 */
+  .modal-backdrop{
+    background:rgba(0,0,0,.6);
+    backdrop-filter:blur(4px);
+  }
+
+  /* 编辑器样式 */
+  .editor-pane{ background:rgba(15,23,42,.6); border:1px solid rgba(148,163,184,.15); }
+  .editor-item{
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:all .15s;
+    border:1px solid transparent;
+    font-size:13px;
+  }
+  .editor-item:hover{ background:rgba(148,163,184,.08); }
+  .editor-item.active{
+    background:rgba(34,211,238,.1);
+    border-color:rgba(34,211,238,.4);
+    color:#67e8f9;
+  }
+  .editor-item.summary-item{
+    background:rgba(251,191,36,.05);
+    border:1px solid rgba(251,191,36,.15);
+  }
+  .editor-item.summary-item.active{
+    background:rgba(251,191,36,.12);
+    border-color:rgba(251,191,36,.5);
+    color:#fcd34d;
+  }
+  .field-label{
+    font-size:11px;
+    color:#94a3b8;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    margin-bottom:4px;
+    font-weight:500;
+  }
+  .field-input{
+    width:100%;
+    background:rgba(15,23,42,.8);
+    border:1px solid rgba(148,163,184,.2);
+    border-radius:8px;
+    padding:8px 10px;
+    color:#e2e8f0;
+    font-size:13px;
+    transition:border-color .15s;
+  }
+  .field-input:focus{ border-color:rgba(34,211,238,.5); outline:none; }
+  .field-textarea{
+    width:100%;
+    background:rgba(15,23,42,.8);
+    border:1px solid rgba(148,163,184,.2);
+    border-radius:8px;
+    padding:8px 10px;
+    color:#e2e8f0;
+    font-size:13px;
+    min-height:80px;
+    line-height:1.6;
+    transition:border-color .15s;
+    resize:vertical;
+  }
+  .field-textarea:focus{ border-color:rgba(34,211,238,.5); outline:none; }
+  .btn-sm{
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:500;
+    cursor:pointer;
+    transition:all .15s;
+    border:1px solid rgba(148,163,184,.3);
+    background:transparent;
+    color:#cbd5e1;
+  }
+  .btn-sm:hover{ border-color:rgba(34,211,238,.5); color:#67e8f9; }
+  .btn-sm.primary{
+    background:linear-gradient(135deg,#fbbf24,#f59e0b);
+    color:#0f172a;
+    border:none;
+    font-weight:600;
+  }
+  .btn-sm.danger:hover{ border-color:rgba(248,113,113,.5); color:#fca5a5; }
+  .tag-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    padding:3px 8px;
+    border-radius:999px;
+    font-size:11px;
+    background:rgba(34,211,238,.1);
+    border:1px solid rgba(34,211,238,.3);
+    color:#67e8f9;
+  }
+  .tag-chip button{
+    background:none; border:none; color:inherit; cursor:pointer; font-size:14px; line-height:1; }
+
+  /* 拖拽 */
+  .dragging{ opacity:.4; }
+  .drag-over{ border-top:2px solid #22d3ee !important; }
+
+  /* AI 生成动画 */
+  .ai-loading-bar{
+    height:3px;
+    background:linear-gradient(90deg,transparent,#22d3ee,transparent);
+    background-size:200% 100%;
+    animation:aiShimmer 1.5s linear infinite;
+  }
+  @keyframes aiShimmer{
+    0%{ background-position:200% 0; }
+    100%{ background-position:-200% 0; }
+  }
+
+  /* 记录页 */
+  .record-card{
+    border:1px solid rgba(148,163,184,.15);
+    background:rgba(15,23,42,.4);
+    border-radius:12px;
+    padding:16px;
+    transition:all .15s;
+  }
+  .record-card:hover{ border-color:rgba(34,211,238,.3); }
+
+  /* 隐藏文件输入 */
+  #fileInput{ display:none; }
+
+  /* 视图切换 */
+  .view{ display:none; }
+  .view.active{ display:flex; }
+
+  /* 阶段折叠 */
+  .stage-group-header{
+    padding:8px 12px;
+    font-size:12px;
+    font-weight:600;
+    color:#cbd5e1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-radius:6px;
+  }
+  .stage-group-header:hover{ background:rgba(148,163,184,.06); }
+  .stage-group-content{ padding-left:8px; }
+
+  /* 错误标记 */
+  .wrong-badge{
+    display:inline-block;
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:10px;
+    font-weight:600;
+    background:rgba(248,113,113,.15);
+    color:#fca5a5;
+    border:1px solid rgba(248,113,113,.3);
+  }
+</style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+<!-- ============ 头部导航 ============ -->
+<header class="glass border-b border-slate-700/40 shrink-0 z-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-4">
+    <div id="headerIcon" class="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0"
+         style="background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(251,191,36,.25)); border:1px solid rgba(148,163,184,.3);">🎓</div>
+    <div class="min-w-0 flex-1">
+      <h1 id="headerTitle" class="font-display font-bold text-base text-slate-100 truncate">苏格拉底导学</h1>
+      <p id="headerDesc" class="text-[11px] text-slate-400 truncate">通用学习工具 · AI 生成 · 自定义脚本</p>
+    </div>
+    <!-- 导航标签 -->
+    <nav class="hidden sm:flex items-center gap-1">
+      <div class="nav-tab active" data-view="learn" onclick="switchView('learn')">📖 学习</div>
+      <div class="nav-tab" data-view="editor" onclick="switchView('editor')">✏️ 编辑</div>
+      <div class="nav-tab" data-view="records" onclick="switchView('records')">📊 记录</div>
+    </nav>
+    <div class="flex items-center gap-2 shrink-0">
+      <button onclick="openScriptPicker()" class="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition">📚 课程库</button>
+      <button onclick="openAIGenerator()" class="text-xs px-3 py-1.5 rounded-lg font-bold text-slate-900 transition"
+        style="background:linear-gradient(135deg,#22d3ee,#06b6d4); box-shadow:0 2px 10px rgba(34,211,238,.2);">✨ AI 生成</button>
+    </div>
+  </div>
+  <div class="h-1 bg-slate-800/80">
+    <div id="progbar" class="progbar h-full" style="width:0%; background:linear-gradient(90deg,#22d3ee,#fbbf24);"></div>
+  </div>
+</header>
+
+<!-- ============ 学习视图 ============ -->
+<div id="view-learn" class="view active flex-1 min-h-0 flex max-w-7xl mx-auto w-full">
+  <!-- 左：学习路径 -->
+  <aside class="hidden lg:block w-72 shrink-0 border-r border-slate-800/70 overflow-y-auto scroll-thin p-4">
+    <div class="text-xs font-bold text-slate-400 tracking-widest mb-3">🧭 推导路径</div>
+    <div id="rail"></div>
+    <div class="mt-6 text-[11px] leading-5 text-slate-500 border border-slate-700/50 rounded-lg p-3 bg-slate-900/40">
+      💡 <b class="text-slate-300">导学约定</b><br>
+      答错不要紧——导师会换角度追问，引导你自己发现错误。<br><br>
+      <span class="text-amber-300/90">🏁 里程碑小结</span> 会在关键节点帮你梳理已推导的逻辑链。
+    </div>
+  </aside>
+  <!-- 右：对话区 -->
+  <main class="flex-1 min-w-0 flex flex-col">
+    <div id="learnEmpty" class="flex-1 flex items-center justify-center p-6">
+      <div class="max-w-lg w-full text-center">
+        <div class="text-5xl mb-4">🎓</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-2">苏格拉底导学</h2>
+        <p class="text-slate-400 text-sm mb-6">一问一答 · 循循善诱 · 让结论从你的口中生长出来</p>
+        <div class="space-y-3">
+          <button onclick="openScriptPicker()" class="w-full py-3 rounded-xl font-bold text-slate-900 transition"
+            style="background:linear-gradient(135deg,#fbbf24,#f59e0b); box-shadow:0 4px 18px rgba(251,191,36,.25);">
+            📚 从课程库选择
+          </button>
+          <button onclick="openAIGenerator()" class="w-full py-3 rounded-xl font-bold text-slate-900 transition"
+            style="background:linear-gradient(135deg,#22d3ee,#06b6d4); box-shadow:0 4px 18px rgba(34,211,238,.2);">
+            ✨ AI 生成新知识点
+          </button>
+          <button onclick="document.getElementById('fileInput').click()" class="w-full py-3 rounded-xl font-medium text-slate-300 border border-slate-600 hover:border-cyan-400 hover:text-cyan-300 transition bg-slate-900/50">
+            📂 导入本地脚本 (JSON)
+          </button>
+          <input type="file" id="fileInput" accept=".json,application/json" onchange="handleFileImport(event)">
+        </div>
+      </div>
+    </div>
+    <div id="chat" class="hidden flex-1 overflow-y-auto scroll-thin px-4 sm:px-6 py-6 space-y-5"></div>
+    <div id="inputArea" class="hidden shrink-0 border-t border-slate-800/70 glass px-4 sm:px-6 py-3">
+      <div id="chips" class="flex flex-wrap gap-2 mb-2 min-h-[0px]"></div>
+      <div class="flex items-end gap-2">
+        <button id="hintBtn" onclick="showHint()" class="shrink-0 text-xs px-3 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition">💡 提示</button>
+        <textarea id="input" rows="1" placeholder="写下你的思考与理由，按 Enter 发送……"
+          class="flex-1 bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-cyan-500/60 transition max-h-28"></textarea>
+        <button id="sendBtn" onclick="send()" class="shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold text-slate-900 transition"
+          style="background:linear-gradient(135deg,#fbbf24,#f59e0b); box-shadow:0 4px 18px rgba(251,191,36,.25);">发送 ➤</button>
+      </div>
+      <div class="text-[10px] text-slate-600 mt-2 text-center">答错时导师不会直接给答案，而是用追问引导你自我纠正 · 实在卡住可点「💡 提示」</div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ 编辑器视图 ============ -->
+<div id="view-editor" class="view flex-1 min-h-0 max-w-7xl mx-auto w-full">
+  <div class="h-full flex">
+    <!-- 左：节点列表 -->
+    <div class="w-72 shrink-0 border-r border-slate-800/70 flex flex-col">
+      <div class="p-3 border-b border-slate-800/70 flex items-center justify-between">
+        <div class="text-sm font-bold text-slate-200">📝 脚本结构</div>
+        <div class="flex gap-1">
+          <button onclick="editorAddStage()" class="btn-sm !py-1 !px-2 text-xs">+阶段</button>
+          <button onclick="editorAddQuestion()" class="btn-sm !py-1 !px-2 text-xs">+问题</button>
+        </div>
+      </div>
+      <div id="editorNodeList" class="flex-1 overflow-y-auto scroll-thin p-2 space-y-2">
+        <div class="text-center text-slate-500 text-sm py-8">先加载或生成一个脚本</div>
+      </div>
+    </div>
+    <!-- 中：属性编辑 -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <div class="p-3 border-b border-slate-800/70 flex items-center justify-between">
+        <div class="text-sm font-bold text-slate-200" id="editorPanelTitle">属性编辑</div>
+        <div class="flex gap-2">
+          <button onclick="editorPreview()" class="btn-sm !py-1 text-xs">👁️ 预览</button>
+          <button onclick="editorExport()" class="btn-sm !py-1 text-xs">📤 导出</button>
+          <button onclick="editorSaveToLibrary()" class="btn-sm primary !py-1 text-xs">💾 保存到库</button>
+        </div>
+      </div>
+      <div id="editorPanel" class="flex-1 overflow-y-auto scroll-thin p-4">
+        <div class="text-center text-slate-500 text-sm py-12">选择左侧节点开始编辑</div>
+      </div>
+    </div>
+    <!-- 右：预览（可折叠） -->
+    <div id="editorPreview" class="hidden w-96 shrink-0 border-l border-slate-800/70 flex flex-col">
+      <div class="p-3 border-b border-slate-800/70 flex items-center justify-between">
+        <div class="text-sm font-bold text-slate-200">👁️ 实时预览</div>
+        <button onclick="closePreview()" class="text-slate-400 hover:text-slate-200 text-sm">×</button>
+      </div>
+      <div id="editorPreviewContent" class="flex-1 overflow-y-auto scroll-thin p-4 bg-slate-950/40">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 学习记录视图 ============ -->
+<div id="view-records" class="view flex-1 min-h-0 max-w-7xl mx-auto w-full overflow-y-auto scroll-thin">
+  <div class="p-6">
+    <!-- 统计概览 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div class="record-card">
+        <div class="text-2xl font-bold text-cyan-300" id="statTotalScripts">0</div>
+        <div class="text-xs text-slate-400 mt-1">已学课程</div>
+      </div>
+      <div class="record-card">
+        <div class="text-2xl font-bold text-amber-300" id="statTotalQuestions">0</div>
+        <div class="text-xs text-slate-400 mt-1">答题总数</div>
+      </div>
+      <div class="record-card">
+        <div class="text-2xl font-bold text-emerald-300" id="statAccuracy">0%</div>
+        <div class="text-xs text-slate-400 mt-1">正确率</div>
+      </div>
+      <div class="record-card">
+        <div class="text-2xl font-bold text-rose-300" id="statWrongCount">0</div>
+        <div class="text-xs text-slate-400 mt-1">错题数</div>
+      </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="flex gap-2 mb-4 border-b border-slate-800 pb-0">
+      <button class="records-tab active px-4 py-2 text-sm font-medium text-amber-300 border-b-2 border-amber-400 -mb-px" data-tab="history" onclick="switchRecordsTab('history')">📚 学习历史</button>
+      <button class="records-tab px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200" data-tab="wrong" onclick="switchRecordsTab('wrong')">❌ 错题本</button>
+    </div>
+
+    <!-- 学习历史 -->
+    <div id="recordsHistory" class="space-y-3">
+      <div class="text-center text-slate-500 text-sm py-12">暂无学习记录，快去开始你的第一门课吧！</div>
+    </div>
+
+    <!-- 错题本 -->
+    <div id="recordsWrong" class="hidden space-y-3">
+      <div class="text-center text-slate-500 text-sm py-12">还没有错题，继续加油！</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 课程库弹窗 ============ -->
+<div id="scriptModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="glass rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-slate-700/60">
+    <div class="px-6 py-4 border-b border-slate-700/60 flex items-center justify-between">
+      <h3 class="font-display font-bold text-lg text-slate-100">📚 课程库</h3>
+      <button onclick="closeScriptPicker()" class="text-slate-400 hover:text-slate-200 text-xl leading-none">×</button>
+    </div>
+    <div class="px-4 pt-3 flex gap-2 border-b border-slate-700/60 pb-0">
+      <button class="lib-tab active px-3 py-2 text-xs font-medium text-amber-300 border-b-2 border-amber-400 -mb-px" data-lib="builtin" onclick="switchLibTab('builtin')">内置课程</button>
+      <button class="lib-tab px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-200" data-lib="local" onclick="switchLibTab('local')">我的课程</button>
+    </div>
+    <div id="scriptList" class="flex-1 overflow-y-auto scroll-thin p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+    </div>
+    <div class="px-6 py-3 border-t border-slate-700/60 flex items-center justify-between">
+      <button onclick="document.getElementById('fileInput').click(); closeScriptPicker();" class="text-xs text-cyan-300 hover:text-cyan-200">📂 导入本地 JSON</button>
+      <button onclick="closeScriptPicker(); openAIGenerator();" class="text-xs px-3 py-1.5 rounded-lg font-bold text-slate-900"
+        style="background:linear-gradient(135deg,#22d3ee,#06b6d4);">✨ 用 AI 生成新课</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AI 生成弹窗 ============ -->
+<div id="aiModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="glass rounded-2xl w-full max-w-xl border border-slate-700/60">
+    <div class="px-6 py-4 border-b border-slate-700/60 flex items-center justify-between">
+      <h3 class="font-display font-bold text-lg text-slate-100">✨ AI 生成导学脚本</h3>
+      <button onclick="closeAIGenerator()" class="text-slate-400 hover:text-slate-200 text-xl leading-none">×</button>
+    </div>
+    <div class="p-6">
+      <div class="mb-4">
+        <label class="field-label">想学什么知识点？</label>
+        <input id="aiTopic" type="text" class="field-input" placeholder="例如：光合作用、微积分、区块链、经济学供需模型…">
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="field-label">难度等级</label>
+          <select id="aiLevel" class="field-input">
+            <option value="beginner">入门（零基础）</option>
+            <option value="intermediate" selected>中级（有基础）</option>
+            <option value="advanced">进阶（深入探究）</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">阶段数量</label>
+          <select id="aiStages" class="field-input">
+            <option value="3">3 个阶段</option>
+            <option value="4" selected>4 个阶段</option>
+            <option value="5">5 个阶段</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="field-label">API 设置</label>
+        <div class="flex gap-2">
+          <input id="apiKey" type="password" class="field-input flex-1" placeholder="DeepSeek API Key">
+          <select id="apiModel" class="field-input w-36">
+            <option value="deepseek-chat">deepseek-chat</option>
+            <option value="deepseek-reasoner">deepseek-reasoner</option>
+          </select>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-1">API Key 仅保存在本地浏览器中，不会上传到任何服务器</p>
+      </div>
+      <button id="aiGenerateBtn" onclick="generateScript()" class="w-full py-3 rounded-xl font-bold text-slate-900 transition"
+        style="background:linear-gradient(135deg,#22d3ee,#06b6d4); box-shadow:0 4px 18px rgba(34,211,238,.25);">
+        🚀 开始生成
+      </button>
+    </div>
+    <!-- 生成进度 -->
+    <div id="aiProgress" class="hidden">
+      <div class="ai-loading-bar"></div>
+      <div class="px-6 py-4">
+        <div class="text-sm text-cyan-300 mb-2" id="aiProgressText">正在生成中…</div>
+        <div class="text-[11px] text-slate-500">AI 正在精心设计苏格拉底式提问链，请稍候</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   苏格拉底导学 · 通用学习工具
+   模块：Storage / JudgeEngine / LearnEngine / AIGenerator / Editor / Records
+   ============================================================ */
+
+// ============================================================
+//  1. 存储模块（localStorage 封装）
+// ============================================================
+const Storage = {
+  KEYS: {
+    LIBRARY: 'socratic_library',    // 我的课程库
+    RECORDS: 'socratic_records',    // 学习记录
+    WRONG: 'socratic_wrong',        // 错题本
+    PROGRESS: 'socratic_progress',  // 各脚本学习进度
+    API_KEY: 'socratic_api_key',    // API Key
+    API_MODEL: 'socratic_api_model' // API 模型
+  },
+
+  get(key, def=null) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : def;
+    } catch(e) { return def; }
+  },
+
+  set(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+  },
+
+  // --- 课程库 ---
+  getLibrary() { return this.get(this.KEYS.LIBRARY, []); },
+  saveToLibrary(script) {
+    const lib = this.getLibrary();
+    const id = 'local_' + Date.now();
+    lib.unshift({ id, meta: script.meta, script, createdAt: Date.now() });
+    this.set(this.KEYS.LIBRARY, lib);
+    return id;
+  },
+  removeFromLibrary(id) {
+    const lib = this.getLibrary().filter(s => s.id !== id);
+    this.set(this.KEYS.LIBRARY, lib);
+  },
+  getFromLibrary(id) {
+    return this.getLibrary().find(s => s.id === id);
+  },
+
+  // --- 学习记录 ---
+  getRecords() { return this.get(this.KEYS.RECORDS, []); },
+  addRecord(record) {
+    const records = this.getRecords();
+    records.unshift(record);
+    this.set(this.KEYS.RECORDS, records.slice(0, 100)); // 最多保留100条
+  },
+
+  // --- 错题本 ---
+  getWrongBook() { return this.get(this.KEYS.WRONG, []); },
+  addWrongItem(item) {
+    const wrong = this.getWrongBook();
+    // 去重：同一脚本同一问题只保留最新
+    const filtered = wrong.filter(w => !(w.scriptId === item.scriptId && w.nodeId === item.nodeId));
+    filtered.unshift(item);
+    this.set(this.KEYS.WRONG, filtered.slice(0, 200));
+  },
+  clearWrongItem(scriptId, nodeId) {
+    const wrong = this.getWrongBook().filter(w => !(w.scriptId === scriptId && w.nodeId === nodeId));
+    this.set(this.KEYS.WRONG, wrong);
+  },
+
+  // --- 进度 ---
+  getProgress(scriptId) {
+    const all = this.get(this.KEYS.PROGRESS, {});
+    return all[scriptId] || null;
+  },
+  saveProgress(scriptId, progress) {
+    const all = this.get(this.KEYS.PROGRESS, {});
+    all[scriptId] = { ...progress, updatedAt: Date.now() };
+    this.set(this.KEYS.PROGRESS, all);
+  }
+};
+
+// ============================================================
+//  2. 判断引擎
+// ============================================================
+const JudgeEngine = {
+  judge(node, text) {
+    const j = node.judge || { mode: 'always' };
+    const t = text.trim();
+    switch (j.mode) {
+      case 'keyword': return this.keyword(t, j);
+      case 'compound': return this.compound(t, j);
+      case 'multi-dim': return this.multiDim(t, j);
+      case 'always': return { v: 'c' };
+      default: return { v: 'h' };
+    }
+  },
+
+  keyword(t, j) {
+    const correct = (j.correctKeywords || []).some(kw => t.includes(kw));
+    const hasWrong = (j.wrongKeywords || []).some(kw => t.includes(kw));
+    if (correct && !hasWrong) return { v: 'c' };
+    return { v: 'h' };
+  },
+
+  compound(t, j) {
+    const groups = j.groups || [];
+    const wrongKws = j.wrongKeywords || [];
+    const hasWrong = wrongKws.some(kw => t.includes(kw));
+    if (hasWrong) return { v: 'h' };
+    const matchedGroups = groups.filter(g => (g.keywords || []).some(kw => t.includes(kw)));
+    if (j.allGroupsRequired) {
+      return matchedGroups.length === groups.length ? { v: 'c' } : { v: 'h' };
+    }
+    return matchedGroups.length > 0 ? { v: 'c' } : { v: 'h' };
+  },
+
+  multiDim(t, j) {
+    const dims = j.dimensions || [];
+    const matched = [];
+    dims.forEach(dim => {
+      if ((dim.keywords || []).some(kw => t.includes(kw))) matched.push(dim.label);
+    });
+    const correctThreshold = j.correctThreshold || dims.length;
+    const partialThreshold = j.partialThreshold || 1;
+    if (matched.length >= correctThreshold) return { v: 'c', matched };
+    if (matched.length >= partialThreshold) return { v: 'p', matched };
+    return { v: 'h', matched };
+  },
+
+  extractFirstMatch(node, t) {
+    const j = node.judge;
+    if (!j || j.mode !== 'multi-dim') return '';
+    const dims = j.dimensions || [];
+    for (const dim of dims) {
+      if ((dim.keywords || []).some(kw => t.includes(kw))) return dim.label;
+    }
+    return '';
+  }
+};
+
+// ============================================================
+//  3. 学习引擎
+// ============================================================
+const LearnEngine = {
+  script: null,
+  scriptId: null,
+  idx: 0,
+  wrong: 0,
+  hintsUsed: 0,
+  revealed: false,
+  busy: false,
+  completed: new Set(),
+  stats: { correct: 0, wrong: 0, hints: 0 },
+
+  load(script, scriptId='builtin') {
+    this.script = script;
+    this.scriptId = scriptId;
+    this.idx = 0;
+    this.wrong = 0;
+    this.hintsUsed = 0;
+    this.revealed = false;
+    this.busy = false;
+    this.completed = new Set();
+    this.stats = { correct: 0, wrong: 0, hints: 0 };
+
+    // 尝试恢复进度
+    const saved = Storage.getProgress(scriptId);
+    if (saved && saved.completed && saved.completed.length > 0) {
+      saved.completed.forEach(id => this.completed.add(id));
+      this.idx = saved.idx || 0;
+    }
+
+    UI.updateHeader();
+    UI.renderRail();
+    UI.updateProgress();
+    UI.showChatView();
+    document.getElementById('chat').innerHTML = '';
+    document.getElementById('chips').innerHTML = '';
+    this.ask();
+  },
+
+  current() { return this.script ? this.script.nodes[this.script.order[this.idx]] : null; },
+
+  stageLabel(stageId) {
+    const s = this.script.stages.find(st => st.id === stageId);
+    return s ? (s.icon + ' 阶段' + UI.stageNumToChar(s.id) + ' · ' + s.name) : '';
+  },
+
+  ask() {
+    const n = this.current();
+    if (!n) return;
+    this.wrong = 0; this.hintsUsed = 0; this.revealed = false;
+    UI.updateRail(); UI.updateProgress();
+    UI.typing(() => {
+      const meta = n.type === 'summary'
+        ? `<div class="text-[10px] tracking-widest text-amber-300/80 mb-1">${this.stageLabel(n.stage)}</div>`
+        : `<div class="text-[10px] tracking-widest text-cyan-300/70 mb-1">${this.stageLabel(n.stage)} · ${n.label}</div>`;
+      const extraClass = n.type === 'summary' ? 'bubble-summary !border-amber-400/40' : '';
+      UI.addMsg('tutor', meta + n.ask, extraClass);
+      if(n.type === 'question') UI.renderChips(n);
+      UI.inputEnabled(true);
+    });
+  },
+
+  advance() {
+    if(this.busy) return;
+    this.busy = true;
+    document.getElementById('chips').innerHTML = '';
+    this.idx++;
+    if(this.idx >= this.script.order.length) {
+      // 学完了
+      this.finishLearning();
+      this.busy = false;
+      return;
+    }
+    this.saveProgress();
+    this.ask();
+    setTimeout(()=>{ this.busy = false; }, 200);
+  },
+
+  restart() {
+    if(this.busy || !this.script) return;
+    this.busy = true;
+    this.idx = 0; this.completed.clear();
+    this.stats = { correct: 0, wrong: 0, hints: 0 };
+    document.getElementById('chat').innerHTML = '';
+    document.getElementById('chips').innerHTML = '';
+    this.ask();
+    setTimeout(()=>{ this.busy = false; }, 200);
+  },
+
+  send() {
+    const t = document.getElementById('input').value.trim();
+    if(!t || this.busy || !this.script) return;
+    UI.addMsg('user', UI.esc(t));
+    document.getElementById('input').value = '';
+    document.getElementById('input').style.height = 'auto';
+    const n = this.current();
+
+    if(n.type === 'summary'){ this.advance(); return; }
+    if(this.revealed){ this.advance(); return; }
+
+    const res = JudgeEngine.judge(n, t);
+
+    if(res.v === 'c'){
+      this.completed.add(n.id);
+      this.stats.correct++;
+      document.getElementById('chips').innerHTML = '';
+      this.busy = true;
+      UI.inputEnabled(false);
+      UI.typing(()=>{
+        UI.addMsg('tutor', n.correct);
+        this.busy = false;
+        setTimeout(() => this.advance(), 1100);
+      });
+    }
+    else if(res.v === 'p'){
+      this.wrong++;
+      this.busy = true;
+      UI.inputEnabled(false);
+      const p = n.partial || '';
+      UI.typing(()=>{
+        const matched = JudgeEngine.extractFirstMatch(n, t);
+        UI.addMsg('tutor', p.replace('{{match}}', matched || '那一点'));
+        this.busy = false;
+        UI.inputEnabled(true);
+        if(this.wrong >= 2) this.showReveal();
+      });
+    }
+    else {
+      this.wrong++;
+      this.stats.wrong++;
+      // 记录错题
+      this.recordWrong(n, t);
+      this.busy = true;
+      UI.inputEnabled(false);
+      const hintCount = (n.hints || []).length;
+      if(this.wrong <= hintCount){
+        UI.typing(()=>{
+          UI.addMsg('tutor', `<span class="text-amber-300 font-bold">🤔 再想想——</span><br>${n.hints[this.wrong-1]}`);
+          this.busy = false;
+          UI.inputEnabled(true);
+        });
+      } else {
+        this.showReveal();
+      }
+    }
+  },
+
+  showHint() {
+    if(this.busy || this.revealed || !this.current() || this.current().type !== 'question') return;
+    const n = this.current();
+    this.busy = true;
+    UI.inputEnabled(false);
+    const hintCount = (n.hints || []).length;
+    if(this.hintsUsed < hintCount){
+      this.stats.hints++;
+      UI.typing(()=>{
+        UI.addMsg('tutor', `<span class="text-cyan-300 font-bold">💡 提示 ${this.hintsUsed+1}：</span><br>${n.hints[this.hintsUsed]}`);
+        this.hintsUsed++;
+        this.busy = false;
+        UI.inputEnabled(true);
+      });
+    } else {
+      this.showReveal();
+    }
+  },
+
+  showReveal() {
+    const n = this.current();
+    if(this.revealed || !n.reveal) return;
+    this.revealed = true;
+    this.busy = true;
+    UI.inputEnabled(false);
+    document.getElementById('chips').innerHTML = '';
+    UI.typing(()=>{
+      UI.addMsg('tutor', `<span class="text-amber-300 font-bold">🔍 思路疏通——</span>${n.reveal}`);
+      this.completed.add(n.id);
+      this.busy = false;
+      UI.updateProgress(); UI.updateRail();
+      this.saveProgress();
+    });
+  },
+
+  recordWrong(node, userAnswer) {
+    Storage.addWrongItem({
+      scriptId: this.scriptId,
+      scriptTitle: this.script.meta.title,
+      nodeId: node.id,
+      nodeTitle: node.title,
+      question: node.ask,
+      userAnswer,
+      correctAnswer: node.correct,
+      stage: node.stage,
+      createdAt: Date.now()
+    });
+  },
+
+  saveProgress() {
+    Storage.saveProgress(this.scriptId, {
+      idx: this.idx,
+      completed: Array.from(this.completed)
+    });
+  },
+
+  finishLearning() {
+    const total = this.stats.correct + this.stats.wrong;
+    const accuracy = total > 0 ? Math.round(this.stats.correct / total * 100) : 100;
+    Storage.addRecord({
+      scriptId: this.scriptId,
+      scriptTitle: this.script.meta.title,
+      scriptIcon: this.script.meta.icon,
+      completedAt: Date.now(),
+      totalQuestions: this.script.order.filter(id => this.script.nodes[id].type === 'question').length,
+      correct: this.stats.correct,
+      wrong: this.stats.wrong,
+      hintsUsed: this.stats.hints,
+      accuracy
+    });
+    // 清除进度
+    const all = Storage.get(Storage.KEYS.PROGRESS, {});
+    delete all[this.scriptId];
+    Storage.set(Storage.KEYS.PROGRESS, all);
+  }
+};
+
+// ============================================================
+//  4. UI 工具
+// ============================================================
+const UI = {
+  esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+
+  stageNumToChar(n) { return ['零','一','二','三','四','五','六','七','八','九','十'][n] || n; },
+
+  addMsg(role, html, extraClass='') {
+    const chatEl = document.getElementById('chat');
+    const wrap = document.createElement('div');
+    if(role==='tutor'){
+      wrap.className = 'msg flex gap-3 max-w-[92%] sm:max-w-[85%]';
+      wrap.innerHTML = `
+        <div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-lg border border-cyan-400/30 bg-cyan-500/10">🧑‍🏫</div>
+        <div class="bubble-tutor ${extraClass} rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-7 text-slate-200 min-w-0">${html}</div>`;
+    } else {
+      wrap.className = 'msg flex gap-3 justify-end ml-auto max-w-[92%] sm:max-w-[75%]';
+      wrap.innerHTML = `
+        <div class="bubble-user rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-7 text-amber-50 min-w-0">${html}</div>
+        <div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-lg border border-amber-400/30 bg-amber-500/10">🧑‍🎓</div>`;
+    }
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return wrap;
+  },
+
+  typing(done){
+    const el = this.addMsg('tutor','<div class="dots py-1"><span></span><span></span><span></span></div>','!py-2');
+    setTimeout(()=>{ el.remove(); done(); }, 650);
+  },
+
+  renderChips(n){
+    const chipsEl = document.getElementById('chips');
+    chipsEl.innerHTML = '';
+    (n.chips||[]).forEach(c=>{
+      const b = document.createElement('button');
+      b.className = 'chip text-xs px-3 py-1.5 rounded-full bg-slate-900/60';
+      b.textContent = c;
+      b.onclick = ()=>{ document.getElementById('input').value = c; send(); };
+      chipsEl.appendChild(b);
+    });
+  },
+
+  renderRail(){
+    const rail = document.getElementById('rail');
+    rail.innerHTML = '';
+    if (!LearnEngine.script) return;
+    LearnEngine.script.stages.forEach(s => {
+      const box = document.createElement('div');
+      box.className = 'mb-4';
+      box.innerHTML = `<div class="text-xs font-bold text-slate-300 mb-1.5">${s.icon} 阶段${this.stageNumToChar(s.id)} · ${s.name}</div>`;
+      const list = document.createElement('div');
+      list.className = 'space-y-1';
+      LearnEngine.script.order.forEach(id => {
+        const n = LearnEngine.script.nodes[id];
+        if(n.stage !== s.id) return;
+        const d = document.createElement('div');
+        d.id = 'rail-'+id;
+        d.className = 'rail-node text-[11px] px-2.5 py-1.5 rounded-lg border border-transparent text-slate-500';
+        d.textContent = n.title;
+        list.appendChild(d);
+      });
+      box.appendChild(list);
+      rail.appendChild(box);
+    });
+    this.updateRail();
+  },
+
+  updateRail(){
+    if (!LearnEngine.script) return;
+    LearnEngine.script.order.forEach(id => {
+      const d = document.getElementById('rail-'+id);
+      if(!d) return;
+      d.classList.remove('done','current');
+      if(id === LearnEngine.script.order[LearnEngine.idx]) d.classList.add('current');
+      else if(LearnEngine.completed.has(id)) d.classList.add('done');
+    });
+  },
+
+  updateProgress(){
+    const progbar = document.getElementById('progbar');
+    if (!LearnEngine.script) { progbar.style.width = '0%'; return; }
+    progbar.style.width = Math.round(LearnEngine.completed.size / LearnEngine.script.order.length * 100) + '%';
+  },
+
+  updateHeader() {
+    const s = LearnEngine.script;
+    if (!s) {
+      document.getElementById('headerIcon').textContent = '🎓';
+      document.getElementById('headerTitle').textContent = '苏格拉底导学';
+      document.getElementById('headerDesc').textContent = '通用学习工具 · AI 生成 · 自定义脚本';
+      return;
+    }
+    document.getElementById('headerIcon').textContent = s.meta.icon;
+    document.getElementById('headerTitle').textContent = s.meta.title;
+    document.getElementById('headerDesc').textContent = s.meta.description;
+  },
+
+  inputEnabled(on){
+    const inputEl = document.getElementById('input');
+    inputEl.disabled = !on;
+    document.getElementById('sendBtn').disabled = !on;
+    document.getElementById('hintBtn').style.opacity = on ? '1' : '.4';
+    if(on) inputEl.focus();
+  },
+
+  showChatView() {
+    document.getElementById('learnEmpty').classList.add('hidden');
+    document.getElementById('chat').classList.remove('hidden');
+    document.getElementById('chat').classList.add('flex-1');
+    document.getElementById('inputArea').classList.remove('hidden');
+  },
+
+  hideChatView() {
+    document.getElementById('learnEmpty').classList.remove('hidden');
+    document.getElementById('chat').classList.add('hidden');
+    document.getElementById('inputArea').classList.add('hidden');
+  }
+};
+
+// ============================================================
+//  5. AI 生成模块
+// ============================================================
+const AIGenerator = {
+  API_URL: 'https://api.deepseek.com/v1/chat/completions',
+
+  getSystemPrompt(topic, level, numStages) {
+    return `你是一位精通苏格拉底教学法的资深导师。你的任务是为学习者创建一份"苏格拉底式导学脚本"。
+
+## 苏格拉底教学法核心原则
+1. 不直接给出答案，而是通过提问引导学习者自己推导出结论
+2. 从学习者已知的生活经验/常识出发，逐步深入
+3. 每个问题之间有严密的逻辑递进关系
+4. 学习者答错时，用反例、类比或更基础的问题引导他们自我纠正
+5. 多用"心象"（生动的比喻）帮助理解抽象概念
+
+## 脚本格式要求
+你必须输出严格的 JSON 格式，结构如下：
+\`\`\`json
+{
+  "meta": {
+    "title": "课程标题（包含知识点名称）",
+    "icon": "一个合适的emoji",
+    "description": "简短描述，20字以内"
+  },
+  "stages": [
+    { "id": 1, "icon": "emoji", "name": "阶段名称" }
+  ],
+  "order": ["q1", "q2", "s1", "..."],
+  "nodes": {
+    "q1": {
+      "id": "q1",
+      "type": "question",
+      "stage": 1,
+      "label": "问题 1",
+      "title": "问题标题",
+      "ask": "问题正文，可以用HTML标签（<b>、<br>、<span>等）",
+      "chips": ["选项1", "选项2", "选项3"],
+      "judge": {
+        "mode": "keyword",
+        "correctKeywords": ["关键词1", "关键词2"],
+        "wrongKeywords": ["错误关键词"]
+      },
+      "correct": "答对后的反馈和讲解",
+      "hints": ["提示1", "提示2"],
+      "reveal": "多次答错后给出的完整解答"
+    },
+    "s1": {
+      "id": "s1",
+      "type": "summary",
+      "stage": 1,
+      "label": "🏁 小结",
+      "title": "里程碑标题",
+      "ask": "小结内容HTML"
+    }
+  }
+}
+\`\`\`
+
+## 判断模式说明
+- **keyword**: 单关键词匹配，命中correctKeywords且未命中wrongKeywords则正确
+- **compound**: 多组关键词，需allGroupsRequired组全部命中才正确（适合"概念+原因"类问题）
+- **multi-dim**: 多维度判断，达到correctThreshold个维度算正确，达到partialThreshold算部分正确。每个维度有keywords和label
+- **always**: 总是判对（用于开放题、费曼技巧收尾题）
+
+## 内容设计要求
+- 共 ${numStages} 个阶段，每阶段 3-4 个问题 + 1个里程碑小结
+- 难度：${level === 'beginner' ? '入门级，从最基础的生活常识出发' : level === 'intermediate' ? '中级，假设学习者有一定基础' : '进阶，深入探究原理和边界'}
+- 每个问题要有 2 条渐进式提示
+- 里程碑小结要梳理该阶段的核心逻辑链
+- 最后一个问题应该是"费曼技巧"式的开放题（judge.mode = "always"）
+- 最后一个节点是结业总结（type = "summary"）
+- 问题的 chips 选项要有干扰项，不能太简单
+- 要用生动的生活例子和类比
+
+## 主题
+知识点：${topic}
+
+请输出完整的 JSON 脚本，不要输出任何解释性文字。确保 JSON 格式完全正确，没有语法错误。`;
+  },
+
+  async generate(topic, level, numStages, apiKey, model) {
+    const systemPrompt = this.getSystemPrompt(topic, level, numStages);
+
+    const response = await fetch(this.API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `请为"${topic}"生成一份苏格拉底导学脚本。` }
+        ],
+        temperature: 0.8,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API 请求失败 (${response.status})`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+
+    // 提取 JSON
+    return this.extractJSON(content);
+  },
+
+  extractJSON(text) {
+    // 尝试直接解析
+    try { return JSON.parse(text); } catch(e) {}
+
+    // 尝试从 ```json 代码块提取
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      try { return JSON.parse(jsonMatch[1]); } catch(e) {}
+    }
+
+    // 尝试从第一个 { 到最后一个 }
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      try { return JSON.parse(text.substring(firstBrace, lastBrace + 1)); } catch(e) {}
+    }
+
+    throw new Error('无法从 AI 响应中提取有效的 JSON');
+  }
+};
+
+// ============================================================
+//  6. 编辑器模块
+// ============================================================
+const Editor = {
+  script: null,
+  selectedNodeId: null,
+  collapsedStages: new Set(),
+
+  load(script) {
+    // 深拷贝，避免直接修改原数据
+    this.script = JSON.parse(JSON.stringify(script));
+    this.selectedNodeId = null;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  newScript() {
+    this.script = {
+      meta: { title: '新导学课程', icon: '📚', description: '点击编辑描述', themeColor: 'amber' },
+      stages: [{ id: 1, icon: '🧭', name: '入门概念' }],
+      order: ['q1', 's1'],
+      nodes: {
+        q1: {
+          id: 'q1', type: 'question', stage: 1, label: '问题 1', title: '第一个问题',
+          ask: '请在这里输入你的问题...',
+          chips: ['选项A', '选项B'],
+          judge: { mode: 'keyword', correctKeywords: ['正确'], wrongKeywords: [] },
+          correct: '答对了！这里是讲解内容...',
+          hints: ['提示1', '提示2'],
+          reveal: '答案揭晓：...'
+        },
+        s1: {
+          id: 's1', type: 'summary', stage: 1, label: '🏁 小结', title: '阶段小结',
+          ask: '<div class="text-amber-300 font-bold mb-3">🏁 里程碑</div><div>这里是小结内容</div><button onclick="advance()" class="mt-4 text-sm px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 hover:bg-amber-500/25 transition font-bold">继续 →</button>'
+        }
+      }
+    };
+    this.selectedNodeId = 'q1';
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  renderNodeList() {
+    const container = document.getElementById('editorNodeList');
+    if (!this.script) {
+      container.innerHTML = '<div class="text-center text-slate-500 text-sm py-8">先加载或生成一个脚本</div>';
+      return;
+    }
+
+    let html = '';
+    this.script.stages.forEach(stage => {
+      const stageNodes = this.script.order.filter(id => this.script.nodes[id].stage === stage.id);
+      const isCollapsed = this.collapsedStages.has(stage.id);
+
+      html += `
+        <div class="stage-group">
+          <div class="stage-group-header" onclick="Editor.toggleStage(${stage.id})">
+            <span>${stage.icon} ${stage.name}</span>
+            <span class="text-slate-500">${isCollapsed ? '▸' : '▾'}</span>
+          </div>
+          <div class="stage-group-content ${isCollapsed ? 'hidden' : ''} space-y-1 mt-1">
+      `;
+
+      stageNodes.forEach(nid => {
+        const node = this.script.nodes[nid];
+        const isActive = nid === this.selectedNodeId;
+        const isSummary = node.type === 'summary';
+        html += `
+          <div class="editor-item ${isSummary ? 'summary-item' : ''} ${isActive ? 'active' : ''}"
+               draggable="true"
+               data-id="${nid}"
+               onclick="Editor.selectNode('${nid}')"
+               ondragstart="Editor.dragStart(event, '${nid}')"
+               ondragover="Editor.dragOver(event)"
+               ondragleave="Editor.dragLeave(event)"
+               ondrop="Editor.drop(event, '${nid}')">
+            <span class="text-[10px] text-slate-500 mr-1">${node.label}</span>
+            ${node.title}
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    });
+
+    container.innerHTML = html;
+  },
+
+  renderPanel() {
+    const panel = document.getElementById('editorPanel');
+    const titleEl = document.getElementById('editorPanelTitle');
+
+    if (!this.script) {
+      panel.innerHTML = '<div class="text-center text-slate-500 text-sm py-12">选择左侧节点开始编辑</div>';
+      return;
+    }
+
+    // 如果没有选中节点，显示元信息编辑
+    if (!this.selectedNodeId) {
+      titleEl.textContent = '📋 课程信息';
+      panel.innerHTML = this.renderMetaPanel();
+      return;
+    }
+
+    const node = this.script.nodes[this.selectedNodeId];
+    titleEl.textContent = (node.type === 'summary' ? '🏁 ' : '❓ ') + node.title;
+
+    if (node.type === 'question') {
+      panel.innerHTML = this.renderQuestionPanel(node);
+    } else {
+      panel.innerHTML = this.renderSummaryPanel(node);
+    }
+
+    this.bindPanelEvents();
+  },
+
+  renderMetaPanel() {
+    const m = this.script.meta;
+    return `
+      <div class="space-y-4">
+        <div>
+          <div class="field-label">课程标题</div>
+          <input type="text" class="field-input" data-field="meta.title" value="${this.escAttr(m.title)}">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="field-label">图标 (emoji)</div>
+            <input type="text" class="field-input" data-field="meta.icon" value="${this.escAttr(m.icon)}">
+          </div>
+          <div>
+            <div class="field-label">主题色</div>
+            <select class="field-input" data-field="meta.themeColor">
+              <option value="amber" ${m.themeColor==='amber'?'selected':''}>琥珀色</option>
+              <option value="cyan" ${m.themeColor==='cyan'?'selected':''}>青色</option>
+              <option value="purple" ${m.themeColor==='purple'?'selected':''}>紫色</option>
+              <option value="emerald" ${m.themeColor==='emerald'?'selected':''}>翠绿色</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">描述</div>
+          <input type="text" class="field-input" data-field="meta.description" value="${this.escAttr(m.description)}">
+        </div>
+        <div class="pt-3 border-t border-slate-700/50">
+          <div class="field-label mb-2">阶段管理</div>
+          <div class="space-y-2" id="stageManager">
+            ${this.script.stages.map(s => `
+              <div class="flex items-center gap-2">
+                <input type="text" class="field-input !py-1 !text-sm w-10" value="${s.icon}" data-stage-icon="${s.id}">
+                <input type="text" class="field-input !py-1 !text-sm flex-1" value="${this.escAttr(s.name)}" data-stage-name="${s.id}">
+                <button class="btn-sm danger !py-1 !px-2 text-xs" onclick="Editor.removeStage(${s.id})">删除</button>
+              </div>
+            `).join('')}
+          </div>
+          <button class="btn-sm mt-2 text-xs" onclick="Editor.addStage()">+ 添加阶段</button>
+        </div>
+      </div>
+    `;
+  },
+
+  renderQuestionPanel(node) {
+    const j = node.judge || { mode: 'keyword' };
+    return `
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="field-label">标签</div>
+            <input type="text" class="field-input" data-node="label" value="${this.escAttr(node.label)}">
+          </div>
+          <div>
+            <div class="field-label">标题</div>
+            <input type="text" class="field-input" data-node="title" value="${this.escAttr(node.title)}">
+          </div>
+        </div>
+        <div>
+          <div class="field-label">所属阶段</div>
+          <select class="field-input" data-node="stage">
+            ${this.script.stages.map(s => `<option value="${s.id}" ${node.stage===s.id?'selected':''}>${s.icon} ${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="field-label">问题内容 (支持 HTML)</div>
+          <textarea class="field-textarea" data-node="ask" rows="6">${this.escAttr(node.ask)}</textarea>
+        </div>
+        <div>
+          <div class="field-label">快捷选项 (chips)</div>
+          <div class="flex flex-wrap gap-2 mb-2" id="chipsEditor">
+            ${(node.chips||[]).map((c,i) => `
+              <span class="tag-chip">${this.escAttr(c)} <button onclick="Editor.removeChip(${i})">×</button></span>
+            `).join('')}
+          </div>
+          <div class="flex gap-2">
+            <input type="text" class="field-input !py-1 text-sm" id="newChipInput" placeholder="输入新选项...">
+            <button class="btn-sm !py-1 text-xs" onclick="Editor.addChip()">添加</button>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-700/50">
+          <div class="field-label mb-2">判断规则</div>
+          <div class="mb-3">
+            <select class="field-input" data-node-judge="mode" onchange="Editor.changeJudgeMode(this.value)">
+              <option value="keyword" ${j.mode==='keyword'?'selected':''}>keyword - 关键词匹配</option>
+              <option value="compound" ${j.mode==='compound'?'selected':''}>compound - 多组复合</option>
+              <option value="multi-dim" ${j.mode==='multi-dim'?'selected':''}>multi-dim - 多维度</option>
+              <option value="always" ${j.mode==='always'?'selected':''}>always - 总是正确</option>
+            </select>
+          </div>
+          <div id="judgeConfig">
+            ${this.renderJudgeConfig(j)}
+          </div>
+        </div>
+        <div>
+          <div class="field-label">正确反馈</div>
+          <textarea class="field-textarea" data-node="correct" rows="3">${this.escAttr(node.correct || '')}</textarea>
+        </div>
+        <div>
+          <div class="field-label">部分正确反馈 (可选)</div>
+          <textarea class="field-textarea" data-node="partial" rows="2">${this.escAttr(node.partial || '')}</textarea>
+        </div>
+        <div>
+          <div class="field-label">提示列表</div>
+          <div class="space-y-2" id="hintsEditor">
+            ${(node.hints||[]).map((h,i) => `
+              <div class="flex gap-2">
+                <textarea class="field-textarea !min-h-[60px] flex-1 text-sm" data-hint="${i}">${this.escAttr(h)}</textarea>
+                <button class="btn-sm danger !py-1 !px-2 text-xs self-start" onclick="Editor.removeHint(${i})">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button class="btn-sm mt-2 text-xs" onclick="Editor.addHint()">+ 添加提示</button>
+        </div>
+        <div>
+          <div class="field-label">思路疏通 (reveal)</div>
+          <textarea class="field-textarea" data-node="reveal" rows="3">${this.escAttr(node.reveal || '')}</textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-700/50 flex justify-between">
+          <button class="btn-sm danger text-xs" onclick="Editor.deleteNode()">🗑️ 删除此节点</button>
+          <button class="btn-sm text-xs" onclick="Editor.duplicateNode()">📋 复制</button>
+        </div>
+      </div>
+    `;
+  },
+
+  renderSummaryPanel(node) {
+    return `
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="field-label">标签</div>
+            <input type="text" class="field-input" data-node="label" value="${this.escAttr(node.label)}">
+          </div>
+          <div>
+            <div class="field-label">标题</div>
+            <input type="text" class="field-input" data-node="title" value="${this.escAttr(node.title)}">
+          </div>
+        </div>
+        <div>
+          <div class="field-label">所属阶段</div>
+          <select class="field-input" data-node="stage">
+            ${this.script.stages.map(s => `<option value="${s.id}" ${node.stage===s.id?'selected':''}>${s.icon} ${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="field-label">小结内容 (支持 HTML)</div>
+          <textarea class="field-textarea" data-node="ask" rows="12">${this.escAttr(node.ask)}</textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-700/50 flex justify-between">
+          <button class="btn-sm danger text-xs" onclick="Editor.deleteNode()">🗑️ 删除此节点</button>
+          <button class="btn-sm text-xs" onclick="Editor.duplicateNode()">📋 复制</button>
+        </div>
+      </div>
+    `;
+  },
+
+  renderJudgeConfig(j) {
+    if (j.mode === 'keyword') {
+      return `
+        <div class="space-y-3">
+          <div>
+            <div class="field-label">正确关键词 (命中即正确)</div>
+            <textarea class="field-textarea !min-h-[60px] text-xs" data-judge="correctKeywords" placeholder="每行一个关键词">${(j.correctKeywords||[]).join('\n')}</textarea>
+          </div>
+          <div>
+            <div class="field-label">错误关键词 (命中即错误)</div>
+            <textarea class="field-textarea !min-h-[60px] text-xs" data-judge="wrongKeywords" placeholder="每行一个关键词">${(j.wrongKeywords||[]).join('\n')}</textarea>
+          </div>
+        </div>
+      `;
+    }
+    if (j.mode === 'compound') {
+      return `
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="allGroupsRequired" data-judge-bool="allGroupsRequired" ${j.allGroupsRequired?'checked':''}>
+            <label for="allGroupsRequired" class="text-xs text-slate-300">需要全部组都命中才算正确</label>
+          </div>
+          <div>
+            <div class="field-label">关键词组</div>
+            <div class="space-y-2" id="compoundGroups">
+              ${(j.groups||[]).map((g,i) => `
+                <div class="flex gap-2">
+                  <textarea class="field-textarea !min-h-[50px] flex-1 text-xs" data-group="${i}" placeholder="组 ${i+1}：每行一个关键词">${(g.keywords||[]).join('\n')}</textarea>
+                  <button class="btn-sm danger !py-1 !px-2 text-xs self-start" onclick="Editor.removeGroup(${i})">×</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn-sm mt-2 text-xs" onclick="Editor.addGroup()">+ 添加组</button>
+          </div>
+          <div>
+            <div class="field-label">错误关键词</div>
+            <textarea class="field-textarea !min-h-[50px] text-xs" data-judge="wrongKeywords" placeholder="每行一个">${(j.wrongKeywords||[]).join('\n')}</textarea>
+          </div>
+        </div>
+      `;
+    }
+    if (j.mode === 'multi-dim') {
+      return `
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <div class="field-label">正确阈值</div>
+              <input type="number" class="field-input" data-judge-num="correctThreshold" value="${j.correctThreshold||2}" min="1">
+            </div>
+            <div>
+              <div class="field-label">部分正确阈值</div>
+              <input type="number" class="field-input" data-judge-num="partialThreshold" value="${j.partialThreshold||1}" min="0">
+            </div>
+          </div>
+          <div>
+            <div class="field-label">维度列表</div>
+            <div class="space-y-2" id="dimList">
+              ${(j.dimensions||[]).map((d,i) => `
+                <div class="p-2 rounded-lg border border-slate-700/50 bg-slate-900/40 space-y-2">
+                  <div class="flex gap-2">
+                    <input type="text" class="field-input !py-1 text-sm flex-1" placeholder="维度名称" data-dim-label="${i}" value="${this.escAttr(d.label||'')}">
+                    <button class="btn-sm danger !py-1 !px-2 text-xs" onclick="Editor.removeDim(${i})">删除</button>
+                  </div>
+                  <textarea class="field-textarea !min-h-[40px] text-xs" placeholder="关键词（每行一个）" data-dim-keywords="${i}">${(d.keywords||[]).join('\n')}</textarea>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn-sm mt-2 text-xs" onclick="Editor.addDim()">+ 添加维度</button>
+          </div>
+        </div>
+      `;
+    }
+    return '<div class="text-xs text-slate-500">always 模式：任何回答都判为正确（适合开放题）</div>';
+  },
+
+  // --- 交互 ---
+  selectNode(id) {
+    this.selectedNodeId = id;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  toggleStage(id) {
+    if (this.collapsedStages.has(id)) {
+      this.collapsedStages.delete(id);
+    } else {
+      this.collapsedStages.add(id);
+    }
+    this.renderNodeList();
+  },
+
+  bindPanelEvents() {
+    const panel = document.getElementById('editorPanel');
+    const node = this.script.nodes[this.selectedNodeId];
+
+    // 节点基本属性
+    panel.querySelectorAll('[data-node]').forEach(el => {
+      el.addEventListener('input', e => {
+        const field = e.target.dataset.node;
+        node[field] = e.target.value;
+        if (field === 'title' || field === 'label') {
+          this.renderNodeList();
+          document.getElementById('editorPanelTitle').textContent =
+            (node.type === 'summary' ? '🏁 ' : '❓ ') + node.title;
+        }
+      });
+    });
+
+    // 元信息
+    panel.querySelectorAll('[data-field]').forEach(el => {
+      el.addEventListener('input', e => {
+        const path = e.target.dataset.field.split('.');
+        let obj = this.script;
+        for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
+        obj[path[path.length-1]] = e.target.value;
+      });
+    });
+
+    // 阶段名称
+    panel.querySelectorAll('[data-stage-name]').forEach(el => {
+      el.addEventListener('input', e => {
+        const id = parseInt(e.target.dataset.stageName);
+        const stage = this.script.stages.find(s => s.id === id);
+        if (stage) { stage.name = e.target.value; this.renderNodeList(); }
+      });
+    });
+    panel.querySelectorAll('[data-stage-icon]').forEach(el => {
+      el.addEventListener('input', e => {
+        const id = parseInt(e.target.dataset.stageIcon);
+        const stage = this.script.stages.find(s => s.id === id);
+        if (stage) { stage.icon = e.target.value; this.renderNodeList(); }
+      });
+    });
+
+    // 判断模式
+    panel.querySelectorAll('[data-node-judge]').forEach(el => {
+      el.addEventListener('input', e => {
+        if (!node.judge) node.judge = {};
+        node.judge[e.target.dataset.nodeJudge] = e.target.value;
+      });
+    });
+
+    // 关键词配置
+    panel.querySelectorAll('[data-judge]').forEach(el => {
+      el.addEventListener('input', e => {
+        const field = e.target.dataset.judge;
+        node.judge[field] = e.target.value.split('\n').map(s => s.trim()).filter(s => s);
+      });
+    });
+
+    // 数字配置
+    panel.querySelectorAll('[data-judge-num]').forEach(el => {
+      el.addEventListener('input', e => {
+        node.judge[e.target.dataset.judgeNum] = parseInt(e.target.value) || 1;
+      });
+    });
+
+    // 布尔配置
+    panel.querySelectorAll('[data-judge-bool]').forEach(el => {
+      el.addEventListener('change', e => {
+        node.judge[e.target.dataset.judgeBool] = e.target.checked;
+      });
+    });
+
+    // 提示
+    panel.querySelectorAll('[data-hint]').forEach(el => {
+      el.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.hint);
+        node.hints[idx] = e.target.value;
+      });
+    });
+
+    // compound groups
+    panel.querySelectorAll('[data-group]').forEach(el => {
+      el.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.group);
+        node.judge.groups[idx].keywords = e.target.value.split('\n').map(s => s.trim()).filter(s => s);
+      });
+    });
+
+    // dimensions
+    panel.querySelectorAll('[data-dim-label]').forEach(el => {
+      el.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.dimLabel);
+        node.judge.dimensions[idx].label = e.target.value;
+      });
+    });
+    panel.querySelectorAll('[data-dim-keywords]').forEach(el => {
+      el.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.dimKeywords);
+        node.judge.dimensions[idx].keywords = e.target.value.split('\n').map(s => s.trim()).filter(s => s);
+      });
+    });
+  },
+
+  changeJudgeMode(mode) {
+    const node = this.script.nodes[this.selectedNodeId];
+    if (!node.judge) node.judge = {};
+    node.judge.mode = mode;
+
+    // 初始化对应配置
+    if (mode === 'keyword') {
+      node.judge.correctKeywords = node.judge.correctKeywords || [];
+      node.judge.wrongKeywords = node.judge.wrongKeywords || [];
+    } else if (mode === 'compound') {
+      node.judge.groups = node.judge.groups || [{ keywords: [] }, { keywords: [] }];
+      node.judge.allGroupsRequired = true;
+      node.judge.wrongKeywords = node.judge.wrongKeywords || [];
+    } else if (mode === 'multi-dim') {
+      node.judge.dimensions = node.judge.dimensions || [
+        { label: '维度1', keywords: [] },
+        { label: '维度2', keywords: [] }
+      ];
+      node.judge.correctThreshold = 2;
+      node.judge.partialThreshold = 1;
+      if (!node.partial) node.partial = '部分正确。再想想其他方面...';
+    }
+
+    document.getElementById('judgeConfig').innerHTML = this.renderJudgeConfig(node.judge);
+    this.bindPanelEvents();
+  },
+
+  // --- 操作 ---
+  addChip() {
+    const input = document.getElementById('newChipInput');
+    const val = input.value.trim();
+    if (!val) return;
+    const node = this.script.nodes[this.selectedNodeId];
+    if (!node.chips) node.chips = [];
+    node.chips.push(val);
+    input.value = '';
+    this.renderPanel();
+  },
+
+  removeChip(idx) {
+    const node = this.script.nodes[this.selectedNodeId];
+    node.chips.splice(idx, 1);
+    this.renderPanel();
+  },
+
+  addHint() {
+    const node = this.script.nodes[this.selectedNodeId];
+    if (!node.hints) node.hints = [];
+    node.hints.push('新的提示内容...');
+    this.renderPanel();
+  },
+
+  removeHint(idx) {
+    const node = this.script.nodes[this.selectedNodeId];
+    node.hints.splice(idx, 1);
+    this.renderPanel();
+  },
+
+  addGroup() {
+    const node = this.script.nodes[this.selectedNodeId];
+    if (!node.judge.groups) node.judge.groups = [];
+    node.judge.groups.push({ keywords: [] });
+    this.renderPanel();
+  },
+
+  removeGroup(idx) {
+    const node = this.script.nodes[this.selectedNodeId];
+    node.judge.groups.splice(idx, 1);
+    this.renderPanel();
+  },
+
+  addDim() {
+    const node = this.script.nodes[this.selectedNodeId];
+    if (!node.judge.dimensions) node.judge.dimensions = [];
+    const num = node.judge.dimensions.length + 1;
+    node.judge.dimensions.push({ label: '维度' + num, keywords: [] });
+    this.renderPanel();
+  },
+
+  removeDim(idx) {
+    const node = this.script.nodes[this.selectedNodeId];
+    node.judge.dimensions.splice(idx, 1);
+    this.renderPanel();
+  },
+
+  addStage() {
+    const maxId = Math.max(...this.script.stages.map(s => s.id), 0);
+    const newId = maxId + 1;
+    this.script.stages.push({ id: newId, icon: '📌', name: '新阶段' });
+    this.renderPanel();
+    this.renderNodeList();
+  },
+
+  removeStage(id) {
+    if (this.script.stages.length <= 1) { alert('至少保留一个阶段'); return; }
+    if (!confirm('确定删除此阶段？该阶段下的所有节点也会被删除。')) return;
+    this.script.stages = this.script.stages.filter(s => s.id !== id);
+    // 删除该阶段所有节点
+    const toRemove = this.script.order.filter(nid => this.script.nodes[nid].stage === id);
+    toRemove.forEach(nid => delete this.script.nodes[nid]);
+    this.script.order = this.script.order.filter(nid => !toRemove.includes(nid));
+    this.renderPanel();
+    this.renderNodeList();
+  },
+
+  editorAddStage() {
+    if (!this.script) this.newScript();
+    this.addStage();
+    this.selectedNodeId = null;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  editorAddQuestion() {
+    if (!this.script) this.newScript();
+    // 在最后添加新问题
+    const lastStage = this.script.stages[this.script.stages.length - 1];
+    const qNum = this.script.order.filter(id => this.script.nodes[id].type === 'question').length + 1;
+    const newId = 'q_new_' + Date.now();
+    this.script.nodes[newId] = {
+      id: newId, type: 'question', stage: lastStage.id,
+      label: '问题 ' + qNum, title: '新问题',
+      ask: '请输入问题内容...',
+      chips: ['选项1', '选项2'],
+      judge: { mode: 'keyword', correctKeywords: ['正确'], wrongKeywords: [] },
+      correct: '回答正确！',
+      hints: ['提示1'],
+      reveal: '答案是...'
+    };
+    // 找到最后一个非 summary 节点前插入
+    this.script.order.push(newId);
+    this.selectedNodeId = newId;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  deleteNode() {
+    if (!confirm('确定删除此节点？')) return;
+    const id = this.selectedNodeId;
+    delete this.script.nodes[id];
+    this.script.order = this.script.order.filter(nid => nid !== id);
+    this.selectedNodeId = null;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  duplicateNode() {
+    const src = this.script.nodes[this.selectedNodeId];
+    const newId = src.id + '_copy_' + Date.now();
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = newId;
+    copy.title = src.title + ' (副本)';
+    this.script.nodes[newId] = copy;
+    const idx = this.script.order.indexOf(this.selectedNodeId);
+    this.script.order.splice(idx + 1, 0, newId);
+    this.selectedNodeId = newId;
+    this.renderNodeList();
+    this.renderPanel();
+  },
+
+  // --- 拖拽排序 ---
+  dragId: null,
+
+  dragStart(e, id) {
+    this.dragId = id;
+    e.target.classList.add('dragging');
+  },
+
+  dragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  },
+
+  dragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  },
+
+  drop(e, targetId) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!this.dragId || this.dragId === targetId) return;
+
+    const order = this.script.order;
+    const fromIdx = order.indexOf(this.dragId);
+    const toIdx = order.indexOf(targetId);
+    order.splice(fromIdx, 1);
+    order.splice(toIdx, 0, this.dragId);
+    this.dragId = null;
+    this.renderNodeList();
+  },
+
+  // --- 导出/保存 ---
+  exportJSON() {
+    if (!this.script) return;
+    const dataStr = JSON.stringify(this.script, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (this.script.meta.title || 'script') + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  saveToLibrary() {
+    if (!this.script) return;
+    const id = Storage.saveToLibrary(this.script);
+    alert('已保存到「我的课程」！');
+    return id;
+  },
+
+  // --- 预览 ---
+  showPreview() {
+    document.getElementById('editorPreview').classList.remove('hidden');
+    this.updatePreview();
+  },
+
+  updatePreview() {
+    const preview = document.getElementById('editorPreviewContent');
+    if (!this.script || !this.selectedNodeId) {
+      preview.innerHTML = '<div class="text-center text-slate-500 text-sm py-8">选择节点查看预览</div>';
+      return;
+    }
+    const node = this.script.nodes[this.selectedNodeId];
+    const typeLabel = node.type === 'summary' ? '🏁 小结' : '❓ 问题';
+    preview.innerHTML = `
+      <div class="text-[10px] tracking-widest text-cyan-300/70 mb-2">${typeLabel}</div>
+      <div class="bubble-tutor rounded-2xl px-3 py-3 text-sm leading-7 text-slate-200">
+        ${node.ask || '(空)'}
+      </div>
+      ${node.chips && node.chips.length ? `
+        <div class="flex flex-wrap gap-2 mt-3">
+          ${node.chips.map(c => `<span class="chip text-xs px-3 py-1.5 rounded-full bg-slate-900/60">${c}</span>`).join('')}
+        </div>
+      ` : ''}
+    `;
+  },
+
+  escAttr(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+};
+
+// ============================================================
+//  7. 学习记录模块
+// ============================================================
+const Records = {
+  currentTab: 'history',
+
+  render() {
+    const records = Storage.getRecords();
+    const wrong = Storage.getWrongBook();
+    const lib = Storage.getLibrary();
+
+    // 统计
+    const totalScripts = records.length;
+    let totalQ = 0, correctQ = 0;
+    records.forEach(r => { totalQ += (r.correct + r.wrong); correctQ += r.correct; });
+    const accuracy = totalQ > 0 ? Math.round(correctQ / totalQ * 100) + '%' : '0%';
+
+    document.getElementById('statTotalScripts').textContent = totalScripts;
+    document.getElementById('statTotalQuestions').textContent = totalQ;
+    document.getElementById('statAccuracy').textContent = accuracy;
+    document.getElementById('statWrongCount').textContent = wrong.length;
+
+    // 历史列表
+    this.renderHistory(records);
+    // 错题列表
+    this.renderWrong(wrong);
+  },
+
+  renderHistory(records) {
+    const container = document.getElementById('recordsHistory');
+    if (records.length === 0) {
+      container.innerHTML = '<div class="text-center text-slate-500 text-sm py-12">暂无学习记录，快去开始你的第一门课吧！</div>';
+      return;
+    }
+
+    container.innerHTML = records.map(r => {
+      const date = new Date(r.completedAt);
+      const dateStr = date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+      return `
+        <div class="record-card flex items-center gap-4">
+          <div class="text-3xl shrink-0">${r.scriptIcon || '📚'}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-sm text-slate-100 truncate">${r.scriptTitle}</div>
+            <div class="text-xs text-slate-400 mt-1">${dateStr} · 共 ${r.totalQuestions} 题</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-lg font-bold ${r.accuracy >= 80 ? 'text-emerald-300' : r.accuracy >= 60 ? 'text-amber-300' : 'text-rose-300'}">${r.accuracy}%</div>
+            <div class="text-[10px] text-slate-500">${r.correct}对 / ${r.wrong}错</div>
+          </div>
+          <button class="btn-sm !py-1 text-xs" onclick="Records.relearn('${r.scriptId}')">再学一次</button>
+        </div>
+      `;
+    }).join('');
+  },
+
+  renderWrong(wrong) {
+    const container = document.getElementById('recordsWrong');
+    if (wrong.length === 0) {
+      container.innerHTML = '<div class="text-center text-slate-500 text-sm py-12">还没有错题，继续加油！</div>';
+      return;
+    }
+
+    container.innerHTML = wrong.map((w, i) => `
+      <div class="record-card">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <span class="wrong-badge">错题</span>
+            <span class="text-xs text-slate-400 ml-2">${w.scriptTitle}</span>
+          </div>
+          <button class="text-xs text-slate-500 hover:text-rose-300" onclick="Records.removeWrong(${i})">移除</button>
+        </div>
+        <div class="font-bold text-sm text-slate-100 mb-2">${w.nodeTitle}</div>
+        <div class="text-xs text-slate-400 mb-2 line-clamp-2"><b>你的回答：</b>${w.userAnswer}</div>
+        <button class="btn-sm !py-1 text-xs" onclick="Records.reviewWrong(${i})">📖 复习这道题</button>
+      </div>
+    `).join('');
+  },
+
+  relearn(scriptId) {
+    // 从课程库查找
+    const item = Storage.getFromLibrary(scriptId);
+    if (item) {
+      switchView('learn');
+      LearnEngine.load(item.script, scriptId);
+    } else {
+      alert('找不到该课程脚本');
+    }
+  },
+
+  removeWrong(idx) {
+    const wrong = Storage.getWrongBook();
+    wrong.splice(idx, 1);
+    Storage.set(Storage.KEYS.WRONG, wrong);
+    this.render();
+  },
+
+  reviewWrong(idx) {
+    const wrong = Storage.getWrongBook()[idx];
+    if (!wrong) return;
+    const item = Storage.getFromLibrary(wrong.scriptId);
+    if (!item) { alert('该题目的课程脚本已不存在'); return; }
+
+    switchView('learn');
+    LearnEngine.load(item.script, wrong.scriptId);
+
+    // 跳转到该问题
+    setTimeout(() => {
+      const targetIdx = LearnEngine.script.order.indexOf(wrong.nodeId);
+      if (targetIdx >= 0) {
+        LearnEngine.idx = targetIdx;
+        document.getElementById('chat').innerHTML = '';
+        LearnEngine.ask();
+      }
+    }, 300);
+  }
+};
+
+// ============================================================
+//  8. 全局函数与视图控制
+// ============================================================
+
+// 内置脚本
+const BUILTIN_SCRIPTS = [
+  { file: 'pcm.json', name: '纺织面料中的相变材料（PCM）', icon: '🌡️', desc: '从物理三态到工程应用，一步步推导 PCM 调温原理' }
+];
+
+let currentLibTab = 'builtin';
+
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+
+  if (view === 'records') Records.render();
+  if (view === 'editor' && !Editor.script) {
+    // 如果编辑器没内容，加载当前学习的脚本或创建新的
+    if (LearnEngine.script) {
+      Editor.load(LearnEngine.script);
+    } else {
+      Editor.newScript();
+    }
+  }
+}
+
+// --- 课程库 ---
+function openScriptPicker() {
+  switchLibTab('builtin');
+  document.getElementById('scriptModal').classList.remove('hidden');
+}
+
+function closeScriptPicker() {
+  document.getElementById('scriptModal').classList.add('hidden');
+}
+
+function switchLibTab(tab) {
+  currentLibTab = tab;
+  document.querySelectorAll('.lib-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.lib === tab);
+    el.classList.toggle('text-amber-300', el.dataset.lib === tab);
+    el.classList.toggle('border-amber-400', el.dataset.lib === tab);
+    el.classList.toggle('text-slate-400', el.dataset.lib !== tab);
+  });
+
+  const listEl = document.getElementById('scriptList');
+  if (tab === 'builtin') {
+    listEl.innerHTML = BUILTIN_SCRIPTS.map(s => `
+      <div class="script-card rounded-xl p-4" onclick="loadBuiltinScript('${s.file}')">
+        <div class="flex items-start gap-3">
+          <div class="text-3xl shrink-0">${s.icon}</div>
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-sm text-slate-100 mb-1">${s.name}</div>
+            <div class="text-[11px] text-slate-400 leading-5">${s.desc}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    const lib = Storage.getLibrary();
+    if (lib.length === 0) {
+      listEl.innerHTML = '<div class="col-span-2 text-center text-slate-500 text-sm py-8">还没有保存的课程<br>用 AI 生成或导入 JSON 开始吧！</div>';
+    } else {
+      listEl.innerHTML = lib.map(s => `
+        <div class="script-card rounded-xl p-4 relative">
+          <div class="flex items-start gap-3">
+            <div class="text-3xl shrink-0">${s.meta.icon}</div>
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-sm text-slate-100 mb-1 truncate">${s.meta.title}</div>
+              <div class="text-[11px] text-slate-400 leading-5">${s.meta.description}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button class="btn-sm primary !py-1 text-xs flex-1" onclick="loadLocalScript('${s.id}')">开始学习</button>
+            <button class="btn-sm !py-1 text-xs" onclick="editLocalScript('${s.id}')">编辑</button>
+            <button class="btn-sm danger !py-1 text-xs" onclick="deleteLocalScript('${s.id}')">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+async function loadBuiltinScript(filename) {
+  try {
+    const res = await fetch('scripts/' + filename);
+    if (!res.ok) throw new Error('加载失败');
+    const data = await res.json();
+    LearnEngine.load(data, 'builtin_' + filename);
+    closeScriptPicker();
+  } catch (e) {
+    alert('脚本加载失败：' + e.message + '\n\n请确保通过 HTTP 服务器访问（如 python -m http.server），而非直接打开 HTML 文件。');
+  }
+}
+
+function loadLocalScript(id) {
+  const item = Storage.getFromLibrary(id);
+  if (item) {
+    LearnEngine.load(item.script, id);
+    closeScriptPicker();
+  }
+}
+
+function editLocalScript(id) {
+  const item = Storage.getFromLibrary(id);
+  if (item) {
+    Editor.load(item.script);
+    Editor.currentEditId = id;
+    closeScriptPicker();
+    switchView('editor');
+  }
+}
+
+function deleteLocalScript(id) {
+  if (!confirm('确定删除此课程？')) return;
+  Storage.removeFromLibrary(id);
+  switchLibTab('local');
+}
+
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.meta || !data.nodes || !data.order || !data.stages) {
+        throw new Error('脚本格式不正确：缺少 meta / stages / order / nodes');
+      }
+      LearnEngine.load(data, 'import_' + Date.now());
+      closeScriptPicker();
+    } catch (err) {
+      alert('导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// --- AI 生成 ---
+function openAIGenerator() {
+  // 恢复保存的 API Key
+  const savedKey = Storage.get(Storage.KEYS.API_KEY, '');
+  const savedModel = Storage.get(Storage.KEYS.API_MODEL, 'deepseek-chat');
+  document.getElementById('apiKey').value = savedKey;
+  document.getElementById('apiModel').value = savedModel;
+  document.getElementById('aiProgress').classList.add('hidden');
+  document.getElementById('aiGenerateBtn').disabled = false;
+  document.getElementById('aiModal').classList.remove('hidden');
+}
+
+function closeAIGenerator() {
+  document.getElementById('aiModal').classList.add('hidden');
+}
+
+async function generateScript() {
+  const topic = document.getElementById('aiTopic').value.trim();
+  const level = document.getElementById('aiLevel').value;
+  const stages = parseInt(document.getElementById('aiStages').value);
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const model = document.getElementById('apiModel').value.trim();
+
+  if (!topic) { alert('请输入知识点'); return; }
+  if (!apiKey) { alert('请输入 API Key'); return; }
+
+  // 保存 API Key
+  Storage.set(Storage.KEYS.API_KEY, apiKey);
+  Storage.set(Storage.KEYS.API_MODEL, model);
+
+  document.getElementById('aiGenerateBtn').disabled = true;
+  document.getElementById('aiProgress').classList.remove('hidden');
+  document.getElementById('aiProgressText').textContent = '正在生成中，请稍候…';
+
+  try {
+    const script = await AIGenerator.generate(topic, level, stages, apiKey, model);
+
+    // 验证基本结构
+    if (!script.meta || !script.stages || !script.order || !script.nodes) {
+      throw new Error('生成的脚本格式不完整');
+    }
+
+    document.getElementById('aiProgressText').textContent = '✅ 生成成功！';
+
+    // 保存到库并加载
+    setTimeout(() => {
+      const id = Storage.saveToLibrary(script);
+      LearnEngine.load(script, id);
+      closeAIGenerator();
+    }, 500);
+
+  } catch (e) {
+    document.getElementById('aiProgress').classList.add('hidden');
+    document.getElementById('aiGenerateBtn').disabled = false;
+    alert('生成失败：' + e.message);
+  }
+}
+
+// --- 编辑器快捷函数 ---
+function editorAddStage() { Editor.editorAddStage(); }
+function editorAddQuestion() { Editor.editorAddQuestion(); }
+function editorExport() { Editor.exportJSON(); }
+function editorSaveToLibrary() {
+  const id = Editor.saveToLibrary();
+  Editor.currentEditId = id;
+}
+function editorPreview() {
+  Editor.showPreview();
+  Editor.updatePreview();
+}
+function closePreview() {
+  document.getElementById('editorPreview').classList.add('hidden');
+}
+
+// --- 学习引擎全局函数 ---
+function send() { LearnEngine.send(); }
+function showHint() { LearnEngine.showHint(); }
+function restart() { LearnEngine.restart(); }
+function advance() { LearnEngine.advance(); }
+
+// --- 记录页 ---
+function switchRecordsTab(tab) {
+  Records.currentTab = tab;
+  document.querySelectorAll('.records-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+    el.classList.toggle('text-amber-300', el.dataset.tab === tab);
+    el.classList.toggle('border-amber-400', el.dataset.tab === tab);
+    el.classList.toggle('text-slate-400', el.dataset.tab !== tab);
+  });
+  document.getElementById('recordsHistory').classList.toggle('hidden', tab !== 'history');
+  document.getElementById('recordsWrong').classList.toggle('hidden', tab !== 'wrong');
+}
+
+// --- 输入交互 ---
+document.addEventListener('DOMContentLoaded', () => {
+  const inputEl = document.getElementById('input');
+  inputEl.addEventListener('keydown', e => {
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 112) + 'px';
+  });
+
+  // 弹窗遮罩点击关闭
+  document.getElementById('scriptModal').addEventListener('click', e => {
+    if (e.target.id === 'scriptModal') closeScriptPicker();
+  });
+  document.getElementById('aiModal').addEventListener('click', e => {
+    if (e.target.id === 'aiModal') closeAIGenerator();
+  });
+
+  // ESC 关闭弹窗
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeScriptPicker();
+      closeAIGenerator();
+    }
+  });
+
+  // 编辑器面板变化时更新预览
+  const observer = new MutationObserver(() => {
+    if (document.getElementById('editorPreview').classList.contains('hidden')) return;
+    Editor.updatePreview();
+  });
+  // 简化：选择节点时更新预览
+});
+</script>
+</body>
+</html>

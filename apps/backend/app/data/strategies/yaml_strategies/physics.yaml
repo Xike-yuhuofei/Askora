@@ -1,0 +1,105 @@
+# 物理策略配置
+strategies:
+  - id: "yaml_physics_newton_first"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "mechanics"
+    name: "牛顿第一定律"
+    description: "理解惯性定律的含义和应用"
+    prompt_template: "学生学习牛顿第一定律。引导理解：{concept}\n提问：为什么突然刹车时人会向前倾？惯性的大小与什么有关？"
+    follow_up_strategies: ["yaml_physics_force_error"]
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_newton_second"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "mechanics"
+    name: "牛顿第二定律"
+    description: "理解F=ma的含义和矢量性"
+    prompt_template: "引导理解：{concept}\n提问：F=ma中，F和a的方向有什么关系？质量增大时加速度如何变化？"
+    follow_up_strategies: ["yaml_physics_force_error"]
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_force_error"
+    level_1_goal: "monitoring"
+    level_2_skill: "error_analysis"
+    level_3_context: "mechanics"
+    name: "受力分析错误"
+    description: "分析受力分析中的常见遗漏和错误"
+    prompt_template: "学生受力分析出错。引导分析：{student_state}\n提问：你画出了所有作用在物体上的力吗？摩擦力方向是否正确？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_kinematics"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "motion"
+    name: "运动学方程"
+    description: "理解匀变速直线运动公式"
+    prompt_template: "学生学习运动学。引导理解：{concept}\n提问：速度公式v=v₀+at和位移公式的推导思路是什么？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_energy_conservation"
+    level_1_goal: "core_guidance"
+    level_2_skill: "concept_clarification"
+    level_3_context: "energy"
+    name: "机械能守恒"
+    description: "理解动能和势能的相互转换"
+    prompt_template: "引导理解：{concept}\n提问：自由落体中，物体的动能和势能如何变化？总和为什么守恒？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_analogy"
+    level_1_goal: "core_guidance"
+    level_2_skill: "analogy"
+    level_3_context: "mechanics"
+    name: "物理类比教学"
+    description: "通过生活类比理解物理概念"
+    prompt_template: "使用类比：{concept}\n提问：电流就像水流，电压就像水压。这个类比能帮助你理解什么？有哪些局限？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_self_explain"
+    level_1_goal: "core_guidance"
+    level_2_skill: "self_explanation"
+    level_3_context: "mechanics"
+    name: "物理自我解释"
+    description: "要求学生解释物理解题思路"
+    prompt_template: "学生解对了物理题。要求解释：\n提问：你能一步步说明你的解题思路吗？为什么选择这个物理量来分析？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true
+
+  - id: "yaml_physics_inquiry"
+    level_1_goal: "core_guidance"
+    level_2_skill: "guided_discovery"
+    level_3_context: "motion"
+    name: "物理探究学习"
+    description: "引导学生通过实验探究物理规律"
+    prompt_template: "引导探究：{concept}\n提问：如果让你设计实验验证F=ma，你需要哪些器材？测量哪些量？"
+    follow_up_strategies: []
+    escalation_threshold: 3
+    de_escalation_threshold: 2
+    version: "2.0.0"
+    is_active: true

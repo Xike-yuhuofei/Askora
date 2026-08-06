@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Askora 聊天工作区 — UI Kit</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-background);
+      color: var(--color-foreground);
+      -webkit-font-smoothing: antialiased;
+      padding: var(--space-5) 0;
+    }
+    .uikit-shell {
+      width: 100%;
+      max-width: 1184px;
+      margin: 0 auto;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: var(--uikit-sidebar-w, 220px) minmax(0,1fr);
+      gap: var(--space-4);
+      padding: 0 var(--space-4);
+    }
+    .uikit-sidebar, .uikit-main, .uikit-toolbar { min-width: 0; }
+    .uikit-sidebar { overflow: hidden; max-width: 100%; }
+    [data-component] { min-width: 0; max-width: 100%; overflow: hidden; }
+    .uikit-toolbar { display: flex; align-items: center; gap: var(--space-2); }
+    .uikit-responsive-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: var(--space-4);
+    }
+    .uikit-table-wrap {
+      max-width: 100%;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+    .uikit-truncate {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .uikit-nowrap { white-space: nowrap; flex-shrink: 0; }
+    .uikit-action-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      max-width: 160px;
+      overflow: hidden;
+    }
+    .uikit-action {
+      min-width: 0;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Chat workspace — main area split into chat canvas + inspector */
+    .chat-workspace {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) var(--inspector-width);
+      gap: var(--space-4);
+      min-width: 0;
+    }
+
+    /* Sidebar full height override (layout only, no visual change) */
+    .sidebar--kit {
+      height: auto;
+      min-height: 720px;
+      border-radius: var(--radius-lg);
+    }
+
+    /* Chat canvas */
+    .chat-canvas {
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-1);
+      min-height: 720px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      min-width: 0;
+      flex: 1;
+    }
+    .chat-title {
+      font-size: var(--font-size-h4);
+      font-weight: 600;
+      color: var(--color-on-surface);
+    }
+    .chat-subtitle {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+      margin-top: 2px;
+    }
+    .chat-header-actions {
+      display: flex;
+      gap: var(--space-1);
+      flex-shrink: 0;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+    .message-row {
+      display: flex;
+      gap: var(--space-3);
+      min-width: 0;
+    }
+    .message-row.user { justify-content: flex-end; }
+    .message-bubble { max-width: 78%; min-width: 0; }
+    .message-row.user .message-bubble { max-width: 70%; }
+    .message-meta {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+      margin-top: var(--space-1);
+    }
+    .message-row.user .message-meta { text-align: right; }
+    .msg-assistant-avatar { flex-shrink: 0; padding-top: 2px; }
+    .msg-refs {
+      display: flex;
+      gap: var(--space-1);
+      flex-wrap: wrap;
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border);
+    }
+    .msg-refs-label {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+      width: 100%;
+      margin-bottom: var(--space-1);
+    }
+
+    /* Chat input area */
+    .chat-input-area {
+      padding: var(--space-4) var(--space-5);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-surface);
+      flex-shrink: 0;
+    }
+    .chat-input-hint {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--space-2);
+    }
+    .chat-input-actions { display: flex; gap: var(--space-2); }
+    .chat-hint-text {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+    }
+
+    /* Right inspector panel */
+    .inspector-panel {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-1);
+      display: flex;
+      flex-direction: column;
+      min-height: 720px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .inspector-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .inspector-title {
+      font-size: var(--font-size-h4);
+      font-weight: 600;
+      color: var(--color-on-surface);
+    }
+    .inspector-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+    .inspector-section-title {
+      font-size: var(--font-size-caption);
+      font-weight: 600;
+      color: var(--color-muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-3);
+    }
+    .knowledge-card-item { margin-bottom: var(--space-3); }
+    .knowledge-card-item:last-child { margin-bottom: 0; }
+    .kc-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--color-primary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--color-primary);
+    }
+    .kc-content { min-width: 0; flex: 1; }
+    .kc-title {
+      font-size: var(--font-size-body);
+      font-weight: 600;
+      color: var(--color-on-surface);
+      margin-bottom: 2px;
+    }
+    .kc-excerpt {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-top: var(--space-2);
+    }
+    .tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label {
+      font-size: var(--font-size-caption);
+      color: var(--color-muted-foreground);
+    }
+    .info-value {
+      font-size: var(--font-size-caption);
+      color: var(--color-on-surface);
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      z-index: 100;
+    }
+
+    @media (max-width: 900px) {
+      .uikit-shell { grid-template-columns: minmax(0,1fr); }
+      .uikit-responsive-grid { grid-template-columns: minmax(0,1fr); }
+      .chat-workspace { grid-template-columns: minmax(0,1fr); }
+      .inspector-panel { display: none; }
+      .sidebar--kit { min-height: auto; }
+    }
+    @media (max-width: 640px) {
+      .uikit-toolbar { flex-direction: column; align-items: stretch; }
+      .uikit-responsive-grid { grid-template-columns: minmax(0,1fr); }
+      .chat-canvas { min-height: 600px; }
+      .message-bubble { max-width: 85%; }
+      .message-row.user .message-bubble { max-width: 80%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Mock data
+    const conversations = [
+      { id: 1, title: "产品需求文档分析", preview: "梳理 PRD 核心功能点与技术挑战", time: "刚刚", unread: true, active: true },
+      { id: 2, title: "知识库内容整理", preview: "现有文档的分类与归档方案", time: "10:30", unread: false },
+      { id: 3, title: "API 接口设计咨询", preview: "RESTful API 版本控制最佳实践", time: "昨天", unread: false },
+      { id: 4, title: "代码审查助手", preview: "Python 代码优化建议与重构", time: "昨天", unread: false },
+      { id: 5, title: "周报生成", preview: "根据任务列表自动生成工作周报", time: "周一", unread: false },
+    ];
+
+    const knowledgeSections = [
+      { id: 1, name: "产品文档库", count: 128, expanded: true },
+      { id: 2, name: "技术规范", count: 86, expanded: true },
+      { id: 3, name: "运营手册", count: 42, expanded: false },
+    ];
+
+    const messages = [
+      {
+        id: 1, role: "user",
+        text: "帮我分析一下这份产品需求文档的核心功能点，以及技术实现上可能遇到的挑战。",
+        time: "14:23"
+      },
+      {
+        id: 2, role: "assistant",
+        text: "好的，我来帮你梳理这份 PRD。根据文档内容，核心功能点主要包括以下几个方面：\n\n**1. 智能对话引擎**\n- 支持多轮对话上下文理解\n- 知识库语义检索与引用\n- 流式响应生成\n\n**2. 知识管理系统**\n- 多格式文档导入（PDF、Word、Markdown）\n- 自动分块与向量化\n- 权限管理与版本控制",
+        time: "14:23", refs: [1, 2]
+      },
+      {
+        id: 3, role: "user",
+        text: "技术实现方面有哪些关键挑战？",
+        time: "14:25"
+      },
+      {
+        id: 4, role: "assistant",
+        text: "技术实现上的关键挑战主要集中在三个方面：\n\n**检索精度**：需要平衡召回率和精确率，建议采用混合检索策略（向量检索 + 关键词检索）。\n\n**上下文窗口管理**：长对话场景下需要高效的上下文压缩机制，避免 token 溢出。\n\n**响应延迟**：流式生成可以降低首字节延迟，但需要做好网络异常处理和重试机制。",
+        time: "14:26", refs: [3]
+      }
+    ];
+
+    const referenceDocs = [
+      { id: 1, title: "智能对话引擎技术方案", source: "技术规范", excerpt: "基于大语言模型的多轮对话系统设计，包含上下文管理、意图识别、知识库检索等核心模块..." },
+      { id: 2, title: "知识库建设规范 v2.0", source: "产品文档库", excerpt: "知识库的分类体系、文档格式标准、质量评估方法，以及团队协作流程..." },
+      { id: 3, title: "流式响应最佳实践", source: "技术规范", excerpt: "SSE 流式传输协议选型、前端渲染优化、异常恢复机制的完整指南..." },
+    ];
+
+    const tags = ["产品需求", "技术方案", "知识库", "对话系统", "API设计"];
+
+    function App() {
+      const [darkMode, setDarkMode] = useState(false);
+      const [activeConv, setActiveConv] = useState(1);
+      const [inputValue, setInputValue] = useState("");
+      const [sections, setSections] = useState(knowledgeSections);
+
+      useEffect(() => {
+        document.documentElement.classList.toggle('dark', darkMode);
+      }, [darkMode]);
+
+      useEffect(() => {
+        if (window.lucide) lucide.createIcons();
+      }, [darkMode, activeConv, sections, inputValue]);
+
+      const toggleSection = (id) => {
+        setSections(prev => prev.map(s => s.id === id ? {...s, expanded: !s.expanded} : s));
+      };
+
+      return (
+        <>
+          <div className="theme-toggle">
+            <button
+              className="btn btn-secondary btn-rounded btn-sm btn-icon"
+              onClick={() => setDarkMode(!darkMode)}
+              aria-label="切换主题"
+              data-component="button"
+            >
+              <i data-lucide={darkMode ? "sun" : "moon"} style={{width:16,height:16}}></i>
+            </button>
+          </div>
+
+          <div className="uikit-shell" data-layout-guard="uikit-v1" style={{'--uikit-sidebar-w':'260px'}}>
+            {/* LEFT SIDEBAR */}
+            <div className="uikit-sidebar" data-component="navigation">
+              <nav className="sidebar sidebar--kit" aria-label="主导航">
+                <div className="sidebar-header">
+                  <div className="workspace-switcher">
+                    <span className="workspace-name">Askora 工作区</span>
+                    <i data-lucide="chevron-down" style={{width:16,height:16,color:'var(--color-muted-foreground)'}}></i>
+                  </div>
+                  <button className="new-chat-btn">
+                    <i data-lucide="plus" style={{width:18,height:18}}></i>
+                    新对话
+                  </button>
+                </div>
+
+                {/* Search */}
+                <div style={{padding:'var(--space-3) var(--space-2)'}} data-component="input">
+                  <div className="input-search" style={{minWidth:0, maxWidth:'none', width:'100%'}}>
+                    <i data-lucide="search" className="input-search-icon"></i>
+                    <input type="text" className="input-field" placeholder="搜索对话与文档" />
+                  </div>
+                </div>
+
+                <div className="nav-section">
+                  <div className="nav-section-title">对话记录</div>
+                  {conversations.map(conv => (
+                    <div
+                      key={conv.id}
+                      className={`nav-item ${conv.id === activeConv ? 'active' : ''}`}
+                      onClick={() => setActiveConv(conv.id)}
+                    >
+                      <div className="nav-item-icon">
+                        <i data-lucide="message-square" style={{width:18,height:18}}></i>
+                      </div>
+                      <span className="nav-item-label uikit-truncate">{conv.title}</span>
+                      <span className="nav-item-meta uikit-nowrap">{conv.time}</span>
+                      {conv.unread && <div className="card__unread"></div>}
+                    </div>
+                  ))}
+
+                  <div style={{height:'var(--space-4)'}}></div>
+
+                  <div className="nav-section-title">知识库</div>
+                  {sections.map(section => (
+                    <div key={section.id}>
+                      <div
+                        className={`nav-group-header ${!section.expanded ? 'collapsed' : ''}`}
+                        onClick={() => toggleSection(section.id)}
+                      >
+                        <i data-lucide="chevron-down" className="chevron"></i>
+                        <div className="nav-item-icon" style={{width:20,height:20}}>
+                          <i data-lucide="folder" style={{width:18,height:18,color:'var(--color-muted-foreground)'}}></i>
+                        </div>
+                        <span className="nav-group-title uikit-truncate">{section.name}</span>
+                        <span className="nav-badge" style={{background:'var(--color-surface-container-high)',color:'var(--color-on-surface-variant)',fontWeight:500}}>{section.count}</span>
+                      </div>
+                      {section.expanded && (
+                        <div className="nav-group-children">
+                          <div className="nav-item">
+                            <span className="nav-item-label uikit-truncate" style={{fontSize:14}}>全部文档</span>
+                          </div>
+                          <div className="nav-item">
+                            <span className="nav-item-label uikit-truncate" style={{fontSize:14}}>已收藏</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sidebar-footer">
+                  <div className="user-profile">
+                    <div className="avatar user circle size-md" data-component="avatar">
+                      张
+                      <span className="status online"></span>
+                    </div>
+                    <div className="user-info">
+                      <div className="user-name uikit-truncate">张明远</div>
+                      <div className="user-role uikit-truncate">产品经理</div>
+                    </div>
+                    <button className="nav-action-btn" aria-label="设置">
+                      <i data-lucide="settings" style={{width:16,height:16}}></i>
+                    </button>
+                  </div>
+                </div>
+              </nav>
+            </div>
+
+            {/* MAIN AREA */}
+            <div className="uikit-main">
+              <div className="chat-workspace">
+                {/* CENTER — CHAT CANVAS */}
+                <div className="chat-canvas">
+                  {/* Chat header */}
+                  <div className="chat-header">
+                    <div className="chat-header-left">
+                      <div className="avatar assistant rounded size-md" data-component="avatar">
+                        AI
+                      </div>
+                      <div style={{minWidth:0, flex:1}}>
+                        <div className="chat-title uikit-truncate">产品需求文档分析</div>
+                        <div className="chat-subtitle">智能助手 · 引用 3 篇文档</div>
+                      </div>
+                    </div>
+                    <div className="chat-header-actions uikit-toolbar">
+                      <button className="btn btn-ghost btn-rounded btn-sm btn-icon" aria-label="收藏">
+                        <i data-lucide="star" style={{width:16,height:16}}></i>
+                      </button>
+                      <button className="btn btn-ghost btn-rounded btn-sm btn-icon" aria-label="分享">
+                        <i data-lucide="share-2" style={{width:16,height:16}}></i>
+                      </button>
+                      <button className="btn btn-ghost btn-rounded btn-sm btn-icon" aria-label="更多">
+                        <i data-lucide="more-horizontal" style={{width:16,height:16}}></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div className="chat-messages">
+                    {/* Message 1 — User */}
+                    <div className="message-row user" data-component="card">
+                      <div className="message-bubble">
+                        <div className="card card--default card--md card--normal" style={{boxShadow:'none'}}>
+                          <p className="card__text" style={{whiteSpace:'pre-wrap'}}>{messages[0].text}</p>
+                          <div className="card__meta">{messages[0].time}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message 2 — Assistant */}
+                    <div className="message-row" data-component="card">
+                      <div className="msg-assistant-avatar">
+                        <div className="avatar assistant rounded size-md">AI</div>
+                      </div>
+                      <div className="message-bubble">
+                        <div className="card card--elevated card--md card--normal">
+                          <div className="card__text" style={{whiteSpace:'pre-wrap', lineHeight:1.7}}>{messages[1].text}</div>
+                          <div className="msg-refs">
+                            <span className="msg-refs-label">引用文档</span>
+                            {messages[1].refs.map(refId => {
+                              const doc = referenceDocs.find(d => d.id === refId);
+                              return doc ? (
+                                <span key={refId} className="tag soft default size-sm uikit-truncate" style={{maxWidth:140}}>
+                                  {doc.title}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                          <div className="card__meta">{messages[1].time}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message 3 — User */}
+                    <div className="message-row user" data-component="card">
+                      <div className="message-bubble">
+                        <div className="card card--default card--md card--normal" style={{boxShadow:'none'}}>
+                          <p className="card__text">{messages[2].text}</p>
+                          <div className="card__meta">{messages[2].time}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Message 4 — Assistant */}
+                    <div className="message-row" data-component="card">
+                      <div className="msg-assistant-avatar">
+                        <div className="avatar assistant rounded size-md">AI</div>
+                      </div>
+                      <div className="message-bubble">
+                        <div className="card card--elevated card--md card--normal">
+                          <div className="card__text" style={{whiteSpace:'pre-wrap', lineHeight:1.7}}>{messages[3].text}</div>
+                          <div className="msg-refs">
+                            <span className="msg-refs-label">引用文档</span>
+                            {messages[3].refs.map(refId => {
+                              const doc = referenceDocs.find(d => d.id === refId);
+                              return doc ? (
+                                <span key={refId} className="tag soft default size-sm uikit-truncate" style={{maxWidth:140}}>
+                                  {doc.title}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                          <div className="card__meta">{messages[3].time}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chat input */}
+                  <div className="chat-input-area" data-component="input">
+                    <div className="input-chat" style={{minWidth:0, width:'100%'}}>
+                      <button className="input-chat-attach" aria-label="附件">
+                        <i data-lucide="paperclip" style={{width:18,height:18}}></i>
+                      </button>
+                      <textarea
+                        className="input-chat-textarea"
+                        placeholder="输入你的问题..."
+                        rows="1"
+                        value={inputValue}
+                        onChange={e => setInputValue(e.target.value)}
+                      ></textarea>
+                      <button
+                        className="input-chat-send"
+                        aria-label="发送"
+                        disabled={!inputValue.trim()}
+                      >
+                        <i data-lucide="send" style={{width:16,height:16}}></i>
+                      </button>
+                    </div>
+                    <div className="chat-input-hint">
+                      <div className="chat-input-actions">
+                        <button className="btn btn-ghost btn-rounded btn-sm" style={{fontSize:12, height:28, padding:'0 10px'}}>
+                          <i data-lucide="sparkles" style={{width:14,height:14,marginRight:4}}></i>
+                          快捷指令
+                        </button>
+                        <button className="btn btn-ghost btn-rounded btn-sm" style={{fontSize:12, height:28, padding:'0 10px'}}>
+                          <i data-lucide="file-text" style={{width:14,height:14,marginRight:4}}></i>
+                          引用文档
+                        </button>
+                      </div>
+                      <span className="chat-hint-text">Enter 发送 · Shift+Enter 换行</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT — INSPECTOR PANEL */}
+                <div className="inspector-panel">
+                  <div className="inspector-header">
+                    <span className="inspector-title">上下文</span>
+                    <button className="btn btn-ghost btn-rounded btn-sm btn-icon" aria-label="刷新">
+                      <i data-lucide="refresh-cw" style={{width:16,height:16}}></i>
+                    </button>
+                  </div>
+
+                  <div className="inspector-body">
+                    {/* Reference docs */}
+                    <div>
+                      <div className="inspector-section-title">引用文档</div>
+                      {referenceDocs.map(doc => (
+                        <div key={doc.id} className="knowledge-card-item" data-component="card">
+                          <div className="card card--outlined card--sm card--compact">
+                            <div style={{display:'flex', alignItems:'flex-start', gap:'var(--space-2)', marginBottom:'var(--space-2)'}}>
+                              <div className="kc-icon">
+                                <i data-lucide="file-text" style={{width:18,height:18}}></i>
+                              </div>
+                              <div className="kc-content">
+                                <div className="kc-title uikit-truncate">{doc.title}</div>
+                                <span className="tag soft primary size-sm" data-component="tag">{doc.source}</span>
+                              </div>
+                            </div>
+                            <p className="kc-excerpt">{doc.excerpt}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <div className="inspector-section-title">标签</div>
+                      <div className="tag-group" data-component="tag">
+                        {tags.map(tag => (
+                          <span key={tag} className="tag soft default size-md interactive">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Conversation info */}
+                    <div>
+                      <div className="inspector-section-title">对话信息</div>
+                      <div className="card card--ghost card--sm card--compact">
+                        <div className="info-row">
+                          <span className="info-label">创建时间</span>
+                          <span className="info-value">今天 14:20</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">消息数</span>
+                          <span className="info-value">8 条</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">引用数</span>
+                          <span className="info-value">3 篇文档</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">已收藏</span>
+                          <span className="tag filled success size-sm" data-component="tag">已收藏</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+
+  <script>
+    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+  </script>
+</body>
+</html>

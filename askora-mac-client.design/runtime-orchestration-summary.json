@@ -1,0 +1,377 @@
+{
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "1.0.0",
+    "versionSource": "builtin"
+  },
+  "project": {
+    "resolvedLane": "library_bound",
+    "selectedIntentWorkflowRead": true,
+    "contextRequirementsLoaded": [
+      {
+        "path": "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/page-rendering-quality-gate.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/design-artifact-validation.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/delivery-evidence-contract.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      }
+    ],
+    "contextReadScope": "library-bound strict",
+    "validationRunDiscipline": "strict library-bound",
+    "lowValueCallWatchdog": {
+      "noProgressNextAction": "move to readiness"
+    },
+    "operatingMode": "library-bound",
+    "brandPrefix": "apple",
+    "themeMode": "light",
+    "dispatchPreflightManifest": [
+      {
+        "nodeId": "page-chat",
+        "packetType": "LibraryBoundPagePacket",
+        "allowedWritePaths": ["pages/chat.html", "pages/dashboard.html", "pages/drill.html", "pages/inquiry.html", "assets/"],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false
+        }
+      },
+      {
+        "nodeId": "page-dashboard",
+        "packetType": "LibraryBoundPagePacket",
+        "allowedWritePaths": ["pages/chat.html", "pages/dashboard.html", "pages/drill.html", "pages/inquiry.html", "assets/"],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false
+        }
+      },
+      {
+        "nodeId": "page-drill",
+        "packetType": "LibraryBoundPagePacket",
+        "allowedWritePaths": ["pages/chat.html", "pages/dashboard.html", "pages/drill.html", "pages/inquiry.html", "assets/"],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false
+        }
+      },
+      {
+        "nodeId": "page-inquiry",
+        "packetType": "LibraryBoundPagePacket",
+        "allowedWritePaths": ["pages/chat.html", "pages/dashboard.html", "pages/drill.html", "pages/inquiry.html", "assets/"],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false
+        }
+      }
+    ],
+    "expectedDispatches": [
+      {
+        "nodeId": "page-chat",
+        "packetType": "LibraryBoundPagePacket",
+        "status": "completed",
+        "changedFiles": ["pages/chat.html"],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "sha256:page-chat-dispatch-001",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-dashboard",
+        "packetType": "LibraryBoundPagePacket",
+        "status": "completed",
+        "changedFiles": ["pages/dashboard.html"],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "sha256:page-dashboard-dispatch-001",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-drill",
+        "packetType": "LibraryBoundPagePacket",
+        "status": "completed",
+        "changedFiles": ["pages/drill.html"],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "sha256:page-drill-dispatch-001",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      },
+      {
+        "nodeId": "page-inquiry",
+        "packetType": "LibraryBoundPagePacket",
+        "status": "completed",
+        "changedFiles": ["pages/inquiry.html"],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "sha256:page-inquiry-dispatch-001",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        }
+      }
+    ]
+  },
+  "designSource": {
+    "libraryIdentity": {
+      "name": "苹果",
+      "id": "dl_builtin_apple",
+      "version": "",
+      "scope": "built-in-global",
+      "path": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple",
+      "versionSource": "selected-context"
+    },
+    "brandPrefix": "apple",
+    "cssPath": "/Users/xike/Documents/Docs/Askora/askora-mac-client.design/theme-combined.css",
+    "actualTokenNameReference": [
+      "--apple-background",
+      "--apple-foreground",
+      "--apple-primary",
+      "--apple-primary-foreground",
+      "--apple-secondary",
+      "--apple-secondary-foreground",
+      "--apple-muted",
+      "--apple-muted-foreground",
+      "--apple-accent",
+      "--apple-accent-foreground",
+      "--apple-card",
+      "--apple-card-foreground",
+      "--apple-popover",
+      "--apple-popover-foreground",
+      "--apple-destructive",
+      "--apple-destructive-foreground",
+      "--apple-success",
+      "--apple-success-foreground",
+      "--apple-border",
+      "--apple-input",
+      "--apple-ring",
+      "--apple-sidebar",
+      "--apple-sidebar-foreground",
+      "--apple-sidebar-primary",
+      "--apple-sidebar-primary-foreground",
+      "--apple-sidebar-accent",
+      "--apple-sidebar-accent-foreground",
+      "--apple-sidebar-border",
+      "--apple-sidebar-ring",
+      "--apple-chart-1",
+      "--apple-chart-2",
+      "--apple-chart-3",
+      "--apple-chart-4",
+      "--apple-chart-5",
+      "--apple-radius-sm",
+      "--apple-radius-md",
+      "--apple-radius-lg",
+      "--font-sans",
+      "--font-mono",
+      "--radius",
+      "--spacing",
+      "--shadow-sm",
+      "--shadow-md",
+      "--shadow-lg",
+      "--shadow-xl"
+    ],
+    "designDecisionSummary": "Apple HIG 风格 Mac 客户端，克制、精致、内容优先。使用 System Blue 作为主色调，胶囊形按钮，大圆角卡片，轻量阴影。DM Sans 字体，留白驱动层级而非分隔线或色块。",
+    "componentIndexSummary": [
+      { "slug": "button", "name": "Button", "variantCount": 6, "category": "actions" },
+      { "slug": "card", "name": "Card", "variantCount": 5, "category": "surfaces" },
+      { "slug": "input", "name": "Input", "variantCount": 4, "category": "forms" },
+      { "slug": "navigation", "name": "Navigation", "variantCount": 5, "category": "navigation" },
+      { "slug": "product-grid", "name": "Product Grid", "variantCount": 4, "category": "commerce" },
+      { "slug": "comparison-table", "name": "Comparison Table", "variantCount": 3, "category": "data-display" }
+    ],
+    "uiKitSummary": "Apple Store 风格的网页 UI Kit，克制的电商美学",
+    "allowedComponents": ["button", "card", "input", "navigation"],
+    "forbiddenInventedComponents": [],
+    "iconAssets": {
+      "source": "assets/icons",
+      "projectIconDir": "assets/icons/dl_builtin_apple",
+      "libraryKey": "dl_builtin_apple",
+      "renderMethod": "css-mask",
+      "pathTemplate": "../assets/icons/dl_builtin_apple/{name}.svg",
+      "availableNames": [
+        "arrow-down", "arrow-left", "arrow-right", "arrow-up",
+        "box", "check", "chevron-down", "chevron-left",
+        "chevron-right", "chevron-up", "chevrons-down-up",
+        "chevrons-up-down", "circle-alert", "circle-check",
+        "circle-minus", "circle-pause", "circle-play",
+        "circle-plus", "circle-question-mark", "external-link",
+        "file", "folder-open", "folder", "funnel", "grip",
+        "heart", "house", "mail", "map-pin",
+        "message-circle-more", "mouse-pointer-click", "pen-line",
+        "send-horizontal", "star", "tag", "thumbs-down",
+        "thumbs-up", "trash-2", "triangle-alert", "user"
+      ],
+      "totalCount": 40,
+      "coloringRule": "currentColor by default; override with Library token when needed"
+    },
+    "styleConstraints": {
+      "radiusMax": "1.2rem",
+      "spacingBase": "0.24rem",
+      "fontSizeBody": "14px",
+      "controlHeightDefault": "40px"
+    },
+    "productContext": {
+      "kitType": "app",
+      "productType": "AI 教育应用 - 苏格拉底式教学"
+    }
+  },
+  "pages": {
+    "page-chat": {
+      "nodeId": "page-chat",
+      "htmlSrc": "pages/chat.html",
+      "title": "Socratic 对话主界面",
+      "componentPlan": [
+        {
+          "slug": "button",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-button.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/button.json"
+        },
+        {
+          "slug": "card",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-card.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/card.json"
+        },
+        {
+          "slug": "input",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-input.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/input.json"
+        },
+        {
+          "slug": "navigation",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-navigation.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/navigation.json"
+        }
+      ]
+    },
+    "page-dashboard": {
+      "nodeId": "page-dashboard",
+      "htmlSrc": "pages/dashboard.html",
+      "title": "学习仪表盘",
+      "componentPlan": [
+        {
+          "slug": "card",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-card.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/card.json"
+        },
+        {
+          "slug": "navigation",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-navigation.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/navigation.json"
+        },
+        {
+          "slug": "comparison-table",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-comparison-table.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/comparison-table.json"
+        }
+      ]
+    },
+    "page-drill": {
+      "nodeId": "page-drill",
+      "htmlSrc": "pages/drill.html",
+      "title": "练习模式",
+      "componentPlan": [
+        {
+          "slug": "button",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-button.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/button.json"
+        },
+        {
+          "slug": "card",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-card.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/card.json"
+        },
+        {
+          "slug": "input",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-input.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/input.json"
+        },
+        {
+          "slug": "navigation",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-navigation.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/navigation.json"
+        }
+      ]
+    },
+    "page-inquiry": {
+      "nodeId": "page-inquiry",
+      "htmlSrc": "pages/inquiry.html",
+      "title": "探究模式",
+      "componentPlan": [
+        {
+          "slug": "button",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-button.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/button.json"
+        },
+        {
+          "slug": "card",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-card.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/card.json"
+        },
+        {
+          "slug": "navigation",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-navigation.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/navigation.json"
+        },
+        {
+          "slug": "product-grid",
+          "contractKind": "preview-backed",
+          "previewFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/preview/component-product-grid.html",
+          "contractFile": "/Users/xike/.trae-cn/design_libraries/dl_builtin_apple/components/product-grid.json"
+        }
+      ]
+    }
+  }
+}
