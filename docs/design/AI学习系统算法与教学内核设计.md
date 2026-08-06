@@ -221,17 +221,979 @@ LLM 可以负责从自然语言中抽取目标，但最终目标必须可编辑�
 
 ### 4.1 内容解析与知识建模
 
-解决“材料中有什么”。
+解决“材料中有什么、这些内容如何组织、哪些内容能够成为教学与评估对象”。
 
-包括：
+该系统不是普通 RAG 的预处理器。普通文档系统只需生成可检索文本块；Askora 必须进一步生成可审计、可编辑、可用于诊断和路径规划的教育内容模型。
 
-- PDF、EPUB、DOCX 解析；
-- OCR 与版面分析；
-- 语义分块；
-- 概念抽取；
-- 知识图谱；
-- 前置依赖图；
-- 示例、练习和误区抽取。
+核心边界：
+
+- 本系统负责描述材料、知识对象及其关系；
+- 不直接判断用户是否掌握；
+- 不直接选择当前教学策略；
+- 不把 LLM 生成的解释自动视为原材料事实；
+- 不允许无法定位原文证据的机器推断直接进入已发布知识库。
+
+最终产物应同时服务于：
+
+- 原文检索与精确引用；
+- 学习路径规划；
+- 先备知识诊断；
+- 教学任务生成；
+- 题目与提示生成；
+- 错误和误区诊断；
+- 内容版本更新；
+- 人工审核与算法审计。
+
+#### 4.1.1 分层内容模型
+
+内容模型建议分为八层：
+
+```text
+RawAsset
+→ MaterialRevision
+→ DocumentNode
+→ SourceSpan
+→ KnowledgeObject
+→ KnowledgeRelation
+→ PedagogicalAsset
+→ IndexProjection
+```
+
+各层职责如下。
+
+| 层 | 含义 | 主要职责 |
+|---|---|---|
+| `RawAsset` | 原始文件 | 保存原文件、校验和、MIME、文件大小和安全扫描结果 |
+| `MaterialRevision` | 材料版本 | 固化某次导入或更新后的不可变版本 |
+| `DocumentNode` | 文档结构节点 | 表示卷、章、节、段落、表格、图片、公式、代码块、脚注等 |
+| `SourceSpan` | 最小证据片段 | 为知识对象和关系提供可复现的原文锚点 |
+| `KnowledgeObject` | 可学习知识对象 | 表示概念、命题、规则、过程、事实、方法等 |
+| `KnowledgeRelation` | 知识关系 | 表示前置、组成、推导、对比、应用、例证等关系 |
+| `PedagogicalAsset` | 教学素材 | 表示定义、解释、例子、反例、练习、解答、提示、误区等 |
+| `IndexProjection` | 检索与图计算投影 | 生成全文索引、向量索引、检索块和图结构，不作为事实源 |
+
+关系数据库中的规范化内容模型应作为唯一事实源。向量库、全文索引和图数据库均属于可重建投影。
+
+#### 4.1.2 总体处理流水线
+
+```text
+文件导入与校验
+→ 文件类型识别
+→ 格式解析
+→ 文本与结构规范化
+→ 版面及多模态恢复
+→ 文档结构树生成
+→ 语义单元切分
+→ 知识对象候选抽取
+→ 实体消歧与同义词合并
+→ 知识关系及前置关系推断
+→ 教学素材抽取
+→ 证据绑定与置信度计算
+→ 规则校验和模型复核
+→ 人工审核或自动发布
+→ 生成检索与图索引投影
+```
+
+处理应具备幂等性。同一文件、同一解析器版本和同一配置重复执行时，应得到相同的稳定标识和等价结果。
+
+建议处理状态：
+
+```text
+uploaded
+→ validated
+→ parsed
+→ modeled
+→ review_required / publishable
+→ published
+```
+
+异常状态：
+
+```text
+rejected
+failed
+partially_parsed
+superseded
+```
+
+`processing_status` 不应只表示“是否完成分块”，而应能区分解析完成、知识建模完成、等待复核和已发布。
+
+#### 4.1.3 文件适配器与解析要求
+
+当前优先支持 Markdown、TXT、EPUB、PDF、DOCX，后续扩展 HTML、网页快照、幻灯片、音频和视频转写稿。
+
+文件类型不能只依据扩展名判断，应综合：
+
+- 文件签名；
+- MIME；
+- 容器结构；
+- 扩展名；
+- 解析探测结果。
+
+各格式最低解析要求：
+
+| 格式 | 必须保留的结构 | 主要风险 |
+|---|---|---|
+| Markdown | 标题层级、段落、列表、表格、引用、代码块、公式 | 正则切分破坏代码块和嵌套结构 |
+| TXT | 段落、空行、可能的章节标题 | 缺少显式结构，需要结构推断 |
+| EPUB | `spine`、TOC、章节、标题、脚注、图片、内部链接、EPUB CFI | 直接去除 HTML 会丢失章节和引用锚点 |
+| PDF | 页码、文本框、阅读顺序、标题、表格、公式、图片、脚注 | 多栏错序、扫描页、页眉页脚污染、字符编码错误 |
+| DOCX | 标题样式、段落、列表、表格、图片、题注、脚注、公式 | 只读取段落会丢失表格与样式语义 |
+
+PDF 解析采用分级策略：
+
+```text
+原生文本提取
+→ 版面分析与阅读顺序恢复
+→ 局部 OCR
+→ 整页 OCR
+→ 低置信度人工复核
+```
+
+OCR 只应在无文本层、文本层明显损坏或局部图像包含关键文字时启用，避免对正常数字 PDF 重复识别。
+
+#### 4.1.4 统一文档中间表示
+
+所有解析器必须输出统一的 `DocumentIR`，而不是只输出 `full_text + chunks`。
+
+示意结构：
+
+```json
+{
+  "material_id": "mat_xxx",
+  "revision_id": "rev_xxx",
+  "source_type": "epub",
+  "checksum": "sha256:...",
+  "language": "zh-CN",
+  "parser": {
+    "name": "epub_parser",
+    "version": "2.0.0"
+  },
+  "nodes": [
+    {
+      "node_id": "node_xxx",
+      "parent_id": "node_parent",
+      "node_type": "section",
+      "order": 12,
+      "title": "形式系统",
+      "text": "...",
+      "anchor": {
+        "kind": "epub_cfi",
+        "value": "epubcfi(...)"
+      },
+      "attributes": {
+        "heading_level": 2
+      }
+    }
+  ]
+}
+```
+
+`DocumentNode.node_type` 至少包括：
+
+```text
+document
+part
+chapter
+section
+paragraph
+list
+list_item
+table
+figure
+caption
+equation
+code
+blockquote
+footnote
+exercise
+solution
+```
+
+设计要求：
+
+- 原始文本不可被后续摘要覆盖；
+- 清洗文本、OCR 文本和原始文本应可区分；
+- 每个节点必须有稳定顺序；
+- 尽可能提供页码、DOM 路径、EPUB CFI、字符偏移等锚点；
+- 解析器升级产生新 `MaterialRevision`，不得静默覆盖旧版本；
+- 派生字段必须记录生成器和版本。
+
+#### 4.1.5 原文证据与定位锚点
+
+`SourceSpan` 是所有知识建模结果的证据基础。
+
+建议字段：
+
+```text
+span_id
+revision_id
+node_id
+start_offset
+end_offset
+quoted_text
+page_number
+anchor_type
+anchor_value
+content_hash
+```
+
+锚点优先级：
+
+```text
+结构化原生锚点
+> 页码 + 文本框坐标
+> 节点路径 + 字符偏移
+> 文本指纹匹配
+```
+
+知识对象、关系、例子、题目和误区均应绑定一个或多个 `SourceSpan`。用户点击引用时，系统必须能够回到对应页、章节或段落，而不是只返回一个不可验证的向量检索块。
+
+当材料版本更新导致偏移变化时，可使用：
+
+- 内容哈希；
+- 前后文指纹；
+- 结构路径；
+- 相邻节点；
+
+重新定位旧锚点。
+
+#### 4.1.6 语义分块与多粒度内容单元
+
+Askora 不应使用一种固定 Token 长度同时承担检索、教学和引用。
+
+建议建立三种粒度：
+
+| 粒度 | 目标 | 典型范围 |
+|---|---|---|
+| `EvidenceSpan` | 精确引用和证据绑定 | 一句话到一个短段落 |
+| `SemanticUnit` | 表达一个相对完整的语义或论证步骤 | 通常 150～600 Token |
+| `RetrievalChunk` | 提高检索召回率的索引投影 | 通常 300～900 Token，可少量重叠 |
+
+切分顺序：
+
+```text
+文档显式结构
+→ 段落和列表边界
+→ 论证与话题边界
+→ 句子边界
+→ Token 上限兜底
+```
+
+硬约束：
+
+- 代码块、公式、表格行组、题目与其条件不得随意截断；
+- 标题必须与其直接内容建立结构关系；
+- 定义句和被定义术语尽量位于同一语义单元；
+- 例题题干、图表、解题步骤和答案应保持可关联；
+- 章节标题不能作为独立无语义检索块；
+- 重叠文本只存在于 `RetrievalChunk` 投影，不能形成重复知识事实。
+
+语义边界评分可综合：
+
+```text
+结构边界权重
++ 话题变化
++ 指代连续性
++ 句法完整性
++ 长度惩罚
++ 特殊内容完整性约束
+```
+
+初期可采用规则和嵌入相似度结合，不能把所有分块工作交给 LLM。
+
+#### 4.1.7 知识对象模型
+
+知识对象应表达“学习者需要掌握什么”，而非简单名词抽取。
+
+核心类型：
+
+| 类型 | 含义 | 示例 |
+|---|---|---|
+| `concept` | 概念或术语 | 形式系统、自指、相变潜热 |
+| `proposition` | 可判断真假的命题 | 完备系统中的某类命题可被证明或证伪 |
+| `principle` | 规律、原理或约束 | 能量守恒、鸽巢原理 |
+| `procedure` | 有步骤的操作或推理过程 | 哥德尔编码、解一元二次方程 |
+| `method` | 可选择的策略或方法 | 反证法、变量替换法 |
+| `fact` | 稳定事实或材料内陈述 | 人名、时间、定义域条件 |
+| `representation` | 表达系统或表征形式 | 真值表、状态图、几何图示 |
+| `skill` | 可观测能力 | 识别自指结构、构造反例 |
+
+建议字段：
+
+```text
+knowledge_object_id
+canonical_name
+object_type
+description
+aliases
+scope
+language
+abstraction_level
+intrinsic_difficulty
+estimated_reasoning_steps
+status
+confidence
+created_by
+extractor_version
+```
+
+其中：
+
+- `canonical_name` 用于稳定标识，不等于某一本书的原始措辞；
+- `description` 是规范化描述，必须绑定来源或标记为系统归纳；
+- `scope` 区分材料内局部概念、学科概念和跨学科概念；
+- `intrinsic_difficulty` 是材料侧估计，不代表特定用户感受到的难度；
+- `status` 至少区分候选、机器验证、待审核、已批准、已废弃。
+
+知识对象和原文提及应拆分：
+
+```text
+KnowledgeObject：规范化概念“形式系统”
+KnowledgeMention：本书第 3 章中出现的“形式系统”及其原文位置
+```
+
+这样同一知识对象可以连接多本材料，同时保留每本材料的表述差异。
+
+#### 4.1.8 教学素材模型
+
+教学素材不是知识对象本身，而是用于教授、练习或评估知识对象的载体。
+
+类型至少包括：
+
+```text
+definition
+explanation
+example
+counterexample
+analogy
+case
+exercise
+solution
+hint
+rubric
+misconception
+warning
+summary
+```
+
+关键关系示例：
+
+```text
+definition --defines--> concept
+example --exemplifies--> concept
+counterexample --refutes_generalization_of--> proposition
+exercise --assesses--> knowledge_object
+hint --supports--> procedure_step
+misconception --misunderstands--> knowledge_object
+solution --solves--> exercise
+```
+
+从原文抽取和由模型生成的素材必须分开：
+
+```text
+provenance = source_extracted
+provenance = system_generated
+provenance = user_created
+```
+
+系统生成的例子、题目和解释不能伪装为原书内容，且应记录生成时使用的知识对象版本、模型和 Prompt 版本。
+
+练习建议结构化为：
+
+```text
+题干
+已知条件
+任务要求
+答案类型
+标准答案
+解题步骤
+评分 Rubric
+目标知识对象
+前置知识对象
+难度参数
+提示阶梯
+常见错误
+来源证据
+```
+
+#### 4.1.9 知识关系与前置依赖图
+
+完整知识图谱可以有环，但用于学习路径规划的“硬前置图”应尽量保持有向无环。
+
+关系类型建议分组。
+
+结构关系：
+
+```text
+is_a
+part_of
+has_step
+has_property
+```
+
+认知依赖关系：
+
+```text
+prerequisite_of
+depends_on
+supports_understanding_of
+```
+
+逻辑与语义关系：
+
+```text
+entails
+derived_from
+equivalent_to
+contrasts_with
+causes
+constrains
+```
+
+教学关系：
+
+```text
+exemplifies
+applies_to
+assesses
+misconception_of
+remediates
+transfers_to
+```
+
+边模型至少保存：
+
+```text
+relation_id
+source_object_id
+target_object_id
+relation_type
+strength
+hardness
+scope
+evidence_span_ids
+confidence
+inference_method
+extractor_version
+review_status
+```
+
+方向约定：
+
+```text
+A --prerequisite_of--> B
+```
+
+表示学习 B 前通常需要掌握 A。
+
+前置关系不能仅凭章节先后推断，应综合：
+
+1. 原文明确表达“先理解 A 才能理解 B”；
+2. B 的定义或过程是否引用 A；
+3. 不掌握 A 时是否无法完成 B 的代表性任务；
+4. A 是否只是有帮助，而非必要；
+5. 是否存在更小的真正前置集合。
+
+前置关系分级：
+
+```text
+hard：缺失时通常无法学习目标知识
+soft：掌握后显著降低学习成本
+contextual：只在特定任务或材料表述下需要
+```
+
+图构建后执行：
+
+- 自环删除；
+- 重复边合并；
+- 传递约简；
+- 强连通分量检测；
+- 环依赖解释；
+- 低置信度边降级；
+- 孤立节点检查。
+
+若存在真实互相依赖，应先形成“概念簇”或“联合教学单元”，而不是强行删除所有环。
+
+#### 4.1.10 候选抽取与融合算法
+
+知识建模采用混合流水线：
+
+```text
+确定性解析器
++ 结构规则
++ 词典与术语识别
++ 嵌入相似度
++ 受约束 LLM 抽取
++ 规则校验
++ 模型复核
++ 人工审核
+```
+
+建议分阶段执行。
+
+第一遍：局部候选抽取
+
+- 在章节或语义单元内抽取术语、定义、命题、步骤、例子、练习和显式关系；
+- 使用 JSON Schema 约束输出；
+- 所有候选必须附带原文片段 ID；
+- 不进行跨全书的激进合并。
+
+第二遍：章节级归并
+
+- 合并同一章节中的重复术语；
+- 区分同名异义；
+- 建立概念与定义、例子、练习的局部关系；
+- 检查是否存在无证据对象。
+
+第三遍：文档级实体消歧
+
+- 汇总别名和缩写；
+- 识别跨章节重复概念；
+- 合并稳定同义项；
+- 保留争议项和多义项。
+
+第四遍：关系和前置推断
+
+- 优先抽取显式关系；
+- 再通过定义引用、过程依赖和任务依赖推断隐式关系；
+- 对硬前置边执行更严格验证。
+
+第五遍：反向验证
+
+对每个高价值对象和关系回答：
+
+```text
+原文证据是否真的支持该结论？
+是否存在更合理的对象类型？
+是否把章节顺序误判成前置关系？
+是否把例子中的偶然属性误判成概念属性？
+是否错误合并了同名概念？
+```
+
+LLM 负责候选生成和语义判断，不负责最终事实裁决。
+
+#### 4.1.11 实体消歧、同义词与跨材料合并
+
+实体归并建议按以下顺序执行：
+
+```text
+标准化字符串匹配
+→ 明确别名字典
+→ 缩写和全称规则
+→ 上下文与类型一致性
+→ 嵌入候选召回
+→ LLM 比较判断
+→ 人工确认
+```
+
+自动合并必须同时满足：
+
+- 对象类型兼容；
+- 定义核心一致；
+- 上下文不冲突；
+- 不属于不同学科中的同名概念；
+- 合并置信度达到阈值。
+
+不能确定时应创建：
+
+```text
+possible_same_as
+```
+
+而不是直接合并。
+
+建议采用两级命名空间：
+
+```text
+Document-local Object
+→ Canonical Knowledge Object
+```
+
+材料内对象允许保留作者特有定义；规范知识对象用于跨材料聚合。两者通过 `mentions`、`maps_to` 或 `specializes` 连接。
+
+#### 4.1.12 置信度与证据模型
+
+置信度不能直接使用 LLM 自报概率，应由可观测信号组合并通过审核数据校准。
+
+初始可使用可配置评分：
+
+```text
+confidence =
+  0.35 × evidence_quality
++ 0.25 × extractor_agreement
++ 0.20 × structural_explicitness
++ 0.20 × validator_score
+```
+
+其中：
+
+- `evidence_quality`：证据是否直接、完整、可定位；
+- `extractor_agreement`：规则、不同模型或不同抽取轮次是否一致；
+- `structural_explicitness`：标题、定义句、编号步骤等结构是否明确；
+- `validator_score`：反向验证是否通过。
+
+权重只是第一阶段工程默认值，后续应使用人工审核结果进行校准。
+
+每个对象和关系必须同时保存：
+
+```text
+当前值
+证据来源
+抽取方法
+置信度
+审核状态
+模型或规则版本
+生成时间
+```
+
+低置信度结果可以用于召回和人工提示，但不能用于：
+
+- 硬前置阻断；
+- 掌握门槛判定；
+- 高风险事实回答；
+- 自动生成决定性评分标准。
+
+#### 4.1.13 误区抽取的特殊约束
+
+误区不能仅根据“错误说法看起来合理”自动生成。
+
+误区来源分为：
+
+```text
+source_explicit：材料明确指出的常见错误
+assessment_observed：从真实答题行为中反复观察到
+expert_curated：专家维护
+model_hypothesized：模型提出的待验证假设
+```
+
+只有前三类或经过后续行为验证的假设，才能成为稳定误区模式。
+
+误区结构建议包括：
+
+```text
+misconception_id
+错误命题
+涉及知识对象
+触发条件
+典型错误表现
+鉴别题
+纠正策略
+反例
+证据来源
+状态与置信度
+```
+
+作者为了论证而临时提出的错误观点、小说人物的错误陈述、反讽和假设情境，不能直接标记为学习者误区。
+
+#### 4.1.14 质量门禁与发布规则
+
+机器完成抽取不等于知识模型可用。
+
+自动质量检查至少包括：
+
+- 文本覆盖率；
+- 结构节点覆盖率；
+- 锚点可回放率；
+- 无证据知识对象比例；
+- 重复对象比例；
+- 未连接对象比例；
+- 关系冲突；
+- 硬前置环；
+- 表格、公式、代码块完整性；
+- 语言和字符编码异常；
+- 引用文本与原文哈希一致性。
+
+第一阶段建议门槛：
+
+```text
+已发布知识对象的证据覆盖率 = 100%
+高置信度引用锚点可回放率 ≥ 99%
+硬前置边必须存在证据或经过人工批准
+低置信度硬前置边数量 = 0
+严重解析错误数量 = 0
+```
+
+状态流转：
+
+```text
+candidate
+→ machine_verified
+→ review_required / approved
+→ published
+→ superseded / rejected
+```
+
+自动发布策略应按材料类型分级：
+
+- 结构清晰、解析质量高的 Markdown 可较多自动发布；
+- 普通数字 EPUB 和 DOCX 可抽样复核；
+- 多栏 PDF、扫描书、公式密集材料应提高复核比例；
+- 低质量 OCR 结果不得直接进入正式知识图谱。
+
+#### 4.1.15 增量更新与版本管理
+
+材料、解析器、抽取 Prompt、模型或规则发生变化时，都可能改变知识模型。
+
+需要保存：
+
+```text
+material_revision
+parser_version
+segmentation_version
+extractor_version
+prompt_version
+schema_version
+index_version
+```
+
+更新流程：
+
+```text
+计算文件和节点差异
+→ 匹配未变化节点
+→ 只重算受影响语义单元
+→ 失效相关知识对象和关系
+→ 重新抽取局部子图
+→ 执行冲突与回归检查
+→ 发布新版本
+```
+
+稳定知识对象 ID 不应因为材料重新上传而全部变化。
+
+建议采用：
+
+- 内容哈希识别完全相同节点；
+- 结构路径和文本指纹匹配移动节点；
+- `supersedes` 表示对象替代关系；
+- `tombstone` 保留已删除对象的历史引用；
+- 学习记录绑定规范知识对象 ID 和当时版本。
+
+这样即使资料更新，也不会无故丢失用户已有的学习历史。
+
+#### 4.1.16 存储模型与索引投影
+
+建议新增或重构以下核心表：
+
+```text
+material_revisions
+document_nodes
+source_spans
+semantic_units
+knowledge_objects
+knowledge_mentions
+knowledge_relations
+pedagogical_assets
+asset_knowledge_links
+extraction_runs
+review_decisions
+index_outbox
+```
+
+当前 `UserDocument` 可继续保存文件级元数据；`DocumentChunk` 应被重新定义为检索投影，而不是唯一的文档内容表示。
+
+`KnowledgePoint.prerequisites` 和 `successors` 以 JSON 数组保存，适合原型，不适合后续进行：
+
+- 边级置信度管理；
+- 来源证据绑定；
+- 关系版本控制；
+- 图查询；
+- 环检测；
+- 局部更新；
+- 人工审核。
+
+因此前置关系最终应迁移到规范化 `knowledge_relations` 表。
+
+第一阶段不必立即引入独立图数据库。可采用：
+
+```text
+PostgreSQL 邻接边表
++ 递归 CTE
++ 本地图库进行复杂算法
++ Outbox 生成向量和全文索引
+```
+
+当图规模、遍历复杂度和并发量确实成为瓶颈后，再评估 Neo4j 等专用图数据库。
+
+#### 4.1.17 领域接口与事件
+
+建议核心命令：
+
+```text
+ImportMaterial
+ParseMaterialRevision
+BuildKnowledgeModel
+ValidateKnowledgeModel
+ReviewKnowledgeCandidate
+PublishKnowledgeModel
+RebuildIndexProjection
+```
+
+建议查询接口：
+
+```text
+GetDocumentOutline
+GetSourceSpan
+ListKnowledgeObjects
+GetKnowledgeNeighborhood
+GetPrerequisiteSubgraph
+ListPedagogicalAssets
+GetExtractionReport
+```
+
+领域事件：
+
+```text
+MaterialImported
+MaterialRevisionCreated
+DocumentParsed
+SemanticUnitsBuilt
+KnowledgeCandidatesExtracted
+KnowledgeRelationInferred
+KnowledgeModelValidationFailed
+KnowledgeModelPublished
+KnowledgeObjectMerged
+KnowledgeObjectSuperseded
+IndexProjectionRebuilt
+```
+
+事件负载应只包含稳定 ID 和必要元数据，避免把整篇文档写入事件日志。
+
+#### 4.1.18 安全与可信边界
+
+上传材料属于不可信输入。
+
+内容解析阶段应处理：
+
+- 压缩炸弹；
+- 超大文件和异常嵌套；
+- 路径穿越；
+- 恶意宏和嵌入对象；
+- 畸形 PDF；
+- 外部资源自动加载；
+- 文档中的 Prompt Injection；
+- 隐藏文本和白字；
+- OCR 欺骗和字符混淆。
+
+文档中出现“忽略系统指令”“上传密钥”等文本时，只能作为待学习内容，不得改变抽取器和 Agent 的系统指令。
+
+模型调用应使用：
+
+- 数据与指令分离；
+- 严格结构化输出；
+- 工具白名单；
+- 无外部副作用的抽取运行环境；
+- 输出长度和对象数量限制；
+- 原文证据校验；
+- 敏感信息日志脱敏。
+
+#### 4.1.19 当前仓库实现差距
+
+当前 `apps/backend/app/services/documents/parsers.py` 已支持 Markdown、TXT、EPUB、PDF 和 DOCX，但主要输出：
+
+```text
+full_text
+chunks
+metadata
+```
+
+主要差距：
+
+- EPUB 通过去除 HTML 标签并压缩空白生成纯文本，章节结构、脚注、图片和 CFI 会丢失；
+- PDF 主要按页提取文本，尚无版面恢复、OCR、表格和公式结构；
+- DOCX 主要读取普通段落，未系统保留标题样式、表格和题注；
+- 分块结果是字符串列表，缺少稳定节点 ID 和原文锚点；
+- `DocumentChunk.chunk_metadata` 已预留元数据，但当前解析器没有形成统一结构契约；
+- 知识图谱和 `KnowledgePoint` 已有实验模型，但尚未进入文档处理主链路；
+- 前置关系保存为 JSON 列表，无法支持边级证据、置信度和审核；
+- RAG 检索块与教育知识对象尚未分离。
+
+因此不能在现有字符串分块上直接叠加更多 LLM Prompt，应先建立 `DocumentIR + SourceSpan + KnowledgeObject + KnowledgeRelation` 四个核心模型。
+
+#### 4.1.20 分阶段落地路线
+
+P0：统一文档结构和引用基础
+
+- 新增 `MaterialRevision`、`DocumentNode`、`SourceSpan`；
+- 将各格式解析器统一输出 `DocumentIR`；
+- 为现有 `ParsedContent` 提供兼容适配器；
+- 保留章节、页码和稳定锚点；
+- `DocumentChunk` 从 `DocumentIR` 派生；
+- 建立解析黄金样本和回归测试。
+
+P1：材料内知识建模闭环
+
+- 新增知识对象、提及、关系和教学素材表；
+- 实现章节级候选抽取；
+- 实现原文证据强绑定；
+- 实现同义词合并、重复检测和关系校验；
+- 提供人工审核界面或最小审核 API；
+- 输出材料内前置依赖图。
+
+P2：多材料统一知识目录
+
+- 建立材料内对象到规范知识对象的映射；
+- 支持跨材料定义对比和冲突保留；
+- 将图谱接入学习路径与诊断模块；
+- 支持增量更新、版本迁移和 Outbox 索引同步。
+
+P3：复杂文档与自动质量优化
+
+- 加入 PDF 版面分析、OCR、表格、公式和图片理解；
+- 用人工审核数据校准置信度；
+- 建立自动抽样审核；
+- 优化跨材料实体消歧和前置关系推断；
+- 根据真实教学效果反向评估知识模型质量。
+
+#### 4.1.21 验收指标
+
+解析质量：
+
+```text
+文本覆盖率
+结构恢复准确率
+阅读顺序准确率
+锚点可回放率
+表格/公式/代码完整率
+OCR 字符错误率
+```
+
+知识建模质量：
+
+```text
+知识对象准确率与召回率
+重复合并准确率
+实体消歧准确率
+关系准确率
+硬前置关系准确率
+证据覆盖率
+无依据生成率
+人工驳回率
+```
+
+工程质量：
+
+```text
+重复执行一致性
+增量重算比例
+单页/千 Token 处理成本
+处理时延
+失败可恢复率
+索引重建一致性
+版本可追溯率
+```
+
+教育有效性：
+
+```text
+知识路径是否减少无效前置学习
+诊断题是否覆盖关键知识对象
+教学引用是否能准确回到原文
+由知识图谱生成的任务是否真正测量目标能力
+知识模型错误是否导致错误教学决策
+```
+
+应建立包含 Markdown、EPUB、数字 PDF、扫描 PDF、DOCX、公式密集材料和表格密集材料的黄金测试集。算法升级必须对该测试集执行回归比较，不能只通过少量人工观感判断质量。
 
 ### 4.2 检索与知识供给
 
