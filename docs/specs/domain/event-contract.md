@@ -1,291 +1,187 @@
-# Askora Learning Event Contract
+# Learning Event Contract
 
-> Spec ID 范围：`EVENT-*`  
+> Spec ID：`EVENT-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v1.0
+> 版本：v0.3
 
-## 1. 事件语义
+## 1. Semantics
 
-### EVENT-001：Command、Event、Projection 必须分离
+LearningEvent = 已发生且被系统接纳的不可变事实。事件账本托管 MAY 在 SYS08，但 payload 语义与验证仍由对应 domain owner 定义；ledger hosting MUST NOT 形成第二 truth owner。
 
-- **Command**：希望系统执行的动作，例如 `SubmitResponse`；
-- **Event**：已经发生且被系统接纳的事实，例如 `ResponseSubmitted`；
-- **Projection**：由事件计算得到的状态，例如 `MasteryEstimate`。
+### EVENT-001
 
-Event MUST 使用过去时语义，MUST NOT 表示“希望发生什么”。
+关键学习状态变化 MUST 可追溯到 immutable event/evidence；聊天文本、LLM shared context 或 UI cache MUST NOT 直接替代 canonical event/evidence chain。
 
-### EVENT-002：LearningEvent 是不可变事实
-
-已持久化事件禁止原地修改。业务纠正通过追加 correction event 处理；投影再根据新事件重建。
-
-### EVENT-003：事件不是业务状态 owner
-
-Event Ledger 由 4.8 托管持久化，但事件内容的业务语义由对应领域系统产生。4.8 不得借托管账本重新解释领域结论。
-
-## 2. `LearningEventEnvelope v1`
+## 2. Envelope
 
 ```yaml
 learning_event:
   event_id: uuid
   event_type: string
-  schema_version: "1.0"
-
-  aggregate_type: string
-  aggregate_id: uuid|string
-  aggregate_version: integer
-  sequence: integer
-
+  event_schema_version: string
   occurred_at: datetime
   recorded_at: datetime
-  idempotency_key: string
-  correlation_id: uuid
-  causation_id: uuid|null
-
-  actor:
-    actor_type: learner|system|model|reviewer
-    actor_id: string
-    device_id: string|null
-
-  context:
-    user_id: uuid
-    session_id: uuid|null
-    goal_id: uuid|null
-    knowledge_unit_ids: [uuid]
-    assessment_attempt_id: uuid|null
-    content_revision_ids: [uuid]
-
+  aggregate_type: string|null
+  aggregate_id: string|null
+  aggregate_version: integer|string|null
+  user_id: uuid|null
+  session_id: uuid|null
+  correlation_id: uuid|string|null
+  causation_id: uuid|string|null
+  idempotency_key: string|null
+  producer_system: SYS01|SYS02|SYS03|SYS04|SYS05|SYS06|SYS07|SYS08
   payload: object
-
-  provenance:
-    source: ui|api|orchestrator|worker|migration|domain
-    model_provider: string|null
-    model_name: string|null
-    model_snapshot: string|null
-    prompt_id: string|null
-    prompt_version: string|null
-    policy_version: string|null
-    projection_version: string|null
-    algorithm_version: string|null
-
-  trace:
-    trace_id: string
-    span_id: string|null
-
-  privacy:
-    classification: public|personal|sensitive
-    external_processing: boolean
-    retention_class: core_learning|diagnostic|temporary
+  provenance_refs: [versioned_ref]
 ```
-
-## 3. 字段约束
 
 ### EVENT-010
 
-`event_id` MUST 全局唯一。
+Event MUST append-only。更正通过 superseding/correction event 或对应 domain revision 完成，MUST NOT 原地重写历史事实。
 
-### EVENT-011
+## 3. v0.3 Teaching / Assessment Events
 
-同一 aggregate 内 `(aggregate_id, aggregate_version)` MUST 唯一且 `aggregate_version` 单调递增。
+### EVENT-200 — TeachingActionDecided
 
-### EVENT-012
+至少携带：TeachingAction ref、DecisionTrace ref、TeachingContext ref/fingerprint、PolicyBundle ref/hash、StrategyFamily、TeachingStage、validation obligation、experiment assignment ref（如有）。
 
-`sequence` 表示该 aggregate 或事件流中的逻辑顺序。实现不得假设跨 aggregate 存在全局严格时序。
+### EVENT-201 — Support Presented / Experienced
 
-### EVENT-013
-
-`occurred_at` 表示事实实际发生时间；`recorded_at` 表示系统接纳并持久化时间。两者不得混用。
-
-### EVENT-014
-
-`idempotency_key` MUST 在命令定义的幂等范围内唯一。重复提交同一用户动作 MUST 返回原结果或等价结果，不产生第二份学习证据。
-
-### EVENT-015
-
-`correlation_id` MUST 串联一次业务工作流/教学轮次；`causation_id` SHOULD 指向直接导致该事件的 command/event/decision。
-
-### EVENT-016
-
-事件正文 SHOULD 使用假名化标识，MUST NOT 无必要写入密码、密钥、完整外部模型凭据或多余 PII。
-
-### EVENT-017
-
-如果某关键事件由模型参与生成、评分或分类，且后续会影响掌握、计划或评估，相关 `model/prompt/policy/algorithm` 版本 MUST 可追溯。缺少必要版本信息时，该结果不得成为高权关键 evidence。
-
-## 4. v1 必须支持的事件
-
-### EVENT-020：目标与计划
-
-| Event | Owner | 最小 Payload |
-|---|---|---|
-| `GoalCreated` | 4.6 | goal_id, goal_version, success_criteria, deadline/time_budget |
-| `GoalConfirmed` | 4.6 | goal_id, version, confirmation_source |
-| `PlanCreated` | 4.6 | plan_id, version, learner_state_version, graph_version |
-| `PlanReplanned` | 4.6 | old_plan_version, new_plan_version, trigger_reason_codes |
-| `ActivitySelected` | 4.6 | activity_id, objective_id, reason_codes |
-
-### EVENT-021：内容与检索
-
-| Event | Owner | 最小 Payload |
-|---|---|---|
-| `ContentImported` | 4.1 | document_id, revision_id, checksum, media_type |
-| `ContentPublished` | 4.1 | document_id, revision_id, knowledge_model_version |
-| `KnowledgeRelationPublished` | 4.1 | relation_id, revision, evidence_span_ids |
-| `ContentRetrieved` | 4.2 | request_id, bundle_id, retrieval_trace_id, index_versions |
-| `RetrievalFailed` | 4.2 | request_id, reason_code, missing_roles/conflicts |
-
-### EVENT-022：教学执行
-
-| Event | Owner | 最小 Payload |
-|---|---|---|
-| `PolicyDecisionMade` | 4.5 | action_id, strategy_version, decision_id, reason_codes |
-| `EngineTransitioned` | 4.8 | from_step/engine, to_step/engine, reason_code |
-| `ExplanationPresented` | 4.8 | action_id, response_id, evidence_bundle_id|null |
-| `HintRequested` | 4.8 | action_id, previous_attempt_id|null, requested_level|null |
-| `HintPresented` | 4.8 | action_id, hint_level, exposure_level, response_id |
-| `ReflectionRecorded` | 4.8 | activity_id, reflection_id |
-
-### EVENT-023：评估与证据
-
-| Event | Owner | 最小 Payload |
-|---|---|---|
-| `DiagnosticStarted` | 4.4 | objective_ids, blueprint_version |
-| `AssessmentAttemptStarted` | 4.4 | attempt_id, item_id, item_version, assessment_type |
-| `ResponseSubmitted` | 4.4 | attempt_id, assistance_snapshot, response_hash/reference |
-| `ResponseRevised` | 4.4 | attempt_id, revision_count, parent_response_reference |
-| `AttemptScored` | 4.4 | result_id, result_version, score, correctness, confidence |
-| `EvidenceAccepted` | 4.3 | learner_evidence_id, source_result_id, weight, dimension |
-| `EvidenceRejected` | 4.3 | source_result_id, rejection_reason_codes |
-| `MisconceptionDetected` | 4.4 | misconception_id, result_id, evidence_confidence |
-| `MasteryProjectionUpdated` | 4.3 | estimate_id, old_version|null, new_version, algorithm_version |
-| `TransferAttemptCompleted` | 4.4 | attempt_id, result_id, novelty, independence |
-
-### EVENT-024：复习
-
-| Event | Owner | 最小 Payload |
-|---|---|---|
-| `ReviewScheduled` | 4.7 | schedule_id, version, next_due_at, model_version |
-| `ReviewCompleted` | 4.7/由4.8采集行为后4.7接纳 | schedule_id, attempt/result references, actual_completed_at |
-| `ReviewScheduleUpdated` | 4.7 | old_version, new_version, reason_codes |
-
-## 5. Payload 原则
-
-### EVENT-030：事件记录事实，不复制全状态
-
-事件 payload SHOULD 保存重建与审计所需最小事实/引用，不应把整个 LearnerState、整个文档或整个模型 Prompt 无限制复制到每个事件。
-
-### EVENT-031：大对象使用稳定引用
-
-原始回答、文档片段、模型输出过大时，可以保存稳定 content reference/hash，但必须保证在其 retention policy 内可审计。
-
-### EVENT-032：帮助状态必须在作答事实中冻结
-
-`ResponseSubmitted` 必须能还原提交时的：
-
-- max hint level；
-- assistance class；
-- source visible；
-- answer visible。
-
-不得在评分后根据当前 UI 状态猜测历史帮助程度。
-
-## 6. 持久化与投递
-
-### EVENT-040：Transactional Outbox
-
-领域状态更新与需要传播的事件/outbox MUST 在同一数据库事务内写入。
-
-### EVENT-041：At-least-once
-
-事件消费者 MUST 按至少一次交付设计。所有投影器和 side-effect consumer MUST 幂等。
-
-### EVENT-042：失败分类
-
-- transient infrastructure error：可重试并指数退避；
-- schema/business validation error：不得盲重试；
-- unrecoverable poison event：进入 dead-letter/review 状态并保留诊断信息。
-
-### EVENT-043：迟到事件
-
-不得假设事件永不迟到。迟到但有效的证据 MAY 触发受影响 aggregate/knowledge unit 的局部 replay/reprojection。
-
-## 7. Schema 演进
-
-### EVENT-050
-
-`schema_version` 使用 major.minor。minor 只允许向后兼容 additive change。
-
-### EVENT-051
-
-删除字段、改变字段语义、改变枚举含义等破坏性变化 MUST 新增 major version，并提供 upcaster/migration strategy。
-
-### EVENT-052
-
-消费者 MUST 明确声明支持版本范围。不得静默把未知字段/未知主版本解释成现有语义。
-
-## 8. Replay
-
-### EVENT-060
-
-固定事件集合 + 固定 projection/algorithm version MUST 得到确定性业务投影。
-
-### EVENT-061
-
-Replay MUST NOT 调用在线 LLM 或依赖当前供应商返回重新生成历史判断。
-
-若历史业务结论依赖 LLM，必须使用已持久化的结构化 AssessmentResult/ModelInference 输出；若要用新模型重评，必须启动显式 `reassessment/recompute` 流程并创建新结果版本。
-
-### EVENT-062
-
-算法升级必须允许：
+`HintPresented`、`ExplanationPresented`、`WorkedExamplePresented`、`AnswerExposed` 或等价 event MUST 使用 canonical assistance vocabulary：
 
 ```text
-old event log
-→ old projector = old state
-old event log
-→ new projector = candidate new state
-→ compare
-→ approved migration
+scaffold_control
+hint_specificity
+answer_exposure
+InteractionMove
+support_reason
+delivery_mode
 ```
 
-## 9. Correction 与删除
+历史整数 `hint_level/scaffold_level/exposure_level` MAY 保留在 legacy metadata，但 MUST NOT 继续作为 v0.3 canonical payload truth。
 
-### EVENT-070
+### EVENT-202 — ResponseSubmitted
 
-普通错误修正 MUST 追加 correction/invalidation event，而不是修改原事件。
+ResponseSubmitted/AttemptCreated MUST 引用实际 assistance snapshot：
 
-### EVENT-071
+```text
+assistance_state = INDEPENDENT|ASSISTED|ANSWER_EXPOSED
+scaffold_control = NONE|LOW|MEDIUM|HIGH
+hint_specificity = NONE|ORIENTATION|CONCEPTUAL_STRATEGIC|SUBGOAL|PARTIAL_STEP|BOTTOM_OUT
+answer_exposure = NONE|PARTIAL|COMPLETE
+```
 
-若因用户明确删除或法律要求必须删除事件内容：
+不得只从计划 TeachingAction envelope 推断实际经历。
 
-- 删除受保护内容；
-- 在允许范围内保留不可逆/不含被删数据的审计墓碑；
-- 重建受影响 projection；
-- 不得继续引用已删除 evidence。
+### EVENT-203 — AssessmentResultProduced
 
-## 10. Legacy 映射
+至少引用 AssessmentResult version、score/correctness、`assessment_confidence` 与 diagnosis ref/fields。`diagnostic_confidence` MUST 与 assessment confidence 独立。
 
-### EVENT-080
+### EVENT-204 — DiagnosisProduced / Uncertain
 
-旧代码若使用 dotted event names（如 `question.answered`），迁移时必须通过 adapter 映射到本合同的 PascalCase canonical event，不得长期同时维护两套语义相同事件名。
+Canonical ErrorType 仅允许：
 
-## 11. Acceptance Criteria
+```text
+KNOWLEDGE_GAP
+CONCEPTUAL_MISCONCEPTION
+METHOD_SELECTION
+EXECUTION
+RETRIEVAL_FAILURE
+TRANSFER_FAILURE
+EXPRESSION_FORMAT
+UNKNOWN
+```
 
-- `EVENT-AC-001`：重复提交同一 idempotency key 不产生第二个 Attempt/Evidence。
-- `EVENT-AC-002`：同一 aggregate version 冲突由唯一约束拒绝。
-- `EVENT-AC-003`：固定事件集可重放得到相同 MasteryEstimate 内容。
-- `EVENT-AC-004`：replay 不发起任何在线模型请求。
-- `EVENT-AC-005`：领域状态写入与 outbox 记录具备原子性。
-- `EVENT-AC-006`：答案已暴露的 ResponseSubmitted 能在历史事件中稳定识别。
-- `EVENT-AC-007`：未知 major schema version 不会被消费者静默接纳。
+UNKNOWN/low confidence/needs_probe MUST 可显式进入事件，不得强制猜具体 ErrorType。
+
+### EVENT-205 — Validation Obligation
+
+SYS05 MAY 记录 `IndependentValidationRequired` / `IndependentValidationSatisfied` policy-control event。`Satisfied` MUST 引用 fresh independent Attempt/AssessmentResult evidence；MUST NOT 因计划已创建或时间经过自动触发。
+
+## 4. Outcome / Experiment Events
+
+### EVENT-210 — OutcomeObserved
+
+OutcomeObservation 创建时 MAY 发布 `OutcomeObserved`，payload 至少引用 outcome id/version、measurement ref、independence/assistance、delay/transfer、score/success、contamination、attribution_scope、episode/trajectory/experiment refs。
+
+Outcome event MUST NOT 回写修改 historical DecisionTrace。
+
+### EVENT-211 — ExperimentAssigned
+
+ExperimentAssignment event MUST 明确 `assignment_probability`。该字段 MUST NOT 命名/解释为 action propensity。
+
+## 5. Ownership Routing
+
+```text
+Knowledge/modeling facts      → SYS01 events
+EvidenceBundle retrieval       → SYS02 events
+LearnerEvidence/state update   → SYS03 events
+Attempt/Assessment/Diagnosis   → SYS04 events
+TeachingAction/policy control  → SYS05 events
+Plan/activity                  → SYS06 events
+Review schedule                → SYS07 events
+Execution/model/tool/ledger    → SYS08 events
+```
+
+### EVENT-220
+
+OutcomeObservation/ExperimentAssignment 作为 additive analytics/experiment contract MAY 由 durable ledger 托管，但 MUST NOT 接管上述八系统的 domain truth ownership。
+
+## 6. Idempotency / Ordering
+
+### EVENT-020
+
+同一 idempotency key 的 domain command MUST NOT 产生多个语义重复事件。
+
+### EVENT-021
+
+需要 aggregate ordering 的 consumer MUST 使用 aggregate version/event sequence，而不是仅依赖 wall-clock timestamp。
+
+### EVENT-022
+
+At-least-once delivery consumer MUST idempotent；outbox retry MUST NOT 导致 mastery/action/plan/review 双写。
+
+## 7. Versioning / Replay
+
+### EVENT-030
+
+Event schema evolution MUST 遵循 versioned reader/upcaster contract。Upcaster MAY 补结构，不得伪造历史不可知语义。
+
+### EVENT-200A — Legacy Ambiguity Rule
+
+旧 support/error/propensity payload 无法无损映射时 MUST 保留 raw legacy value + migration reason，并把 canonical value 标记为 unknown/unavailable/partial replay，而不是猜测。
+
+### EVENT-201A — Replay
+
+Historical replay MUST 使用 event-time object/policy versions；缺失版本时必须显式 PARTIAL/NON_REPLAYABLE。Policy replay MUST NOT 重新调用在线 LLM。
+
+## 8. Security / Privacy
+
+Event payload MUST 最小化敏感数据；raw prompts、完整文档、密钥、无需长期保存的用户文本 MUST NOT 因审计方便无限复制。引用优先于重复全文。
+
+## 9. Tests
+
+必须覆盖：event append-only/idempotency/outbox retry；canonical support vocabulary；actual assistance captured；UNKNOWN diagnosis；assessment vs diagnostic confidence；validation satisfied requires fresh independent evidence；assignment probability naming；Outcome 不修改 DecisionTrace；legacy ambiguous upcast；replay missing version status。
+
+## 10. Acceptance Criteria
+
+- `EVENT-AC-201`：v0.3 Hint/Exposure/Attempt events 不依赖 canonical integer hint/exposure 字段。
+- `EVENT-AC-202`：AssessmentResult/Diagnosis events 可表达 UNKNOWN 与独立 confidence。
+- `EVENT-AC-203`：validation obligation satisfaction 可追溯 fresh independent evidence。
+- `EVENT-AC-204`：ExperimentAssigned 的 probability 与 action propensity 不混用。
+- `EVENT-AC-205`：OutcomeObserved 不修改 DecisionTrace。
+
+## 11. Legacy Mapping
+
+旧 `HintPresented.hint_level/exposure_level`、ResponseSubmitted 的旧 assistance class、历史 ErrorType 与 `experiment.propensity` 只允许 read/upcast/audit。canonical writer MUST 只写 v0.3 fields；无法确定语义时保留 uncertainty + migration reason + replayability status。
 
 ## 12. Forbidden Implementations
 
 禁止：
 
-- 修改旧 event row 来“修正历史”；
-- 用聊天消息表替代 LearningEvent ledger；
-- event consumer 非幂等地产生重复 mastery/review 更新；
-- replay 时重新调用 LLM；
-- 把完整用户文档复制进每个事件 payload；
-- 同一用户点击重复产生多份 EvidenceAccepted；
-- 仅记录 `correct=true` 而不记录当时提示/答案暴露状态。
+- event ledger host 取得所有 domain ownership；
+- missing assistance 默认 independent；
+- 继续把 L0-L4/int hint/exposure 作为 canonical event truth；
+- unknown diagnosis 被强制分类；
+- experiment assignment probability 写成 action propensity；
+- Outcome event 改写历史 DecisionTrace；
+- replay 用当前 mutable state 或在线 LLM 补历史缺失。
