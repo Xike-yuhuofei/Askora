@@ -20,6 +20,12 @@ from app.models.ledger import (
     LearningEventRecord,
     OutboxTaskRecord,
 )
+from app.models.planning import (
+    LearningActivityRecord,
+    LearningPlanRecord,
+    ReviewObservationRecord,
+    ReviewScheduleRecord,
+)
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
@@ -39,6 +45,10 @@ __all__ = [
     "CanonicalAssessmentResultRecord",
     "LearnerEvidenceRecord",
     "MasteryEstimateRecord",
+    "LearningActivityRecord",
+    "LearningPlanRecord",
+    "ReviewObservationRecord",
+    "ReviewScheduleRecord",
     "UserDocument",
     "DocumentChunk",
     "ProcessingStatus",

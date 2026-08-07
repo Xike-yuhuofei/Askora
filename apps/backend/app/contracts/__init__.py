@@ -32,6 +32,7 @@ from app.contracts.learning import (
     ReviewSchedule,
     TeachingAction,
 )
+from app.contracts.planning import ConfirmedLearningGoal, ReviewDueCandidate, ReviewObservation
 
 __all__ = [
     "AssessmentAttempt",
@@ -39,6 +40,7 @@ __all__ = [
     "AssistanceSnapshot",
     "ResponseRevision",
     "AssessmentResult",
+    "ConfirmedLearningGoal",
     "DecisionAlgorithm",
     "DecisionExperiment",
     "DecisionInput",
@@ -58,6 +60,8 @@ __all__ = [
     "MaterialRevision",
     "MasteryEstimate",
     "ReviewSchedule",
+    "ReviewDueCandidate",
+    "ReviewObservation",
     "SourceChunk",
     "SourceSpan",
     "TeachingAction",
