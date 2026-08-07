@@ -33,15 +33,9 @@ class LegacyAllowance:
 
 
 # 每项均为一个精确 import；禁止 glob。后续 EXEC 必须删除对应 allowance。
-LEGACY_ALLOWLIST = (
-    LegacyAllowance(
-        rule="API_NO_LEARNER_PERSISTENCE",
-        path="app/api/v1/users.py",
-        module="app.models.profile",
-        todo_owner="SYS03 learner-model migration",
-        removal_exec="EXEC-004",
-    ),
-)
+# EXEC-007：/users/profile direct persistence read allowance 已删除
+# （API 现经 app/queries/profile.py canonical query boundary）。
+LEGACY_ALLOWLIST: tuple[LegacyAllowance, ...] = ()
 
 
 def _imported_modules(tree: ast.AST) -> list[tuple[str, int]]:
