@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.contracts.adaptive import (
     AssessmentAttemptV03,
     AssessmentResultV03,
+    AttributionScope,
     ExperimentAssignmentV03,
     LearningTrajectoryV03,
     OutcomeObservationV03,
@@ -206,6 +207,14 @@ class AdaptiveContractRepository:
         return assignment
 
     async def save_episode(self, episode: TeachingEpisodeV03) -> TeachingEpisodeV03:
+        for action_ref in episode.teaching_action_refs:
+            action = await self._session.get(TeachingActionV03Record, action_ref.entity_id)
+            if action is None or str(action_ref.version) != action.schema_version:
+                raise ValueError("TEACHING_EPISODE_ACTION_EXACT_REF_INVALID")
+        for bundle_ref in episode.policy_bundle_refs:
+            bundle = await self._session.get(PolicyBundleRecord, bundle_ref.entity_id)
+            if bundle is None or str(bundle_ref.version) != bundle.policy_version:
+                raise ValueError("TEACHING_EPISODE_POLICY_EXACT_REF_INVALID")
         existing = await self._session.get(TeachingEpisodeRecord, str(episode.episode_id))
         if existing is not None:
             if not _same_payload(existing.payload, episode):
@@ -225,6 +234,10 @@ class AdaptiveContractRepository:
         return episode
 
     async def save_trajectory(self, trajectory: LearningTrajectoryV03) -> LearningTrajectoryV03:
+        for episode_ref in trajectory.episode_refs:
+            episode = await self._session.get(TeachingEpisodeRecord, episode_ref.entity_id)
+            if episode is None or str(episode_ref.version) != episode.schema_version:
+                raise ValueError("LEARNING_TRAJECTORY_EPISODE_EXACT_REF_INVALID")
         existing = await self._session.get(LearningTrajectoryRecord, str(trajectory.trajectory_id))
         if existing is not None:
             if not _same_payload(existing.payload, trajectory):
@@ -244,6 +257,37 @@ class AdaptiveContractRepository:
         return trajectory
 
     async def save_outcome(self, outcome: OutcomeObservationV03) -> OutcomeObservationV03:
+        episode_record = None
+        if outcome.teaching_episode_ref is not None:
+            episode_record = await self._session.get(
+                TeachingEpisodeRecord, outcome.teaching_episode_ref.entity_id
+            )
+            if (
+                episode_record is None
+                or str(outcome.teaching_episode_ref.version) != episode_record.schema_version
+            ):
+                raise ValueError("OUTCOME_EPISODE_EXACT_REF_INVALID")
+        if outcome.learning_trajectory_ref is not None:
+            trajectory = await self._session.get(
+                LearningTrajectoryRecord, outcome.learning_trajectory_ref.entity_id
+            )
+            if (
+                trajectory is None
+                or str(outcome.learning_trajectory_ref.version) != trajectory.schema_version
+            ):
+                raise ValueError("OUTCOME_TRAJECTORY_EXACT_REF_INVALID")
+        if outcome.experiment_association is not None:
+            assignment = await self._session.get(
+                ExperimentAssignmentRecord, outcome.experiment_association.entity_id
+            )
+            if (
+                assignment is None
+                or str(outcome.experiment_association.version) != assignment.schema_version
+            ):
+                raise ValueError("OUTCOME_EXPERIMENT_EXACT_REF_INVALID")
+        if outcome.attribution_scope is AttributionScope.ACTION_DIRECT:
+            if episode_record is None or len(episode_record.payload["teaching_action_refs"]) != 1:
+                raise ValueError("ACTION_DIRECT_REQUIRES_SINGLE_ACTION_EPISODE")
         existing = await self._session.get(OutcomeObservationRecord, str(outcome.outcome_id))
         if existing is not None:
             if not _same_payload(existing.payload, outcome):
@@ -279,6 +323,12 @@ class AdaptiveContractRepository:
         )
         await self._session.flush()
         return outcome
+
+    async def get_outcome(self, outcome_id: UUID | str) -> OutcomeObservationV03 | None:
+        record = await self._session.get(OutcomeObservationRecord, str(outcome_id))
+        if record is None:
+            return None
+        return OutcomeObservationV03.model_validate(record.payload)
 
 
 class AssessmentRecordV03Repository:

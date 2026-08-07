@@ -1,0 +1,17 @@
+[
+  {
+    "case_id": "g2_low_confidence_boundary",
+    "mastery": 0.59,
+    "diagnostic_confidence": 0.59,
+    "scope": "RESEARCH_CALIBRATION_ONLY",
+    "hard_gate": false
+  },
+  {
+    "case_id": "g2_transfer_novelty_boundary",
+    "mastery": 0.81,
+    "transfer_evidence": true,
+    "transfer_novelty": 0.69,
+    "scope": "RESEARCH_CALIBRATION_ONLY",
+    "hard_gate": false
+  }
+]

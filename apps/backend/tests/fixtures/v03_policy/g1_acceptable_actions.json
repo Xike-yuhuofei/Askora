@@ -1,0 +1,6 @@
+[
+  {"case_id": "g1_explicit", "mastery": 0.2, "acceptable": ["EXPLICIT_INSTRUCTION", "GUIDED_PRACTICE"]},
+  {"case_id": "g1_guided", "mastery": 0.4, "assisted_success": true, "acceptable": ["GUIDED_PRACTICE", "FADING_PRACTICE"]},
+  {"case_id": "g1_retrieval", "mastery": 0.9, "acceptable": ["RETRIEVAL_PRACTICE", "TRANSFER_CHALLENGE"]},
+  {"case_id": "g1_error", "mastery": 0.4, "error_type": "EXECUTION", "acceptable": ["ERROR_REMEDIATION", "GUIDED_PRACTICE"]}
+]

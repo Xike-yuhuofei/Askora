@@ -6,6 +6,7 @@ from app.domains.teaching_policy.models import (
     PolicyDecisionError,
     PolicyRuntimeProfile,
 )
+from app.domains.teaching_policy.outcome_evaluation import OutcomeAttributionValidator
 from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "PolicyRuntimeProfile",
     "TeachingPolicyKernel",
     "SequentialTeachingPolicy",
+    "OutcomeAttributionValidator",
 ]
