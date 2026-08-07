@@ -27,9 +27,7 @@ class ReviewRepositoryPort(Protocol):
 class PlanRepositoryPort(Protocol):
     async def find_by_idempotency(self, idempotency_key: str) -> LearningPlan | None: ...
     async def next_version(self, learning_goal_id: UUID) -> int: ...
-    async def save(
-        self, decision: PlannerDecision, *, idempotency_key: str
-    ) -> LearningPlan: ...
+    async def save(self, decision: PlannerDecision, *, idempotency_key: str) -> LearningPlan: ...
 
 
 class OutboxPort(Protocol):
@@ -63,6 +61,7 @@ class ReviewPlanningApplication:
         *,
         desired_retention: float = 0.90,
         parameters: dict[str, float] | None = None,
+        correlation_id: str = "",
     ) -> ReviewSchedule:
         prior = await self._reviews.latest(
             user_id=observation.user_id,
@@ -88,6 +87,7 @@ class ReviewPlanningApplication:
                 "schedule": schedule.model_dump(mode="json"),
                 "reason_codes": list(decision.reason_codes),
                 "actual_reviewed_at": observation.actual_reviewed_at.isoformat(),
+                "correlation_id": correlation_id,
             },
             idempotency_key=f"review-due:{schedule.schedule_id}:{schedule.version}",
             next_attempt_at=schedule.next_due_at,
@@ -107,6 +107,7 @@ class ReviewPlanningApplication:
         at: datetime,
         idempotency_key: str,
         reason_codes: list[str] | None = None,
+        correlation_id: str = "",
     ) -> LearningPlan:
         existing = await self._plans.find_by_idempotency(idempotency_key)
         if existing is not None:
@@ -136,6 +137,7 @@ class ReviewPlanningApplication:
                     activity.model_dump(mode="json") for activity in decision.activities
                 ],
                 "scoring_trace": list(decision.scoring_trace),
+                "correlation_id": correlation_id,
             },
             idempotency_key=f"learning-plan:{plan.plan_id}:{plan.version}",
         )

@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 
+from app.contracts.learning import EvidenceBundle, MasteryEstimate, TeachingAction
 from app.engines import FlowStage, LearnerTurn, LearningFlowOrchestrator, get_orchestrator
 
 
@@ -22,6 +23,11 @@ class CanonicalTurnRequest:
     knowledge_point_id: str | None = None
     learner_persona: str = "k12_high"
     correlation_id: str = ""
+    workflow_run_id: str = ""
+    model_inference_id: str = ""
+    teaching_action: TeachingAction | None = None
+    evidence_bundle: EvidenceBundle | None = None
+    mastery_estimate: MasteryEstimate | None = None
 
 
 @dataclass(frozen=True)
@@ -73,6 +79,25 @@ class LearningOrchestrationFacade:
                 "user_id": request.user_id,
                 "source": "canonical_learning_facade",
                 "correlation_id": request.correlation_id,
+                "workflow_run_id": request.workflow_run_id,
+                "model_inference_id": request.model_inference_id,
+                "canonical_execution": {
+                    "teaching_action": (
+                        request.teaching_action.model_dump(mode="json")
+                        if request.teaching_action
+                        else None
+                    ),
+                    "evidence_bundle": (
+                        request.evidence_bundle.model_dump(mode="json")
+                        if request.evidence_bundle
+                        else None
+                    ),
+                },
+                "canonical_mastery_snapshot": (
+                    request.mastery_estimate.model_dump(mode="json")
+                    if request.mastery_estimate
+                    else None
+                ),
             },
         )
         result = await self._orchestrator.run_turn(

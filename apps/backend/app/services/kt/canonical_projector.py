@@ -34,6 +34,7 @@ class CanonicalLearnerProjectorService:
         novelty: Literal["repeated", "near_variant", "far_variant"] = "near_variant",
         delay_seconds: int = 0,
         item_difficulty: float | None = None,
+        correlation_id: str = "",
     ) -> MasteryEstimate | None:
         decision = self._eligibility.decide(
             result=result,
@@ -59,6 +60,7 @@ class CanonicalLearnerProjectorService:
                     "attempt_id": str(attempt.attempt_id),
                     "result_id": str(result.result_id),
                     "reason_codes": list(decision.reason_codes),
+                    "correlation_id": correlation_id,
                 },
                 idempotency_key=f"evidence-rejected:{result.result_id}",
             )
@@ -82,7 +84,10 @@ class CanonicalLearnerProjectorService:
         await self._outbox.enqueue(
             task_type="learner.mastery.updated",
             schema_version="1.0",
-            payload=estimate.model_dump(mode="json"),
+            payload={
+                "estimate": estimate.model_dump(mode="json"),
+                "correlation_id": correlation_id,
+            },
             idempotency_key=f"mastery-updated:{estimate.estimate_id}",
         )
         return estimate

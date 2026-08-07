@@ -38,3 +38,14 @@ def test_exec002_dialog_has_no_direct_socratic_production_import():
     assert "services.dialog.socratic_engine" not in source
     assert "_should_use_orchestrator" not in source
     assert "get_learning_orchestration_facade" in source
+
+
+def test_exec002_orchestrator_rejects_engine_mastery_writes():
+    """SYS08-002/STATE-031: execution may report but cannot apply mastery deltas."""
+    path = BACKEND / "app/engines/orchestrator.py"
+    source = path.read_text(encoding="utf-8")
+    assert "shared.mastery_vector[" not in source
+    assert "shared.mastery_confidence[" not in source
+    assert "legacy_mastery_update_rejected" in source
+    adapter = (BACKEND / "app/engines/socratic_adapter.py").read_text(encoding="utf-8")
+    assert ".update_mastery(" not in adapter

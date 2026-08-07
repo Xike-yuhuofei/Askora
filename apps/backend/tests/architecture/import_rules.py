@@ -41,13 +41,6 @@ LEGACY_ALLOWLIST = (
         todo_owner="SYS03 learner-model migration",
         removal_exec="EXEC-004",
     ),
-    LegacyAllowance(
-        rule="ORCHESTRATION_NO_OWNED_STATE_WRITE",
-        path="app/engines/socratic_adapter.py",
-        module="app.services.kt",
-        todo_owner="SYS08 canonical teaching entry migration",
-        removal_exec="EXEC-002",
-    ),
 )
 
 

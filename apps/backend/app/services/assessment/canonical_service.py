@@ -28,6 +28,7 @@ class CanonicalAssessmentService:
         response: Any,
         assistance: AssistanceSnapshot,
         idempotency_key: str,
+        correlation_id: str = "",
     ) -> AssessmentResult:
         attempt = self._scorer.submit(
             item=item,
@@ -47,6 +48,7 @@ class CanonicalAssessmentService:
                 "result": result.model_dump(mode="json"),
                 "knowledge_unit_id": str(item.knowledge_unit_id),
                 "item_difficulty": item.difficulty,
+                "correlation_id": correlation_id,
             },
             idempotency_key=f"assessment-result-project:{result.result_id}",
         )

@@ -1,0 +1,9 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "prompt_version": "explain-evidence/1.0",
+  "result": "success",
+  "response_length": 583,
+  "latency_ms": 5861,
+  "recorded_at": "2026-08-07T04:17:28.665993+00:00"
+}

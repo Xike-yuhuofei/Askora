@@ -95,6 +95,9 @@ class LearningFlowOrchestrator:
         """
         try:
             shared, _engine_states = await self._load_session(session_id)
+            turn_extras = create_kwargs.get("extras")
+            if isinstance(turn_extras, dict):
+                shared.extras.update(turn_extras)
             return shared
         except KeyError:
             return await self.create_session(session_id=session_id, **create_kwargs)
@@ -477,15 +480,10 @@ class LearningFlowOrchestrator:
         decisions: list[str],
     ) -> None:
         """把引擎建议的副作用应用到 SharedContext（Orchestrator 独有写入权限）"""
-        # 1. 掌握度更新
+        # 1. Legacy engine mastery suggestions are execution diagnostics only.
+        # SYS03 is the sole canonical writer; SYS08 must never apply these deltas.
         for kp_id, delta in (effects.mastery_updates or {}).items():
-            prev = shared.mastery_vector.get(kp_id, 0.0)
-            new_val = max(0.0, min(1.0, prev + delta))
-            shared.mastery_vector[kp_id] = new_val
-            # 置信度随着更新次数增加（简化）
-            prev_conf = shared.mastery_confidence.get(kp_id, 0.1)
-            shared.mastery_confidence[kp_id] = min(0.95, prev_conf + 0.05)
-            decisions.append(f"mastery_update:{kp_id} {prev:+.2f}→{new_val:+.2f}")
+            decisions.append(f"legacy_mastery_update_rejected:{kp_id}:{delta:+.2f}")
 
         # 2. 新增断层
         for gap in effects.add_gaps or []:

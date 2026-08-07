@@ -41,9 +41,6 @@ from app.engines.socratic.response_generator import ResponseGenerator
 from app.engines.socratic.strategy_library import StrategyLibrary
 from app.engines.socratic.strategy_selector import StrategySelector
 
-# 导入知识追踪服务
-from app.services.kt import get_kt_service
-
 logger = get_logger(__name__)
 
 
@@ -84,9 +81,6 @@ class SocraticTeachingEngine(TeachingEngine[SocraticEngineState]):
         self.response_generator = ResponseGenerator()
         self.output_guardrail = OutputGuardrail()
         self.reflection_trigger = ReflectionTrigger()
-
-        # 知识追踪服务
-        self.kt_service = get_kt_service()
 
     # ------------------------------------------------------------------
     # Lifecycle hooks
@@ -166,17 +160,18 @@ class SocraticTeachingEngine(TeachingEngine[SocraticEngineState]):
     ) -> EngineStepResult:
         t0 = time.time()
 
-        user_id = shared_ctx.extras.get("user_id", "tei_user")
         # 1. 输入解析
         parsed_input = self.input_parser.parse(learner_input.text)
 
         # 2. 获取当前掌握度
         kp_id = shared_ctx.knowledge_point_id
         mastery = 0.5
-        if kp_id:
-            mastery_est = self.kt_service.get_mastery(user_id, kp_id)
-            mastery = mastery_est.p
-            engine_state.mastery_snapshot = mastery
+        snapshot = shared_ctx.extras.get("canonical_mastery_snapshot") or {}
+        if kp_id and snapshot.get("knowledge_unit_id") == kp_id:
+            probability = snapshot.get("competence_probability")
+            if isinstance(probability, (int, float)):
+                mastery = float(probability)
+        engine_state.mastery_snapshot = mastery
 
         # 3. 策略选择
         selected_strategy = self.strategy_selector.select(
@@ -284,16 +279,8 @@ class SocraticTeachingEngine(TeachingEngine[SocraticEngineState]):
             # 所有重试都失败
             validated_response = self.response_generator._fallback_response(max_retries - 1)
 
-        # 8. 更新掌握度（简化版：根据意图和掌握度变化）
+        # 8. 仅生成 legacy execution signal；SYS08/engine 禁止写 canonical learner state。
         mastery_delta = self._calculate_mastery_delta(parsed_input, mastery, hint_decision)
-        if kp_id:
-            is_correct = mastery_delta > 0
-            self.kt_service.update_mastery(
-                user_id=user_id,
-                kp_id=kp_id,
-                is_correct=is_correct,
-                hint_level=hint_decision.level,
-            )
 
         # 9. 更新错误/正确连击
         if mastery_delta >= 0:
