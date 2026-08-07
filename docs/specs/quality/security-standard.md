@@ -46,6 +46,14 @@ Sensitive data external processing 必须服从产品配置/用户授权；model
 
 ## 5. Answer / Support Leakage
 
+### SEC-040 — Superseded v0.2 Exposure Field
+
+v0.2 `TeachingAction.answer_exposure_max` 曾作为 answer leakage hard boundary。该**字段语义**在 v0.3 被 `SEC-200` 的正交 TeachingAction envelope supersede；`SEC-040` 仅保留历史审计线索，MUST NOT 作为 v0.3 canonical writer contract。
+
+### SEC-041 — Grader-only Isolation
+
+grader-only reference answer/rubric/evidence MUST 与 learner-visible context 隔离。
+
 ### SEC-200 — v0.3 TeachingAction Envelope
 
 SYS05 TeachingAction 定义 canonical hard envelope：
@@ -60,7 +68,7 @@ SYS02 与 SYS08 MAY 因证据/安全收紧，MUST NOT 扩大。任何无法可�
 
 ### SEC-201 — Assessment Integrity
 
-独立 assessment/retrieval 场景必须执行 SYS05 hard constraints；grader-only reference answer/rubric/evidence MUST 与 learner-visible context 隔离。Explicit user direct-answer request MUST NOT 自动绕过 assessment integrity。
+独立 assessment/retrieval 场景 MUST 执行 SYS05 hard constraints；`SEC-041` 的 grader-only isolation 同时适用。Explicit user direct-answer request MUST NOT 自动绕过 assessment integrity。
 
 ### SEC-202 — Actual Exposure
 
@@ -126,9 +134,9 @@ Legacy Socratic selector/state graph MUST NOT 成为 final TeachingAction owner 
 - `SEC-AC-201`：SYS02/SYS08 无扩大 SYS05 support/exposure envelope 的路径。
 - `SEC-AC-202`：hard rule 无 LLM/experiment/legacy bypass。
 
-## 15. Superseded v0.2 Requirement
+## 15. Legacy Mapping
 
-旧 `SEC-040` 使用 `TeachingAction.answer_exposure_max` 的字段合同由 `SEC-200` supersede。历史整数/L0-L4 exposure MAY read-only/audit；canonical writer MUST 只写 `answer_exposure`，不得 permanent dual-write。
+历史整数/L0-L4 exposure MAY read-only/audit；canonical writer MUST 只写 `answer_exposure`，不得 permanent dual-write。旧 `SEC-040` 的保护意图仍由 `SEC-200` 承接；旧 `SEC-041` 保留原 grader-only isolation 语义。
 
 ## 16. Forbidden Implementations
 
