@@ -67,23 +67,25 @@ DecisionTrace 与 OutcomeObservation MUST 分离；Outcome MUST NOT 回写历史
 
 ## 3. Eight Systems & Ownership
 
-### ARCH-020 — SYS01 Content & Knowledge
+> 本节 v0.3 新增条目使用 `ARCH-3xx`，避免复用 v0.2 已发布 requirement ID。
+
+### ARCH-300 — SYS01 Content & Knowledge
 
 Owner：SourceDocument/MaterialRevision、KnowledgeUnit、Concept、PrerequisiteRelation、规范 Misconception definition。MUST NOT own mastery/action/plan/review/EvidenceBundle final selection。
 
-### ARCH-021 — SYS02 Retrieval
+### ARCH-301 — SYS02 Retrieval
 
 Owner：EvidenceBundle、RetrievalTrace。读取 TeachingAction envelope 并 MAY 收紧 `answer_exposure`；MUST NOT 扩大或自行改变 TeachingAction。
 
-### ARCH-022 — SYS03 Learner Model
+### ARCH-302 — SYS03 Learner Model
 
 Owner：LearnerEvidence acceptance、MasteryEstimate、LearnerState、MisconceptionHypothesis。TeachingStage MUST NOT 成为 SYS03 persistent truth。
 
-### ARCH-023 — SYS04 Assessment
+### ARCH-303 — SYS04 Assessment
 
 Owner：AssessmentItem、Attempt、AssessmentResult、MisconceptionEvidence、actual experienced assistance/exposure。`assessment_confidence != diagnostic_confidence`。
 
-### ARCH-024 — SYS05 Teaching Policy
+### ARCH-304 — SYS05 Teaching Policy
 
 唯一 owner：TeachingAction；同时拥有 TeachingContext snapshot/evaluation semantics、TeachingStage derivation、PolicyBundle governance、independent validation obligation。
 
@@ -108,15 +110,15 @@ answer_exposure = NONE|PARTIAL|COMPLETE
 
 `StrategyFamily != TeachingAction != InteractionMove`。Socratic/worked example/direct instruction/self-explanation/metacognition 属于 bounded move/modifier semantics；generic Productive Failure MUST NOT selectable。
 
-### ARCH-025 — SYS06 Learning Planner
+### ARCH-305 — SYS06 Learning Planner
 
 Owner：LearningGoal controlled version、LearningObjective、LearningActivity、LearningPlan、replan/day priority。MUST NOT 决定 hint/explanation 或 `next_due_at` truth。
 
-### ARCH-026 — SYS07 Review Scheduler
+### ARCH-306 — SYS07 Review Scheduler
 
 Owner：ReviewSchedule、memory scheduling state、retrievability estimate、`next_due_at`。MUST NOT own daily plan、TeachingAction、mastery truth。
 
-### ARCH-027 — SYS08 AI Orchestration & Trust
+### ARCH-307 — SYS08 AI Orchestration & Trust
 
 Owner：Session/Workflow execution state、ModelRoute/Inference、ToolCall/Result、PromptVersion、execution validation/telemetry。MAY 托管 LearningEvent/DecisionTrace/Outcome/Experiment ledger persistence，但 hosting MUST NOT 成为 payload/domain ownership。
 
@@ -124,7 +126,7 @@ SYS08 MAY tighten TeachingAction envelope；MUST NOT expand scaffold/hint/exposu
 
 ## 4. Canonical Policy Architecture
 
-### ARCH-200
+### ARCH-320
 
 SYS05 B3 runtime MUST 实现：
 
@@ -143,19 +145,19 @@ TeachingContext Snapshot
 
 Hard Constraint MUST NOT 被 soft score、LLM 或 experiment 恢复。
 
-### ARCH-201
+### ARCH-321
 
 TeachingContext MUST exact-version/immutable，并显式处理 `AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE`；replay MUST NOT 读当前 mutable state 或重新调用在线 LLM。
 
-### ARCH-202
+### ARCH-322
 
 Anti-oscillation MUST 覆盖 Material Evidence Gate、Sticky Continuity、Minimum Dwell by Evidence Opportunity、Hysteresis、Transition Priority、Repeated Failure Override。
 
-### ARCH-203
+### ARCH-323
 
 PolicyBundle MUST immutable/versioned/atomic activate/exact pin/historical retain；MUST NOT 包含 executable DSL、embedded Python、free-form runtime policy code 或 LLM-generated rules。
 
-### ARCH-204
+### ARCH-324
 
 B3 DecisionTrace probability semantics：
 
@@ -168,7 +170,7 @@ ExperimentAssignment probability MUST 与 action propensity 分离。
 
 ## 5. Cross-system Data Flow
 
-### ARCH-030 — Teaching Round
+### ARCH-020 — Standard Teaching Round
 
 ```text
 SYS06 selects activity
@@ -181,17 +183,17 @@ SYS06 selects activity
 → SYS06 replans only on trigger
 ```
 
-### ARCH-031 — No Synchronous Multi-owner Mutation
+### ARCH-021 — No Synchronous Multi-owner Mutation
 
 上述循环 MUST 通过 new events/versions/commands 形成；MUST NOT 在一个 transaction/call stack 直接修改多个 owner tables。
 
-### ARCH-032 — Failure Return
+### ARCH-022 — Failure Return
 
 SYS02/SYS08 MAY 返回 missing evidence、conflict、low confidence、model/tool failure、validation failure。若需改变 teaching semantics MUST 回到 SYS05 创建新 action。
 
 ## 6. Misconception & Validation Boundaries
 
-### ARCH-210
+### ARCH-330
 
 ```text
 Misconception definition      → SYS01
@@ -200,17 +202,17 @@ MisconceptionHypothesis       → SYS03
 Remediation decision          → SYS05
 ```
 
-### ARCH-211
+### ARCH-331
 
 ASSISTED/ANSWER_EXPOSED success → SYS05 `INDEPENDENT_VALIDATION_REQUIRED`。Obligation 不是 MasteryState；只有 fresh independent Attempt/result 才能提供满足它的事实。
 
 ## 7. Outcome / Experiment Architecture
 
-### ARCH-220
+### ARCH-340
 
 TeachingEpisode、LearningTrajectory、OutcomeObservation、ExperimentAssignment 是 additive domain/analytics/experiment contracts，不建立第九个 state owner。
 
-### ARCH-221
+### ARCH-341
 
 Delayed outcomes MUST NOT 自动 last-touch attribution；attribution 使用 ACTION_DIRECT / EPISODE_ASSOCIATED / TRAJECTORY_ASSOCIATED / EXPERIMENTALLY_CAUSAL / UNATTRIBUTABLE。
 
@@ -240,7 +242,7 @@ apps/backend/app/
 
 ## 9. Legacy Mapping Direction
 
-### ARCH-230
+### ARCH-350
 
 - `services/documents/`：content/model/provenance → SYS01；retrieval/ranking → SYS02；
 - `services/kt/`：SYS03 baseline candidate；
@@ -250,17 +252,17 @@ apps/backend/app/
 - `engines/*_engine.py`：SYS08 execution adapters；
 - dialog/session mastery fields：read-only projection during migration, never second truth。
 
-### ARCH-231 — No Permanent Dual Truth
+### ARCH-351 — No Permanent Dual Truth
 
 Old nine-family strategy、integer scaffold/hint/exposure、legacy Socratic selector、old policy config、ambiguous propensity MAY remain only as read/audit compatibility with retirement conditions。MUST NOT dual-write canonical truth。
 
 ## 10. Quality / Release Architecture
 
-### ARCH-240
+### ARCH-360
 
 Testing MUST include L0～L6 + OPVE；G0 hard constraints MUST 100% pass、forbidden action=0；G1 selected action must belong to acceptable set。
 
-### ARCH-241
+### ARCH-361
 
 Release MUST distinguish Engineering Gate、Policy Correctness Gate、Learning Evidence Gate。Engineering Correct/Policy Correct MUST NOT be claimed as learning efficacy。
 
@@ -276,7 +278,11 @@ Primary learning outcomes：no-hint independent success、delayed independent pe
 - `ARCH-AC-206`：Outcome/Experiment records 不形成第九 owner。
 - `ARCH-AC-207`：legacy Socratic 无 final TeachingAction ownership。
 
-## 12. Forbidden Architecture
+## 12. Spec-ID Migration Note
+
+v0.2 `ARCH-020/021/022` 保留原有“教学轮次 / 禁止同步多 owner 写 / failure 回流”职责，并在 v0.3 更新字段语义；v0.3 新增 ownership/policy/outcome/migration/quality requirements 使用 `ARCH-300+`，MUST NOT 复用其他旧 ID 改变原义。
+
+## 13. Forbidden Architecture
 
 禁止：
 
