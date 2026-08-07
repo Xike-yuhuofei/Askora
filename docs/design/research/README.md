@@ -34,6 +34,8 @@ research/
 - `八类技术系统-现状诊断.md`
 - `八类技术系统-公共架构冻结稿.md`
 - `八类技术系统-系统设计研究综合与溯源.md`
+- `v0.3-候选范围分析.md`：基于冻结的 v0.2 选择下一阶段主线，不重新研究八类系统；
+- `v0.3-深度研究议程.md`：限定 v0.3 Deep Research 的 Research Delta、证据标准、输出结构与停止条件。
 
 八类技术系统原始 Deep Research 设计已从四个执行批次无改写拆分为：
 
@@ -111,3 +113,21 @@ Deep Research 原始结果
 ## 5. 当前八类技术系统研究状态
 
 八类技术系统 Deep Research 已完成证据研究、现状诊断、公共架构冻结和分系统设计。原先四个执行批次各包含两个技术系统，现已按照真实系统边界拆为 8 份独立研究设计稿并保存在 `synthesis/`；原始批次提交和 blob 仍由 Git 历史永久保存，具体溯源见 `synthesis/八类技术系统-系统设计研究综合与溯源.md`。
+
+## 6. v0.3 Research Delta 状态
+
+v0.2 First Vertical Learning Loop 冻结后，v0.3 不再从零研究八类技术系统。当前候选主线为 `Adaptive Teaching Loop`，进入 Canonical Design 前先完成 4 个专项 Research Delta：
+
+```text
+DR-03-01 教学策略与支架转换
+DR-03-02 错误诊断到教学补救
+DR-03-03 Teaching Policy 决策算法与数据契约
+DR-03-04 学习效果验证与产品实验
+```
+
+权威前置研究文件：
+
+- `synthesis/v0.3-候选范围分析.md`
+- `synthesis/v0.3-深度研究议程.md`
+
+研究完成前不得直接生成 v0.3 EXEC，也不得由 Codex 从现有实现自行扩展教学策略语义。
