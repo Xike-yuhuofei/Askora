@@ -11,14 +11,21 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID, uuid5
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
+from app.domains.content_knowledge import (
+    CONTENT_RECORD_KEY,
+    SEGMENTATION_VERSION,
+    build_content_revision,
+)
 from app.models.document import (
     DocumentChunk,
     ModerationStatus,
@@ -106,18 +113,33 @@ class DocumentService:
         if document is None:
             raise ValueError(f"文档不存在: {document_id}")
 
-        if document.processing_status == ProcessingStatus.COMPLETED:
-            return document
-
-        document.processing_status = ProcessingStatus.PROCESSING
-        document.processing_started_at = datetime.now(timezone.utc)
-        await self.db.commit()
-
         try:
             file_content = await asyncio.to_thread(
                 self.storage.read_file,
                 document.storage_path,
             )
+            checksum = hashlib.sha256(file_content).hexdigest()
+            canonical = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+            current = self._current_revision(canonical)
+            if (
+                document.processing_status == ProcessingStatus.COMPLETED
+                and current
+                and current.get("checksum") == checksum
+            ):
+                chunk_count = await self.db.scalar(
+                    select(func.count())
+                    .select_from(DocumentChunk)
+                    .where(DocumentChunk.document_id == document_id)
+                )
+                if chunk_count:
+                    return document
+                await self.rebuild_chunk_projection(document_id)
+                await self.db.refresh(document)
+                return document
+
+            document.processing_status = ProcessingStatus.PROCESSING
+            document.processing_started_at = datetime.now(timezone.utc)
+            await self.db.commit()
 
             # 1. 安全扫描（本地轻量扫描）
             scan_result = self.scanner.scan(
@@ -128,6 +150,7 @@ class DocumentService:
                 document.processing_status = ProcessingStatus.FAILED
                 document.moderation_status = ModerationStatus.REJECTED
                 document.moderation_details = {
+                    **(document.moderation_details or {}),
                     "reason": "security_scan_failed",
                     "threats": scan_result.threats,
                 }
@@ -144,15 +167,38 @@ class DocumentService:
             # 2. 解析文档
             parser = get_parser(document.file_extension)
             parsed: ParsedContent = parser.parse(file_content, document.file_extension)
+            canonical_chunks = self._split_visibility_boundaries(parsed.chunks)
 
-            # 3. 标记通过
-            document.moderation_status = ModerationStatus.APPROVED
+            # 3. 建立不可变 revision、SourceSpan 与最小 KnowledgeUnit truth。
+            content_record = build_content_revision(
+                document_id=UUID(document.id),
+                original_filename=document.original_filename,
+                file_content=file_content,
+                full_text=parsed.full_text,
+                chunks=canonical_chunks,
+                previous_record=canonical,
+                knowledge_point_id=document.knowledge_point_id,
+            )
+            document.moderation_details = {
+                **(document.moderation_details or {}),
+                CONTENT_RECORD_KEY: content_record,
+                "security_scan": {
+                    "severity": scan_result.severity,
+                    "threats": scan_result.threats,
+                },
+            }
+            document.moderation_status = (
+                ModerationStatus.REQUIRES_REVIEW
+                if scan_result.requires_review
+                else ModerationStatus.APPROVED
+            )
 
-            # 4. 创建分块记录
+            # 4. 从 canonical spans 创建可删除、可重建的 SourceChunk projection。
             chunks_created = await self._create_chunks(
                 document_id=document_id,
-                chunks=parsed.chunks,
+                chunks=canonical_chunks,
                 metadata=parsed.metadata,
+                content_record=content_record,
             )
 
             # 5. 更新文档统计
@@ -191,13 +237,25 @@ class DocumentService:
         document_id: str,
         chunks: list[str],
         metadata: dict,
+        content_record: dict,
     ) -> int:
-        """创建文档分块"""
+        """Create a replaceable SourceChunk projection from canonical spans."""
+        await self.db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document_id))
         chunk_objects = []
+        revision = self._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        revision_id = UUID(revision["revision_id"])
+        spans = revision.get("source_spans", [])
+        knowledge_unit_ids = [
+            item["knowledge_unit_id"] for item in revision.get("knowledge_units", [])
+        ]
 
         for idx, content in enumerate(chunks):
+            span = spans[idx]
+            role, exposure_level, allowed_use = self._classify_projection_visibility(content)
             chunk = DocumentChunk(
-                id=str(uuid.uuid4()),
+                id=str(uuid5(revision_id, f"{SEGMENTATION_VERSION}:chunk:{idx}")),
                 document_id=document_id,
                 chunk_index=idx,
                 content=content,
@@ -207,6 +265,13 @@ class DocumentService:
                     "chunk_index": idx,
                     "total_chunks": len(chunks),
                     "position": round(idx / max(len(chunks) - 1, 1), 2),
+                    "revision_id": str(revision_id),
+                    "segmentation_version": SEGMENTATION_VERSION,
+                    "source_span_ids": [span["span_id"]],
+                    "knowledge_unit_ids": knowledge_unit_ids,
+                    "pedagogical_role": role,
+                    "exposure_level": exposure_level,
+                    "allowed_use": allowed_use,
                 },
             )
             chunk_objects.append(chunk)
@@ -215,6 +280,89 @@ class DocumentService:
         await self.db.flush()
 
         return len(chunk_objects)
+
+    async def rebuild_chunk_projection(self, document_id: str) -> int:
+        """Rebuild indexes from canonical records without reparsing the source file."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            raise ValueError(f"文档不存在: {document_id}")
+        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        revision = self._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        spans = revision.get("source_spans", [])
+        chunks = [item["text"] for item in spans]
+        count = await self._create_chunks(
+            document_id=document_id,
+            chunks=chunks,
+            metadata={"format": document.file_extension, "rebuilt": True},
+            content_record=content_record,
+        )
+        document.chunk_count = count
+        await self.db.commit()
+        return count
+
+    async def get_source_span(self, document_id: str, span_id: str) -> dict | None:
+        """Replay a citation anchor from canonical content truth (SYS01-AC-001)."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            return None
+        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        for revision in content_record.get("revisions", []):
+            for span in revision.get("source_spans", []):
+                if span.get("span_id") == span_id:
+                    return {
+                        **span,
+                        "document_id": document_id,
+                        "original_filename": document.original_filename,
+                    }
+        return None
+
+    @staticmethod
+    def _current_revision(content_record: dict) -> dict | None:
+        revision_id = content_record.get("current_revision_id")
+        return next(
+            (
+                revision
+                for revision in content_record.get("revisions", [])
+                if revision.get("revision_id") == revision_id
+            ),
+            None,
+        )
+
+    @staticmethod
+    def _classify_projection_visibility(content: str) -> tuple[str, int, str]:
+        lowered = content.lower()
+        if any(marker in lowered for marker in ("[grader-only]", "参考答案：", "reference answer:")):
+            return "solution", 4, "grader_only"
+        if "例" in content or "example" in lowered:
+            return "example", 1, "learner_visible"
+        if "定义" in content or "definition" in lowered:
+            return "definition", 1, "learner_visible"
+        return "context", 0, "learner_visible"
+
+    @staticmethod
+    def _split_visibility_boundaries(chunks: list[str]) -> list[str]:
+        """Prevent grader-only material from sharing a learner-visible projection chunk."""
+        result: list[str] = []
+        for chunk in chunks:
+            lowered = chunk.lower()
+            marker_positions = [
+                position
+                for marker in ("[grader-only]", "reference answer:", "参考答案：")
+                if (position := lowered.find(marker)) >= 0
+            ]
+            if not marker_positions:
+                result.append(chunk)
+                continue
+            split_at = min(marker_positions)
+            before = chunk[:split_at].strip()
+            protected = chunk[split_at:].strip()
+            if before:
+                result.append(before)
+            if protected:
+                result.append(protected)
+        return result
 
     async def get_document(self, document_id: str) -> Optional[UserDocument]:
         """获取文档详情"""

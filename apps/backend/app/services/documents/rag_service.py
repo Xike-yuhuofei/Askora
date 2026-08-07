@@ -18,11 +18,19 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.learning import TeachingAction
 from app.core.logging import get_logger
+from app.domains.content_knowledge import CONTENT_RECORD_KEY, SEGMENTATION_VERSION
+from app.domains.retrieval import (
+    EvidenceBundleBuildResult,
+    HybridEvidenceRetriever,
+    RetrievalCandidate,
+)
 from app.models.document import (
     DocumentChunk,
     ModerationStatus,
@@ -86,10 +94,118 @@ class RAGService:
     后续可升级为向量相似度检索
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(
+        self,
+        db: AsyncSession,
+        retriever: HybridEvidenceRetriever | None = None,
+    ):
         self.db = db
+        self.retriever = retriever or HybridEvidenceRetriever()
         self.max_context_chunks = 5  # 最多返回的分块数量
         self.min_score_threshold = 0.3  # 最低相关性分数
+
+    async def build_evidence_bundle(
+        self,
+        *,
+        pseudonym_id: str,
+        query: str,
+        teaching_action: TeachingAction,
+        request_id: UUID | None = None,
+        source_scope: dict[str, object] | None = None,
+        max_chunks: int | None = None,
+        learner_visible: bool = True,
+    ) -> EvidenceBundleBuildResult:
+        """Build the SYS02 structured decision result (SYS02-001/002)."""
+        doc_ids = await self._get_available_document_ids(pseudonym_id=pseudonym_id)
+        scope = source_scope or {"document_ids": doc_ids, "pseudonym_id": pseudonym_id}
+        if not doc_ids:
+            return self.retriever.build_evidence_bundle(
+                request_id=request_id or uuid4(),
+                teaching_action=teaching_action,
+                query=query,
+                candidates=[],
+                source_scope=scope,
+                index_versions={"segmentation": SEGMENTATION_VERSION, "content": "none"},
+                learner_visible=learner_visible,
+                max_items=max_chunks or self.max_context_chunks,
+            )
+
+        rows = (
+            await self.db.execute(
+                select(DocumentChunk, UserDocument)
+                .join(UserDocument, DocumentChunk.document_id == UserDocument.id)
+                .where(DocumentChunk.document_id.in_(doc_ids))
+            )
+        ).all()
+        candidates: list[RetrievalCandidate] = []
+        revision_versions: set[str] = set()
+        for chunk, document in rows:
+            metadata = chunk.chunk_metadata or {}
+            revision_id = self._parse_uuid(metadata.get("revision_id"))
+            document_uuid = self._parse_uuid(document.id)
+            if revision_id is None or document_uuid is None:
+                continue
+            revision_versions.add(str(revision_id))
+            valid_span_ids = self._validated_span_ids(document, metadata)
+            candidates.append(
+                RetrievalCandidate(
+                    chunk_id=UUID(chunk.id),
+                    document_id=document_uuid,
+                    revision_id=revision_id,
+                    source_span_ids=tuple(valid_span_ids),
+                    knowledge_unit_ids=tuple(
+                        value
+                        for raw in metadata.get("knowledge_unit_ids", [])
+                        if (value := self._parse_uuid(raw)) is not None
+                    ),
+                    content=chunk.content,
+                    pedagogical_role=str(metadata.get("pedagogical_role", "context")),
+                    exposure_level=int(metadata.get("exposure_level", 0)),
+                    allowed_use=str(metadata.get("allowed_use", "learner_visible")),
+                )
+            )
+        return self.retriever.build_evidence_bundle(
+            request_id=request_id or uuid4(),
+            teaching_action=teaching_action,
+            query=query,
+            candidates=candidates,
+            source_scope=scope,
+            index_versions={
+                "segmentation": SEGMENTATION_VERSION,
+                "content_revisions": ",".join(sorted(revision_versions)),
+                "fusion": "rrf-v1",
+            },
+            learner_visible=learner_visible,
+            max_items=max_chunks or self.max_context_chunks,
+        )
+
+    @classmethod
+    def _validated_span_ids(cls, document: UserDocument, metadata: dict) -> list[UUID]:
+        record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        revision_id = metadata.get("revision_id")
+        revision = next(
+            (
+                item
+                for item in record.get("revisions", [])
+                if item.get("revision_id") == revision_id
+            ),
+            None,
+        )
+        if revision is None:
+            return []
+        canonical_ids = {item.get("span_id") for item in revision.get("source_spans", [])}
+        return [
+            value
+            for raw in metadata.get("source_span_ids", [])
+            if raw in canonical_ids and (value := cls._parse_uuid(raw)) is not None
+        ]
+
+    @staticmethod
+    def _parse_uuid(value: object) -> UUID | None:
+        try:
+            return UUID(str(value))
+        except (TypeError, ValueError, AttributeError):
+            return None
 
     async def retrieve_context(
         self,
