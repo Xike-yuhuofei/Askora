@@ -4,47 +4,35 @@
 > 状态：Canonical Implementation Contract  
 > 版本：v0.3
 
-## 1. 目的
+## 1. Purpose
 
-本文件定义八类技术系统跨边界共享的最小领域语义。系统内部 MAY 有额外私有对象，但 MUST NOT 复制、改变或模糊这些公共对象的含义。
+本文件定义八类技术系统跨边界共享的最小领域语义。系统内部 MAY 有私有对象，但 MUST NOT 复制、改变或模糊这些公共对象含义。v0.3 canonical truth 以本文件、`decision-contract.md` 与各系统 Spec 为准；legacy 字段只允许按迁移合同 read/audit。
 
-v0.3 对 Adaptive Teaching Loop 的 canonical truth 以本文件、`decision-contract.md` 与各系统 Spec 为准。历史 v0.2 字段只允许按 Legacy Mapping 读取，不得继续双写为第二 canonical truth。
+## 2. Common Rules
 
-## 2. 通用规则
+### DOMAIN-001 — Stable Identity + Immutable Revision
 
-### DOMAIN-001：Stable Identity + Immutable Revision
+具有长期引用价值的对象 SHOULD 使用 `stable_id + immutable revision/version`；语义变化 SHOULD 生成新 revision，而不是覆盖旧记录。
 
-具有长期引用价值的对象 SHOULD 使用 `stable_id + immutable revision/version`。内容变化时 SHOULD 生成新 revision，而不是覆盖旧记录。
-
-### DOMAIN-002：Provenance First
+### DOMAIN-002 — Provenance First
 
 任何影响教学、评估、掌握或引用的对象 MUST 能追溯来源、算法/模型/PolicyBundle 版本与创建上下文。
 
-### DOMAIN-003：事实、推断与决策必须可区分
+### DOMAIN-003 — Fact / Inference / Decision Separation
 
-公共对象字段或 metadata MUST 能区分：user fact、source fact、system inference、policy decision、generated content、human review。
+公共对象 MUST 能区分 user fact、source fact、system inference、policy decision、generated content、human review。
 
-### DOMAIN-004：时间
+### DOMAIN-004 — Time
 
-持久化时间 MUST 使用带时区 UTC 或明确 offset 的时间戳；展示层 MAY 转换本地时区。
+持久化时间 MUST 使用带时区 UTC 或明确 offset；展示层 MAY 转换本地时区。
 
-### DOMAIN-005：Missing Semantics
+### DOMAIN-005 — Missing Semantics
 
-需要表达输入可用性的公共字段/派生特征 MUST 使用：
+需要表达输入可用性的字段/派生 feature MUST 使用 `AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE`。`MISSING` MUST NOT 用 `0`、空字符串或伪默认值表达。
 
-```text
-AVAILABLE
-MISSING
-STALE
-LOW_CONFIDENCE
-NOT_APPLICABLE
-```
+## 3. LearningGoal / LearningObjective
 
-`MISSING` MUST NOT 用数值 `0`、空字符串或伪造默认值表示。
-
-## 3. LearningGoal
-
-**Owner**：SYS06 Learning Planner。
+**Owner**：SYS06。
 
 ```yaml
 learning_goal:
@@ -63,17 +51,7 @@ learning_goal:
   confirmed_by_user: boolean
   created_at: datetime
   supersedes_version: integer|null
-```
 
-### DOMAIN-010
-
-LLM MAY 从自然语言生成 candidate，但 `confirmed|active` 的目标必须经过用户确认或显式产品规则确认。
-
-## 4. LearningObjective
-
-**Owner**：SYS06。
-
-```yaml
 learning_objective:
   objective_id: uuid
   plan_id: uuid
@@ -86,11 +64,15 @@ learning_objective:
   status: planned|active|satisfied|reopened|superseded
 ```
 
+### DOMAIN-010
+
+LLM MAY 从自然语言生成 goal candidate，但 `confirmed|active` 必须经过用户确认或显式产品规则确认。
+
 ### DOMAIN-011
 
-Objective MUST 可被 SYS04 通过一个或多个 AssessmentItem 测量，不能只使用“了解”“熟悉”等不可验证描述。
+Objective MUST 可由 SYS04 一个或多个 AssessmentItem 测量，MUST NOT 只用“了解/熟悉”等不可验证描述。
 
-## 5. SourceDocument / MaterialRevision
+## 4. SourceDocument / MaterialRevision / SourceSpan / SourceChunk
 
 **Owner**：SYS01。
 
@@ -111,17 +93,7 @@ material_revision:
   extraction_version: string|null
   created_at: datetime
   supersedes_revision_id: uuid|null
-```
 
-### DOMAIN-020
-
-原始文件改变、parser 产生语义性不同结果或安全修复要求重建内容时，MUST 形成可追踪 revision。
-
-## 6. SourceSpan / SourceChunk
-
-**Owner**：SYS01。
-
-```yaml
 source_span:
   span_id: uuid
   revision_id: uuid
@@ -142,15 +114,19 @@ source_chunk:
   metadata: object
 ```
 
+### DOMAIN-020
+
+原始文件改变、parser 产生语义性不同结果或安全修复要求重建内容时，MUST 形成可追踪 revision。
+
 ### DOMAIN-021
 
-任何用户可见引用 MUST 最终回到 `SourceSpan` 或等价稳定原文锚点。
+任何用户可见引用 MUST 最终回到 SourceSpan 或等价稳定原文锚点。
 
 ### DOMAIN-022
 
-SourceChunk 是可重建索引投影，MUST NOT 作为长期知识身份。
+SourceChunk 是可重建 retrieval projection，MUST NOT 作为长期 KnowledgeUnit identity。
 
-## 7. KnowledgeUnit / Concept / Prerequisite / Misconception
+## 5. KnowledgeUnit / Concept / Prerequisite / Misconception
 
 **Owner**：SYS01。
 
@@ -200,17 +176,21 @@ misconception:
 
 ### DOMAIN-030
 
-已发布 KnowledgeUnit MUST 有至少一个可回放来源证据，除非 provenance 明确是用户/专家人工创建且产品允许无材料来源对象。
+Published KnowledgeUnit MUST 有至少一个可 replay source evidence，除非 provenance 明确是用户/专家人工创建且产品允许无材料来源对象。
 
 ### DOMAIN-040
 
-章节顺序 MUST NOT 自动等同 hard prerequisite；低置信推断关系 MUST NOT 自动提升为 hard prerequisite。
+章节先后顺序 MUST NOT 自动等同 hard prerequisite。
 
 ### DOMAIN-041
 
-`Misconception` 是 SYS01 的规范定义，不代表某学习者存在该误区。`MisconceptionEvidence` 由 SYS04 产生，`MisconceptionHypothesis` 由 SYS03 拥有，remediation decision 由 SYS05 拥有。
+低置信 inferred prerequisite MUST NOT 自动提升为 hard prerequisite。
 
-## 8. EvidenceBundle
+### DOMAIN-042 — Misconception Boundary
+
+`Misconception definition → SYS01`；`MisconceptionEvidence → SYS04`；`MisconceptionHypothesis → SYS03`；`Remediation decision → SYS05`。Misconception definition 不代表某学习者实际存在该误区。
+
+## 6. EvidenceBundle
 
 **Owner**：SYS02。
 
@@ -238,11 +218,11 @@ evidence_bundle:
   retrieval_trace_id: uuid
 ```
 
-### DOMAIN-050 — v0.3 Exposure Envelope
+### DOMAIN-050 — Exposure Envelope
 
-EvidenceBundle MUST 执行 TeachingAction 的 `answer_exposure` 上限。SYS02 MAY 进一步收紧，MUST NOT 放宽。历史 `exposure_level: 0..4` 只允许兼容读取并映射到 v0.3 `answer_exposure`，不得继续作为 canonical 写入字段。
+EvidenceBundle MUST 执行 TeachingAction `answer_exposure` hard envelope。SYS02 MAY 收紧，MUST NOT 放宽。Legacy `exposure_level:0..4` / `answer_exposure_max` MAY read-only mapping，MUST NOT canonical write；lossy mapping MUST 显式标记。
 
-## 9. AssessmentItem
+## 7. AssessmentItem / Attempt / Assistance
 
 **Owner**：SYS04。
 
@@ -259,36 +239,7 @@ assessment_item:
   scoring: object
   provenance: object
   exposure: object
-```
 
-### DOMAIN-060
-
-模型生成题默认 `draft`，通过可解性、答案一致性和安全检查后才能进入 `active`。
-
-## 10. Assistance / Support Canonical Model
-
-### DOMAIN-061 — Orthogonal Assistance Snapshot
-
-Attempt MUST 记录实际经历的四个正交维度：
-
-```text
-scaffold_control = NONE | LOW | MEDIUM | HIGH
-hint_specificity = NONE | ORIENTATION | CONCEPTUAL_STRATEGIC | SUBGOAL | PARTIAL_STEP | BOTTOM_OUT
-answer_exposure = NONE | PARTIAL | COMPLETE
-assistance_state = INDEPENDENT | ASSISTED | ANSWER_EXPOSED
-```
-
-这些维度 MUST NOT 被一个全局整数 `scaffold_level`、`hint_level` 或 `answer_exposure_max` 替代。
-
-### DOMAIN-062
-
-`assistance_state` 是实际经历的汇总标签：无帮助且无答案暴露为 `INDEPENDENT`；任何实质帮助但无答案暴露为 `ASSISTED`；发生 complete/semantically answer-revealing exposure 时为 `ANSWER_EXPOSED`。具体映射规则 MUST 版本化。
-
-## 11. Attempt
-
-**Owner**：SYS04。
-
-```yaml
 attempt:
   attempt_id: uuid
   user_id: uuid
@@ -313,11 +264,36 @@ attempt:
     delivery_mode: string|null
 ```
 
-## 12. AssessmentResult / Diagnosis
+### DOMAIN-060
+
+模型生成 AssessmentItem 默认 `draft`，通过 solvability、answer consistency、safety checks 后才 MAY `active`。
+
+### DOMAIN-061 — Assistance Must Be Recorded
+
+Attempt MUST 记录实际帮助/答案暴露状态，否则不能可靠判断 evidence eligibility。
+
+### DOMAIN-062 — Orthogonal Assistance Axes
+
+Canonical assistance MUST 正交表达：
+
+```text
+scaffold_control = NONE|LOW|MEDIUM|HIGH
+hint_specificity = NONE|ORIENTATION|CONCEPTUAL_STRATEGIC|SUBGOAL|PARTIAL_STEP|BOTTOM_OUT
+answer_exposure = NONE|PARTIAL|COMPLETE
+assistance_state = INDEPENDENT|ASSISTED|ANSWER_EXPOSED
+```
+
+MUST NOT 继续以一个全局 integer `scaffold_level`、`hint_level` 或 `answer_exposure_max` 作为 canonical semantics。
+
+### DOMAIN-063 — Assistance State Mapping
+
+`INDEPENDENT` = 无实质帮助/答案暴露；`ASSISTED` = 有实质帮助但未达到 answer-exposed；`ANSWER_EXPOSED` = complete/semantically answer-revealing exposure。具体映射 MUST versioned。
+
+## 8. AssessmentResult / Diagnosis
 
 **Owner**：SYS04。
 
-Canonical `ErrorType`：
+Canonical ErrorType：
 
 ```text
 KNOWLEDGE_GAP
@@ -361,21 +337,25 @@ assessment_result:
 
 AssessmentResult MUST NOT 包含 canonical `mastery_status` 作为最终裁决字段。
 
+### DOMAIN-071
+
+ANSWER_EXPOSED、评分不可审计、版本不一致或重复提交结果 MUST NOT 成为高权 mastery evidence；ASSISTED evidence MUST 与 independent evidence 区分并按 versioned rules 降权/限制用途。
+
 ### DOMAIN-072
 
-`assessment_confidence` 与 `diagnostic_confidence` MUST 独立表达；评分可信度高不代表错误归因可信度高。
+`assessment_confidence != diagnostic_confidence`；评分可信度高 MUST NOT 隐式等于错因归因可信度高。
 
 ### DOMAIN-073
 
-`UNKNOWN` 是合法诊断结果。系统 MUST NOT 为满足 enum 完整性而强制猜测 ErrorType。
+`UNKNOWN` 是合法 ErrorType。系统 MUST NOT 为 enum 完整性强制猜一个错误类型。
 
 ### DOMAIN-074 — Legacy Error Mapping
 
-兼容读取时：`condition_omission` MUST 降级为 reason code/subcategory；`metacognitive` MUST 迁移为 behavioral/policy signal、ActionModifier 或 reason code；`expression_incomplete` MUST 映射为 `EXPRESSION_FORMAT`。无法无歧义映射的历史诊断 MUST 使用 `UNKNOWN + migration_reason`。
+`condition_omission → reason code/subcategory`；`metacognitive → behavioral/policy signal、ActionModifier 或 reason code`；`expression_incomplete → EXPRESSION_FORMAT`。无法无歧义映射 MUST `UNKNOWN + migration_reason`，不得伪造 diagnostic confidence。
 
-## 13. LearnerEvidence / MasteryEstimate / LearnerState
+## 9. LearnerEvidence / MasteryEstimate / LearnerState
 
-**Owner of evidence acceptance/projection**：SYS03；来源主要为 SYS04。
+**Owner**：SYS03。
 
 ```yaml
 learner_evidence:
@@ -430,27 +410,23 @@ learner_state:
   created_at: datetime
 ```
 
-### DOMAIN-071
-
-`ANSWER_EXPOSED`、评分不可审计、版本不一致或重复提交的结果 MUST NOT 成为高权 mastery evidence；`ASSISTED` evidence MUST 与独立 evidence 区分并按版本化规则降权/限制用途。
-
 ### DOMAIN-080
 
-`competence_probability` 是模型估计，不是真实概率宣称；UI 展示必须配合 confidence/evidence。
+`competence_probability` 是模型估计，不是真实概率宣称；UI MUST 配合 confidence/evidence 展示。
 
 ### DOMAIN-081
 
-稳定掌握与迁移掌握的产品标签 MUST 由显式规则计算，至少考虑独立性、延迟证据、迁移证据和活跃误区，而不是只比较一个概率阈值。
+Stable/transfer mastery product labels MUST 由显式 versioned rules 计算，至少考虑 independence、delay evidence、transfer evidence、active misconception；MUST NOT 只比较单一 probability threshold。
 
 ### DOMAIN-082 — TeachingStage Separation
 
-历史 `LearnerState.learning_stage_summary` 在 v0.3 被 `learner_progress_summary` 取代。该字段只是 SYS03 的学习进展摘要，MUST NOT 与 SYS05 `TeachingStage` 共享 owner、枚举或继承关系。
+Legacy `LearnerState.learning_stage_summary` 在 v0.3 迁移/重命名为 `learner_progress_summary` 或等价 progress summary；MUST NOT 与 SYS05 TeachingStage 共享 owner、enum、inheritance。
 
-## 14. Teaching Strategy Ontology
+## 10. Teaching Strategy Ontology
 
 **Owner**：SYS05。
 
-Canonical `StrategyFamily` 仅允许：
+Canonical StrategyFamily only：
 
 ```text
 EXPLICIT_INSTRUCTION
@@ -463,71 +439,31 @@ TRANSFER_CHALLENGE
 
 ### DOMAIN-083 — Four-layer Ontology
 
-v0.3 MUST 正式区分：
-
-```text
-StrategyFamily     = relatively stable teaching episode/control intent
-TeachingAction     = SYS05 一次具体、不可变、可执行决策
-InteractionMove    = 一轮或局部交互动作
-ActionModifier     = 不改变 family 的组合修饰语义
-```
-
-`StrategyFamily != TeachingAction != InteractionMove`。
+MUST 区分 `StrategyFamily`（稳定 episode/control intent）、`TeachingAction`（一次 immutable executable decision）、`InteractionMove`（局部 interaction move）、`ActionModifier`（不改变 family 的组合修饰）。`StrategyFamily != TeachingAction != InteractionMove`。
 
 ### DOMAIN-084 — InteractionMove Vocabulary
 
-至少支持：
-
-```text
-DIRECT_INSTRUCTION
-WORKED_EXAMPLE
-SOCRATIC_PROBE
-SELF_EXPLANATION_PROMPT
-ORIENTATION_HINT
-CONCEPTUAL_HINT
-SUBGOAL_HINT
-PARTIAL_STEP
-COMPLETION_PROBLEM
-FADING_STEP
-CORRECTNESS_FEEDBACK
-PROCESS_FEEDBACK
-RETRIEVAL_REQUEST
-DELAYED_RETRIEVAL_REQUEST
-TRANSFER_TASK
-DIRECT_ANSWER_OVERRIDE
-METACOGNITIVE_CHECK
-```
+至少支持：`DIRECT_INSTRUCTION`、`WORKED_EXAMPLE`、`SOCRATIC_PROBE`、`SELF_EXPLANATION_PROMPT`、`ORIENTATION_HINT`、`CONCEPTUAL_HINT`、`SUBGOAL_HINT`、`PARTIAL_STEP`、`COMPLETION_PROBLEM`、`FADING_STEP`、`CORRECTNESS_FEEDBACK`、`PROCESS_FEEDBACK`、`RETRIEVAL_REQUEST`、`DELAYED_RETRIEVAL_REQUEST`、`TRANSFER_TASK`、`DIRECT_ANSWER_OVERRIDE`、`METACOGNITIVE_CHECK`。
 
 ### DOMAIN-085 — ActionModifier Vocabulary
 
-至少能够表达：`self_explanation`、`metacognitive_reflection`、`feedback_type`、`representation_style`、`transition_intent`、`support_reason`、`target_scope`、`delivery_mode`。
+至少支持 `self_explanation`、`metacognitive_reflection`、`feedback_type`、`representation_style`、`transition_intent`、`support_reason`、`target_scope`、`delivery_mode`。
 
 ### DOMAIN-086 — Non-family Terms
 
-`Productive Failure` MUST NOT 成为 v0.3 selectable StrategyFamily；Socratic MUST 作为 bounded `SOCRATIC_PROBE` move；worked example、direct instruction、self-explanation、metacognitive reflection MUST 处于 move/modifier 层而非新增 top-level family。
+Productive Failure MUST NOT 是 v0.3 selectable StrategyFamily；Socratic 只能 bounded `SOCRATIC_PROBE` move；worked example/direct instruction/self-explanation/metacognitive reflection 属 move/modifier，不新增 top-level family。
 
-## 15. TeachingStage
+## 11. TeachingStage
 
-**Derived by**：SYS05；不是持久学习者状态。
-
-```text
-DIAGNOSE
-EXPLICIT_INSTRUCTION
-GUIDED_PRACTICE
-FADING_PRACTICE
-RETRIEVAL_PRACTICE
-DELAYED_RETRIEVAL
-ERROR_REMEDIATION
-TRANSFER_CHALLENGE
-```
+Canonical vocabulary：`DIAGNOSE|EXPLICIT_INSTRUCTION|GUIDED_PRACTICE|FADING_PRACTICE|RETRIEVAL_PRACTICE|DELAYED_RETRIEVAL|ERROR_REMEDIATION|TRANSFER_CHALLENGE`。
 
 ### DOMAIN-087
 
-`TeachingStage = f(TeachingContext, PolicyBundle)`。它 MUST NOT 被持久化为 LearnerState/MasteryState truth，也 MUST NOT 由 SYS03 拥有。
+`TeachingStage = f(TeachingContext, PolicyBundle)`，由 SYS05 派生。MUST NOT 持久化为 LearnerState/MasteryState truth，也 MUST NOT 由 SYS03 owner。
 
-## 16. TeachingContext
+## 12. TeachingContext
 
-**Owner of snapshot construction/evaluation semantics**：SYS05。TeachingContext 是 immutable decision-input snapshot，不是新的 state truth。
+**Snapshot semantics owner**：SYS05。TeachingContext 是 immutable decision-input snapshot，不是新的 state truth。
 
 ```yaml
 teaching_context:
@@ -535,63 +471,54 @@ teaching_context:
   context_schema_version: string
   decision_time: datetime
   context_fingerprint: string
-  objective:
-    learning_objective_ref: versioned_ref
-    learning_activity_ref: versioned_ref
-    activity_type: value_with_availability
-    target_capability: value_with_availability
-    current_task_ref: versioned_ref|null
-    task_structure_refs: [versioned_ref]
-  learner:
-    mastery_estimate_ref: versioned_ref|null
-    mastery_confidence: value_with_availability
-    prerequisite_state_refs: [versioned_ref]
-    prerequisite_confidence: value_with_availability
-    evidence_sufficiency: value_with_availability
-  assessment:
-    recent_assessment_result_ref: versioned_ref|null
-    correctness_score: value_with_availability
-    assessment_confidence: value_with_availability
-  diagnosis:
-    error_type: value_with_availability
-    diagnostic_confidence: value_with_availability
-    misconception_evidence_refs: [versioned_ref]
-    alternative_diagnostic_hypotheses: [object]
-    needs_probe: value_with_availability
-  assistance_history:
-    assistance_history_summary: object
-    scaffold_history: [object]
-    hint_history: [object]
-    answer_exposure_history: [object]
-    worked_example_exposure: value_with_availability
-    independent_success_history: [versioned_ref]
-    assisted_success_history: [versioned_ref]
-  previous_decision:
-    previous_teaching_action_ref: versioned_ref|null
-    previous_action_outcome_refs: [versioned_ref]
-  validation:
-    delayed_independent_evidence: value_with_availability
-    review_context: value_with_availability
-    transfer_evidence: value_with_availability
-    transfer_distance_novelty: value_with_availability
-  request:
-    direct_answer_request: boolean
-    explanation_request: boolean
-    time_budget: value_with_availability
-    accessibility_constraints: [object]
-  experiment:
-    experiment_assignment_ref: versioned_ref|null
-    experiment_opt_out: boolean
+  learning_objective_ref: versioned_ref
+  learning_activity_ref: versioned_ref
+  activity_type: value_with_availability
+  target_capability: value_with_availability
+  current_task_ref: versioned_ref|null
+  task_structure_refs: [versioned_ref]
+  mastery_estimate_ref: versioned_ref|null
+  mastery_confidence: value_with_availability
+  prerequisite_state_refs: [versioned_ref]
+  prerequisite_confidence: value_with_availability
+  evidence_sufficiency: value_with_availability
+  recent_assessment_result_ref: versioned_ref|null
+  correctness_score: value_with_availability
+  assessment_confidence: value_with_availability
+  error_type: value_with_availability
+  diagnostic_confidence: value_with_availability
+  misconception_evidence_refs: [versioned_ref]
+  alternative_diagnostic_hypotheses: [object]
+  needs_probe: value_with_availability
+  assistance_history_summary: object
+  scaffold_history: [object]
+  hint_history: [object]
+  answer_exposure_history: [object]
+  worked_example_exposure: value_with_availability
+  independent_success_history: [versioned_ref]
+  assisted_success_history: [versioned_ref]
+  previous_teaching_action_ref: versioned_ref|null
+  previous_action_outcome_refs: [versioned_ref]
+  delayed_independent_evidence: value_with_availability
+  review_context: value_with_availability
+  transfer_evidence: value_with_availability
+  transfer_distance_novelty: value_with_availability
+  direct_answer_request: boolean
+  explanation_request: boolean
+  time_budget: value_with_availability
+  accessibility_constraints: [object]
+  experiment_assignment_ref: versioned_ref|null
+  experiment_opt_out: boolean
   source_refs: [versioned_ref]
 ```
 
 ### DOMAIN-088 — Replayable Context
 
-TeachingContext MUST 固定 exact owner versions；任何 derived feature MUST 可回到 source refs；`decision_time` MUST 显式进入 snapshot；policy evaluator MUST NOT 隐式读取 mutable state；canonical replay MUST NOT 重新调用在线 LLM。
+TeachingContext MUST pin exact owner versions；derived features MUST trace source refs；decision_time MUST enter snapshot；evaluator MUST NOT implicit-read mutable state；canonical replay MUST NOT call online LLM。
 
-## 17. PolicyBundle
+## 13. PolicyBundle
 
-**Owner**：SYS05 configuration governance。
+**Owner**：SYS05 policy configuration governance。
 
 ```yaml
 policy_bundle:
@@ -614,9 +541,9 @@ policy_bundle:
 
 ### DOMAIN-089 — PolicyBundle Lifecycle
 
-PolicyBundle MUST immutable publish、atomic activation、exact version pinning 并保留历史 bundle。Activation 只影响新 TeachingAction；历史 TeachingAction MUST NOT 被新 bundle 重解释。PolicyBundle MUST NOT 包含 executable DSL、embedded Python/free-form runtime policy code 或 LLM-generated rules。
+PolicyBundle MUST immutable publish、atomic activate、exact-version pin、historical retain。Activation 只影响新 TeachingAction；MUST NOT 重解释历史 action。MUST NOT 包含 executable DSL、embedded Python/free-form runtime policy code、LLM-generated rules。
 
-## 18. TeachingAction
+## 14. TeachingAction
 
 **Owner**：SYS05。
 
@@ -648,15 +575,15 @@ teaching_action:
   created_at: datetime
 ```
 
-### DOMAIN-090 — Immutable Action Fidelity
+### DOMAIN-090 — Action Fidelity
 
-SYS08 MUST 执行该动作语义；它 MAY 收紧 scaffold/hint/exposure envelope，但 MUST NOT 扩大支架、hint specificity、answer exposure 或改变 StrategyFamily/InteractionMove 语义。执行无法遵守时 MUST 返回 SYS05 重新决策。
+SYS08 MUST 执行 action semantics；MAY 收紧 scaffold/hint/exposure，MUST NOT 扩大或改变 StrategyFamily/InteractionMove semantics。无法遵守时 MUST 返回 SYS05 重新决策。
 
 ### DOMAIN-091 — Independent Validation Obligation
 
-`ASSISTED` success MUST 产生 `INDEPENDENT_VALIDATION_REQUIRED`；`ANSWER_EXPOSED` success MUST 产生该 obligation，且当前结果 MUST NOT 作为 independent mastery evidence。该 obligation 是 SYS05 policy-control semantics，不是 MasteryState；SYS03 MUST NOT 在 fresh independent Attempt 发生前假定其已完成。
+ASSISTED success 与 ANSWER_EXPOSED success MUST 产生 `INDEPENDENT_VALIDATION_REQUIRED`；answer-exposed current result MUST NOT 是 independent mastery evidence。Obligation 属 SYS05 policy-control，不是 MasteryState；fresh independent Attempt 前 SYS03 MUST NOT 假定完成。
 
-## 19. LearningActivity / LearningPlan
+## 15. LearningActivity / LearningPlan
 
 **Owner**：SYS06。
 
@@ -689,7 +616,7 @@ learning_plan:
   status: active|superseded|completed|paused
 ```
 
-## 20. ReviewSchedule
+## 16. ReviewSchedule
 
 **Owner**：SYS07。
 
@@ -715,11 +642,11 @@ review_schedule:
 
 ### DOMAIN-100
 
-`next_due_at` 是 SYS07 的推荐时点；SYS06 决定它是否以及何时被纳入实际日计划。
+`next_due_at` 是 SYS07 recommended time；SYS06 决定是否/何时纳入 actual plan。
 
-## 21. TeachingEpisode / LearningTrajectory / OutcomeObservation / ExperimentAssignment
+## 17. TeachingEpisode / LearningTrajectory / OutcomeObservation / ExperimentAssignment
 
-这些对象是 additive domain/analytics/experiment contract，MUST NOT 建立第九个领域 truth owner，也 MUST NOT 接管八系统既有状态所有权。
+这些对象是 additive domain/analytics/experiment contracts，MUST NOT 建立第九 domain truth owner 或接管八系统 ownership。
 
 ```yaml
 teaching_episode:
@@ -777,19 +704,19 @@ experiment_assignment:
 
 ### DOMAIN-111 — Attribution Integrity
 
-Delayed outcome MUST NOT 自动 last-touch attribution 给最后一个 TeachingAction。只有满足实验设计/识别条件时才可使用 `EXPERIMENTALLY_CAUSAL`；否则使用 episode/trajectory association 或 `UNATTRIBUTABLE`。
+Delayed outcome MUST NOT 自动 last-touch 给最后 TeachingAction。只有满足实验识别条件才 MAY `EXPERIMENTALLY_CAUSAL`；否则 episode/trajectory association 或 `UNATTRIBUTABLE`。
 
 ### DOMAIN-112 — Decision vs Outcome
 
-`DecisionTrace` = 当时为什么这么决定；`OutcomeObservation` = 后来实际测到了什么。Outcome MUST NOT 回写修改历史 DecisionTrace。
+DecisionTrace = 当时为什么决定；OutcomeObservation = 后来测到了什么。Outcome MUST NOT 回写修改旧 DecisionTrace。
 
 ### DOMAIN-113 — Experiment Probability
 
-`ExperimentAssignment.assignment_probability` 表示随机分配概率，MUST NOT 被解释为 TeachingAction selection propensity。
+ExperimentAssignment `assignment_probability` 表示 random assignment probability，MUST NOT 解释为 TeachingAction selection propensity。
 
-## 22. ModelInference / FeedbackSignal
+## 18. ModelInference / FeedbackSignal
 
-**ModelInference owner**：SYS08。**FeedbackSignal ledger host**：SYS08；由相应领域系统消费。
+**ModelInference owner**：SYS08。**FeedbackSignal ledger host**：SYS08；由相应领域 owner 消费。
 
 ```yaml
 model_inference:
@@ -822,56 +749,40 @@ feedback_signal:
 
 ### DOMAIN-110
 
-体验反馈 MUST NOT 直接进入 mastery；需要 SYS03 明确 evidence adapter 才可作为低权辅助信号。
+Experience feedback MUST NOT 直接进入 mastery；需要 SYS03 explicit evidence adapter 才 MAY 作为低权辅助 signal。
 
-## 23. DecisionTrace / LearningEvent
+## 19. DecisionTrace / LearningEvent
 
-具体字段由 `domain/event-contract.md` 与 `domain/decision-contract.md` 定义。
+字段由 `domain/event-contract.md`、`domain/decision-contract.md` 定义。LearningEvent = accepted immutable fact；DecisionTrace = immutable decision audit；二者均不是新 business state owner。
 
-- LearningEvent = 已发生、被系统接纳的不可变事实；
-- DecisionTrace = 关键系统决策的不可变审计记录；
-- 两者都不是新的业务状态 owner。
-
-## 24. Versioned Configurable Parameters
+## 20. Versioned Configurable Parameters
 
 ### DOMAIN-120
 
-以下 MUST 作为 versioned/traceable configurable parameters，而不是写死为科学常数：mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin。
+mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST 是 versioned/traceable configurable parameters，MUST NOT 写死成科学常数。
 
-Spec 只冻结参数存在、所属机制、版本与 trace 要求；具体值 MAY 通过实验/校准调整，MUST NOT 无证据声称为“学习科学固定值”。
-
-## 25. Legacy Mapping & Migration
+## 21. Legacy Mapping & Migration
 
 | Legacy candidate | Canonical target | Compatibility read | Ambiguity / replay | Retirement condition |
 |---|---|---|---|---|
-| historical strategy records | six `StrategyFamily` + audit legacy value | MAY read legacy value | ambiguous mapping → UNKNOWN migration mapping / partial replay | all supported histories migrated or archived read-only |
-| historical TeachingAction | v0.3 immutable TeachingAction | MAY adapt read-only | non-lossless semantics → partial replay | no active workflow depends on v0.2 schema |
-| `scaffold_level` | `scaffold_control` | read-only adapter | unknown mapping → unavailable + reason | migrated records + no active writer |
-| `hint_level` | `hint_specificity` | read-only adapter | unknown mapping → unavailable + reason | migrated records + no active writer |
-| answer exposure `0..4` / `answer_exposure_max` | `answer_exposure` | read-only adapter | lossy mapping MUST be marked | migrated records + no active writer |
-| legacy Socratic selector/state machine | bounded InteractionMove provider/legacy adapter | MAY invoke only behind SYS05 | MUST NOT own final TeachingAction | canonical SYS05 path covers supported flows |
-| old policy config | immutable `PolicyBundle` | audit/read-only import | executable/free-form config MUST NOT execute | equivalent policy migrated or retired |
-| `experiment.propensity` | assignment probability only when provenance proves it; otherwise unknown | preserve raw audit value | unclear semantics → action_propensity=null + migration_reason + partial replay | historical trace migrator completed |
-| historical replay | exact historical refs when available | supported best-effort | missing refs/version → partial/non-replayable status | retained audit record with explicit status |
+| historical strategy records | six StrategyFamily + legacy audit | MAY read | ambiguous mapping explicit / partial replay | migrated or archived read-only |
+| historical TeachingAction | v0.3 immutable TeachingAction | MAY read-adapt | non-lossless → PARTIAL | no active v0.2 workflow |
+| `scaffold_level` | `scaffold_control` | read adapter | unknown → unavailable + reason | migrated + no active writer |
+| `hint_level` | `hint_specificity` | read adapter | unknown → unavailable + reason | migrated + no active writer |
+| old exposure / `answer_exposure_max` | `answer_exposure` | read adapter | lossy mapping marked | migrated + no active writer |
+| legacy Socratic selector/state machine | bounded InteractionMove provider/adapter | bounded compatibility | never final action owner | canonical SYS05 covers flows |
+| old policy config | immutable PolicyBundle | audit/import only | executable/free-form config never executes | migrated/retired |
+| old `experiment.propensity` | assignment probability only when provenance proves; otherwise unknown | raw audit | ambiguous → action_propensity=null + reason + PARTIAL | historical migrator complete |
+| historical replay | exact historical refs | best effort | missing version → PARTIAL/NON_REPLAYABLE | explicit status retained |
 
 ### DOMAIN-121 — No Permanent Dual Truth
 
-Legacy fields MUST NOT 与 v0.3 canonical fields 双写为两个事实源。兼容层只可保留 legacy/audit value，并 MUST 有关闭条件。
+Legacy fields MUST NOT 与 v0.3 canonical fields permanent dual-write。Compatibility layer MUST 明确 canonical source、raw legacy/audit role 与 retirement condition。
 
-## 26. Out of Scope（v0.3）
+## 22. Out of Scope
 
-v0.3 MUST NOT 将以下实现为 canonical runtime：Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。
+v0.3 canonical runtime MUST NOT 实现 Contextual Bandit、Offline/Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。B2 LLM selector MAY experiment baseline behind same hard shield/action vocabulary。
 
-B2 LLM selector MAY 作为 experiment baseline，但 MUST 使用同一 hard shield、同一 action vocabulary，且 MUST NOT bypass hard rules。
+## 23. Forbidden Domain Shortcuts
 
-## 27. Forbidden Domain Shortcuts
-
-禁止创建：
-
-- `TutorState` 同时塞入 mastery/plan/review/action；
-- `AIJudgement` 同时承担评分与 mastery；
-- `KnowledgeChunk` 同时表示 retrieval chunk 与 canonical KnowledgeUnit；
-- 无 evidence/version/algorithm provenance 的裸 `UserSkillScore`；
-- 不区分 LearningActivity 与 TeachingAction 的 `NextAction`；
-- 同时表示 retrievability 与完整掌握的 `MemoryScore`；
-- 由 LLM/Agent 持久化 LearnerState、Assessment truth、TeachingAction、LearningPlan 或 ReviewSchedule。
+禁止长期公共 `TutorState` 同时塞 mastery/plan/review/action；`AIJudgement` 同时承担 scoring+mastery；`KnowledgeChunk` 同时表示 retrieval chunk+KnowledgeUnit；无 provenance 的 `UserSkillScore`；不区分 LearningActivity/TeachingAction 的 `NextAction`；同时表示 retrievability/mastery 的 `MemoryScore`；LLM/Agent 持久化 LearnerState、Assessment truth、TeachingAction、LearningPlan、ReviewSchedule。
