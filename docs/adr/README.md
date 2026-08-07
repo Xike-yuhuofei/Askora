@@ -52,3 +52,43 @@ Affected specs: ...
 ## 4. Codex 权限
 
 Codex 可以指出需要 ADR 的 `SPEC GAP`，但不得自行创建“accepted” ADR 来授权自己的设计变化。重大架构决策必须先由顶层设计流程确认。
+
+## 5. ADR Index
+
+| ADR | Title | Status | Date |
+|---|---|---|---|
+| `ADR-0001` | Teaching Strategy Ontology | accepted | 2026-08-07 |
+| `ADR-0002` | Constrained Deterministic Teaching Policy Architecture | accepted | 2026-08-07 |
+
+### v0.3 ADR-C Resolution
+
+`TeachingEpisode`、`LearningTrajectory`、`OutcomeObservation`、`ExperimentAssignment` 当前仍是 additive Design / Spec Delta，不改变八系统事实所有权，也没有形成新的核心 aggregate/service owner，因此 **不创建 ADR-0003**。若未来 ownership 或 durable service boundary 发生变化，再单独评估 ADR。
+
+## 6. v0.3 ADR Breaking Change Register
+
+| ID | ADR | Breaking Surface | Current | New | Migration Required | Spec Delta Target |
+|---|---|---|---|---|---|---|
+| `BC-001` | ADR-0001 | Strategy enum | 9 top-level strategy families | 6 Strategy Families + move/pattern/modifier/deferred mapping | Yes | Domain Model + SYS05 (`SD-01`) |
+| `BC-002` | ADR-0001 | TeachingAction semantics | `strategy_id + action_type` 承担混合语义 | Strategy Family + action template/move plan + modifiers + immutable semantic envelope | Yes | Domain Model + SYS05 (`SD-01`, `SD-05`) |
+| `BC-003` | ADR-0001 / ADR-0002 | Support / exposure | integer `scaffold_level`, `hint_level`, `answer_exposure_max: 0..4` | orthogonal scaffold control + hint specificity + answer exposure + actual assistance | Yes | Domain Model + SYS03/SYS04/SYS05 (`SD-05`) |
+| `BC-004` | ADR-0002 | Policy configuration | loose policy version / weights / state-machine config | immutable component-versioned `PolicyBundle` + atomic activation | Yes | SYS05 + Domain config (`SD-06`, `SD-07`) |
+| `BC-005` | ADR-0002 | DecisionTrace probability / replay | generic `experiment.propensity` + incomplete replay inputs | assignment probability separated from `action_propensity`; deterministic propensity = null; explicit replayability | Yes | Decision Contract (`SD-08`) |
+| `BC-006` | ADR-0001 / ADR-0002 | Legacy Socratic selector | Socratic selector/state machine can act as implicit policy owner | bounded move/legacy adapter behind SYS05 canonical selector | Yes | SYS05 + legacy adapter (`SD-01`, `SD-06`) |
+
+Breaking change count: **6**.
+
+## 7. v0.3 Migration Candidate Register
+
+| Candidate | Classification | Required handling |
+|---|---|---|
+| historical strategy records | `BEST_EFFORT` | preserve original value; project through versioned legacy mapping; mark ambiguous/deferred cases |
+| historical TeachingAction | `BEST_EFFORT` | retain original payload; project family/move/modifier/support semantics where reconstructable |
+| old `scaffold_level` | `AMBIGUOUS` | cannot assume integer encodes cognitive control independently; require explicit mapping/version or unknown |
+| old `hint_level` | `AMBIGUOUS` | cannot safely infer new hint-specificity taxonomy without mapping provenance |
+| old answer exposure scale | `BEST_EFFORT` | map 0–4 only through documented versioned conversion; uncertain values remain ambiguous |
+| legacy Socratic selector/state machine | `DEFER_TO_SPEC` | migrate ownership to SYS05; retain only adapter/stage-definition/execution roles allowed by Spec Delta |
+| old policy config | `BEST_EFFORT` | package reconstructable components into PolicyBundle; missing component versions degrade replayability |
+| DecisionTrace old propensity field | `AMBIGUOUS` | do not assume historical `propensity` is action propensity; unresolved values project to null/unknown with migration reason |
+| historical replay | `BEST_EFFORT` | full replay only when exact historical inputs/config exist; otherwise mark partial/not replayable |
+
+Migration candidate count: **9**.
