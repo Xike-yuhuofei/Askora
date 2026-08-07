@@ -1,5 +1,11 @@
 """Askora 跨 bounded-context 的唯一公共合同入口。"""
 
+from app.contracts.assessment import (
+    AssessmentAttempt,
+    AssessmentItemV1,
+    AssistanceSnapshot,
+    ResponseRevision,
+)
 from app.contracts.content import KnowledgeUnit, MaterialRevision, SourceChunk, SourceSpan
 from app.contracts.decisions import (
     DecisionAlgorithm,
@@ -28,6 +34,10 @@ from app.contracts.learning import (
 )
 
 __all__ = [
+    "AssessmentAttempt",
+    "AssessmentItemV1",
+    "AssistanceSnapshot",
+    "ResponseRevision",
     "AssessmentResult",
     "DecisionAlgorithm",
     "DecisionExperiment",

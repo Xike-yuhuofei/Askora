@@ -42,13 +42,6 @@ LEGACY_ALLOWLIST = (
         removal_exec="EXEC-004",
     ),
     LegacyAllowance(
-        rule="ASSESSMENT_NO_LEARNER_WRITE",
-        path="app/services/assessment/assessment_service.py",
-        module="app.services.kt.knowledge_tracing_service",
-        todo_owner="SYS04 assessment migration",
-        removal_exec="EXEC-004",
-    ),
-    LegacyAllowance(
         rule="ORCHESTRATION_NO_OWNED_STATE_WRITE",
         path="app/engines/socratic_adapter.py",
         module="app.services.kt",

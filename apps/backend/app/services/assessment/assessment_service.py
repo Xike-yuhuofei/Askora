@@ -6,8 +6,8 @@
 2. 形成性评估 (Formative): 课中微测，与 Quiz 引擎集成
 3. 总结性评估 (Summative): 课后综合测试，生成学习报告
 
-结合 BKT (Bayesian Knowledge Tracing) 模型计算知识点掌握度估计，
-并基于答题错误模式识别常见学习误区 (misconceptions)。
+此文件是 legacy compatibility surface；canonical 流程由 SYS04 生成单次测量，
+再由 SYS03 接纳证据并计算 mastery。
 """
 
 from __future__ import annotations
@@ -16,12 +16,11 @@ import json
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.redis_client import get_redis_client
-from app.services.kt.knowledge_tracing_service import get_kt_service
 
 logger = get_logger(__name__)
 
@@ -516,13 +515,6 @@ class AssessmentService:
         self._kp_items: dict[str, list[AssessmentItem]] = {}
         for item in _ITEM_BANK:
             self._kp_items.setdefault(item.kp_id, []).append(item)
-        self._kt_service = None
-
-    @property
-    def kt_service(self):
-        if self._kt_service is None:
-            self._kt_service = get_kt_service()
-        return self._kt_service
 
     # ──────────────────────────────────────────────────────────
     # Redis 持久化
@@ -557,7 +549,8 @@ class AssessmentService:
         key = self._get_assessment_key(assessment_id)
         if self._is_redis_available():
             try:
-                self._redis.setex(key, _ASSESSMENT_KEY_TTL, json.dumps(data))
+                redis: Any = self._redis
+                redis.setex(key, _ASSESSMENT_KEY_TTL, json.dumps(data))
                 return
             except Exception as e:
                 logger.warning(f"Redis save assessment failed: {e}")
@@ -567,7 +560,8 @@ class AssessmentService:
         key = self._get_assessment_key(assessment_id)
         if self._is_redis_available():
             try:
-                data = self._redis.get(key)
+                redis: Any = self._redis
+                data = redis.get(key)
                 if data:
                     return json.loads(data)
             except Exception as e:
@@ -578,7 +572,8 @@ class AssessmentService:
         key = self._get_result_key(result_id)
         if self._is_redis_available():
             try:
-                self._redis.setex(key, _ASSESSMENT_KEY_TTL, json.dumps(data))
+                redis: Any = self._redis
+                redis.setex(key, _ASSESSMENT_KEY_TTL, json.dumps(data))
                 return
             except Exception as e:
                 logger.warning(f"Redis save result failed: {e}")
@@ -588,7 +583,8 @@ class AssessmentService:
         key = self._get_result_key(result_id)
         if self._is_redis_available():
             try:
-                data = self._redis.get(key)
+                redis: Any = self._redis
+                data = redis.get(key)
                 if data:
                     return json.loads(data)
             except Exception as e:
@@ -717,45 +713,10 @@ class AssessmentService:
             item_results.append(item_result)
             kp_updates.setdefault(item_result.kp_id, []).append(item_result.is_correct)
 
+        # SYS04 不拥有 mastery 或 teaching recommendation。保留空字段仅兼容旧调用方；
+        # canonical 结果通过 assessment.result.project outbox 交给 SYS03。
         mastery_updates: dict[str, float] = {}
-        for kp_id, correctness_list in kp_updates.items():
-            for is_correct in correctness_list:
-                kt_result = self.kt_service.update_mastery(
-                    user_id=user_id,
-                    kp_id=kp_id,
-                    is_correct=is_correct,
-                )
-            mastery_updates[kp_id] = kt_result.p
-
         recommendations: list[dict] = []
-        for kp_id, p in mastery_updates.items():
-            if p < 0.4:
-                recommendations.append(
-                    {
-                        "kp_id": kp_id,
-                        "type": "remediation",
-                        "reason": f"掌握度较低 ({p:.2f})，需要加强练习",
-                        "priority": "high",
-                    }
-                )
-            elif p < 0.7:
-                recommendations.append(
-                    {
-                        "kp_id": kp_id,
-                        "type": "practice",
-                        "reason": f"接近掌握 ({p:.2f})，继续巩固",
-                        "priority": "medium",
-                    }
-                )
-            else:
-                recommendations.append(
-                    {
-                        "kp_id": kp_id,
-                        "type": "advanced",
-                        "reason": f"已掌握 ({p:.2f})，可挑战更高难度",
-                        "priority": "low",
-                    }
-                )
 
         session_data = {
             "session_id": session_id,
@@ -770,7 +731,7 @@ class AssessmentService:
         self._save_assessment(session_id, session_data)
         logger.info(
             f"Formative assessment processed: session={session_id}, "
-            f"items={len(item_results)}, kps={len(mastery_updates)}"
+            f"items={len(item_results)}, learner_projection=pending"
         )
 
         return {
@@ -902,10 +863,8 @@ class AssessmentService:
         total = len(items_data)
         score = round(correct_count / total, 4) if total > 0 else 0.0
 
-        mastery_estimates = self._compute_mastery_estimates(
-            item_results,
-            self._get_kp_mastery_map(assessment_data.get("user_id", ""), items_data),
-        )
+        # Legacy result column remains for schema compatibility but is no longer a truth source.
+        mastery_estimates: dict[str, float] = {}
 
         misconceptions = self._detect_misconceptions(item_results)
 
@@ -1331,21 +1290,6 @@ class AssessmentService:
             return 0.0
         matches = sum(1 for ca, cb in zip(a, b, strict=False) if ca == cb)
         return matches / max(len_a, len_b)
-
-    def _get_kp_mastery_map(
-        self,
-        user_id: str,
-        items_data: list[dict],
-    ) -> dict[str, float]:
-        kp_ids = list({item_data.get("kp_id", "") for item_data in items_data})
-        if not kp_ids or not user_id:
-            return {}
-        try:
-            mastery_map = self.kt_service.batch_get_mastery(user_id, kp_ids)
-            return {kp_id: estimate.p for kp_id, estimate in mastery_map.items()}
-        except Exception as e:
-            logger.warning(f"Failed to get KT mastery data: {e}")
-            return {kp_id: 0.3 for kp_id in kp_ids}
 
     @staticmethod
     def _item_to_dict(item: AssessmentItem) -> dict:

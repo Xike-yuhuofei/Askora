@@ -82,9 +82,12 @@ class DKTService:
     """
     深度知识追踪服务
 
-    使用纯 Python 实现的简化神经-like DKT 模型，
-    通过状态转移和注意力机制建模知识点掌握的时序动态。
+    仅作为 challenger/auxiliary prediction 使用。其 Redis/内存状态不是 canonical
+    learner truth，输出不得写入 MasteryEstimateRecord，必须经 SYS03 接纳。
     """
+
+    MODEL_ROLE = "challenger"
+    CANONICAL_WRITE_ENABLED = False
 
     def __init__(
         self,

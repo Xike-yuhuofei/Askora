@@ -1,5 +1,6 @@
 """Askora 基础设施 adapters。"""
 
+from app.infrastructure.learning_records import AssessmentRecordRepository, LearnerModelRepository
 from app.infrastructure.ledger import (
     AggregateVersionConflict,
     DecisionTraceRepository,
@@ -22,6 +23,8 @@ __all__ = [
     "LearningEventRepository",
     "LedgerConflictError",
     "OutboxProducer",
+    "AssessmentRecordRepository",
+    "LearnerModelRepository",
     "OutboxRepository",
     "OutboxStatus",
     "OutboxTask",

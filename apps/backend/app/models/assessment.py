@@ -15,6 +15,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -158,4 +159,70 @@ class AssessmentResult(Base):
     __table_args__ = (
         Index("idx_result_user_type", "user_id", "assessment_type"),
         Index("idx_result_subject_completed", "subject", "completed_at"),
+    )
+
+
+class CanonicalAssessmentAttemptRecord(Base):
+    """SYS04 canonical Attempt state；legacy assessment_results 不再承担该语义。"""
+
+    __tablename__ = "canonical_assessment_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    item_id: Mapped[str] = mapped_column(String(36), index=True)
+    item_version: Mapped[str] = mapped_column(String(50))
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CanonicalAssessmentResultRecord(Base):
+    """SYS04 版本化 AssessmentResult state。"""
+
+    __tablename__ = "canonical_assessment_result_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    attempt_id: Mapped[str] = mapped_column(String(36), index=True)
+    result_version: Mapped[int] = mapped_column(Integer)
+    supersedes_result_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "result_version", name="uq_canonical_result_version"),
+    )
+
+
+class LearnerEvidenceRecord(Base):
+    """SYS03 接纳后的 immutable evidence；result 一次且仅投影一次。"""
+
+    __tablename__ = "learner_evidence"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    source_result_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    reason_codes: Mapped[list] = mapped_column(JSON, default=list)
+    payload: Mapped[dict] = mapped_column(JSON)
+    invalidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MasteryEstimateRecord(Base):
+    """SYS03 canonical version stream；DKT 无写权限。"""
+
+    __tablename__ = "canonical_mastery_estimate_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "knowledge_unit_id", "version", name="uq_canonical_mastery_version"
+        ),
     )

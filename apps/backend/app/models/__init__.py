@@ -3,7 +3,14 @@
 精简版：仅保留核心业务模型
 """
 
-from app.models.assessment import AssessmentItem, AssessmentResult
+from app.models.assessment import (
+    AssessmentItem,
+    AssessmentResult,
+    CanonicalAssessmentAttemptRecord,
+    CanonicalAssessmentResultRecord,
+    LearnerEvidenceRecord,
+    MasteryEstimateRecord,
+)
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.knowledge import KnowledgePoint, LearningMaterial
@@ -28,6 +35,10 @@ __all__ = [
     "LearningMaterial",
     "AssessmentItem",
     "AssessmentResult",
+    "CanonicalAssessmentAttemptRecord",
+    "CanonicalAssessmentResultRecord",
+    "LearnerEvidenceRecord",
+    "MasteryEstimateRecord",
     "UserDocument",
     "DocumentChunk",
     "ProcessingStatus",
