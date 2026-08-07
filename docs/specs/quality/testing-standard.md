@@ -1,204 +1,245 @@
-# Askora Testing Standard
+# Testing Standard
 
 > Spec ID：`TEST-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.3
 
-## 1. 原则
+## 1. Test Pyramid / Levels
+
+现有 L0～L6 分层继续有效：
+
+```text
+L0 schema/static/architecture
+L1 unit
+L2 contract/component
+L3 integration
+L4 scenario/replay
+L5 end-to-end/recovery/security
+L6 research/evaluation validation
+```
 
 ### TEST-001
 
-测试的目标不是验证“代码能跑”，而是验证 Spec 中的业务边界、状态所有权、失败语义和学习闭环。
+任何“完成”声明 MUST 指明覆盖层级；mock-only、unit-only 或 happy-path-only MUST NOT 代替对应 integration/E2E/recovery gate。
 
-### TEST-002
+## 2. v0.3 OPVE Definition
 
-新增/修改关键行为必须有自动化测试，并在测试名/docstring/marker 或邻近注释中引用至少一个 Spec/AC ID。
+### TEST-200
 
-## 2. 测试层级
+`OPVE = Offline Policy Verification & Evaluation`。
 
-Askora 采用：
+它是对 deterministic/constrained Teaching Policy 的离线工程与策略正确性验证，MUST NOT 与强化学习语境中的 causal `Offline Policy Evaluation (OPE)` 混淆。
+
+### TEST-201 — OPVE Layers
+
+OPVE 至少 MUST 包含：
+
+1. **Contract Verification** — schema、enum、owner、hard rule、immutability、versioning；
+2. **Scenario Replay** — 固定 TeachingContext + PolicyBundle 的单决策 replay；
+3. **Sequential Transition Replay** — 连续 evidence/action 序列与 anti-oscillation；
+4. **Property / Metamorphic Tests** — invariants、monotonic constraints、no illegal expansion；
+5. **Baseline Differential Replay** — B3 与固定/legacy/B2 baseline 的行为差异；
+6. **Synthetic Learner Stress Test** — 压测 policy transitions、failure recovery 与 loops。
+
+## 3. Gold Set Contract
+
+### TEST-210 — Gold Classes
 
 ```text
-L0 Static / Architecture
-L1 Unit
-L2 Contract
-L3 Integration
-L4 End-to-End
-L5 Replay / Migration / Recovery
-L6 AI Quality / Security Evaluation
+G0 — Hard Constraint Gold
+G1 — Acceptable Action Set Gold
+G2 — Research / Calibration Set
 ```
 
-### TEST-010：L0
+### TEST-211 — G0 Gate
 
-验证：lint、type、import/dependency rules、禁止跨 owner repository 写入等。
+G0 MUST `100% pass`，并满足：
 
-### TEST-011：L1
+```text
+forbidden action = 0
+```
 
-纯领域算法/规则使用 deterministic unit tests，不依赖数据库/网络/LLM。
+任何 hard-rule forbidden TeachingAction 被选择都属于 release blocker。
 
-### TEST-012：L2
+### TEST-212 — G1 Gate
 
-验证 Command/Event/API/public schema、error code、version compatibility、adapter contract。
+G1 不要求所有教学情境只有唯一 gold action。测试标准为：
 
-### TEST-013：L3
+```text
+selected_action ∈ acceptable_actions
+```
 
-真实 SQLite repository/outbox/worker/orchestration adapter 集成，允许模型/外部依赖 mock。
+同时仍必须满足所有 G0 hard constraints。
 
-### TEST-014：L4
+### TEST-213 — G2 Boundary
 
-验证首个真实教学垂直闭环。至少一个受控 E2E MUST 使用实际配置的真实模型；Mock-only 不算模型接通验收。
+G2 用于研究、参数 calibration、policy comparison 或未来实验设计；MUST NOT 把尚未冻结的 G2 偏好伪装成 hard truth。
 
-### TEST-015：L5
+## 4. Contract Verification
 
-验证：应用重启恢复、event replay、migration、projection rebuild、idempotency、late event、invalidated evidence recompute。
+### TEST-220
 
-### TEST-016：L6
+至少验证：
 
-固定 eval dataset 验证：citation、answer leakage、prompt injection、grader consistency、teaching policy、retrieval quality 等。
+- canonical StrategyFamily 恰为六类；
+- StrategyFamily/TeachingAction/InteractionMove/ActionModifier 四层分离；
+- Productive Failure 不可选择，Socratic 为 bounded move；
+- ErrorType = 7 + UNKNOWN；
+- TeachingContext immutable/exact-version/missing semantics；
+- support/hint/exposure/assistance 正交；
+- PolicyBundle immutable/versioned；
+- `behavior_policy_type=DETERMINISTIC`、`action_propensity=null`；
+- assignment probability 与 action propensity 分离；
+- OutcomeObservation 不修改 DecisionTrace；
+- single-writer ownership。
 
-## 3. 必测架构不变量
+## 5. Scenario Replay
+
+### TEST-230
+
+相同 `TeachingContext + exact PolicyBundle + ExperimentAssignment` MUST 产生同一个 semantic TeachingAction 与等价 DecisionTrace decision content。
+
+Replay MUST NOT 读取当前 mutable state 或重新调用在线 LLM。
+
+### TEST-231
+
+缺历史 owner version/PolicyBundle/feature source 时，fixture MUST 期望 `PARTIAL|NON_REPLAYABLE` + reason，而不是把当前状态补成“成功 replay”。
+
+## 6. Sequential Transition Replay / Anti-Oscillation
+
+### TEST-240
+
+序列测试 MUST 覆盖：
+
+- Material Evidence Gate；
+- Sticky Continuity；
+- Minimum Dwell by Evidence Opportunity；
+- Hysteresis；
+- Transition Priority；
+- Repeated Failure Override。
+
+### TEST-241
+
+以下变化单独发生时 MUST NOT 导致 StrategyFamily transition：额外聊天轮、重复 policy call、LLM wording 改变、wall clock 仅多几秒。
+
+### TEST-242
+
+Repeated failure 达到 versioned ceiling 时 MUST 能退出/升级/重新诊断，不能被 sticky continuity 锁死；独立成功 evidence 应允许 fade；answer exposure 必须产生 validation obligation。
+
+## 7. Property / Metamorphic Tests
+
+### TEST-250
+
+至少建立以下 properties：
+
+- hard-filtered candidate 永不被 score/experiment 恢复；
+- SYS08/SYS02 只能收紧不能扩大 exposure envelope；
+- lower confidence 不应通过伪默认值产生更激进确定性动作；
+- `MISSING != 0`；
+- candidate set 顺序变化不改变 stable tie-break semantic output；
+- candidate composition 变化不允许 dynamic min-max 改写 normalization 语义；
+- Outcome 不回写 DecisionTrace；
+- fresh independent Attempt 前 validation obligation 不得自动完成；
+- no infinite decision/transition loop。
+
+## 8. Baseline Differential Replay
+
+### TEST-260
+
+B3 MAY 与 fixed strategy、legacy selector 或 B2 LLM baseline 做 differential replay，但 comparison MUST 使用相同 scenario inputs、hard shield 与 action vocabulary；差异输出是工程/行为证据，不自动等于学习效果证据。
+
+## 9. Synthetic Learner Stress Test
+
+### TEST-270
+
+Synthetic learner MAY 用于高覆盖测试 failure sequence、oscillation、state transition、fallback、edge cases 与 performance。
+
+Synthetic learner MUST NOT 被引用为：human learning efficacy、retention benefit、transfer benefit 或 population superiority 的证据。
+
+## 10. Offline Evaluation Boundary
+
+### TEST-280
+
+OPVE 可以证明/验证：
+
+```text
+determinism
+constraint compliance
+transition correctness
+candidate validity
+anti-oscillation
+no infinite loop
+behavior difference
+```
+
+### TEST-281
+
+OPVE 不能证明：
+
+```text
+human learning efficacy
+retention benefit
+transfer benefit
+population superiority
+```
+
+这些结论需要真实学习者 outcome/实验数据与适当因果设计。
+
+## 11. Migration / Compatibility Tests
+
+### TEST-290
+
+九类 migration candidates MUST 有 fixtures：historical strategy、TeachingAction、scaffold_level、hint_level、old answer exposure、legacy Socratic selector/state machine、old policy config、old DecisionTrace propensity、historical replay。
+
+每类 fixture MUST 验证 canonical target、read compatibility、ambiguity behavior、replayability status 与 retirement condition。
+
+### TEST-291
+
+Ambiguous legacy propensity MUST 迁移为 null/unknown + migration reason + partial replay；不得无条件变成 action propensity。
+
+## 12. Existing Cross-system Gates
 
 ### TEST-020
 
-必须自动验证至少：
+Persistence/outbox/idempotency/recovery MUST 有 integration/E2E 测试；应用重启后 durable task/event/state 必须恢复或明确失败。
 
-- Assessment 不直接写 mastery；
-- Orchestrator/LLM 不直接写 mastery/plan/review；
-- Planner 不改 ReviewSchedule；
-- Retrieval 不扩大 answer exposure；
-- replay 不调用在线 LLM；
-- ordinary/streaming 使用同 canonical facade。
+### TEST-021
 
-可以使用 Python AST/monkeypatch/contract fixtures；新增第三方 architecture dependency 需要 Spec/ADR。
+至少一个 E2E MUST 调用实际配置模型验证 provider/gateway/orchestration；Mock-only 不得声明真实模型链路可用。
 
-## 4. AI 测试规则
+### TEST-022
 
-### TEST-030：Mock 与真实模型分工
+Security tests MUST 覆盖 prompt injection、tool authorization、ACL、citation/exposure leakage、cross-owner write attempt。
 
-- Unit/大部分 integration：Mock/fixture；
-- provider connectivity /真实 structured output / end-to-end：真实模型；
-- eval：固定模型 snapshot/config 时尽量稳定记录。
+## 13. Test Data Governance
 
-### TEST-031
+### TEST-300
 
-不得用真实模型替代 deterministic unit test，也不得用 Mock 宣称真实模型可用。
+Gold/scenario fixtures MUST 固定 schema version、PolicyBundle、source owner refs、expected constraints/acceptable actions，并标注是 G0/G1/G2；不得依赖当前 production mutable config。
 
-### TEST-032
+### TEST-301
 
-AI 输出测试应验证结构/约束/grounding，而不是对完整自然语言字符串做脆弱精确匹配。
+研究/实验参数 threshold、weights、dwell、switch margin 等 MUST 以 fixture/profile version 固定；测试不得把某个临时数值描述为科学常数。
 
-## 5. Determinism
+## 14. Acceptance Criteria
 
-### TEST-040
+- `TEST-AC-201`：OPVE 六层均有可执行 test category/fixture 入口。
+- `TEST-AC-202`：G0 = 100%，forbidden action = 0。
+- `TEST-AC-203`：G1 使用 acceptable action set，而非强制唯一答案。
+- `TEST-AC-204`：deterministic replay 不调用在线 LLM。
+- `TEST-AC-205`：anti-oscillation 顺序性质可通过 sequential replay 验证。
+- `TEST-AC-206`：synthetic learner 只作为 stress test，不作为 learning evidence。
+- `TEST-AC-207`：migration ambiguity 与 partial replay 有 fixture。
 
-Event replay、BKT/learner projection、review update、fixed heuristic planning/policy 等在 fixed inputs/version 下必须 deterministic。
-
-### TEST-041
-
-模型生成的 nondeterminism 必须隔离在 ModelInference；canonical replay 不重新生成。
-
-## 6. Database Tests
-
-至少覆盖：
-
-- SQLite foreign keys/constraints；
-- unique aggregate version；
-- transactional outbox；
-- idempotency；
-- concurrency conflict；
-- migration representative fixture；
-- projection rebuild。
-
-## 7. Failure Tests
-
-每个外部依赖必须至少测试：
-
-```text
-timeout
-unavailable
-invalid response
-partial failure
-retry exhausted
-fallback success/failure
-```
-
-并验证这些故障不会被错误记录为 learner failure。
-
-## 8. Security Tests
-
-至少：
-
-- malicious document prompt injection；
-- unauthorized tool call；
-- answer/rubric leakage；
-- citation mismatch；
-- cross-user access（服务模式）；
-- path traversal/unsafe upload；
-- secret leakage/logging。
-
-## 9. Test Data
-
-### TEST-050
-
-测试 fixture 必须标记：synthetic / public / user-provided-local。CI 不得依赖私密用户资料。
-
-### TEST-051
-
-关键学习闭环至少维护一个最小 deterministic curriculum fixture：材料 → KnowledgeUnit → item → responses → evidence → mastery → review。
-
-## 10. 命令基线
-
-后端适用任务至少：
-
-```bash
-cd apps/backend
-pytest
-ruff check app tests
-```
-
-修改核心类型/接口时：
-
-```bash
-mypy app
-```
-
-前端适用任务：
-
-```bash
-cd apps/frontend
-npm run build
-```
-
-具体 CI 可进一步拆分，但不得弱于这些质量意图。
-
-## 11. Existing Failure
-
-### TEST-060
-
-若全量测试存在与本次任务无关的历史失败，Codex 必须：
-
-1. 运行受影响 targeted tests；
-2. 运行尽可能完整 suite；
-3. 报告新增失败 vs 既有失败；
-4. 不删除/skip/弱化测试伪造通过。
-
-## 12. Acceptance Criteria
-
-- `TEST-AC-001`：每个系统 Spec 至少有对应 contract/unit test suite。
-- `TEST-AC-002`：首个垂直切片有真实 SQLite E2E。
-- `TEST-AC-003`：至少一个 E2E 使用真实配置模型。
-- `TEST-AC-004`：event replay 测试证明固定版本确定性。
-- `TEST-AC-005`：architecture tests 捕获跨 owner 直接写入。
-- `TEST-AC-006`：restart/outbox recovery 测试通过。
-- `TEST-AC-007`：prompt injection 和 answer leakage 有固定回归样本。
-
-## 13. Forbidden Implementations
+## 15. Forbidden Implementations
 
 禁止：
 
-- 仅 happy path；
-- 仅 Mock E2E；
-- 为过 CI 删除测试/改弱断言；
-- 用网络实时内容作为无固定版本的关键 fixture；
-- AI 自然语言完整字符串脆弱比较；
-- 将 provider timeout 测试期望写成 learner answer incorrect。
+- 把 OPVE 称为 causal RL OPE；
+- 用 synthetic learner 宣称学习效果；
+- G1 所有案例强制唯一 gold action；
+- 只测最终 selected action、不测 hard filters/transition/replay；
+- online LLM 参与 canonical policy replay；
+- mock-only 作为真实 E2E；
+- engagement/turn count 等过程指标替代学习 outcome gate；
+- 把 Engineering Correct 推导成 Learning Effective。
