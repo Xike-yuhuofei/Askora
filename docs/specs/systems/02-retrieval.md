@@ -123,9 +123,12 @@ Grader-only 与 learner-visible evidence MUST 明确分离，参考答案不得�
 - `SYS02-AC-007`：索引重建不改变 canonical knowledge facts。
 - `SYS02-AC-201`：SYS02 只能收紧，不能扩大 SYS05 answer exposure envelope。
 
-## 11. Legacy Mapping
+## 11. Legacy / Superseded Mapping
 
-v0.2 `SYS02-010 answer_exposure_max` 与 L0-L4 exposure 被 `SYS02-200/201` supersede。旧值 MAY 由 read adapter 映射为 `NONE|PARTIAL|COMPLETE`；lossy/ambiguous mapping MUST 标记 migration reason。所有 active writers 切换且历史兼容完成后旧字段 SHOULD retirement。
+- v0.2 `SYS02-010 answer_exposure_max` 与 L0-L4 exposure 被 `SYS02-200/201` supersede。旧值 MAY read adapter 映射为 `NONE|PARTIAL|COMPLETE`；lossy/ambiguous mapping MUST 标记 migration reason。
+- v0.2 `SYS02-024` 的 advanced ranking/Bandit 演进属于历史研究方向。v0.3 MAY 保留 LTR/challenger research，但 Contextual Bandit/RL 与相关 action-propensity runtime MUST NOT 成为 canonical retrieval policy；如未来启用需新的 Design/ADR/Spec。
+
+所有 active writers 切换且历史兼容完成后旧字段/adapter SHOULD retirement。
 
 ## 12. Forbidden Implementations
 
