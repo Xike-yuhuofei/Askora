@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import AppError, ResourceNotFoundError
 from app.core.logging import get_logger
 from app.models.user import User
 from app.services.auth.authorization_service import (
@@ -35,6 +35,10 @@ class CreateSessionRequest(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000, description="消息内容")
+    idempotency_key: Optional[str] = Field(
+        None, min_length=1, max_length=200, description="写请求幂等键"
+    )
+    correlation_id: Optional[str] = Field(None, max_length=100, description="业务关联 ID")
 
 
 class StreamQueryParams:
@@ -48,8 +52,12 @@ class StreamQueryParams:
             max_length=2000,
             description="消息内容（GET 方式用 query；POST 方式用 body）",
         ),
+        idempotency_key: Optional[str] = Query(None, min_length=1, max_length=200),
+        correlation_id: Optional[str] = Query(None, max_length=100),
     ):
         self.content = content
+        self.idempotency_key = idempotency_key
+        self.correlation_id = correlation_id
 
 
 def _coerce_stream_content(
@@ -248,6 +256,8 @@ async def send_message(
         session=session,
         user=current_user,
         content=req.content,
+        idempotency_key=req.idempotency_key,
+        correlation_id=req.correlation_id,
     )
 
     # 兼容前端：顶层直接暴露 content 字段（同时保留结构化 message 对象）
@@ -262,6 +272,8 @@ async def _stream_common(
     current_user: User,
     db: AsyncSession,
     content: str,
+    idempotency_key: str | None = None,
+    correlation_id: str | None = None,
 ):
     """流式响应的公共处理逻辑（被 GET/POST 两个端点复用）"""
     dialog_service = DialogService(db)
@@ -284,6 +296,8 @@ async def _stream_common(
                 session=session,
                 user=current_user,
                 content=content,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
             ):
                 import json
 
@@ -319,14 +333,18 @@ async def _stream_common(
         except Exception as exc:
             import json
 
+            code = exc.error_code if isinstance(exc, AppError) else "AI_ORCHESTRATION_FAILED"
+            message = exc.message if isinstance(exc, AppError) else "教学编排失败，请重试"
             logger.exception(
                 "dialog_stream_failed",
                 session_id=session_id,
                 error_type=type(exc).__name__,
+                error_code=code,
+                correlation_id=correlation_id,
             )
             yield (
                 f"event: error\ndata: "
-                f"{json.dumps({'code': 'STREAM-ERR', 'message': '流式响应失败，请重试'}, ensure_ascii=False)}\n\n"
+                f"{json.dumps({'code': code, 'message': message, 'correlation_id': correlation_id}, ensure_ascii=False)}\n\n"
             )
 
     return StreamingResponse(
@@ -352,7 +370,14 @@ async def stream_message_get(
     推荐调用方式：POST 版本（可自定义 headers，带 Bearer token）。
     """
     content = _coerce_stream_content(None, qp)
-    return await _stream_common(session_id, current_user, db, content)
+    return await _stream_common(
+        session_id,
+        current_user,
+        db,
+        content,
+        idempotency_key=qp.idempotency_key,
+        correlation_id=qp.correlation_id,
+    )
 
 
 @router.post("/sessions/{session_id}/stream", summary="发送消息（流式 SSE，POST 推荐）")
@@ -374,7 +399,14 @@ async def stream_message_post(
     - error: 流式异常
     """
     content = _coerce_stream_content(req, qp)
-    return await _stream_common(session_id, current_user, db, content)
+    return await _stream_common(
+        session_id,
+        current_user,
+        db,
+        content,
+        idempotency_key=(req.idempotency_key if req else None) or qp.idempotency_key,
+        correlation_id=(req.correlation_id if req else None) or qp.correlation_id,
+    )
 
 
 @router.post("/sessions/{session_id}/end", summary="结束会话")

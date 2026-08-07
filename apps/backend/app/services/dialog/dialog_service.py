@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -29,22 +28,12 @@ from app.models.dialog import (
     SessionStatus,
 )
 from app.models.user import User
-from app.services.dialog.socratic_engine import (
-    EngineInput,
-    EngineOutput,
-    SocraticEngine,
-    get_socratic_engine,
+from app.orchestration import (
+    CanonicalTurnRequest,
+    CanonicalTurnResult,
+    LearningOrchestrationFacade,
+    get_learning_orchestration_facade,
 )
-
-# Orchestrator 接入点
-try:
-    from app.engines import FlowStage, LearnerTurn, OrchestratorTurnResult, get_orchestrator
-
-    _ORCHESTRATOR_AVAILABLE = True
-except Exception as _import_exc:
-    _ORCHESTRATOR_AVAILABLE = False
-    logger = get_logger(__name__)
-    logger.warning("orchestrator_import_failed", error_type=type(_import_exc).__name__)
 
 logger = get_logger(__name__)
 _session_message_locks: dict[str, asyncio.Lock] = {}
@@ -55,27 +44,16 @@ def _get_session_message_lock(session_id: str) -> asyncio.Lock:
     return _session_message_locks.setdefault(session_id, asyncio.Lock())
 
 
-def _should_use_orchestrator(session: DialogSession) -> bool:
-    """判断当前会话是否走 Orchestrator 路径"""
-    if not _ORCHESTRATOR_AVAILABLE:
-        return False
-    metadata = getattr(session, "metadata", None) or {}
-    if isinstance(metadata, dict) and metadata.get("use_orchestrator"):
-        return True
-    return os.environ.get("ASKORA_USE_ORCHESTRATOR", "").lower() in {"1", "true", "yes", "on"}
-
-
 class DialogService:
-    """对话服务（简化版）"""
+    """Legacy dialog transport adapter for the canonical learning facade."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(
+        self,
+        db: AsyncSession,
+        facade: LearningOrchestrationFacade | None = None,
+    ):
         self.db = db
-        self.engine: Optional[SocraticEngine] = None
-
-    def _get_engine(self) -> SocraticEngine:
-        if self.engine is None:
-            self.engine = get_socratic_engine()
-        return self.engine
+        self.facade = facade or get_learning_orchestration_facade()
 
     async def create_session(
         self,
@@ -155,223 +133,68 @@ class DialogService:
         session: DialogSession,
         user: User,
         content: str,
+        *,
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
-        """发送消息并获取 AI 回复"""
+        """Execute a non-streaming turn through the canonical facade."""
         async with _get_session_message_lock(session.id):
             await self.db.refresh(session)
             if session.status != SessionStatus.ACTIVE:
                 raise SessionNotActiveError()
-            return await self._send_message_unlocked(session, user, content)
+            return await self._send_message_unlocked(
+                session,
+                user,
+                content,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
 
     async def _send_message_unlocked(
         self,
         session: DialogSession,
         user: User,
         content: str,
+        *,
+        idempotency_key: str | None,
+        correlation_id: str | None,
     ) -> dict:
-        """在已持有会话写锁的情况下执行一轮非流式对话。"""
-        # 1. 保存用户消息
-        await self._add_message(
-            session=session,
-            role=MessageRole.USER,
-            content=content,
+        """Execute one canonical turn while holding the session write lock."""
+        correlation = correlation_id or str(uuid.uuid4())
+        user_message_id, assistant_message_id = self._turn_message_ids(
+            session.id, idempotency_key
         )
-
-        # 2. 获取对话历史
-        history = await self.get_session_messages(session.id, limit=20, latest=True)
-
-        # 3. 判断是否走 Orchestrator 路径
-        use_orch = _should_use_orchestrator(session)
-        if use_orch:
-            orchestrator_result = await self._run_via_orchestrator(
+        replay = await self._load_idempotent_completion(assistant_message_id)
+        if replay is not None:
+            return self._build_response_dict_from_message(
                 session=session,
-                user=user,
+                ai_msg=replay,
+                correlation_id=correlation,
+                idempotent_replay=True,
+            )
+
+        try:
+            await self._add_message(
+                session=session,
+                role=MessageRole.USER,
                 content=content,
-                history=history,
+                message_id=user_message_id,
             )
-            logger.info("dialog_orchestrator_path_hit", session_id=session.id)
-            return orchestrator_result
-
-        # 4. 调用引擎生成回复
-        engine_output = await self._run_via_socratic_direct(
-            session=session,
-            user=user,
-            content=content,
-            history=history,
-        )
-
-        # 5. 保存 AI 消息
-        ai_msg = await self._add_message(
-            session=session,
-            role=MessageRole.ASSISTANT,
-            content=engine_output.response,
-            strategy=engine_output.strategy,
-            hint_level=engine_output.hint_level,
-            input_tokens=engine_output.input_tokens,
-            output_tokens=engine_output.output_tokens,
-            total_tokens=engine_output.total_tokens,
-            generation_ms=engine_output.generation_ms,
-        )
-
-        # 6. 更新会话状态
-        session.turn_count += 1
-        session.total_tokens += engine_output.total_tokens
-        session.current_hint_level = engine_output.next_hint_level
-        session.current_strategy = engine_output.strategy
-        session.mastery_estimate = max(
-            0.0, min(1.0, session.mastery_estimate + engine_output.mastery_delta)
-        )
-        session.updated_at = datetime.now(timezone.utc)
-        await self.db.commit()
-        await self._cache_session_state(session)
-
-        return self._build_response_dict(
-            session=session,
-            ai_msg=ai_msg,
-            engine_output=engine_output,
-        )
-
-    async def _run_via_socratic_direct(
-        self,
-        session: DialogSession,
-        user: User,
-        content: str,
-        history: list[DialogMessage],
-    ) -> EngineOutput:
-        """直接调用 SocraticEngine"""
-        engine = self._get_engine()
-        engine_input = EngineInput(
-            session_id=session.id,
-            user_id=user.id,
-            user_input=content,
-            turn_number=session.turn_count + 1,
-            subject=session.subject,
-            knowledge_point_id=session.knowledge_point_id,
-            hint_level=session.current_hint_level,
-        )
-        return await engine.generate_response(
-            input_data=engine_input,
-            conversation_history=history,
-        )
-
-    async def _run_via_orchestrator(
-        self,
-        session: DialogSession,
-        user: User,
-        content: str,
-        history: list[DialogMessage],
-    ) -> dict:
-        """通过 Orchestrator 调度引擎"""
-        if not _ORCHESTRATOR_AVAILABLE:
-            raise RuntimeError("orchestrator not available")
-
-        orchestrator = get_orchestrator()
-
-        # 确保 Orchestrator session 存在
-        orch_sessions = getattr(orchestrator, "_sessions", {})
-        if session.id not in orch_sessions:
-            await orchestrator.create_session(
-                session_id=session.id,
-                subject=session.subject,
-                knowledge_point_id=session.knowledge_point_id,
-                initial_stage=FlowStage.LEARN,
-                learner_persona=self._infer_learner_persona(session),
-                learner_preferences={},
-                extras={
-                    "user_id": user.id,
-                    "pseudonym_id": session.pseudonym_id,
-                    "source": "dialog_service",
-                },
+            result = await self.facade.run_turn(
+                self._build_turn_request(session, user, content, correlation)
             )
-            logger.info("dialog_orchestrator_session_auto_created", session_id=session.id)
-
-        # 组装 LearnerTurn
-        history_tail: list = []
-        for m in history[-5:]:
-            history_tail.append((m.role.value, m.content))
-
-        learner_turn = LearnerTurn(
-            text=content.strip(),
-            turn_id=f"dialog_turn_{session.turn_count + 1}",
-            attachments=[],
-        )
-
-        # 调用 Orchestrator
-        result: OrchestratorTurnResult = await orchestrator.run_turn(
-            session_id=session.id,
-            learner_turn=learner_turn,
-        )
-
-        # 保存 AI 消息
-        ai_msg = await self._add_message(
-            session=session,
-            role=MessageRole.ASSISTANT,
-            content=result.reply_text,
-            strategy=result.engine_id,
-            hint_level=None,
-            input_tokens=result.engine_debug.get("input_tokens", 0),
-            output_tokens=result.engine_debug.get("output_tokens", 0),
-            total_tokens=result.engine_debug.get("input_tokens", 0)
-            + result.engine_debug.get("output_tokens", 0),
-            generation_ms=result.engine_debug.get("generation_ms", 0),
-        )
-
-        # 更新会话状态
-        session.turn_count += 1
-        usage = result.engine_debug
-        session.total_tokens += usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
-        session.current_strategy = result.engine_id
-        snapshot = result.shared_ctx_snapshot
-        session.current_hint_level = snapshot.get(
-            "last_hint_level_used", session.current_hint_level
-        )
-        session.mastery_estimate = float(
-            snapshot.get("mastery_vector", {}).get(
-                session.knowledge_point_id or "", session.mastery_estimate
+            return await self._complete_canonical_turn(
+                session=session,
+                result=result,
+                assistant_message_id=assistant_message_id,
             )
-        )
-        session.updated_at = datetime.now(timezone.utc)
-        await self.db.commit()
-        await self._cache_session_state(session)
-
-        return self._build_response_dict_from_orchestrator(
-            session=session,
-            ai_msg=ai_msg,
-            result=result,
-        )
-
-    @staticmethod
-    def _build_response_dict(
-        *, session: DialogSession, ai_msg: DialogMessage, engine_output: EngineOutput
-    ) -> dict:
-        return {
-            "session": {
-                "id": session.id,
-                "turn_count": session.turn_count,
-                "current_hint_level": session.current_hint_level,
-                "mastery_estimate": session.mastery_estimate,
-            },
-            "message": {
-                "id": ai_msg.id,
-                "role": ai_msg.role.value,
-                "content": ai_msg.content,
-                "turn_number": ai_msg.turn_number,
-                "strategy": ai_msg.strategy,
-                "hint_level": ai_msg.hint_level,
-                "created_at": ai_msg.created_at.isoformat(),
-            },
-            "usage": {
-                "input_tokens": engine_output.input_tokens,
-                "output_tokens": engine_output.output_tokens,
-                "total_tokens": engine_output.total_tokens,
-                "ttft_ms": engine_output.ttft_ms,
-                "generation_ms": engine_output.generation_ms,
-            },
-        }
+        except Exception:
+            await self.db.rollback()
+            raise
 
     @staticmethod
     def _build_response_dict_from_orchestrator(
-        *, session: DialogSession, ai_msg: DialogMessage, result: OrchestratorTurnResult
+        *, session: DialogSession, ai_msg: DialogMessage, result: CanonicalTurnResult
     ) -> dict:
         usage = result.engine_debug
         return {
@@ -382,6 +205,7 @@ class DialogService:
                 "mastery_estimate": session.mastery_estimate,
                 "orchestrator_engine_id": result.engine_id,
                 "orchestrator_switched_to": result.switched_to,
+                "mastery_semantics": "legacy_readonly_until_sys03_projection",
             },
             "message": {
                 "id": ai_msg.id,
@@ -399,7 +223,121 @@ class DialogService:
                 "ttft_ms": usage.get("ttft_ms"),
                 "generation_ms": usage.get("generation_ms", 0),
             },
+            "correlation_id": result.correlation_id,
+            "idempotent_replay": False,
         }
+
+    @staticmethod
+    def _build_response_dict_from_message(
+        *,
+        session: DialogSession,
+        ai_msg: DialogMessage,
+        correlation_id: str,
+        idempotent_replay: bool,
+    ) -> dict:
+        return {
+            "session": {
+                "id": session.id,
+                "turn_count": session.turn_count,
+                "current_hint_level": session.current_hint_level,
+                "mastery_estimate": session.mastery_estimate,
+                "mastery_semantics": "legacy_readonly_until_sys03_projection",
+                "orchestrator_engine_id": ai_msg.strategy,
+                "orchestrator_switched_to": None,
+            },
+            "message": {
+                "id": ai_msg.id,
+                "role": ai_msg.role.value,
+                "content": ai_msg.content,
+                "turn_number": ai_msg.turn_number,
+                "strategy": ai_msg.strategy,
+                "hint_level": ai_msg.hint_level,
+                "created_at": ai_msg.created_at.isoformat(),
+            },
+            "usage": {
+                "input_tokens": ai_msg.input_tokens,
+                "output_tokens": ai_msg.output_tokens,
+                "total_tokens": ai_msg.total_tokens,
+                "ttft_ms": ai_msg.ttft_ms,
+                "generation_ms": ai_msg.generation_ms,
+            },
+            "correlation_id": correlation_id,
+            "idempotent_replay": idempotent_replay,
+        }
+
+    async def _complete_canonical_turn(
+        self,
+        *,
+        session: DialogSession,
+        result: CanonicalTurnResult,
+        assistant_message_id: str,
+    ) -> dict:
+        usage = result.engine_debug
+        ai_msg = await self._add_message(
+            session=session,
+            role=MessageRole.ASSISTANT,
+            content=result.reply_text,
+            message_id=assistant_message_id,
+            strategy=result.engine_id,
+            hint_level=result.execution_snapshot.get("last_hint_level_used"),
+            input_tokens=int(usage.get("input_tokens", 0)),
+            output_tokens=int(usage.get("output_tokens", 0)),
+            total_tokens=int(usage.get("input_tokens", 0)) + int(usage.get("output_tokens", 0)),
+            ttft_ms=usage.get("ttft_ms"),
+            generation_ms=usage.get("generation_ms", 0),
+        )
+        session.turn_count += 1
+        session.total_tokens += ai_msg.total_tokens
+        session.current_strategy = result.engine_id
+        session.current_hint_level = result.execution_snapshot.get(
+            "last_hint_level_used", session.current_hint_level
+        )
+        # VSLICE-012: Dialog/Orchestrator execution state never writes canonical mastery.
+        session.updated_at = datetime.now(timezone.utc)
+        await self.db.commit()
+        await self._cache_session_state(session)
+        return self._build_response_dict_from_orchestrator(
+            session=session,
+            ai_msg=ai_msg,
+            result=result,
+        )
+
+    def _build_turn_request(
+        self,
+        session: DialogSession,
+        user: User,
+        content: str,
+        correlation_id: str,
+    ) -> CanonicalTurnRequest:
+        return CanonicalTurnRequest(
+            session_id=session.id,
+            user_id=user.id,
+            text=content,
+            turn_id=f"dialog_turn_{session.turn_count + 1}",
+            subject=session.subject,
+            knowledge_point_id=session.knowledge_point_id,
+            learner_persona=self._infer_learner_persona(session),
+            correlation_id=correlation_id,
+        )
+
+    @staticmethod
+    def _turn_message_ids(session_id: str, idempotency_key: str | None) -> tuple[str, str]:
+        if not idempotency_key:
+            return str(uuid.uuid4()), str(uuid.uuid4())
+        scope = f"askora-dialog:{session_id}:{idempotency_key}"
+        return (
+            str(uuid.uuid5(uuid.NAMESPACE_URL, f"{scope}:user")),
+            str(uuid.uuid5(uuid.NAMESPACE_URL, f"{scope}:assistant")),
+        )
+
+    async def _load_idempotent_completion(self, message_id: str) -> DialogMessage | None:
+        result = await self.db.execute(
+            select(DialogMessage).where(
+                DialogMessage.id == message_id,
+                DialogMessage.role == MessageRole.ASSISTANT,
+            )
+        )
+        return result.scalar_one_or_none()
 
     @staticmethod
     def _infer_learner_persona(session: DialogSession) -> str:
@@ -414,14 +352,23 @@ class DialogService:
         session: DialogSession,
         user: User,
         content: str,
+        *,
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
     ):
-        """流式对话"""
+        """Execute a streaming transport over the canonical teaching path."""
 
         async with _get_session_message_lock(session.id):
             await self.db.refresh(session)
             if session.status != SessionStatus.ACTIVE:
                 raise SessionNotActiveError()
-            async for chunk in self._stream_message_unlocked(session, user, content):
+            async for chunk in self._stream_message_unlocked(
+                session,
+                user,
+                content,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            ):
                 yield chunk
 
     async def _stream_message_unlocked(
@@ -429,94 +376,70 @@ class DialogService:
         session: DialogSession,
         user: User,
         content: str,
+        *,
+        idempotency_key: str | None,
+        correlation_id: str | None,
     ):
-        """在已持有会话写锁的情况下执行一轮流式对话。"""
-        import time
-
-        start_time = time.time()
-
-        # 保存用户消息
-        await self._add_message(
-            session=session,
-            role=MessageRole.USER,
-            content=content,
+        """Adapt canonical facade events without a direct Socratic streaming path."""
+        correlation = correlation_id or str(uuid.uuid4())
+        user_message_id, assistant_message_id = self._turn_message_ids(
+            session.id, idempotency_key
         )
+        replay = await self._load_idempotent_completion(assistant_message_id)
+        if replay is not None:
+            yield {"type": "content", "content": replay.content}
+            yield {
+                "type": "final",
+                "response": replay.content,
+                "strategy": replay.strategy,
+                "hint_level": replay.hint_level,
+                "message_id": replay.id,
+                "correlation_id": correlation,
+                "idempotent_replay": True,
+            }
+            return
 
-        # 获取对话历史
-        history = await self.get_session_messages(session.id, limit=20, latest=True)
-
-        # 流式调用引擎
-        engine = self._get_engine()
-        engine_input = EngineInput(
-            session_id=session.id,
-            user_id=user.id,
-            user_input=content,
-            turn_number=session.turn_count + 1,
-            subject=session.subject,
-            knowledge_point_id=session.knowledge_point_id,
-            hint_level=session.current_hint_level,
-        )
-
-        full_response = ""
-        ttft_ms = None
-        strategy = None
-        hint_level = session.current_hint_level
-
-        async for chunk in engine.stream_response(
-            input_data=engine_input,
-            conversation_history=history,
-        ):
-            chunk_type = chunk.get("type")
-
-            if chunk_type == "content":
-                full_response += chunk.get("content", "")
-                if ttft_ms is None and chunk.get("content"):
-                    ttft_ms = int((time.time() - start_time) * 1000)
-                yield {
-                    "type": "content",
-                    "content": chunk.get("content", ""),
-                }
-
-            elif chunk_type == "final":
-                full_response = chunk.get("response", full_response)
-                strategy = chunk.get("strategy")
-                hint_level = chunk.get("hint_level", hint_level)
-                ttft_ms = chunk.get("ttft_ms", ttft_ms)
-                yield {
-                    "type": "final",
-                    "response": full_response,
-                    "strategy": strategy,
-                    "hint_level": hint_level,
-                }
-
-        # 保存 AI 消息
-        generation_ms = int((time.time() - start_time) * 1000)
-        await self._add_message(
-            session=session,
-            role=MessageRole.ASSISTANT,
-            content=full_response,
-            strategy=strategy,
-            hint_level=hint_level,
-            input_tokens=0,
-            output_tokens=0,
-            total_tokens=0,
-            ttft_ms=ttft_ms,
-            generation_ms=generation_ms,
-        )
-
-        # 更新会话状态
-        session.turn_count += 1
-        session.current_hint_level = hint_level or session.current_hint_level
-        session.current_strategy = strategy or session.current_strategy
-        session.updated_at = datetime.now(timezone.utc)
-        await self.db.commit()
-        await self._cache_session_state(session)
+        try:
+            await self._add_message(
+                session=session,
+                role=MessageRole.USER,
+                content=content,
+                message_id=user_message_id,
+            )
+            result: CanonicalTurnResult | None = None
+            async for event in self.facade.stream_turn(
+                self._build_turn_request(session, user, content, correlation)
+            ):
+                if event.type == "content":
+                    yield {"type": "content", "content": event.content}
+                elif event.type == "final":
+                    result = event.result
+            if result is None:
+                raise RuntimeError("canonical stream completed without a final result")
+            response = await self._complete_canonical_turn(
+                session=session,
+                result=result,
+                assistant_message_id=assistant_message_id,
+            )
+            yield {
+                "type": "final",
+                "response": result.reply_text,
+                "strategy": result.engine_id,
+                "hint_level": session.current_hint_level,
+                "message_id": response["message"]["id"],
+                "correlation_id": correlation,
+                "idempotent_replay": False,
+            }
+        except Exception:
+            await self.db.rollback()
+            raise
 
     async def _add_message(
         self,
         session: DialogSession,
         role: MessageRole,
         content: str,
+        message_id: str | None = None,
         strategy: Optional[str] = None,
         hint_level: Optional[int] = None,
         intent: Optional[str] = None,
@@ -528,7 +451,7 @@ class DialogService:
     ) -> DialogMessage:
         """添加消息到会话"""
         msg = DialogMessage(
-            id=str(uuid.uuid4()),
+            id=message_id or str(uuid.uuid4()),
             session_id=session.id,
             user_id=session.user_id,
             role=role,

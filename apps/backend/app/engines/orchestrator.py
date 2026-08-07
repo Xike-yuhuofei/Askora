@@ -82,6 +82,23 @@ class LearningFlowOrchestrator:
     # ================================================================
     # public API
     # ================================================================
+    async def ensure_session(
+        self,
+        session_id: str,
+        **create_kwargs: Any,
+    ) -> SharedContext:
+        """Return an existing execution session or create it through the public boundary.
+
+        The in-memory/Redis details remain an execution-state adapter and are not a
+        learner-state truth.  This port lets the canonical facade avoid inspecting
+        ``_sessions`` directly.  Spec coverage: SYS08-010, EXEC002-T5.
+        """
+        try:
+            shared, _engine_states = await self._load_session(session_id)
+            return shared
+        except KeyError:
+            return await self.create_session(session_id=session_id, **create_kwargs)
+
     async def create_session(
         self,
         session_id: str,
