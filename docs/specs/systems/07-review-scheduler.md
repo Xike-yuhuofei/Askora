@@ -57,9 +57,9 @@ source Attempt/AssessmentResult refs
 
 ## 5. Algorithms
 
-### SYS07-030 — Baseline
+### SYS07-030 — MVP Baseline
 
-MVP SHOULD 使用 FSRS-compatible 或等价可解释 memory scheduler，并保留 simpler baseline 比较：
+MVP SHOULD 使用 FSRS-compatible 或等价可解释 memory scheduler，并保留 SM-2/simple exponential 等 simpler baseline 进行比较：
 
 ```text
 assessment/review result
@@ -85,11 +85,11 @@ assessment/review result
 
 ### SYS07-034 — Desired Retention
 
-`desired_retention` 是产品/用户 strategy parameter，不是学术常数；MUST versioned/traceable。
+`desired_retention` 是产品/用户 strategy parameter，不是学术常数；MUST versioned/traceable，并受合理 workload/safety bounds 约束。
 
-### SYS07-035 — v0.3 Scope
+### SYS07-035 — Algorithm Evolution
 
-Bandit/RL scheduler MAY 作为未来研究方向，但 MUST NOT 成为 v0.3 canonical runtime。
+历史演进方向保留为：fixed interval → mature interpretable scheduler → parameter calibration/supervised optimization → workload-retention optimization。Contextual Bandit/RL only if future evidence and new Design/ADR/Spec prove necessary；MUST NOT 成为 v0.3 canonical runtime。
 
 ## 6. Persistence / Replay
 
@@ -111,7 +111,7 @@ Fixed prior schedule + exact observation + model/config version MUST 产生相�
 
 ## 7. Failure Semantics
 
-invalid/low-quality observation → no/low update；model/config unavailable → versioned fallback；impossible desired retention/workload → policy error/clamp with reason；late valid event/evidence invalidation → recompute affected versions。
+invalid/low-quality observation → no/low update；model/config unavailable → versioned stable baseline fallback；impossible desired retention/workload → policy error/clamp with reason；late valid event/evidence invalidation → recompute affected versions。
 
 ### SYS07-050
 
@@ -119,7 +119,7 @@ Scheduler failure MUST NOT 被解释为 learner forgetting；保留 last valid s
 
 ## 8. Idempotency
 
-同一 observation/event 只能应用一次；repeated due-check 不产生新 schedule version，除非 underlying state 改变。
+同一 observation/event 只能应用一次；fixed prior state + observation + model version MUST deterministic；repeated due-check 不产生新 schedule version，除非 underlying state 改变。
 
 ## 9. Observability
 
@@ -133,7 +133,7 @@ ReviewSchedule 属个人学习数据；外部模型不是 scheduler 必需项；
 
 ## 11. Tests
 
-必须覆盖：independent recall；failure；assisted success weaker/no full update；ANSWER_EXPOSED not independent；fresh independent delayed observation；cold start；duplicate idempotency；desired retention versioning；evidence invalidation recompute；actual vs recommended time；fixed-model replay；legacy hint_level migration ambiguity。
+必须覆盖：independent recall；failure；assisted success weaker/no full update；ANSWER_EXPOSED not independent；fresh independent delayed observation；cold start；duplicate idempotency；desired retention versioning；parameter/model fallback；evidence invalidation recompute；actual vs recommended time；fixed-model replay；legacy hint_level migration ambiguity；SYS06 cannot modify memory state。
 
 ## 12. Acceptance Criteria
 
@@ -142,6 +142,7 @@ ReviewSchedule 属个人学习数据；外部模型不是 scheduler 必需项；
 - `SYS07-AC-003`：ReviewSchedule 与 MasteryEstimate 分离。
 - `SYS07-AC-004`：SYS06 只能消费 due candidate，不能修改 memory state。
 - `SYS07-AC-005`：同 observation/model version 更新确定性。
+- `SYS07-AC-006`：参数/模型故障有 stable baseline fallback。
 - `SYS07-AC-007`：推荐复习时点与实际执行时点分别审计。
 - `SYS07-AC-200`：v0.3 canonical review observation 不使用 integer `hint_level` 作为 truth。
 
@@ -151,4 +152,4 @@ ReviewSchedule 属个人学习数据；外部模型不是 scheduler 必需项；
 
 ## 14. Forbidden Implementations
 
-禁止：固定 1/3/7/14 天适配所有知识；多方写 next_due；完整答案后复述当 independent recall；retrievability 直接标 stable mastery；scheduler 创建完整日计划；LLM 凭感觉决定 next_due；v0.3 用 RL 替代成熟 SRS baseline；继续写 integer hint/exposure 为 canonical review observation。
+禁止：固定 1/3/7/14 天适配所有知识；多方写 next_due；完整答案后复述当 independent recall；retrievability 直接标 stable mastery；scheduler 创建完整日计划；LLM 凭感觉决定 next_due；参数历史不足时启用不稳定个体模型；v0.3 使用 Contextual Bandit/RL 替代成熟 SRS baseline；继续写 integer hint/exposure 为 canonical review observation。
