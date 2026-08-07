@@ -45,7 +45,7 @@ Implementation Validation
 2. 已冻结 Spec 与当前代码冲突时，默认判定为实现偏差，而不是用现有代码反推新规范；
 3. 破坏性架构变化必须先建立 ADR，再更新对应 Spec，最后修改代码；
 4. Codex 不得因为“现有实现更方便”而绕过状态所有权、领域边界或验收标准；
-5. 未被 Spec 定义的重要决策属于 `SPEC GAP`，不得由 Codex自行补全。
+5. 未被 Spec 定义的重要决策属于 `SPEC GAP`，不得由 Codex 自行补全。
 
 ## 3. 规范语言
 
@@ -58,7 +58,7 @@ Implementation Validation
 
 Codex 只拥有 `MAY` 范围内的自主选择权。
 
-## 4. 目录结构
+## 4. 当前目录结构
 
 ```text
 docs/specs/
@@ -95,11 +95,11 @@ docs/specs/
     └── v0.2-learning-loop.md
 ```
 
-文件按需要逐步建立；目录中不存在的文件不代表对应设计可以由 Codex 自由决定。
+上述 v0.1 文件均已建立。新领域出现时必须先扩展本规范体系，不能由 Codex 在代码中隐式创造新边界。
 
 ## 5. 每个系统 Spec 的固定模板
 
-八类技术系统必须使用统一模板：
+八类技术系统统一使用：
 
 1. `Responsibility`：唯一职责；
 2. `Non-responsibility`：明确禁止负责的内容；
@@ -128,21 +128,28 @@ ARCH-xxx       顶层架构规则
 DEP-xxx        依赖规则
 STATE-xxx      状态所有权规则
 DOMAIN-xxx     公共领域模型
+EVENT-xxx      学习事件规则
+DECISION-xxx   决策追踪规则
+LIFE-xxx       生命周期规则
 SYS01-xxx ... SYS08-xxx  八类系统规则
 API-xxx        外部接口规则
 PERSIST-xxx    持久化规则
+ERROR-xxx      错误语义
+SCHEMA-xxx     Schema 演进
 TEST-xxx       测试规则
+OBS-xxx        可观测性
 SEC-xxx        安全规则
-AC-xxx         验收标准
+DOD-xxx        完成定义
+VSLICE-xxx     垂直切片规则
 ```
 
-执行任务必须引用对应规则：
+执行任务必须形成：
 
 ```text
 Design → Spec Rule → ADR（如有）→ EXEC → Code → Test
 ```
 
-测试名称或测试说明应能追溯至少一个 Spec/AC ID。
+测试名称、docstring、marker 或相邻注释应能追溯至少一个 Spec/AC ID。
 
 ## 7. Codex 的设计权限
 
@@ -214,3 +221,55 @@ Codex **禁止**自行改变：
 ```
 
 严禁先让 Codex 改代码，再倒推规范合理化实现。
+
+## 11. Codex 执行入口
+
+Codex 的根入口是：
+
+```text
+/AGENTS.md
+```
+
+任何实现任务还必须读取当前：
+
+```text
+docs/exec-plans/active/<EXEC>.md
+```
+
+当前 v0.2 执行顺序：
+
+```text
+EXEC-001 contracts + event/outbox foundation
+→ EXEC-002 canonical teaching entry
+→ EXEC-003 content + EvidenceBundle
+→ EXEC-004 assessment + learner projection
+→ EXEC-005 review + planner integration
+→ EXEC-006 E2E/recovery/security gate
+```
+
+具体任务位于 `docs/exec-plans/active/`。
+
+## 12. 顶层不变量摘要
+
+Codex 在任何任务中都必须保持：
+
+```text
+知识事实发布             → SYS01
+EvidenceBundle           → SYS02
+LearnerState/Mastery     → SYS03
+AssessmentResult         → SYS04
+TeachingAction           → SYS05
+LearningPlan/Activity    → SYS06
+ReviewSchedule/next_due  → SYS07
+模型/工具/工作流执行      → SYS08
+```
+
+并保持：
+
+```text
+AssessmentResult ≠ MasteryEstimate
+LearningPlan ≠ TeachingAction
+ReviewSchedule ≠ LearnerState
+SourceChunk ≠ KnowledgeUnit
+Misconception definition ≠ learner misconception hypothesis
+```
