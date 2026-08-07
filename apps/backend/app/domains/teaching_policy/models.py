@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
+from uuid import UUID
 
 from pydantic import Field, model_validator
 
 from app.contracts.adaptive import (
     ActionModifier,
     AnswerExposure,
+    AssistanceState,
     HintSpecificity,
     InteractionMove,
     PolicyBundleV03,
@@ -74,6 +77,10 @@ class PolicyRuntimeProfile(ContractModel):
     prerequisite_confidence_cutoff: float = Field(ge=0.0, le=1.0)
     transfer_novelty_cutoff: float = Field(ge=0.0, le=1.0)
     practical_harm_margin: float = Field(ge=0.0)
+    minimum_dwell_opportunities: int = Field(ge=0)
+    switch_margin: float = Field(ge=0.0)
+    meaningful_delay_seconds: int = Field(ge=0)
+    transition_priority: tuple[str, ...] = Field(min_length=1)
 
     normalization_ranges: dict[str, NormalizationRange]
     feature_weights: dict[str, float]
@@ -131,6 +138,63 @@ class CandidateScore(ContractModel):
 class PolicyDecision(ContractModel):
     action: TeachingActionV03
     trace: DecisionTraceV03
+
+
+class ValidationObligationStatus(StrEnum):
+    REQUIRED = "REQUIRED"
+    SATISFIED = "SATISFIED"
+
+
+class IndependentValidationRecord(ContractModel):
+    obligation_id: UUID
+    status: ValidationObligationStatus
+    created_at: datetime
+    source_attempt_ref: VersionedRef
+    source_result_ref: VersionedRef
+    assistance_state: AssistanceState
+    satisfied_at: datetime | None = None
+    satisfying_attempt_ref: VersionedRef | None = None
+    satisfying_result_ref: VersionedRef | None = None
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def require_satisfaction_evidence(self) -> IndependentValidationRecord:
+        refs = (self.satisfying_attempt_ref, self.satisfying_result_ref, self.satisfied_at)
+        if self.status is ValidationObligationStatus.SATISFIED and any(ref is None for ref in refs):
+            raise ValueError(
+                "satisfied validation obligation requires fresh evidence refs and time"
+            )
+        if self.status is ValidationObligationStatus.REQUIRED and any(
+            ref is not None for ref in refs
+        ):
+            raise ValueError("required validation obligation cannot contain satisfaction evidence")
+        return self
+
+
+class SequentialPolicyState(ContractModel):
+    previous_action: TeachingActionV03
+    previous_trace: DecisionTraceV03
+    evidence_opportunities_since_transition: int = Field(ge=0)
+    observed_material_evidence_keys: tuple[str, ...] = ()
+    validation_obligation: IndependentValidationRecord | None = None
+
+    @model_validator(mode="after")
+    def require_exact_previous_trace(self) -> SequentialPolicyState:
+        selected = self.previous_trace.selected_teaching_action_ref
+        if (
+            selected is None
+            or selected.entity_id != str(self.previous_action.action_id)
+            or str(selected.version) != self.previous_action.action_schema_version
+            or self.previous_trace.decision_id != self.previous_action.decision_id
+        ):
+            raise ValueError("previous DecisionTrace must exactly select previous TeachingAction")
+        return self
+
+
+class SequentialPolicyDecision(ContractModel):
+    decision: PolicyDecision
+    next_state: SequentialPolicyState
+    transition_reason_code: str
 
 
 class ValidatedPolicyInput(ContractModel):

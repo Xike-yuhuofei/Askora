@@ -1,0 +1,34 @@
+[
+  {
+    "case_id": "no_material_repeat",
+    "initial": {"case_id": "seq-initial", "mastery": 0.2},
+    "next": {"case_id": "seq-repeat", "mastery": 0.4, "assisted_success": true},
+    "signals": ["CHAT_TURN", "WORDING_VARIATION", "RERENDER"],
+    "expected_family": "EXPLICIT_INSTRUCTION",
+    "expected_reason": "HOLD_NO_MATERIAL_EVIDENCE"
+  },
+  {
+    "case_id": "minimum_dwell",
+    "initial": {"case_id": "dwell-initial", "mastery": 0.2},
+    "next": {"case_id": "dwell-next", "mastery": 0.4, "assisted_success": true},
+    "signals": ["ASSESSMENT_RESULT"],
+    "expected_family": "EXPLICIT_INSTRUCTION",
+    "expected_reason": "HOLD_MINIMUM_DWELL_EVIDENCE_OPPORTUNITY"
+  },
+  {
+    "case_id": "repeated_failure_override",
+    "initial": {"case_id": "failure-initial", "mastery": 0.9},
+    "next": {"case_id": "failure-next", "mastery": 0.4, "error_type": "EXECUTION", "consecutive_failures": 3},
+    "signals": [],
+    "expected_family": "ERROR_REMEDIATION",
+    "expected_reason": "TRANSITION_HARD_CONSTRAINT_REPEATED_FAILURE_OVERRIDE"
+  },
+  {
+    "case_id": "hard_constraint_precedence",
+    "initial": {"case_id": "hard-initial", "mastery": 0.2},
+    "next": {"case_id": "hard-next", "mastery": 0.9, "activity_type": "summative_exam"},
+    "signals": [],
+    "expected_family": "RETRIEVAL_PRACTICE",
+    "expected_reason": "TRANSITION_HARD_CONSTRAINT_PRECEDENCE"
+  }
+]

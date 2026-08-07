@@ -3,16 +3,25 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.contracts.adaptive import (
+    AnswerExposure,
+    AssessmentAttemptV03,
+    AssessmentDiagnosisV03,
+    AssessmentResultV03,
+    AssistanceSnapshotV03,
+    AssistanceState,
     AvailabilityStatus,
     ErrorType,
     ExperimentAssignmentV03,
+    HintSpecificity,
     PolicyBundleV03,
+    ScaffoldControl,
+    TeachingActionV03,
     TeachingContextV03,
     ValueWithAvailability,
     VersionedRef,
@@ -110,7 +119,7 @@ def make_context(case: dict[str, Any] | None = None) -> TeachingContextV03:
         worked_example_exposure=available(False),
         independent_success_history=(success_ref,) if case.get("independent_success") else (),
         assisted_success_history=(success_ref,) if case.get("assisted_success") else (),
-        delayed_independent_evidence=available(False),
+        delayed_independent_evidence=available(bool(case.get("delayed_independent", False))),
         review_context=available(True) if case.get("review_context") else missing(),
         transfer_evidence=available(True) if transfer else missing(),
         transfer_distance_novelty=(
@@ -143,3 +152,101 @@ def make_assignment(
     payload["experiment_assignment_ref"] = assignment_ref
     payload["source_refs"] = (*context.source_refs, assignment_ref)
     return TeachingContextV03.model_validate(payload), assignment
+
+
+def with_previous_action(
+    context: TeachingContextV03, previous: TeachingActionV03
+) -> TeachingContextV03:
+    previous_ref = VersionedRef(
+        entity_type="teaching_action",
+        entity_id=str(previous.action_id),
+        version=previous.action_schema_version,
+    )
+    retained_sources = tuple(
+        source
+        for source in context.source_refs
+        if source.entity_type not in {"learning_objective", "learning_activity"}
+    )
+    payload = context.model_dump()
+    payload.update(
+        {
+            "learning_objective_ref": previous.learning_objective_ref,
+            "learning_activity_ref": previous.learning_activity_ref,
+            "previous_teaching_action_ref": previous_ref,
+            "source_refs": (
+                previous.learning_objective_ref,
+                previous.learning_activity_ref,
+                *retained_sources,
+                previous_ref,
+            ),
+        }
+    )
+    return TeachingContextV03.model_validate(payload)
+
+
+def make_assessment_pair(
+    *,
+    name: str,
+    assistance_state: AssistanceState,
+    passed: bool = True,
+    seconds_after_base: int = 60,
+) -> tuple[AssessmentAttemptV03, AssessmentResultV03]:
+    if assistance_state is AssistanceState.INDEPENDENT:
+        scaffold = ScaffoldControl.NONE
+        hint = HintSpecificity.NONE
+        exposure = AnswerExposure.NONE
+    elif assistance_state is AssistanceState.ASSISTED:
+        scaffold = ScaffoldControl.MEDIUM
+        hint = HintSpecificity.ORIENTATION
+        exposure = AnswerExposure.NONE
+    else:
+        scaffold = ScaffoldControl.HIGH
+        hint = HintSpecificity.BOTTOM_OUT
+        exposure = AnswerExposure.COMPLETE
+    assistance = AssistanceSnapshotV03(
+        scaffold_control=scaffold,
+        hint_specificity=hint,
+        answer_exposure=exposure,
+        assistance_state=assistance_state,
+    )
+    submitted = NOW + timedelta(seconds=seconds_after_base)
+    attempt = AssessmentAttemptV03(
+        attempt_id=fixed_uuid(f"attempt-{name}"),
+        user_id=fixed_uuid("user"),
+        session_id=fixed_uuid("session"),
+        item_id=fixed_uuid("item"),
+        item_version="1",
+        assessment_type="formative",
+        started_at=submitted - timedelta(seconds=30),
+        first_response_at=submitted - timedelta(seconds=10),
+        submitted_at=submitted,
+        response_time_ms=20_000,
+        raw_response="answer",
+        normalized_response="answer",
+        revision_count=0,
+        assistance=assistance,
+        idempotency_key=f"attempt-{name}",
+    )
+    result = AssessmentResultV03(
+        result_id=fixed_uuid(f"result-{name}"),
+        result_version=1,
+        attempt_id=attempt.attempt_id,
+        item_id=attempt.item_id,
+        item_version=attempt.item_version,
+        score=1.0 if passed else 0.0,
+        passed=passed,
+        correctness="correct" if passed else "incorrect",
+        rubric_scores={},
+        assessment_confidence=0.95,
+        diagnosis=AssessmentDiagnosisV03(
+            error_type=ErrorType.UNKNOWN,
+            diagnostic_confidence=0.2,
+            needs_probe=not passed,
+            reason_codes=("FIXTURE_DIAGNOSIS",),
+        ),
+        assistance=assistance,
+        evaluator_versions=("fixture-grader-1",),
+        reviewer_result="accepted",
+        created_at=submitted + timedelta(seconds=1),
+    )
+    return attempt, result

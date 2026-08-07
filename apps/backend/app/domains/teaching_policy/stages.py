@@ -31,6 +31,18 @@ def derive_teaching_stage(
     ):
         return TeachingStage.DIAGNOSE
 
+    failures = context.assistance_history_summary.get("consecutive_failures", 0)
+    if isinstance(failures, int) and failures >= profile.failure_ceiling:
+        error = context.error_type.value
+        diagnostic_confidence = _number(context.diagnostic_confidence.value)
+        if (
+            error not in {None, ErrorType.UNKNOWN.value, ErrorType.UNKNOWN}
+            and diagnostic_confidence is not None
+            and diagnostic_confidence >= profile.diagnostic_confidence_cutoff
+        ):
+            return TeachingStage.ERROR_REMEDIATION
+        return TeachingStage.DIAGNOSE
+
     needs_probe = context.needs_probe.value is True
     diagnostic_confidence = _number(context.diagnostic_confidence.value)
     if needs_probe or diagnostic_confidence is None:

@@ -9,6 +9,7 @@ from app.contracts.adaptive import (
     InteractionMove,
     ScaffoldControl,
     StrategyFamily,
+    TeachingActionV03,
     TeachingStage,
 )
 from app.domains.teaching_policy.models import TeachingCandidate
@@ -167,3 +168,16 @@ def generate_candidates(
             continue
         generated.append(candidate)
     return tuple(generated)
+
+
+def candidate_key_for_action(action: TeachingActionV03) -> str | None:
+    for candidate in candidate_table():
+        if (
+            candidate.strategy_family is action.strategy_family
+            and candidate.interaction_moves == action.interaction_moves
+            and candidate.scaffold_control is action.scaffold_control
+            and candidate.hint_specificity is action.hint_specificity
+            and candidate.answer_exposure is action.answer_exposure
+        ):
+            return candidate.action_key
+    return None

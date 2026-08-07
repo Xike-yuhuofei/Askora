@@ -6,10 +6,12 @@ from app.domains.teaching_policy.models import (
     PolicyDecisionError,
     PolicyRuntimeProfile,
 )
+from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
 
 __all__ = [
     "PolicyDecision",
     "PolicyDecisionError",
     "PolicyRuntimeProfile",
     "TeachingPolicyKernel",
+    "SequentialTeachingPolicy",
 ]
