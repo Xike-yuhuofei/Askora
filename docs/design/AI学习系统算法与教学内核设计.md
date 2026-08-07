@@ -1,164 +1,278 @@
 # Askora AI 学习系统：算法与教学内核设计
 
-> 状态：阶段性设计基线  
+> 状态：v0.3 Canonical Design — Adaptive Teaching Loop 冻结  
 > 更新时间：2026-08-07  
-> 目标：定义 Askora 相对于普通 RAG 聊天工具与 DeepTutor 等通用 AI 学习平台的核心差异。
+> 目标：定义 Askora 的学习科学、领域语义、八系统边界、Teaching Policy 与学习效果验证的唯一设计基线。  
+> 上游唯一研究综合：`docs/design/research/synthesis/v0.3-Research-Synthesis-Adaptive-Teaching-Loop.md`
+
+> 重要边界：本文件是 Design，不是 Spec。`docs/specs/**`、`docs/adr/**`、`docs/exec-plans/**` 与代码不因本次设计冻结自动变化。所有已识别 implementation contract 变化统一登记到本文件的 **Spec Delta Input**，必须经过后续阶段显式处理。
 
 ## 1. 核心定位
 
 Askora 不应被定义为“能够读取资料并回答问题的 AI 聊天工具”，而应定位为：
 
-> **以长期保持、独立完成和迁移能力为目标的个人自适应学习系统。**
+> **以无提示独立成功、延迟保持、迁移和单位学习时间能力增益为核心结果的个人自适应学习系统。**
 
-系统不以对话量、即时正确率或课程完成率作为最高目标，而应优化：
-
-- 延迟一段时间后仍能回忆；
-- 不依赖提示完成任务；
-- 将知识迁移到陌生情境；
-- 用尽可能少的学习时间获得稳定能力。
+系统不以对话量、即时正确率、课程完成率、点赞或 token 数作为最高目标。
 
 完整学习闭环：
 
 ```text
-学习目标
-→ 内容与知识结构建模
-→ 先备知识诊断
-→ 学习者状态估计
-→ 教学策略选择
-→ 学习任务执行
-→ 行为证据采集
-→ 掌握状态更新
-→ 间隔复习与迁移验证
-→ 动态重新规划
+LearningGoal
+→ Content / Knowledge Modeling
+→ Prerequisite Diagnosis
+→ LearningPlan / LearningActivity
+→ LearnerState / MasteryEstimate
+→ TeachingContext Snapshot
+→ Teaching Policy
+→ TeachingAction
+→ EvidenceBundle + LLM/Tool Execution
+→ Attempt / AssessmentResult
+→ LearnerState Update
+→ ReviewSchedule
+→ Independent / Delayed / Transfer Validation
+→ Replan / Next Teaching Decision
 ```
+
+v0.3 的核心增量不是增加新的教学引擎，而是把“此刻怎么教”的决策正式冻结为一个 **deterministic、constrained、versioned、replayable Adaptive Teaching Loop**。
 
 ---
 
-## 2. 教学策略的决策变量
+## 2. 教学决策变量与 Canonical TeachingContext
 
-教学策略可抽象为：
+v0.2 的概念表达：
 
 ```text
-教学策略 = f(
-  学习目标,
-  先备知识,
-  内容复杂度,
-  错误类型,
-  学习阶段
+教学策略 = f(学习目标, 先备知识, 内容复杂度, 错误类型, 学习阶段)
+```
+
+在 v0.3 被正式收敛为：
+
+```text
+TeachingAction =
+Policy(
+  immutable TeachingContext snapshot,
+  immutable PolicyBundle
 )
 ```
 
-这些变量不是系统天然知道的事实，而是持续更新的估计值。每个维度都应保存：
+TeachingContext 不拥有任何第二份 canonical truth，而是对多个 owner 的不可变版本引用和本次决策派生 feature 的组合。
+
+### 2.1 LearningObjective / LearningActivity
+
+SYS06 拥有：
+
+- LearningGoal；
+- LearningObjective；
+- LearningActivity；
+- LearningPlan。
+
+SYS05 可以读取当前 Objective / Activity 的：
+
+- activity type；
+- target capability；
+- current task / task structure；
+- time budget；
+- priority/constraints；
+
+但不得改变目标、重新排序长期计划或自行创建新的学习目标。
+
+### 2.2 先备知识与 LearnerState
+
+先备状态来自：
+
+- SYS01 的 PrerequisiteRelation；
+- SYS03 的 MasteryEstimate / confidence；
+- SYS04 的诊断结果与单次表现。
+
+必须区分：
 
 ```text
-当前估计值 + 证据来源 + 置信度 + 更新时间
+prerequisite relation truth   → SYS01
+prerequisite learner state    → SYS03
+single-attempt diagnosis      → SYS04
+current teaching response     → SYS05
 ```
-
-### 2.1 学习目标
-
-由用户输入和系统结构化确认获得，包括：
-
-- 学习主题；
-- 目标能力层级；
-- 应用场景；
-- 截止时间；
-- 时间预算；
-- 成功标准。
-
-LLM 可以负责从自然语言中抽取目标，但最终目标必须可编辑、可确认，不能完全由模型猜测。
-
-### 2.2 先备知识
-
-通过以下证据估计：
-
-- 自适应诊断题；
-- 概念解释；
-- 代表性任务；
-- 历史学习记录；
-- 前置知识图谱。
-
-第一阶段可使用 BKT 估计知识点掌握概率，后续用 IRT 校正题目难度和用户能力。
 
 ### 2.3 内容复杂度
 
-应区分：
+内容复杂度区分：
 
-- 内容固有复杂度；
-- 相对于当前学习者的复杂度。
+- intrinsic / task structural complexity；
+- relative complexity for current learner。
 
-主要变量包括：
-
-- 前置知识数量；
-- 依赖深度；
-- 同时交互的概念数量；
-- 推理步骤数量；
-- 抽象程度；
-- 用户已掌握的相关知识。
-
-### 2.4 错误类型
-
-错误至少应区分：
-
-- 知识缺失；
-- 概念误解；
-- 条件遗漏；
-- 方法选择错误；
-- 执行错误；
-- 记忆提取失败；
-- 迁移失败；
-- 表达不完整；
-- 元认知错误。
-
-错误识别建议采用：
+后者可由 SYS05 Feature Builder 在当前 snapshot 上派生，但必须带：
 
 ```text
-确定性规则
-→ 误区模式库
-→ 诊断追问
-→ LLM 语义分类
-→ 后续题验证
+value
+availability
+confidence
+feature_version
 ```
 
-### 2.5 学习阶段
+它不是新的持久 learner field。
 
-学习阶段应根据行为证据推导，而不是按课程进度机械计算：
+### 2.4 Canonical Error Taxonomy
+
+v0.3 核心 `ErrorType` 冻结为：
 
 ```text
-未诊断
-→ 知识断层
-→ 初步建模
-→ 有提示模仿
-→ 无提示应用
-→ 延迟保持
-→ 迁移掌握
+KNOWLEDGE_GAP
+CONCEPTUAL_MISCONCEPTION
+METHOD_SELECTION
+EXECUTION
+RETRIEVAL_FAILURE
+TRANSFER_FAILURE
+EXPRESSION_FORMAT
+UNKNOWN
 ```
+
+历史设计迁移：
+
+```text
+condition_omission
+→ reason code / subcategory，不再是顶层 error type
+
+metacognitive
+→ behavioral/policy signal，不再是核心 error type
+
+expression_incomplete
+→ EXPRESSION_FORMAT
+```
+
+必须保持：
+
+```text
+observed error
+≠ misconception evidence
+≠ persistent misconception hypothesis
+```
+
+所有权：
+
+```text
+SYS04 → single-attempt error / diagnostic evidence
+SYS03 → persistent learner misconception hypothesis
+SYS05 → remediation candidate / TeachingAction decision
+```
+
+`assessment_confidence` 表示测量/评分可信度；`diagnostic_confidence` 表示错误解释可信度。二者禁止合并。
+
+诊断层至少需要表达：
+
+```text
+error_type
+diagnostic_confidence
+diagnostic_evidence_refs
+alternative_hypotheses
+reason_codes
+needs_probe
+```
+
+当存在多个可行解释、不同解释会导致不同 remediation 且当前证据不足以区分时，应进入 bounded diagnostic probe。`UNKNOWN` 是合法结果，不得为了“完整分类”强行选择一个错误类型。
+
+### 2.5 Canonical TeachingStage
+
+`TeachingStage` 正式冻结为：
+
+> activity-specific、transient、derived policy feature。
+
+建议 canonical 值：
+
+```text
+DIAGNOSE
+EXPLICIT_INSTRUCTION
+GUIDED_PRACTICE
+FADING_PRACTICE
+RETRIEVAL_PRACTICE
+DELAYED_RETRIEVAL
+ERROR_REMEDIATION
+TRANSFER_CHALLENGE
+```
+
+定义：
+
+```text
+TeachingStage = f(
+  TeachingContext snapshot,
+  PolicyBundle version
+)
+```
+
+TeachingStage 绝不是：
+
+- LearnerState；
+- MasteryState；
+- 持久学习阶段；
+- 第二状态机 truth。
+
+持久化原则：
+
+- 不作为 authoritative mutable state；
+- replay 时重新派生；
+- 可以进入 DecisionTrace；
+- 可以存在 non-authoritative projection/cache；
+- cache 必须可删除、可重建。
+
+FSM/HSM 保存的是：
+
+```text
+stage definition
+entry guard
+stay guard
+exit guard
+transition priority
+fallback transition
+```
+
+而不是 learner truth。
+
+### 2.6 缺失值语义
+
+所有 policy feature 必须显式区分：
+
+```text
+AVAILABLE
+MISSING
+STALE
+LOW_CONFIDENCE
+NOT_APPLICABLE
+```
+
+禁止：
+
+```text
+missing = 0
+```
+
+缺失/不新鲜/低置信必须影响 hard constraint、feature availability 或 conservative fallback，而不是伪造精确数值。
 
 ---
 
 ## 3. 上传一本书后的工作流程
 
-以上传《哥德尔、艾舍尔、巴赫》EPUB 为例，Askora 不应直接从第一章开始总结，而应执行以下流程。
+以上传《哥德尔、艾舍尔、巴赫》EPUB 为例，Askora 不直接从第一章开始总结。
 
-### 3.1 明确学习目标
+### 3.1 明确 LearningGoal
 
 例如：
 
 - 理解全书主要思想；
 - 理解形式系统、自指与不完备性；
 - 能解释哥德尔证明的核心结构；
-- 能将怪圈概念迁移到程序、AI 或意识问题中。
+- 能把怪圈概念迁移到程序、AI 或意识问题。
 
-不同目标对应不同学习路径。
+目标由 SYS06 结构化并由用户确认。
 
 ### 3.2 解析 EPUB
 
-提取：
+保留：
 
-- 目录和章节；
-- 段落和脚注；
+- spine / TOC；
+- 章节、段落、脚注；
 - 插图与案例；
 - 定义、论证、谜题和练习；
-- 原文位置和引用锚点。
+- EPUB CFI / DOM path / 稳定 SourceSpan。
 
 ### 3.3 构建知识结构
 
@@ -175,166 +289,145 @@ LLM 可以负责从自然语言中抽取目标，但最终目标必须可编辑�
 → 怪圈、意识与智能
 ```
 
-机器抽取的概念和关系只能作为候选，需要经过：
-
-- 同义词合并；
-- 原文证据绑定；
-- 循环依赖检查；
-- 置信度标记；
-- 人工修正。
+机器抽取只形成候选；必须经过证据绑定、实体消歧、关系验证、循环依赖检查、置信度与必要审核。
 
 ### 3.4 诊断先备知识
 
-系统用少量高信息增益题目判断：
+系统通过少量高信息价值任务判断：
 
-- 是否理解公理与定理；
-- 是否理解系统与元系统；
-- 是否能操作简单形式规则；
-- 是否理解自指和悖论；
-- 是否具备基础逻辑知识。
+- 公理与定理；
+- 系统与元系统；
+- 简单形式规则操作；
+- 自指和悖论；
+- 基础逻辑。
 
-### 3.5 生成概念路径
+### 3.5 生成 LearningPlan
 
-学习路径不必等于原书目录顺序：
+学习路径不等于原书目录：
 
 ```text
 建立直觉
 → 掌握形式机制
 → 理解不完备性
 → 建立跨领域联系
-→ 完成迁移任务
+→ 迁移验证
 ```
 
-### 3.6 动态教学
+### 3.6 Adaptive Teaching
 
-针对同一知识点，根据学习状态采用不同策略：
+同一 KnowledgeUnit 的教学会根据 TeachingContext 改变：
 
-- 完全陌生：直接讲解 + 完整示例；
-- 有初步理解：苏格拉底追问；
-- 会模仿：示例褪去 + 半完成题；
-- 能独立完成：变式练习；
-- 已稳定掌握：延迟测试 + 迁移任务。
+- 缺乏基础表征 → `EXPLICIT_INSTRUCTION`；
+- 有初步理解、需要引导生成 → `GUIDED_PRACTICE`；
+- 已能在支架下完成 → `FADING_PRACTICE`；
+- 需要无提示提取 → `RETRIEVAL_PRACTICE`；
+- 错误已诊断 → `ERROR_REMEDIATION`；
+- 基本能力稳定后 → `TRANSFER_CHALLENGE`。
+
+策略切换必须由 material evidence 驱动，而不是由“又多了一轮聊天”驱动。
 
 ---
 
-## 4. AI 学习工具的八类技术系统
+# 4. AI 学习工具的八类技术系统
 
-### 4.0 本章目标与设计原则
+## 4.0 本章目标与设计原则
 
-本章把 Askora 的教学内核拆成八类职责唯一、状态边界明确的技术系统。核心目标不是堆叠更多 RAG、LLM 或 Agent，而是建立一条可实现、可回放、可解释、可评估的教学闭环。
+本章定义 Askora 的 Canonical Learning Core。八系统职责与状态所有权继续冻结，不因 v0.3 Teaching Policy 重构而改变。
 
-证据标记统一使用：`学术共识`、`研究证据`、`行业实践`、`Askora 设计选择`、`实验性方案`、`研究者推断`。
+证据标记继续使用：`学术共识`、`研究证据`、`行业实践`、`Askora 设计选择`、`实验性方案`、`研究者推断`。
 
 冻结原则：
 
 1. 每项核心职责只有一个主责系统；
-2. 每类核心决策只有一个最终所有者；
+2. 每类核心决策只有一个最终 owner；
 3. 关键业务状态只允许一个系统写入；
-4. 评估证据与长期学习者状态分离；
-5. 教学动作与长期学习计划分离；
-6. 一般计划与复习调度分离；
-7. 检索层负责供给证据，不负责选择教学动作；
-8. LLM/Agent 负责推断、生成和执行，不拥有业务真相；
-9. 任何高级算法都必须优于简单 baseline 后才进入下一阶段；
-10. 最终效果关注无提示独立完成、延迟保持和迁移，而不是点击率、对话次数或学习时长。
+4. AssessmentResult 与 MasteryEstimate 分离；
+5. TeachingAction 与 LearningPlan 分离；
+6. ReviewSchedule 与 LearnerState 分离；
+7. MisconceptionEvidence 与 MisconceptionHypothesis 分离；
+8. TeachingStage 是 derived feature，不是 learner truth；
+9. 检索层供给证据，不选择 TeachingAction；
+10. SYS08/LLM 执行动作，不拥有领域决策；
+11. hard constraint 不能被 scorer、LLM 或实验覆盖；
+12. 任何高级学习算法必须在正确数据基础与学习结果证据成熟后再进入。
 
-### 4.1 八类技术系统现状诊断
+## 4.1 八类技术系统现状与 v0.3 Delta
 
-重构前第 4 章存在明显成熟度断层：
+v0.2 已经完成状态所有权与主要跨系统边界冻结；v0.3 的主要 Delta 集中在 SYS04/SYS05 与 Outcome/Evaluation：
 
-| 原系统 | 重构前状态 | 主要问题 |
+| 系统 | v0.2 已冻结 | v0.3 主要增量 |
 |---|---|---|
-| 内容解析与知识建模 | 已有详细工程设计 | 与公共对象命名、状态所有权需统一 |
-| 检索与知识供给 | 已有详细工程设计 | 需冻结与教学策略、Agent 的决策边界 |
-| 学习者建模 | 能力清单 | 缺状态模型、更新规则、置信度和版本 |
-| 评估与错误诊断 | 能力清单 | 与掌握判断边界冲突 |
-| 教学策略选择 | 能力清单 | 缺 TeachingAction 所有权、策略约束和演进方法 |
-| 学习路径与任务调度 | 能力清单 | 与即时教学、复习调度边界不清 |
-| 记忆保持与复习调度 | 能力清单 | 与 LearnerState、LearningPlan 重复 |
-| LLM 生成、Agent 编排与可信控制 | 能力清单 | 容易演化成越权的“超级决策系统” |
+| SYS01 内容解析与知识建模 | Knowledge truth / relation owner | 无 owner 变化 |
+| SYS02 检索与知识供给 | EvidenceBundle owner；answer leakage filtering | 对接新的 canonical answer_exposure / TeachingAction envelope |
+| SYS03 学习者建模 | LearnerState / MasteryEstimate owner | 明确 validation obligation 不是 MasteryState；消费正交 assistance/exposure |
+| SYS04 评估与错误诊断 | AssessmentResult / Attempt owner | error taxonomy、diagnostic confidence、actual assistance/exposure |
+| SYS05 教学策略选择 | TeachingAction owner | 六策略族、TeachingStage、TeachingContext、hard taxonomy、Policy Stack、anti-oscillation、PolicyBundle |
+| SYS06 学习路径与任务调度 | LearningPlan / Activity owner | metacognitive activity 继续归 SYS06；不受 strategy ontology 污染 |
+| SYS07 记忆保持与复习调度 | ReviewSchedule / next_due owner | 无 owner 变化；向 TeachingContext 提供 review/delay context |
+| SYS08 LLM/Agent 与可信控制 | Model/tool execution owner | 明确不得扩大 scaffold/hint/exposure 或改 TeachingAction semantics |
 
-必须保留的 4.1/4.2 设计包括：
-
-- 4.1 的 `RawAsset → MaterialRevision → DocumentNode → SourceSpan → KnowledgeObject → KnowledgeRelation → PedagogicalAsset → IndexProjection` 分层思想；
-- `DocumentIR`、稳定原文锚点、证据强绑定、多粒度内容单元、候选抽取、实体消歧、关系置信度、质量门禁、增量更新、版本追踪、索引投影和解析安全；
-- 4.2 的教学感知检索、多路召回、RRF、重排、GraphRAG/PageIndex 边界、`EvidenceBundle`、L0～L4 答案泄漏控制、引用、失败降级、缓存版本和多级评估。
-
-重构前的主要闭环断点：
-
-```text
-AssessmentResult → MasteryEstimate 缺正式协议
-LearnerState → TeachingAction 缺正式决策协议
-ReviewSchedule → LearningPlan 缺统一合并机制
-TeachingAction + EvidenceBundle → 可执行交互缺确定性编排边界
-用户纠正 → 状态重算缺标准流程
-算法决策 → 离线回放/A-B 缺统一 DecisionTrace
-```
-
-### 4.2 八类系统职责矩阵
+## 4.2 八类系统职责矩阵
 
 | 技术系统 | 唯一核心职责 | 最终决策所有权 | 明确不负责 |
 |---|---|---|---|
-| 内容解析与知识建模 | 把原始材料转为规范、可审计知识结构 | 内容/知识对象和关系是否发布 | 用户掌握、教学动作、学习计划 |
-| 检索与知识供给 | 为当前教学动作选择可引用证据 | 哪些候选进入 EvidenceBundle | 为什么要取、教学动作、掌握更新 |
-| 学习者建模 | 维护学习者认知状态估计 | LearnerState、MasteryEstimate、用户误区假设 | 单次判分、教学动作、计划、复习时间 |
-| 评估与错误诊断 | 对单次 Attempt 产生测量和诊断证据 | AssessmentResult、错误类型、评分置信度 | 长期掌握状态 |
-| 教学策略选择 | 对当前目标选择即时 TeachingAction | TeachingAction、提示强度、答案暴露上限 | 长期学习目标排序、模型执行 |
-| 学习路径与任务调度 | 生成并维护 LearningPlan | 学什么、先后顺序、今日活动 | 怎么讲、何时最佳复习 |
-| 记忆保持与复习调度 | 计算遗忘风险和下一建议复习时点 | ReviewSchedule、next_due_at | 完整日计划、mastery 裁决 |
-| LLM 生成、Agent 编排与可信控制 | 执行既定领域决策并生成交互 | 会话执行、模型/工具路由和工程降级 | 改 learner state、教学策略、计划和复习日期 |
+| SYS01 内容解析与知识建模 | 原始材料 → 可审计知识结构 | KnowledgeUnit / relations publish | learner mastery、TeachingAction、plan |
+| SYS02 检索与知识供给 | 为当前动作选择可引用证据 | EvidenceBundle | 为什么教、mastery、TeachingAction |
+| SYS03 学习者建模 | 跨时间融合学习证据 | LearnerState / MasteryEstimate / learner misconception hypothesis | 单次评分、TeachingAction、plan、review time |
+| SYS04 评估与错误诊断 | 测量一次 Attempt | AssessmentResult / error diagnosis / actual assistance | 长期 mastery |
+| SYS05 教学策略选择 | 当前 Objective/Activity 下决定怎么教 | TeachingAction / policy config | 长期目标排序、评分、模型执行 |
+| SYS06 学习路径与任务调度 | 生成和维护学习计划 | LearningPlan / LearningActivity | 当前怎么讲、next_due |
+| SYS07 记忆保持与复习调度 | 估计遗忘风险与建议复习时点 | ReviewSchedule / next_due_at | full mastery / daily plan |
+| SYS08 LLM/Agent 与可信控制 | 执行既定领域决策 | ModelInference / WorkflowRun / tool-model route | 改 LearnerState、Assessment truth、TeachingAction、plan、review |
 
-核心决策唯一所有者：
+核心决策唯一 owner：
 
 ```text
-知识事实/关系发布        → 内容解析与知识建模
-EvidenceBundle 最终选择   → 检索与知识供给
-单次评分/错误诊断         → 评估与错误诊断
-长期掌握估计              → 学习者建模
-当前教学动作              → 教学策略选择
-长期/今日学习计划          → 学习路径与任务调度
-下一建议复习时间           → 记忆保持与复习调度
-会话/模型/工具执行         → LLM/Agent 编排与可信控制
+Knowledge truth / relations     → SYS01
+EvidenceBundle                  → SYS02
+LearnerState / MasteryEstimate  → SYS03
+AssessmentResult                → SYS04
+TeachingAction                  → SYS05
+LearningPlan / Activity         → SYS06
+ReviewSchedule / next_due       → SYS07
+Model / Tool execution          → SYS08
 ```
 
-### 4.3 整体分层架构
-
-八类系统分成四个逻辑层：
+## 4.3 整体分层架构
 
 ```text
 知识基础设施层
-- 内容解析与知识建模
-- 检索与知识供给
+- SYS01 Content & Knowledge
+- SYS02 Retrieval & Evidence Supply
 
 学习证据与状态层
-- 评估与错误诊断
-- 学习者建模
-- 记忆保持与复习调度
+- SYS04 Assessment & Diagnosis
+- SYS03 Learner Model
+- SYS07 Review Scheduler
 
 教学决策层
-- 教学策略选择
-- 学习路径与任务调度
+- SYS06 Learning Planner
+- SYS05 Teaching Policy
 
 交互执行与治理层
-- LLM 生成、Agent 编排与可信控制
+- SYS08 LLM / Agent / Tool Execution
 ```
 
 整体数据流：
 
 ```mermaid
 flowchart TD
-    U[用户目标/输入] --> P[学习路径与任务调度]
-    K[内容解析与知识建模] --> P
-    K --> R[检索与知识供给]
-    L[学习者建模] --> P
-    L --> S[教学策略选择]
-    V[记忆保持与复习调度] --> P
+    U[User Goal/Input] --> P[SYS06 Learning Planner]
+    K[SYS01 Knowledge] --> P
+    K --> R[SYS02 Retrieval]
+    L[SYS03 Learner Model] --> P
+    L --> S[SYS05 Teaching Policy]
+    V[SYS07 Review] --> P
     P --> S
-    A[评估与错误诊断] --> L
+    A[SYS04 Assessment] --> L
     A --> S
     S --> R
-    S --> X[LLM/Agent 执行]
+    S --> X[SYS08 Execution]
     R --> X
-    P --> X
     X --> A
     X --> E[LearningEvent / FeedbackSignal]
     E --> L
@@ -342,177 +435,143 @@ flowchart TD
     V --> P
 ```
 
-反馈环通过不可变事件和新状态版本形成，不允许多个系统同步写同一业务状态。
+反馈环采用“读取旧 snapshot → 产生新不可变结果 → 下一轮消费新版本”，不允许多个系统同步写同一业务状态。
 
-### 4.4 统一领域对象
+## 4.4 统一领域对象
 
-相同语义必须复用统一对象。4.1 原有内部对象继续保留，但跨系统接口统一如下。
+| 对象 | 含义 | Owner | 更新/派生语义 |
+|---|---|---|---|
+| `LearningGoal` | 最终能力目标、预算、成功标准 | SYS06 | versioned |
+| `LearningObjective` | 可计划、可测量阶段目标 | SYS06 | plan version |
+| `LearningActivity` | 当前可执行学习活动 | SYS06 | plan version |
+| `SourceDocument/MaterialRevision` | 版本化材料 | SYS01 | immutable revision |
+| `SourceSpan/SourceChunk` | 原文锚点 / 可重建检索投影 | SYS01 | revision / rebuild |
+| `KnowledgeUnit/Concept` | 规范知识身份 | SYS01 | stable id + revision |
+| `PrerequisiteRelation` | 前置关系 | SYS01 | revision |
+| `Misconception` | 规范误区定义 | SYS01 | revision |
+| `EvidenceBundle` | 当前动作允许使用的证据集合 | SYS02 | per retrieval request |
+| `AssessmentItem` | 可评分测量单元 | SYS04 | item version |
+| `Attempt` | 一次真实提交及实际帮助状态 | SYS04 | append/revision |
+| `AssessmentResult` | 单次评分、错误、诊断证据 | SYS04 | reassessment version |
+| `LearnerEvidence` | SYS03 接纳/权重化的长期状态证据 | SYS03 | append/version |
+| `MasteryEstimate` | learner × KnowledgeUnit 掌握估计 | SYS03 | versioned inference |
+| `LearnerState` | 当前认知状态 snapshot | SYS03 | immutable snapshot |
+| `TeachingContext` | SYS05 决策输入 snapshot | SYS05 构建；引用其他 owner | immutable/reference-based |
+| `TeachingStage` | 当前 activity 的 policy interpretation | SYS05 derived | replay 时重算 |
+| `StrategyFamily` | 稳定教学 episode/control intent | SYS05 policy definition | immutable/versioned definition |
+| `TeachingAction` | 下一步具体教学决策 | SYS05 | immutable decision |
+| `PolicyBundle` | 全套不可变 policy config | SYS05 | immutable publish + atomic activation |
+| `LearningPlan` | 中长期学习计划 | SYS06 | replan version |
+| `ReviewSchedule` | 记忆状态与建议复习时点 | SYS07 | schedule version |
+| `ModelInference` | 一次模型调用执行记录 | SYS08 | append-only |
+| `LearningEvent` | 已发生的不可变领域事实 | Event Ledger 托管 | append-only |
+| `FeedbackSignal` | 用户显式反馈事实 | Event Ledger 托管 | append-only |
+| `DecisionTrace` | 关键决策审计记录 | owner 产 payload，Ledger 托管 | append-only |
+| `TeachingEpisode` | 一段可分析的教学 episode | Outcome/experiment view | append/reference aggregate |
+| `LearningTrajectory` | 跨 episode 的学习轨迹 | Outcome/experiment view | reference aggregate |
+| `OutcomeObservation` | 学习结果测量记录 | measurement/outcome layer | append-only observation |
+| `ExperimentAssignment` | 实验分配事实 | Experiment Router | immutable assignment |
 
-| 对象 | 含义 | 唯一创建/拥有方 | 更新机制 | 属性分类 |
-|---|---|---|---|---|
-| `LearningGoal` | 用户最终能力目标、场景、预算、成功标准 | 4.6；用户确认语义 | 新版本 | 用户事实 + 目标决策 |
-| `LearningObjective` | 可计划、可验证的阶段目标 | 4.6 | plan version | 决策 |
-| `SourceDocument` | 版本化规范材料；内部映射 MaterialRevision | 4.1 | 新 revision | 来源事实 |
-| `SourceChunk` | 具原文锚点的检索投影 | 4.1 | 随索引重建 | 来源事实投影 |
-| `KnowledgeUnit` | 可教学/评估/规划的知识或技能单元 | 4.1 | stable id + revision | 事实/归纳，带 provenance |
-| `Concept` | 规范语义概念身份 | 4.1 | canonical revision | 事实/规范化归纳 |
-| `PrerequisiteRelation` | hard/soft/contextual 前置关系 | 4.1 | edge revision | 事实或推断，带证据 |
-| `LearnerState` | 学习者当前认知状态快照 | 4.3 | 新 snapshot | 推断 |
-| `MasteryEstimate` | learner × KnowledgeUnit 掌握估计 | 4.3 | 新 estimate version | 推断 |
-| `Misconception` | 规范误区定义 | 4.1 | revision | 事实/专家归纳/候选分层 |
-| `LearningActivity` | 可执行的新学/复习/诊断/迁移任务 | 4.6 | plan version | 计划决策 |
-| `TeachingAction` | 当前一步教学动作 | 4.5 | 不原地改；创建下一决策 | 决策 |
-| `TeachingStrategy` | 可版本化教学策略模板 | 4.5 | semantic version | 策略配置 |
-| `TeachingContext` | 决策时的只读上下文快照 | 4.5 | 每次重建 | 决策输入快照 |
-| `EvidenceBundle` | 当前动作可使用的证据集合 | 4.2 | 每次检索新建 | 来源事实 + 选择决策 |
-| `AssessmentItem` | 可评分测量单元 | 4.4 | item version | 测量设计 |
-| `Attempt` | 学习者一次提交 | 4.4 | append/revision link | 用户行为事实 |
-| `AssessmentResult` | 单次评分、错误、误区证据、置信度 | 4.4 | 复评产生新版本 | 测量推断 |
-| `LearningPlan` | 中长期目标与活动计划 | 4.6 | replan 新版本 | 决策 |
-| `ReviewSchedule` | 记忆状态、风险、next_due_at | 4.7 | schedule version | 推断 + 调度决策 |
-| `LearningEvent` | 不可变学习/领域事件 | 4.8 托管 Event Ledger | append-only | 发生事实 |
-| `FeedbackSignal` | 用户对教学、评分、体验或状态的显式反馈 | 4.8 | append-only | 用户事实 + 分类推断 |
-| `ModelInference` | 一次模型调用的完整执行元数据 | 4.8 | append-only | 模型推断/执行记录 |
-| `DecisionTrace` | 关键决策的输入、候选、约束、理由、版本 | 4.8 托管账本；领域系统提供 payload | append-only | 决策记录 |
-
-原 4.1 对象映射：
-
-```text
-RawAsset           → 4.1 内部原始资产
-MaterialRevision   → SourceDocument 的不可变版本实体
-DocumentNode       → 4.1 内部结构节点
-SourceSpan         → 4.1 内部最小证据锚点
-KnowledgeObject    → 统一为 KnowledgeUnit
-KnowledgeMention   → 文档 mention，不等于 Concept
-KnowledgeRelation  → 关系基类；PrerequisiteRelation 公共化
-PedagogicalAsset   → 教学素材候选；正式 AssessmentItem 由 4.4 发布
-IndexProjection    → 全文/向量/图等可重建投影
-```
-
-关键对象边界：
+关键对象边界继续冻结：
 
 ```text
 AssessmentResult ≠ MasteryEstimate
-Misconception 定义 ≠ 用户存在该误区的假设
-ReviewSchedule ≠ LearnerState
 LearningPlan ≠ TeachingAction
+ReviewSchedule ≠ LearnerState
+MisconceptionEvidence ≠ MisconceptionHypothesis
+TeachingStage ≠ LearnerState
+TeachingStrategy ≠ TeachingAction
+TeachingAction ≠ InteractionMove
 SourceChunk ≠ KnowledgeUnit
+DecisionTrace ≠ OutcomeObservation
+ExperimentAssignment probability ≠ action selection propensity
 ```
 
-### 4.5 统一事件与决策协议
+## 4.5 统一事件、决策与可回放协议
 
-#### 4.5.1 LearningEvent
+### 4.5.1 LearningEvent
 
-```json
-{
-  "event_id": "evt_xxx",
-  "event_type": "question.answered",
-  "user_id": "usr_xxx",
-  "session_id": "ses_xxx",
-  "timestamp": "2026-08-07T08:00:00+08:00",
-  "source_system": "assessment",
-  "entity_type": "Attempt",
-  "entity_id": "att_xxx",
-  "payload": {},
-  "schema_version": "1.0",
-  "trace_id": "trace_xxx"
-}
-```
+LearningEvent 继续采用不可变、append-only、幂等消费、版本化 schema 与 Transactional Outbox 语义。更正历史使用 correction event；replay 不调用在线 LLM。
 
-协议要求：
+### 4.5.2 DecisionTrace v0.3 Design Delta
 
-- `event_id` 全局唯一，消费者按 event id 幂等；
-- transient error 指数退避，业务校验失败不盲重试；
-- 不假设跨分区全局顺序，迟到事件可触发局部 replay；
-- schema 采用版本化、尽量 additive 的演进方式；
-- 关键领域更新使用 Transactional Outbox；
-- 无法恢复的事件进入 Dead Letter Queue，可人工审查和重放；
-- 学习者状态与复习状态可由不可变学习事件重建；
-- 更正历史不直接改旧事件，而产生 correction event。
-
-#### 4.5.2 DecisionTrace
-
-```json
-{
-  "decision_id": "dec_xxx",
-  "decision_type": "teaching_action_selection",
-  "inputs": [
-    {"entity_type": "LearnerState", "entity_id": "ls_xxx", "version": "42"}
-  ],
-  "candidate_actions": [],
-  "selected_action": {},
-  "constraints": [],
-  "reason_codes": [],
-  "confidence": 0.0,
-  "algorithm_version": "1.0",
-  "model_version": "model_xxx",
-  "created_at": "2026-08-07T08:00:00+08:00",
-  "trace_id": "trace_xxx"
-}
-```
-
-必须记录：
-
-- 高影响知识对象/关系发布；
-- EvidenceBundle 最终选择；
-- Adaptive AssessmentItem 选择；
-- 复杂 AssessmentResult；
-- MasteryEstimate 更新；
-- TeachingAction 选择；
-- LearningPlan 生成与重规划；
-- ReviewSchedule 更新；
-- 高影响模型路由和降级；
-- 用户纠正系统判断后的重算。
-
-DecisionTrace 支持：
+本阶段不修改 `docs/specs/domain/decision-contract.md`，但 Design 冻结下一版至少需要支持：
 
 ```text
-稳定 reason codes
-→ 用户可解释
-→ 历史 replay
-→ 新旧算法 counterfactual compare
-→ A/B experiment_id / variant_id
-→ algorithm/prompt/model rollback
+TeachingContext refs/version
+context fingerprint
+policy bundle version/hash
+strategy family/version
+available actions
+hard-filtered actions
+filter reason codes
+derived TeachingStage
+stage mapper version
+features + availability + confidence + feature version
+candidate scores
+selected TeachingAction
+previous action
+transition reason
+material evidence refs
+tie-break reason
+experiment assignment
+behavior policy type
+action propensity
+replayability status
 ```
 
-### 4.6 公共教学科学原则
+Teaching Policy 的 trace 必须能够回答：
 
-以下原则只定义一次，各系统引用而不重复理论史。
+1. 当时引用了哪些 exact-version canonical objects？
+2. 哪些候选在 hard constraints 前可用？
+3. 哪些候选被什么 hard reason code 排除？
+4. TeachingStage 如何派生？
+5. 每个 feature 的值、availability、confidence 与版本是什么？
+6. soft score 如何形成？
+7. anti-oscillation 是否阻止了切换？
+8. tie-break 如何决定最终动作？
+9. 当时使用哪一个 PolicyBundle？
+10. 是否属于实验，以及行为策略概率语义是什么？
 
-| 原则 | 证据判断 | Askora 约束 |
+概率语义冻结：
+
+```text
+deterministic policy
+→ action_propensity = null
+```
+
+不得保存伪造 `1.0`。
+
+同时：
+
+```text
+experiment assignment probability
+≠
+action selection propensity
+```
+
+若历史 TeachingContext、PolicyBundle 或输入版本不可取得，`replayability_status` 必须显式为 partial/not_replayable，不能声称 fully replayable。
+
+## 4.6 公共学习科学原则
+
+| 原则 | 证据判断 | Askora v0.3 约束 |
 |---|---|---|
-| 掌握学习 | `研究证据` | 进入强依赖目标前需要足够先备证据，但阈值需校准 |
-| 提取练习 / 测试效应 | `学术共识` | 真实提取优先；看答案后复述与独立成功不等权 |
-| 间隔效应 | `学术共识` | 复习跨时间分散；不存在适用于所有内容的固定天数 |
-| 交错学习 | `研究证据` | 适合需要类别/策略辨别的任务，不机械交错全部内容 |
-| Worked Examples | `研究证据` | 新手阶段降低无效搜索，能力增长后逐步褪去 |
-| 认知负荷 | `研究证据` | 控制一次动作的信息量、推理跨度和上下文冗余 |
-| 形成性评价 | `研究证据` | 评估用于产生下一步证据，不把“给分”当终点 |
-| 脚手架 | `研究证据` | 支架有等级、有退出条件、能撤除，防止提示依赖 |
-| Productive Failure | `研究证据` | 仅在任务适合且之后有 consolidation 时采用 |
-| 元认知/自我调节 | `研究证据` | 用户可查看目标、状态、证据并纠正系统 |
-| 延迟保持 | `学术共识` | 即时正确不足以证明稳定掌握 |
-| 知识迁移 | `学术共识` | 独立测量迁移；表面换数字不等于真正迁移 |
+| Mastery Learning | 研究证据 | 进入强依赖目标前需要足够先备证据；阈值必须校准 |
+| Retrieval Practice | 学术共识 | 独立提取优先；看答案后复述不能等权 |
+| Spacing | 学术共识 | 复习跨时间分散；不存在统一固定天数 |
+| Interleaving | 研究证据 | 用于类别/策略辨别，不机械混排全部内容 |
+| Worked Examples | 研究证据 | 新手可降低无效搜索，随后必须 fading |
+| Cognitive Load | 研究证据 | 控制信息量、推理跨度、冗余 |
+| Formative Assessment | 研究证据 | 测量服务于下一步教学，不以“给分”结束 |
+| Scaffolding | 研究证据 | 支架可增加、保持、撤除，并记录依赖 |
+| Metacognition | 研究证据 | 作为 modifier/activity，而不是核心 error type |
+| Delayed Retention | 学术共识 | 即时正确不足以证明稳定能力 |
+| Transfer | 学术共识 | 迁移必须独立测量；表面换数字不等于迁移 |
+| Productive Failure | 研究证据 | v0.3 不作为 generic selectable Strategy Family；延后到未来专项设计 |
 
-稳定掌握建议定义为 `Askora 设计选择`：
+稳定掌握的具体 threshold、独立成功数量、延迟窗口均不是学术定律；它们只能是版本化 Askora policy/config，并通过实验校准。
 
-```text
-MasteryEstimate 达到经校准阈值
-AND 足够的无提示独立成功
-AND 至少一次延迟提取证据
-AND 无高置信活跃误区
-```
-
-迁移掌握：
-
-```text
-稳定掌握
-AND 足够新颖的迁移任务独立成功
-```
-
-阈值不是学术定律，必须由 Askora 数据校准。
-
-### 4.7 公共 AI 工程能力
+## 4.7 公共 AI 工程能力
 
 所有 LLM/ML 调用经统一 Model Gateway：
 
@@ -526,41 +585,49 @@ typed request
 → ModelInference
 ```
 
-公共能力只实现一次：
+公共能力：
 
-1. **结构化输出**：JSON/typed schema、enum/范围/引用 ID 校验；
-2. **Prompt 版本**：`prompt_template_id + prompt_version + schema_version`；
-3. **模型路由**：按能力、延迟、成本、隐私选择；确定性计算不用 LLM；
-4. **超时与重试**：区分网络、限流、拒绝、schema failure；非幂等工具不盲重试；
-5. **缓存**：键包含业务对象版本、索引版本、Prompt/模型版本和权限范围；
-6. **日志与可观测性**：统一 `trace_id/session_id/decision_id/model_inference_id/retrieval_trace_id/event_id`；
-7. **成本治理**：每次调用记录 usage/cost，设置 session/workflow budget；
-8. **Prompt Injection 防护**：上传内容始终作为不可信 data；tool allowlist、least privilege、参数校验和纵深防御；
-9. **数据隐私**：数据最小化、用户隔离、日志脱敏、供应商字段最小化；
-10. **无模型降级**：已有计划、ReviewSchedule、规则判分、LearnerState 投影和缓存检索在外部 LLM 不可用时仍可工作；
-11. **权限与审计**：模型不能直接 UPDATE 领域表，所有写入走领域 command；
-12. **事件驱动**：使用 Outbox、幂等消费者、DLQ 和 schema evolution。
+1. JSON/typed schema；
+2. Prompt/version/hash；
+3. capability/privacy/cost/latency model routing；
+4. bounded timeout/retry；
+5. version-aware cache；
+6. trace / correlation；
+7. cost budget；
+8. Prompt Injection defense；
+9. data minimization；
+10. no-model deterministic fallback；
+11. model no direct domain repository write；
+12. Outbox/idempotency/DLQ/schema evolution。
 
-`行业安全共识`：RAG 和 fine-tuning 不能完全消除 Prompt Injection，因此禁止将系统 Prompt 视为唯一安全边界。
+SYS08 的核心原则：
 
-### 4.8 八类技术系统逐项设计
+```text
+LLM = inference/generation/execution
+≠ domain truth
+≠ policy owner
+```
 
-#### 4.8.1 内容解析与知识建模
+---
+
+## 4.8 八类技术系统逐项设计
+
+### 4.8.1 SYS01 — 内容解析与知识建模
 
 **系统定义**：把原始材料转换为可审计、版本化、可定位原文、可教学和可评估的规范知识模型。
 
 **唯一所有权**：SourceDocument、SourceChunk、KnowledgeUnit、Concept、PrerequisiteRelation、规范 Misconception 及发布状态。
 
-##### 分层内容模型
+#### 分层内容模型
 
-继续沿用原设计的八层思想，并统一跨系统命名：
+继续沿用：
 
 ```text
 RawAsset
 → MaterialRevision / SourceDocument revision
 → DocumentNode
 → SourceSpan
-→ KnowledgeUnit（原 KnowledgeObject）
+→ KnowledgeUnit
 → KnowledgeRelation / PrerequisiteRelation
 → PedagogicalAsset
 → IndexProjection
@@ -568,314 +635,137 @@ RawAsset
 
 | 层 | 主要职责 |
 |---|---|
-| RawAsset | 原文件、checksum、MIME、大小、安全扫描 |
+| RawAsset | 原文件、checksum、MIME、安全扫描 |
 | MaterialRevision | 不可变材料版本 |
-| DocumentNode | 卷、章、节、段、表格、图片、公式、代码、脚注 |
-| SourceSpan | 最小可回放证据锚点 |
-| KnowledgeUnit | 可教学、可评估、可规划的知识/技能 |
-| KnowledgeRelation | 前置、组成、推导、对比、应用、例证等 |
-| PedagogicalAsset | 定义、解释、示例、反例、练习、解答、提示、误区候选 |
-| IndexProjection | 全文、向量、图、层级索引等可重建投影 |
+| DocumentNode | 卷章段、表格、图片、公式、代码、脚注 |
+| SourceSpan | 最小可回放原文证据锚点 |
+| KnowledgeUnit | 可教学、可评估、可规划知识/技能 |
+| KnowledgeRelation | 前置、组成、推导、对比、应用、例证 |
+| PedagogicalAsset | 定义、解释、示例、反例、练习、解答、提示候选 |
+| IndexProjection | 全文、向量、图、层级等可重建索引 |
 
-关系数据库中的规范内容模型是事实源，向量库、全文索引和图数据库均是可重建投影。
+关系数据库中的规范模型是事实源；向量库、全文索引和图数据库均为可重建投影。
 
-##### 解析与结构恢复
+#### 解析与结构恢复
 
-优先支持 Markdown、TXT、EPUB、PDF、DOCX，后续扩展 HTML、网页快照、幻灯片、音视频转写。
-
-| 格式 | 必须保留 | 主要风险 |
-|---|---|---|
-| Markdown | 标题、列表、表格、引用、代码、公式 | 正则切分破坏嵌套结构 |
-| TXT | 段落、空行、推断章节 | 缺少显式结构 |
-| EPUB | spine、TOC、标题、脚注、图片、内部链接、CFI | 去 HTML 后锚点丢失 |
-| PDF | 页码、文本框、阅读顺序、表格、公式、图片、脚注 | 多栏错序、扫描页、编码错误 |
-| DOCX | 标题样式、列表、表格、图片、题注、脚注、公式 | 只读段落会丢结构语义 |
-
-PDF 采用分级策略：
+优先支持 Markdown/TXT/EPUB/PDF/DOCX。PDF 使用：
 
 ```text
 原生文本层
-→ 版面分析/阅读顺序恢复
+→ 版面恢复
 → 局部 OCR
 → 整页 OCR
-→ 低置信人工复核
+→ 低置信复核
 ```
 
-OCR 不是默认路径；正常数字 PDF 不重复识别。
+OCR 不是默认路径。
 
-##### 统一 DocumentIR
+#### DocumentIR 与多粒度单元
 
-所有解析器输出统一中间表示，而不是只有 `full_text + chunks`：
+所有解析器输出统一 DocumentIR，并保留页码、节点路径、字符区间、EPUB CFI、DOM path 等稳定 locator。
 
-```json
-{
-  "material_id": "mat_xxx",
-  "revision_id": "rev_xxx",
-  "source_type": "epub",
-  "checksum": "sha256:...",
-  "parser": {"name": "epub_parser", "version": "2.0.0"},
-  "nodes": [],
-  "source_spans": [],
-  "assets": []
-}
-```
-
-DocumentIR 必须保留稳定定位信息：页码/节点路径/字符区间/EPUB CFI/DOM path 等，保证引用能回放原文。
-
-##### 多粒度内容单元
-
-禁止一个固定 chunk 同时承担所有职责。至少区分：
+禁止一个 chunk 同时承担所有职责：
 
 ```text
-EvidenceSpan      精确引用/证据
-SemanticUnit      知识抽取/教学建模
-RetrievalChunk    检索召回
-HierarchyNode     长文档范围定位
+EvidenceSpan      → 精确引用
+SemanticUnit      → 知识抽取
+RetrievalChunk    → 检索召回
+HierarchyNode     → 长文档范围定位
 ```
 
-`SourceChunk` 是检索投影，不是知识事实；`KnowledgeUnit` 才是教学和规划的规范对象。
+#### 知识关系与发布
 
-##### 知识对象与关系
-
-KnowledgeUnit 可覆盖：概念、事实、命题、规则、过程、方法、策略、表征、技能等。Concept 是规范语义身份，不等于文档中每次 mention。
-
-关系至少区分：
-
-```text
-hard_prerequisite
-soft_prerequisite
-part_of
-explains
-supports
-contrasts_with
-example_of
-applies_to
-derived_from
-possible_same_as
-```
-
-hard prerequisite 发布要求最高：必须有证据或审核，执行环检测；仅有章节顺序或模型直觉不得自动变成硬前置。
-
-##### 候选抽取、消歧和置信度
+hard prerequisite precision 优先于 recall。仅有章节顺序或模型直觉不得发布 hard prerequisite。
 
 核心流水线：
 
 ```text
-确定性结构解析
+结构解析
 → 语义切分
-→ Schema 约束 LLM/规则抽取候选
-→ SourceSpan 绑定
-→ 实体消歧/别名合并
-→ 关系推断
-→ 反向证据验证
-→ 图质量检查
-→ 自动发布或人工复核
+→ schema-constrained candidate extraction
+→ SourceSpan binding
+→ entity resolution
+→ relation inference
+→ reverse verification
+→ graph quality check
+→ publish/review
 ```
 
-置信度来自可校准证据，例如：来源显式性、多个抽取器一致性、反向验证、结构线索和人工标签；LLM 自报 confidence 不能直接视为概率。
+LLM 自报 confidence 不直接视为校准概率。
 
-##### 版本、增量更新和存储
+#### 版本、安全与评估
 
-- `MaterialRevision` 不可变；
-- canonical ID 尽量跨版本稳定；
-- parser/model/prompt/config 版本全部记录；
-- 文档局部变化只重算受影响节点、知识对象和索引投影；
-- 删除/合并对象使用 supersedes/retired，而不是静默复用 ID；
-- 所有索引都可从规范数据库重建。
+- MaterialRevision immutable；
+- canonical ID 尽量跨 revision 稳定；
+- parser/model/prompt/config 版本化；
+- 局部变化局部重算；
+- 上传内容视为不可信 data；
+- 索引全部可重建。
 
-##### 事件和安全
+离线指标继续包括对象/关系 P-R-F1、entity resolution、hard prerequisite precision、anchor replay、hallucination；这些不能直接证明学习效果。
 
-关键事件包括：
+### 4.8.2 SYS02 — 检索与知识供给
 
-```text
-MaterialImported
-MaterialParsed
-KnowledgeCandidateCreated
-KnowledgeUnitPublished
-RelationPublished
-KnowledgeModelUpdated
-ProjectionBuilt
-```
+**系统定义**：在已确定 TeachingAction、来源范围和答案暴露约束下选择最适合当前教学的 EvidenceBundle。
 
-上传文件视为不可信输入：文件大小/类型限制、解压炸弹防护、宏/脚本禁止执行、OCR/解析沙箱、Prompt Injection 内容按数据处理。
-
-##### 核心算法与评估
-
-核心问题不是最大化抽取数量，而是最大化：
-
-```text
-高精度知识对象
-× 证据覆盖
-× ID 稳定性
-× 可回放性
-```
-
-hard prerequisite 的 precision 优先于 recall。
-
-离线指标：对象/关系 P-R-F1、entity resolution accuracy、hard prerequisite precision、anchor replay rate、hallucination rate。系统指标：解析时延、失败恢复、增量重算率、索引一致性。教学效果需通过后续学习实验验证，不能由知识图指标直接推出。
-
-##### 演进路线
-
-- MVP：DocumentIR、SourceSpan、稳定文档版本、基础 SourceChunk；
-- 增强：KnowledgeUnit/Concept/Relation、人工审核、增量更新；
-- 成熟：跨材料 canonical、多模态、置信度校准、抽样审核；
-- 暂不建议：独立图数据库作为事实源、纯 LLM 端到端自动建图、低证据关系自动发布。
-
-#### 4.8.2 检索与知识供给
-
-**系统定义**：在 4.5 已确定的 TeachingAction、来源范围和答案暴露约束下，从知识基础设施选择最适合本轮教学的证据集合。
-
-**唯一所有权**：EvidenceBundle 最终选择。
+**唯一所有权**：EvidenceBundle。
 
 核心原则：
 
-> **检索相关性（retrieval relevance）不等于教学适用性（pedagogical suitability）。**
+> retrieval relevance ≠ pedagogical suitability。
 
-##### TeachingRetrievalRequest
+#### TeachingRetrievalRequest
 
-检索请求应由 TeachingAction 编译而来，而非把用户原话直接作为唯一 query：
+请求由 TeachingAction 编译而来，至少包含：
 
-```json
-{
-  "learning_objective_id": "obj_xxx",
-  "target_knowledge_unit_ids": ["ku_xxx"],
-  "pedagogical_roles": ["definition", "example", "misconception"],
-  "learner_stage": "emerging",
-  "answer_exposure_max": "L1",
-  "source_scope": ["rev_xxx"],
-  "required_prerequisites": [],
-  "context_budget_tokens": 3500
-}
+```text
+learning_objective_ref
+learning_activity_ref
+target_knowledge_unit_ids
+pedagogical_roles
+TeachingStage
+source_scope
+required_prerequisites
+answer_exposure ceiling
+context budget
 ```
 
-`learner_stage` 等字段来自 4.3/4.5 的只读 snapshot，检索层不维护另一份状态。
+SYS02 读取 TeachingStage，但不维护 learner stage truth。
 
-##### 多路召回
+#### 多路召回与选择
 
-默认召回路线：
+默认：
 
 ```text
 BM25 / lexical
 + dense vector
 + graph neighborhood/path（按需）
-+ hierarchy/page tree（长文档按需）
-+ structured stores：题目/误区/定义/示例
++ hierarchy route（按需）
++ structured stores
+→ RRF
+→ reranker
+→ MMR / coverage / budget selection
 ```
 
-稀疏与稠密检索错误模式互补；MVP 不应只保留单一路线。
+硬约束：权限、source scope、citation validity、learner-visible role 与 exposure ceiling 先于 relevance score。
 
-多路融合可用 Reciprocal Rank Fusion：
+#### 答案暴露语义
+
+v0.3 canonical `answer_exposure` 为：
 
 ```text
-RRF(d) = Σ_i 1 / (k + rank_i(d))
+NONE
+PARTIAL
+COMPLETE
 ```
 
-随后进入 Cross-Encoder 或 late-interaction 重排，再做 MMR/覆盖/预算选择。
+SYS02 可以继续保留内部更细的 leakage-risk classification，例如 L0～L4，用于检索过滤和审计；但它是 **internal retrieval classification**，必须映射到 canonical answer exposure，不能继续被全系统当作统一 hint/support level。
 
-##### 教学重排与选择
+SYS05 给出最大允许 exposure；SYS02/SYS08 只能进一步收紧，不能放宽。
 
-建议 utility：
+#### 失败语义
 
-```text
-score =
-  w_r * semantic_or_lexical_relevance
-+ w_c * target_concept_coverage
-+ w_p * prerequisite_fit
-+ w_s * learner_stage_fit
-+ w_t * pedagogical_role_fit
-+ w_q * source_quality
-- w_l * answer_leakage_risk
-- w_d * redundancy
-- w_b * context_cost
-```
-
-硬约束先于分数：权限、source_scope、允许素材类型、最大答案暴露级别和 citation validity 不得由高相关性“抵消”。
-
-证据选择可视为带覆盖约束的预算问题：
-
-```text
-maximize Σ utility(e)
-subject to Σ tokens(e) <= context_budget
-           required_roles covered
-           exposure(e) <= allowed_level
-```
-
-MVP 用 greedy marginal utility/token 即可，不必为了理论最优引入复杂整数规划。
-
-##### GraphRAG 与层级检索边界
-
-GraphRAG 更适合：前置依赖、多跳关系、跨章节概念联系、全局主题。层级/PageIndex/RAPTOR 类路线更适合：长文档章节定位、连续论证和结构范围缩小。BM25/dense 更适合局部精确取证。
-
-```text
-精确术语/局部事实 → BM25 + dense
-长文档连续论证   → hierarchy/page tree
-跨知识依赖       → graph
-```
-
-三者互补，不设置“所有请求默认 GraphRAG”。任何图/摘要结果最终必须回到 SourceSpan。
-
-##### EvidenceBundle
-
-```json
-{
-  "bundle_id": "evb_xxx",
-  "request_id": "trq_xxx",
-  "items": [
-    {
-      "knowledge_unit_id": "ku_xxx",
-      "pedagogical_role": "example",
-      "source_span_id": "span_xxx",
-      "content": "...",
-      "relevance": 0.0,
-      "confidence": 0.0,
-      "answer_exposure_level": "L1",
-      "allowed_use": ["teaching_generation"]
-    }
-  ],
-  "missing_evidence": [],
-  "conflicts": [],
-  "retrieval_trace_id": "rtr_xxx"
-}
-```
-
-引用链：
-
-```text
-最终生成陈述
-→ EvidenceBundle item
-→ KnowledgeUnit/PedagogicalAsset
-→ SourceSpan/SourceChunk
-→ MaterialRevision
-```
-
-##### 答案泄漏控制
-
-暴露级别：
-
-```text
-L0 题目条件/已知事实
-L1 方向性线索
-L2 局部下一步
-L3 关键解法结构
-L4 完整解答
-```
-
-控制链：
-
-```text
-候选召回前元数据过滤
-→ 重排惩罚
-→ EvidenceBundle 选择
-→ 最终生成层输出审查
-```
-
-4.5 拥有最高允许暴露级别；4.2 和 4.8 只能进一步收紧，不能放宽。
-
-##### 缓存、失败和观测
-
-缓存键必须包含：source/index version、request schema、TeachingAction/learner-state 相关版本、权限范围、reranker version。禁止不同学习阶段误用同一个性化 EvidenceBundle。
-
-显式失败类型：
+继续显式返回：
 
 ```text
 NO_RELEVANT_EVIDENCE
@@ -886,346 +776,663 @@ EXPOSURE_POLICY_BLOCKED
 INDEX_STALE
 ```
 
-检索失败时返回 `missing_evidence/conflict/confidence`；不能自行切换 TeachingAction，更不能由 LLM 编造事实。
+检索失败不能自行切 TeachingAction，也不能由 LLM 编造来源事实。
 
-##### 评估与路线
+### 4.8.3 SYS03 — 学习者建模
 
-离线：Recall@K、MRR、nDCG、citation precision/coverage、role coverage、leakage rate、redundancy/token efficiency。在线教学：下一次独立成功、提示依赖、延迟保持、迁移。
+**系统定义**：把多次 AssessmentResult、LearningEvent、Review outcome 与用户纠错融合为版本化、带不确定性的 LearnerState / MasteryEstimate。
 
-- MVP：BM25 + dense + RRF + Cross-Encoder + MMR + metadata filter + EvidenceBundle；
-- 增强：graph/hierarchy route、coverage constrained selector、来源冲突；
-- 成熟：LTR、基于学习结果的 rerank features、有限 Contextual Bandit route；
-- 暂不建议：所有请求默认 GraphRAG、单 embedding 检索、Agent 自由检索后直接回答。
+**唯一所有权**：LearnerState、MasteryEstimate、learner-specific MisconceptionHypothesis、LearnerEvidence acceptance/weighting。
 
-#### 4.8.3 学习者建模
-
-**系统定义**：把多次 AssessmentResult、LearningEvent 和用户反馈融合为版本化、带不确定性的 LearnerState 与 MasteryEstimate。
-
-**唯一所有权**：LearnerState、MasteryEstimate、学习者特定 misconception hypotheses。
-
-建议 MasteryEstimate：
+建议 MasteryEstimate 保留：
 
 ```text
 learner_id
 knowledge_unit_id
-competence_probability
+competence estimate
 confidence
 independent_success_count
-hint_dependency_score
+assistance_dependency
 last_independent_success_at
-delayed_recall_evidence
+delayed_independent_evidence
 transfer_evidence
-active_misconception_ids[]
-evidence_count
-effective_evidence_weight
-algorithm_version
-source_event_ids[]
+active_misconception_hypotheses
+evidence_count/effective weight
+algorithm version
+source evidence refs
 ```
 
-##### MVP：证据加权 BKT
+#### Baseline
 
-经典 BKT 保留可解释状态：
+v0.3 继续允许透明 probabilistic/BKT-like baseline + evidence weighting。BKT/PFA/简单概率模型的具体选择不改变本次 Teaching Policy Design；Deep KT 不作为 canonical truth。
+
+证据资格必须消费 SYS04 的实际：
 
 ```text
-P(L0) 初始掌握
-P(T)  学习转移
-P(G)  猜对
-P(S)  失误
+assistance_state
+scaffold_control experienced
+hint_specificity experienced
+answer_exposure experienced
+independence
+delay
+transfer novelty
+assessment confidence
 ```
 
-Askora 不把所有正确答案视为同一观察。证据质量按至少以下维度调整：
+#### Independent Validation Obligation 与 SYS03
+
+validation obligation 是 SYS05 的教学控制义务，不是 SYS03 的第二 MasteryState。
+
+SYS03 只根据真实 evidence 判断：
+
+- assisted success 可低/中权；
+- answer-exposed success 当前不产生 stable-mastery 高权证据；
+- fresh no-hint independent outcome 才能清除相关证据缺口。
+
+若 SYS05 认为“需要独立验证”，但真实 fresh Attempt 尚未发生，SYS03 不得提前假定验证通过。
+
+#### Misconception
 
 ```text
-看答案后复述        极低
-强提示后成功        低
-轻提示后成功        中
-无提示相似任务成功   较高
-延迟无提示回忆      高
-陌生迁移任务成功    最高
+Misconception definition       → SYS01
+MisconceptionEvidence          → SYS04
+MisconceptionHypothesis        → SYS03
+Remediation decision           → SYS05
 ```
 
-这里的具体权重属于 `Askora 设计选择`，需要校准，而非学术固定常数。
+一次错误不能永久标记用户。
 
-`competence_probability` 与 `confidence` 分离：即使概率暂时高，如果有效证据少、没有延迟证据或题目过易，仍不能进入稳定掌握状态。
+#### Open Learner Model
 
-##### 其他模型边界
+用户可查看状态、证据、置信度、assistance dependency、误区假设并提出 dispute。纠错触发 retest/review/recompute，不直接把 mastery 设为 0/1。
 
-- PFA：强可解释 benchmark/challenger；
-- IRT：用于题目难度/能力校准和 Adaptive Testing，不直接替代序列掌握状态；
-- Cognitive Diagnosis：需要可靠 Q-matrix，题库成熟后再考虑；
-- DKT/SAKT/SAINT：可作为数据成熟后的预测 challenger，高 AUC 不等于可解释 mastery；
-- 深度模型只有在 user/time split 上稳定优于 BKT/PFA、校准不恶化并能改善教学决策时才进入主路径。
+### 4.8.4 SYS04 — 评估与错误诊断
 
-##### 误区状态
-
-```text
-Misconception              4.1 规范定义
-AssessmentResult evidence  4.4 本次证据
-LearnerState hypothesis    4.3 用户特定概率/活跃状态
-```
-
-一次错误不能直接成为长期误区；需要重复证据、鉴别题或用户确认。
-
-##### Open Learner Model 与用户纠正
-
-用户可以查看：
-
-- 系统认为掌握/未掌握什么；
-- 最近证据；
-- 置信度；
-- 提示依赖；
-- 活跃误区假设；
-- “系统判断不对”的纠正入口。
-
-纠正流程：
-
-```text
-FeedbackSignal
-→ disputed estimate
-→ 复测/证据重权/人工复核
-→ event replay/recompute
-→ 新 LearnerState version
-```
-
-禁止用户反馈直接把 mastery 改为 0/1。
-
-##### 评估与路线
-
-离线重点：log loss、Brier、ECE/calibration、time-split prediction、replay determinism；AUC 为辅助指标。在线最终看状态驱动的教学是否减少错误晋级、提示依赖和无效重复，并改善延迟保持/迁移。
-
-- MVP：BKT + evidence weighting；
-- 增强：IRT/PFA、置信度校准、Open Learner Model；
-- 成熟：hierarchical/Deep KT challenger、跨 KnowledgeUnit 关联；
-- 暂不建议：LLM 自报掌握概率、黑盒模型作为唯一状态真相。
-
-#### 4.8.4 评估与错误诊断
-
-**系统定义**：对一次 Attempt 进行可复现测量，发布评分、错误类型、误区证据和评估置信度。
+**系统定义**：对一次 Attempt 进行可复现测量，发布 AssessmentResult、错误类型、诊断证据、评分置信度和实际帮助/暴露事实。
 
 **唯一所有权**：AssessmentItem、Attempt、AssessmentResult。
 
 核心边界：
 
 ```text
-“这次是延迟 7 天、无提示独立正确，评分置信度 0.96”
-属于 4.4
-
-“用户已稳定掌握”
-属于 4.3
+“这次延迟 7 天、无提示独立正确” → SYS04
+“这说明用户稳定掌握”             → SYS03
+“下一步应该怎么教”               → SYS05
 ```
 
-##### 评估器分层
+#### Evaluator Router
 
 ```text
 MCQ/exact        → deterministic
 numeric          → tolerance/unit checker
 symbolic math    → CAS/equivalence checker
-code             → sandbox tests + static constraints
+code             → sandbox tests
 structured steps → step validator
 open explanation → rubric-constrained LLM + evidence + confidence
 ```
 
-确定性评估器优先于 LLM。开放式 LLM judge 必须有 rubric、来源证据、schema、人工 gold set 和置信度；出现多评估器冲突时进入 adjudication 或 `needs_review`。
+系统故障不得记成 learner failure。
 
-AssessmentResult 建议结构：
+#### Canonical Error / Diagnosis Model
+
+AssessmentResult 的诊断部分按 v0.3 使用：
 
 ```text
-raw_score
-rubric_dimensions
-correctness
-error_type
-misconception_evidence[]
-independence_level
-hint/exposure history
-assessment_confidence
-evaluator_versions
+error_type:
+  KNOWLEDGE_GAP
+  CONCEPTUAL_MISCONCEPTION
+  METHOD_SELECTION
+  EXECUTION
+  RETRIEVAL_FAILURE
+  TRANSFER_FAILURE
+  EXPRESSION_FORMAT
+  UNKNOWN
+
+diagnostic_confidence
+diagnostic_evidence_refs
+alternative_hypotheses
+needs_probe
 reason_codes
 ```
 
-##### 错误诊断
+历史：
 
-至少区分：
+- condition omission → `reason_code=CONDITION_OMITTED` 或更具体 subcategory；
+- metacognitive problem → behavioral/policy signal；
+- incomplete expression → `EXPRESSION_FORMAT`。
 
-```text
-knowledge_missing
-misconception
-condition_omitted
-method_selection_error
-execution_error
-retrieval_failure
-transfer_failure
-incomplete_expression
-metacognitive_error
-```
+#### Diagnostic Probe Trigger
 
-流程：
+probe 不是为了把每个错误都分类得更细，而是为了决定下一步 remediation。当：
 
 ```text
-确定性规则/测试
-→ 已知误区模式
-→ LLM 结构化语义分类
-→ 诊断追问/鉴别题
-→ AssessmentResult evidence
-→ 4.3 更新长期状态
+存在 ≥2 个合理诊断
+AND 不同诊断会导致 materially different remediation
+AND 当前 evidence 无法区分
+AND probe cost 可接受
 ```
 
-LLM 首次判断只能形成 evidence/hypothesis，不能永久标记用户。
+则 `needs_probe=true`。
 
-##### Adaptive Testing
+具体 diagnostic confidence cutoff 是 **versioned configurable parameter / Askora Experiment Required**。
 
-MVP 先采用：
+#### Actual Assistance / Exposure Recording
+
+SYS04 必须记录 Attempt 实际发生的：
 
 ```text
-前置覆盖
-+ 状态不确定性
-+ 难度分级
-+ 未暴露约束
-+ 简单信息增益
+scaffold_control
+hint_specificity
+answer_exposure
+assistance_state
+delivery mode（必要时）
+relevant exposure event refs
 ```
 
-题库获得稳定参数后再使用 IRT-CAT；题目选择不仅追求信息量，还必须满足内容覆盖和暴露控制。
+不能只记录 SYS05 “允许的 ceiling”，因为执行层可能进一步收紧或发生实际 exposure event。
 
-##### 评估与路线
+### 4.8.5 SYS05 — Teaching Policy
 
-离线：专家一致性、accuracy/F1、kappa/ICC、misconception P/R、assessment confidence calibration。在线：复评/申诉率、错误反馈后的后续独立成功、诊断题效率。
+**系统定义**：在 SYS06 已确定 LearningObjective / LearningActivity 的前提下，根据 immutable TeachingContext 和 immutable PolicyBundle，选择下一步不可变 TeachingAction。
 
-- MVP：deterministic graders + rubric LLM + 人工 gold set；
-- 增强：IRT、diagnostic probes、多评估器 adjudication；
-- 成熟：题目质量模型、跨学科 grader ensemble；
-- 暂不建议：单一 LLM judge 直接修改 mastery、未校准题库上复杂 CAT。
+**唯一所有权**：
 
-#### 4.8.5 教学策略选择
+- Strategy Family definitions；
+- TeachingAction；
+- TeachingStage derivation；
+- hard rule set；
+- candidate table；
+- feature/normalization/weights；
+- anti-oscillation policy；
+- support/exposure ceiling；
+- independent-validation obligation；
+- PolicyBundle。
 
-**系统定义**：在当前 LearningObjective 已确定的前提下，根据 LearnerState、最近 AssessmentResult 和约束选择下一步 TeachingAction。
+SYS05 不拥有 LearnerState、AssessmentResult、LearningPlan、ReviewSchedule 或模型执行。
 
-**唯一所有权**：TeachingAction、TeachingStrategy、提示等级、答案暴露上限、证据需求和退出条件。
+#### 4.8.5.1 Canonical Strategy Families
 
-候选 TeachingStrategy：
+v0.3 顶层 Strategy Family 冻结为：
+
+```text
+EXPLICIT_INSTRUCTION
+GUIDED_PRACTICE
+FADING_PRACTICE
+RETRIEVAL_PRACTICE
+ERROR_REMEDIATION
+TRANSFER_CHALLENGE
+```
+
+Strategy Family 表达相对稳定的 teaching episode / control intent，不是具体一句话。
+
+历史策略迁移：
+
+| Historical name | v0.3 canonical semantic |
+|---|---|
+| `DIRECT_INSTRUCTION` | `EXPLICIT_INSTRUCTION` 下的 Interaction Move / action template |
+| `WORKED_EXAMPLE` | `EXPLICIT_INSTRUCTION` 下的 Interaction Move / action template |
+| `WORKED_EXAMPLE_FADING` | `FADING_PRACTICE` 下的 action pattern |
+| `SOCRATIC_PROBING` | `GUIDED_PRACTICE` 下的 bounded Interaction Move |
+| `GUIDED_PRACTICE` | 同名 Strategy Family |
+| `ERROR_REMEDIATION` | 同名 Strategy Family |
+| `RETRIEVAL_PRACTICE` | 同名 Strategy Family |
+| `TRANSFER_CHALLENGE` | 同名 Strategy Family |
+| `METACOGNITIVE_REFLECTION` | Action Modifier 或 SYS06 `METACOGNITIVE_REVIEW` activity |
+| `PRODUCTIVE_FAILURE` | v0.3 deferred |
+
+#### 4.8.5.2 Interaction Move
+
+典型 Interaction Move：
 
 ```text
 DIRECT_INSTRUCTION
-WORKED_EXAMPLE_FADING
-SOCRATIC_PROBING
-GUIDED_PRACTICE
-ERROR_REMEDIATION
-RETRIEVAL_PRACTICE
-PRODUCTIVE_FAILURE
-TRANSFER_CHALLENGE
-METACOGNITIVE_REFLECTION
+WORKED_EXAMPLE
+SOCRATIC_PROBE
+SELF_EXPLANATION_PROMPT
+ORIENTATION_HINT
+CONCEPTUAL_HINT
+SUBGOAL_HINT
+PARTIAL_STEP
+COMPLETION_PROBLEM
+FADING_STEP
+CORRECTNESS_FEEDBACK
+PROCESS_FEEDBACK
+RETRIEVAL_REQUEST
+DELAYED_RETRIEVAL_REQUEST
+TRANSFER_TASK
+DIRECT_ANSWER_OVERRIDE
+METACOGNITIVE_CHECK
 ```
 
-TeachingAction 至少包含：
+Interaction Move 是 TeachingAction 的执行语义组成部分；不得为每个 move 创建新的 top-level strategy family。
+
+#### 4.8.5.3 Action Modifier
+
+用于表达横切语义：
 
 ```text
-action_type
-strategy_id/version
-scaffold_level
-hint_level
-answer_exposure_max
+self_explanation
+metacognitive_reflection
+feedback_type
+representation_style
+transition_intent
+support_reason
+target_scope
+delivery_mode
+```
+
+Modifier 不改变 strategy ownership，也不能绕过 hard constraint。
+
+#### 4.8.5.4 Canonical TeachingContext
+
+TeachingContext 是：
+
+> immutable, versioned/reference-based decision snapshot。
+
+它不能把 LearnerState、AssessmentResult、Plan 等对象复制成第二份可变状态。
+
+字段设计：
+
+| Field | Required / Optional / Derived | Owner | Reference/Value | Version Requirement | Missing Semantics |
+|---|---|---|---|---|---|
+| `learning_objective_ref` | Required | SYS06 | Reference | exact objective/plan version | missing → invalid decision input / fail-safe |
+| `learning_activity_ref` | Required | SYS06 | Reference | exact activity/plan version | missing → invalid decision input |
+| `activity_type` | Required | SYS06 | Value from referenced activity | source version pinned | missing → invalid input |
+| `target_capability` | Required | SYS06 | Value/reference | objective version | missing → invalid input |
+| `current_task_ref` | Optional | SYS06/SYS04 | Reference | exact task/item version if present | missing → availability=MISSING |
+| `task_structure_refs` | Optional | SYS06/SYS01 | References | exact versions | missing → no structural assumptions |
+| `relative_complexity` | Derived | SYS05 | Feature | feature schema/version | missing inputs → availability=MISSING, never 0 |
+| `mastery_estimate_ref` | Required-for-personalized path | SYS03 | Reference | exact estimate version | unavailable → conservative default/diagnostic path |
+| `mastery_confidence` | Derived/read | SYS03 | Value from referenced estimate | estimate version | low → LOW_CONFIDENCE hard/soft handling |
+| `prerequisite_state_refs` | Optional/Required by activity | SYS03 + SYS01 | References | exact relation/state versions | missing hard prereq evidence → conservative |
+| `prerequisite_confidence` | Derived/read | SYS03 | Value | state version | low → no aggressive challenge |
+| `active_misconception_hypothesis_refs` | Optional | SYS03 | References | exact hypothesis/state version | missing ≠ no misconception; availability=MISSING |
+| `evidence_sufficiency` | Derived/read | SYS03 | Value | learner model version | missing → insufficient evidence |
+| `recent_assessment_result_ref` | Optional | SYS04 | Reference | exact result version | none → NOT_APPLICABLE/MISSING by activity |
+| `correctness_score` | Optional | SYS04 | Value | result version | no result → MISSING |
+| `assessment_confidence` | Optional | SYS04 | Value | result version | low → do not over-weight result |
+| `error_type` | Optional | SYS04 | Value | result schema/version | absent → UNKNOWN/not diagnosed |
+| `diagnostic_confidence` | Optional | SYS04 | Value | diagnostic version | low → conservative/probe candidate |
+| `misconception_evidence_refs` | Optional | SYS04 | References | exact evidence/result version | missing → no persistent inference |
+| `alternative_diagnostic_hypotheses` | Optional | SYS04 | References/values | diagnostic version | missing → no claim of uniqueness |
+| `needs_probe` | Derived/read | SYS04 | Value | diagnostic policy/version | missing → unknown, not false |
+| `assistance_history_summary` | Derived | SYS04 Attempt history | Feature | history window + feature version | missing → UNKNOWN assistance history |
+| `scaffold_history` | Optional/Derived | SYS04 events | References/summary | event refs + feature version | missing → UNKNOWN |
+| `hint_history` | Optional/Derived | SYS04 events | References/summary | event refs + feature version | missing → UNKNOWN |
+| `answer_exposure_history` | Optional/Derived | SYS04 events | References/summary | event refs + feature version | missing → UNKNOWN; conservative evidence handling |
+| `worked_example_exposure` | Optional/Derived | SYS04/SYS08 events | References/summary | event refs | missing → UNKNOWN |
+| `independent_success_history` | Optional/Derived | SYS03 evidence | References/summary | evidence ids + state version | missing → insufficient evidence |
+| `assisted_success_history` | Optional/Derived | SYS03/SYS04 | References/summary | evidence ids | missing → UNKNOWN |
+| `previous_teaching_action_ref` | Optional | SYS05 | Reference | exact action/policy version | absent → initial decision |
+| `previous_action_outcome_refs` | Optional | SYS04/SYS08 | References | exact event/result refs | missing → no transition evidence |
+| `delayed_independent_evidence` | Optional/Derived | SYS03/SYS04 | References/feature | evidence/result versions | missing → no delayed claim |
+| `review_context` | Optional | SYS07 | Reference/value | schedule/model version | absent → no review-specific assumption |
+| `transfer_evidence` | Optional | SYS03/SYS04 | References/feature | exact versions | missing → no transfer claim |
+| `transfer_distance_novelty` | Optional/Derived | SYS04/SYS01 | Value | task/feature version | missing → transfer status unknown |
+| `time_since_clean_evidence` | Derived | SYS03/SYS04 | Feature | time basis + feature version | missing timestamp → unavailable |
+| `direct_answer_request` | Optional | User command / SYS08 envelope | Value/event ref | command/event version | absent=false only if command contract guarantees capture |
+| `explanation_request` | Optional | User command | Value/event ref | command/event version | absent=false only with complete capture |
+| `time_budget` | Optional | SYS06/User context | Value/ref | plan/user constraint version | missing → default profile, explicitly logged |
+| `accessibility_constraints` | Optional | User preference/profile | Reference | profile version | missing → default accessibility profile, not “none” assumption |
+| `experiment_assignment_ref` | Optional | Experiment Router | Reference | exact experiment/variant version | absent → non-experiment path |
+| `experiment_opt_out` | Optional | User/Experiment Router | Value/ref | preference/event version | unknown → do not enroll |
+| `decision_time` | Required | System clock input | Value | deterministic time basis | missing → invalid input |
+| `context_schema_version` | Required | SYS05 | Value | exact | missing → invalid input |
+| `context_fingerprint` | Required | SYS05 | Derived hash | canonical serialization version | missing → not fully replayable |
+
+原则：reference 表示 authoritative object；derived summary/feature 必须能回到 source refs 和 feature version。
+
+#### 4.8.5.5 Support / Hint / Exposure Canonical Model
+
+不得继续只用一个整数表达所有帮助。
+
+**scaffold_control**：系统承担多少认知控制/任务分解。
+
+```text
+NONE
+LOW
+MEDIUM
+HIGH
+```
+
+**hint_specificity**：提示有多具体。
+
+```text
+NONE
+ORIENTATION
+CONCEPTUAL_STRATEGIC
+SUBGOAL
+PARTIAL_STEP
+BOTTOM_OUT
+```
+
+**answer_exposure**：答案内容实际/允许暴露程度。
+
+```text
+NONE
+PARTIAL
+COMPLETE
+```
+
+**assistance_state**：Attempt 的测量独立性结果。
+
+```text
+INDEPENDENT
+ASSISTED
+ANSWER_EXPOSED
+```
+
+同时允许：
+
+```text
+delivery_mode
+support_reason
+transition_intent
+```
+
+所有权：
+
+```text
+SYS05 → allowed scaffold/hint/exposure envelope
+SYS08 → execute inside envelope
+SYS04 → record actual assistance/exposure
+SYS03 → evidence eligibility/weighting
+```
+
+#### 4.8.5.6 Independent Validation Debt / Obligation
+
+定义：
+
+> assisted 或 answer-exposed performance 产生后续 fresh independent validation obligation。
+
+**Assisted success**：
+
+- 可作为低/中权 evidence；
+- 不能单独支持 stable mastery；
+- 后续需要 no-hint independent opportunity。
+
+**Answer-exposed success**：
+
+- 当前结果不是 independent mastery evidence；
+- v0.3 frozen baseline 下不得产生 stable-mastery 高权证据；
+- 后续必须用 fresh item / fresh context 独立验证。
+
+该 obligation 属于 SYS05 policy control，不属于 SYS03 的第二 MasteryState。实现上可以有可重建 obligation projection，但不得变成与 mastery 并列的 truth source。
+
+#### 4.8.5.7 Canonical Hard Constraint Taxonomy
+
+| Hard Constraint | Canonical requirement | Failure / obligation semantics |
+|---|---|---|
+| Assessment Integrity | no-hint assessment 禁止 solution-bearing hint / answer exposure | blocked candidate；无合法动作则 fail-closed |
+| Answer Exposure Integrity | answer-exposed success 不得当 independent validation | 记录 exposure + validation obligation |
+| Prerequisite Safety | severe prerequisite gap 不持续同难度无支架挑战 | 过滤高风险 challenge / 提升 remediation candidates |
+| Repeated Failure Ceiling | 达 ceiling 后禁止原样重复低支架策略 | hard transition，突破 sticky/dwell |
+| Independent Success Constraint | stable independent success 后不得无理由增加高支架 | 高支架候选过滤/强降权，除非新证据 |
+| Low-confidence Conservatism | 低置信禁止激进、高确定 personalization | 优先 probe / reversible support |
+| Objective Ownership | SYS05 不得改变 SYS06 Objective/Activity | candidate 不能跨 objective |
+| Model/LLM Override | SYS08/LLM 不得提高 exposure 或改变 action semantics | reject execution output / explicit failure |
+| Unsupported Configuration | 未知 strategy/action/config 不得执行 | fail-closed / previous known-good bundle |
+| Hard-rule Conflict | eligible actions 为空必须显式失败/安全 fallback | scorer/LLM 不得仲裁 hard-rule conflict |
+| User Direct Answer | 可请求直接答案，但不能绕过 active assessment integrity | 允许时 exposure + independent-validation obligation |
+
+**Hard Constraint**：不可被 scoring 覆盖。
+
+**Soft Preference**：只用于合法候选间比较，例如：
+
+```text
+stage_fit
+learning_value_proxy
+diagnostic_value
+remediation_fit
+review_fit
+cognitive_load
+time_cost
+hint_dependency_risk
+transition_cost
+oscillation_penalty
+```
+
+**Experiment Guardrail**：限制哪些合法候选可以进入 randomized experiment。实验不能把 hard-filtered action 重新放回候选集。
+
+三者禁止混用。
+
+#### 4.8.5.8 Canonical Policy Decision Architecture
+
+冻结流水线：
+
+```text
+TeachingContext Snapshot
+→ Typed Hard Constraints
+→ Derived TeachingStage
+→ Candidate Generation / Decision Table
+→ Feature Builder
+→ Normalized Weighted Scoring
+→ Anti-Oscillation Gate
+→ Deterministic Tie-break
+→ Immutable TeachingAction
+→ DecisionTrace
+```
+
+层职责：
+
+| Layer | Input | Output | Responsibility | Must Not |
+|---|---|---|---|---|
+| TeachingContext Snapshot | exact-version refs + user constraints | immutable context | 固定本次决策观察面 | 复制/拥有第二份 canonical state |
+| Typed Hard Constraints | context + rule set | eligible set + obligations + reason codes | admissibility、安全、测量完整性 | 变成巨大 if/else action selector；被 scorer 覆盖 |
+| Derived TeachingStage | context + stage mapper | TeachingStage | 当前 activity 的 policy interpretation | 写 LearnerState / 持久 stage truth |
+| Candidate Generation | eligible space + stage/error/activity/obligation | typed action templates | 构造合法候选 | generic DSL / embedded Python / LLM-generated rule |
+| Feature Builder | context + candidate | versioned features | 统一计算可比较特征 | 把 missing 当 0；无版本自由特征 |
+| Normalized Weighted Scoring | features + weight profile | comparable candidate scores | 合法候选偏好排序 | 违反 hard rule；声称 causal learning effect |
+| Anti-Oscillation Gate | current action + evidence + scores | stay/switch admissibility | continuity、dwell、hysteresis | 阻止 hard transition |
+| Deterministic Tie-break | tied candidates | single candidate | 稳定消除平分 | runtime random |
+| Immutable TeachingAction | selected template + envelope | action | 固化当前教学语义 | 执行中原地改语义 |
+| DecisionTrace | all prior artifacts | append-only trace | replay/audit/explain | 成为业务状态 owner |
+
+#### 4.8.5.9 Candidate Generation
+
+推荐 typed decision table：
+
+```text
+strategy family
+× TeachingStage
+× ErrorType
+× LearningActivity type
+× assistance/exposure obligation
+→ candidate action templates
+```
+
+示意：
+
+| Stage / Signal | Candidate families | Example moves | Important guard |
+|---|---|---|---|
+| DIAGNOSE + ambiguous error | GUIDED_PRACTICE / ERROR_REMEDIATION | SOCRATIC_PROBE / diagnostic item | low exposure |
+| EXPLICIT_INSTRUCTION + knowledge gap | EXPLICIT_INSTRUCTION | DIRECT_INSTRUCTION / WORKED_EXAMPLE | objective fixed |
+| GUIDED_PRACTICE + partial understanding | GUIDED_PRACTICE | SOCRATIC_PROBE / CONCEPTUAL_HINT | bounded probing |
+| FADING_PRACTICE + assisted success | FADING_PRACTICE | COMPLETION_PROBLEM / FADING_STEP | validation obligation remains |
+| RETRIEVAL_PRACTICE | RETRIEVAL_PRACTICE | RETRIEVAL_REQUEST | no answer exposure |
+| ERROR_REMEDIATION | ERROR_REMEDIATION | targeted explanation / subgoal practice | match diagnostic confidence |
+| TRANSFER_CHALLENGE | TRANSFER_CHALLENGE | TRANSFER_TASK | prerequisite/independence guard |
+
+v0.3 不引入通用 rule engine DSL、embedded Python policy、自由文本 Prompt rule 或 LLM-generated policy rule。
+
+#### 4.8.5.10 Feature Builder 与 Weighted Scoring
+
+每个 feature 至少有：
+
+```text
+value
+availability
+confidence
+feature_version
+```
+
+推荐 score 语义：
+
+```text
++ learning_value_proxy
++ diagnostic_value
++ stage_fit
++ remediation_fit
++ review_fit
+
+- hint_dependency_risk
+- cognitive_load_penalty
+- time_cost
+- transition_cost
+- oscillation_penalty
+```
+
+`learning_value_proxy` 只是 heuristic，不是 causal learning-effect estimate。
+
+所有：
+
+```text
+feature schema
+normalization
+weight profile
+```
+
+必须版本化。
+
+禁止根据当前候选集合动态 min-max 导致同一 candidate 在不同集合中含义漂移；normalization 应使用固定版本化范围/变换或稳定统计基线。
+
+#### 4.8.5.11 Deterministic Tie-break 与 Experiment Router
+
+B3 canonical policy runtime 不使用随机 tie-break。必须存在稳定顺序，例如：
+
+```text
+hard-priority class
+→ score
+→ continuity preference
+→ lower exposure / lower irreversible cost
+→ stable action-template order
+```
+
+具体 tie-break profile 版本化。
+
+随机实验 assignment 属于独立 Experiment Router，不属于 deterministic policy selector。ExperimentAssignment 可以改变 variant/policy bundle，但在给定 assignment 后 B3 selector 仍保持 deterministic。
+
+#### 4.8.5.12 Anti-Oscillation
+
+**Material Evidence Gate**：以下可以构成 material evidence：
+
+- new AssessmentResult；
+- new independent attempt；
+- diagnostic probe result；
+- LearnerState update；
+- explicit user request；
+- prerequisite evidence；
+- exposure event；
+- meaningful review/delay transition。
+
+以下不是 material evidence：
+
+- policy 被再次调用；
+- 对话多一轮；
+- LLM wording 变化；
+- wall clock 多几秒。
+
+**Sticky continuity**：
+
+```text
+current action remains legal
+AND exit guard not met
+AND no material negative evidence
+→ default stay
+```
+
+**Minimum dwell**：使用 evidence opportunities，不使用固定聊天轮数。参数必须版本化。
+
+**Hysteresis**：challenger 相对 current 必须超过版本化 switch margin；margin 不是科学常数。
+
+**Transition priority**：hard transition 优先 soft continuity。
+
+**Repeated failure override**：failure ceiling 可以强制突破 sticky/minimum dwell。
+
+#### 4.8.5.13 PolicyBundle
+
+v0.3 正式引入 immutable `PolicyBundle`：
+
+```text
+schema_version
+policy_version
+hard_rule_set_version
+stage_mapper_version
+candidate_table_version
+feature_schema_version
+normalization_version
+weight_profile_version
+anti_oscillation_profile_version
+tie_break_version
+fallback_profile_version
+subject_profile_version
+content_digest
+```
+
+要求：
+
+- immutable publish；
+- atomic activation；
+- 每个 TeachingAction pin exact bundle/version/hash；
+- replay 必须能取得历史 bundle；
+- config 只能是 typed declarative data，不得成为 executable DSL；
+- 缺失历史 config 时不得标记 fully replayable；
+- bundle activation 只影响新 TeachingAction，不修改旧 action。
+
+#### 4.8.5.14 TeachingAction Canonical Semantic Envelope
+
+TeachingAction 至少概念上包含：
+
+```text
+action_id
+learning_objective_ref
+learning_activity_ref
+strategy_family + version
+action_template / move plan
+action_modifiers
+scaffold_control ceiling
+hint_specificity ceiling
+answer_exposure ceiling
+delivery constraints
+support_reason
+validation_obligations
 evidence_requirements
-expected_evidence_type
-success_condition
-failure_condition
-max_attempts
-time_budget
-reason_codes
+success / failure / exit semantics
+time budget
+reason codes
+TeachingStage
+PolicyBundle ref/hash
+decision_id
 ```
 
-##### MVP 策略算法
+实际 Spec schema 由后续 Spec Delta 冻结，本阶段不直接修改 domain-model。
 
-严格采用：
+#### 4.8.5.15 Failure Semantics
+
+- missing/stale LearnerState → conservative/default/probe；
+- low diagnostic confidence → avoid high-certainty remediation；
+- no eligible actions → explicit policy failure + fail-safe/fail-closed；
+- hard-rule conflict → config/spec error，不由 LLM 仲裁；
+- unsupported action/config → 不执行；
+- SYS08 provider/tool failure → execution failure，不自动解释为教学策略失败；
+- historical bundle unavailable → replayability degraded；
+- user direct answer during active assessment → blocked；允许场景则 exposure + validation obligation。
+
+### 4.8.6 SYS06 — 学习路径与任务调度
+
+**系统定义**：根据 LearningGoal、Knowledge Graph、LearnerState、ReviewSchedule、时间预算和截止期生成/维护 LearningPlan。
+
+**唯一所有权**：LearningObjective、LearningActivity、LearningPlan、今日任务优先级和 replan。
+
+边界：
 
 ```text
-Hard Rules
-→ Feasible Action Set
-→ State Machine Guard
-→ Weighted Scoring
-→ TeachingAction
+SYS06 → 学什么、先后顺序、今天做什么
+SYS05 → 当前任务怎么教
+SYS07 → 何时最适合复习
 ```
 
-示例硬规则：
-
-```text
-if assessment_mode == independent_test:
-    禁止完整解释与高等级提示
-
-if prerequisite_gap_high:
-    提升 DIAGNOSTIC_PROBE / PREREQUISITE_REMEDIATION
-
-if repeated_failure and scaffold_level < limit:
-    允许逐级增加支架
-
-if independent_success_repeated:
-    降低支架并提高迁移/延迟提取候选权重
-```
-
-软评分示例：
-
-```text
-score(a) =
-  w1 * expected_learning_value
-+ w2 * diagnostic_value
-+ w3 * learner_stage_fit
-- w4 * hint_dependency_risk
-- w5 * cognitive_load
-- w6 * time_cost
-```
-
-状态机可表现为：
-
-```text
-UNKNOWN
-→ DIAGNOSE
-→ NOVICE: EXPLAIN / WORKED_EXAMPLE
-→ EMERGING: SOCRATIC / GUIDED_PRACTICE
-→ PRACTICING: FADED_EXAMPLE / PRACTICE
-→ INDEPENDENT: NO_HINT_RETRIEVAL
-→ RETAINED: DELAYED_RETRIEVAL
-→ TRANSFER: TRANSFER_TASK
-```
-
-这里的 state machine 是策略控制状态，不是 4.3 LearnerState 的第二份真相。
-
-##### 强化学习演进约束
-
-必须依次比较：
-
-```text
-规则
-→ 启发式评分
-→ 监督学习
-→ Contextual Bandit
-→ Offline RL
-→ 受约束在线 RL
-```
-
-当前推荐停在规则 + 状态机 + 加权评分，并建设高质量 DecisionTrace。
-
-Contextual Bandit 只适合在安全动作候选中做局部个性化；奖励优先下一次无提示成功、提示依赖下降，长期再用延迟保持/迁移校正。点击、时长、点赞不能成为主奖励。
-
-Offline RL 只有在存在大规模多策略轨迹、行为策略 propensity、长期 reward、可靠 OPE 和安全 shield 时才研究。在线受约束 RL 当前不实施。
-
-##### 评估与路线
-
-- 离线：constraint violation 必须为 0、专家一致性、历史 replay、后期 OPE；
-- 教学过程：hint dependency、scaffold fading、diagnostic efficiency、策略振荡；
-- 学习结果：下一次无提示成功、延迟保持、迁移、单位时间能力增益。
-
-#### 4.8.6 学习路径与任务调度
-
-**系统定义**：根据 LearningGoal、前置知识图、LearnerState、ReviewSchedule、时间预算和截止期生成并维护 LearningPlan。
-
-**唯一所有权**：LearningObjective、LearningActivity、LearningPlan、今日任务优先级和重规划。
-
-关键边界：
-
-```text
-4.6 决定：学什么、先后顺序、今天安排什么
-4.5 决定：对当前任务怎么教
-4.7 决定：某知识点何时最适合复习
-```
-
-LearningActivity 类型：
+LearningActivity 类型继续包含：
 
 ```text
 LEARN_NEW
@@ -1237,966 +1444,923 @@ TRANSFER_CHECK
 METACOGNITIVE_REVIEW
 ```
 
-##### 核心算法
+`METACOGNITIVE_REFLECTION` 因此可以作为 SYS06 activity 或 SYS05 Action Modifier，但不是 v0.3 top-level Strategy Family。
 
-先建立 prerequisite-feasible set：
+规划 baseline 继续采用 prerequisite feasibility + multi-objective heuristic + budget constraint。复杂 solver 可在必要时引入；v0.3 不使用 RL 规划 curriculum。
 
-```text
-F = {
-  u |
-  hard_prerequisites(u) 已满足
-  OR 当前活动本身是 prerequisite remediation
-}
-```
+### 4.8.7 SYS07 — 记忆保持与复习调度
 
-候选优先级：
+**系统定义**：根据有效 retrieval evidence 维护 memory scheduling state 与遗忘风险，计算 next_due_at。
 
-```text
-priority =
-  w_g * goal_relevance
-+ w_k * knowledge_gap
-+ w_p * prerequisite_value
-+ w_r * review_urgency
-+ w_d * deadline_urgency
-+ w_u * state_uncertainty
-+ w_t * transfer_need
-- w_c * expected_time_cost
-```
-
-再在时间预算下选活动：
-
-```text
-maximize Σ priority_i * x_i
-subject to Σ duration_i * x_i <= daily_budget
-           prerequisite/order constraints
-           review/new/transfer mix constraints
-```
-
-MVP 用 greedy + constraint repair，优先可解释和稳定重规划；复杂时间/比例约束增强阶段可用 OR-Tools/MILP。
-
-重规划触发：
-
-- LearningGoal 变化；
-- LearnerState 出现重大变化；
-- hard prerequisite 被修订；
-- ReviewSchedule 大量到期；
-- deadline/time budget 变化；
-- 当前计划连续失败或显著提前完成。
-
-禁止每次对话微小变化就全量重排，避免 plan churn。
-
-##### 强化学习边界
-
-```text
-固定课程/规则
-→ 多目标启发式
-→ 监督 ranking / duration-success models
-→ Contextual Bandit（局部同层排序）
-→ Offline RL
-→ 受约束在线 RL
-```
-
-当前不使用 RL 规划整条 curriculum。长程 reward 跨天/周、状态部分可观测且真实学习时间不可随意探索。
-
-##### 评估与路线
-
-- 离线：constraint violation、plan coverage、budget fit、plan stability；
-- 过程：prerequisite remediation、overdue review incorporated、plan abandonment；
-- 结果：目标能力达成时间、延迟保持、迁移、单位时间 mastery gain。
-
-#### 4.8.7 记忆保持与复习调度
-
-**系统定义**：根据有效提取证据维护 learner × KnowledgeUnit 的记忆状态和遗忘风险，计算下一建议复习时点。
-
-**唯一所有权**：ReviewSchedule、memory scheduling state、`next_due_at`。
+**唯一所有权**：ReviewSchedule、memory model state、next_due_at。
 
 核心边界：
 
 ```text
-memory retrievability ≠ full mastery
-4.7 决定什么时候最好复习
-4.6 决定今天是否把这次复习排进去
+retrievability ≠ mastery
 ```
 
-##### 有效复习证据
+有效复习证据必须区分 independent / assisted / answer-exposed。完整答案先暴露后复述不能等价于 no-hint retrieval。
 
-只有符合最低证据质量的 retrieval event 才能高权更新：
+MVP 继续采用 FSRS-compatible state + simpler baseline；事实、概念、程序技能和迁移任务不能被机械当作同一类卡片。
 
-- 发生真实主动提取；
-- 未提前看到完整答案；
-- 提示强度在允许阈值内；
-- AssessmentResult confidence 足够；
-- 记录与上次有效 retrieval 的时间间隔。
+SYS07 向 TeachingContext 提供 review context、delay context、last clean retrieval 等只读信息；SYS05 不修改 ReviewSchedule。
 
-先看答案再复述、强提示补最后一步、随机猜中、点击“我会了”不能等价于无提示回忆。
+### 4.8.8 SYS08 — LLM 生成、Agent 编排与可信控制
 
-##### FSRS-compatible 路线
-
-`行业实践` + `Askora 设计选择`：MVP 优先采用 FSRS-compatible memory state，同时保留 SM-2/简单指数模型作为 benchmark/降级。
-
-核心状态：
-
-```text
-Difficulty
-Stability
-Retrievability
-Desired Retention
-```
-
-ReviewSchedule：
-
-```text
-learner_id
-knowledge_unit_id
-memory_model/model_version
-difficulty
-stability
-retrievability
-desired_retention
-last_valid_retrieval_at
-next_due_at
-review_priority
-evidence_quality
-source_event_ids[]
-```
-
-更高 desired retention 会增加复习负担，因此 4.7 输出的是“基于目标保持率的建议时点”，4.6 还需结合现实时间预算。
-
-##### 不同知识类型
-
-- 事实/配对记忆最接近传统 SRS；
-- 概念理解需要解释、反例、应用等不同 retrieval tasks；
-- 程序技能需要真实执行；
-- 迁移能力不能只由经典遗忘曲线代表，应由 4.4 安排迁移测量、4.3 更新状态。
-
-##### 评估与路线
-
-离线：Brier/log loss、recall calibration、observed vs predicted retention、与 SM-2 baseline 比较。过程：overdue、active-recall proportion、review workload。最终：延迟独立回忆、单位复习次数保持、迁移维持。
-
-当前不采用 RL 替换成熟 SRS；只有传统调度在长期 workload-retention 上出现明确瓶颈且有反事实数据时再研究。
-
-#### 4.8.8 LLM 生成、Agent 编排与可信控制
-
-**系统定义**：把 4.1～4.7 已确定的状态、证据、计划和 TeachingAction 可靠执行为用户交互，并统一管理模型、工具、Prompt、安全和可观测性。
+**系统定义**：把 SYS01～SYS07 已确定的状态、计划、证据和 TeachingAction 可靠执行为用户交互。
 
 **唯一所有权**：SessionState、WorkflowRun、ModelInference、模型/工具执行路径、工程降级、Event/Decision Ledger 托管。
 
 硬边界：
 
 ```text
-LLM = 推断器 / 生成器 / 候选提出者 / 表达器
-≠ 业务真相数据库
-≠ LearnerState 所有者
-≠ 教学策略所有者
-≠ LearningPlan 所有者
-≠ ReviewSchedule 所有者
+LLM / Agent
+= semantic inference / generation / tool execution
+≠ LearnerState owner
+≠ Assessment truth owner
+≠ TeachingAction owner
+≠ LearningPlan owner
+≠ ReviewSchedule owner
+≠ hard-rule override
+≠ exposure override
 ```
 
-##### 主工作流
+主工作流：
 
 ```text
 load immutable domain inputs
-→ resolve workflow version
-→ execute TeachingAction-defined steps
+→ resolve TeachingAction + PolicyBundle refs
 → request/use EvidenceBundle
-→ model/tool calls
+→ execute allowed interaction moves/tools
 → schema validation
-→ business policy validation
-→ citation/exposure validation
+→ business validation
+→ citation validation
+→ exposure envelope validation
 → render
-→ capture Attempt/Feedback
+→ capture Attempt/Feedback/exposure events
 → append LearningEvent/ModelInference/trace
 ```
 
-优先显式 workflow/state machine，而不是把主教学链交给 autonomous agent。
+SYS08 可以把支架/提示做得更保守，但不能比 TeachingAction ceiling 更强、更具体或暴露更多答案。
 
 允许 Agent：
 
-- 在已授权工具集内进行多步研究；
-- 在固定 TeachingAction 下生成多个表达候选；
-- 为复杂检索任务规划工具调用。
+- 在授权工具集内完成局部多步任务；
+- 在固定 TeachingAction 下生成表达候选；
+- 为检索/内容工作进行受约束工具规划。
 
 禁止 Agent：
 
-- 直接修改 learner state；
-- 修改 AssessmentResult 为“已掌握”；
-- 自行改变 LearningPlan 或 next_due_at；
+- 自由选择新的 strategy family；
+- 修改 mastery/assessment/plan/review；
 - 检索失败后偷偷改变 TeachingAction；
-- 获得任意 shell/网络/文件写入权限而无边界。
+- 使用未授权任意 shell/network/file side effect。
 
-##### 模型路由
+---
 
-```text
-route utility =
-  predicted_quality
-- λ_cost * expected_cost
-- λ_latency * expected_latency
-- λ_risk * policy_or_privacy_risk
-```
+## 4.9 系统接口与完整 Adaptive Teaching Loop
 
-路由输入可以包括任务类型、上下文长度、成本/延迟预算、模型健康和隐私等级。确定性计算、简单分类优先不用大模型。
-
-##### 生成可信控制
-
-- 结构化输出必须 schema validation；
-- 引用必须映射到 EvidenceBundle；
-- schema 通过不代表业务语义合法，仍需 domain validation；
-- 外部文档全部按不可信 data 处理；
-- tool allowlist、least privilege、参数验证、side-effect 授权；
-- workflow step/token/time/cost 均设置上限；
-- 模型/Prompt/toolset/证据版本全部记录。
-
-OWASP 对直接和间接 Prompt Injection 的公开指导表明 RAG 不能完全消除此类风险，因此 Askora 的防线重点是降低模型权限和攻击影响面，而不是声称“已解决 Prompt Injection”。
-
-##### 无模型降级
-
-外部 LLM 不可用时，仍应能够：
-
-- 读取既有 LearningPlan；
-- 维护/读取 ReviewSchedule；
-- 执行确定性判分；
-- 投影 LearnerState；
-- 使用基础模板反馈；
-- 使用 BM25/向量检索和已缓存 EvidenceBundle。
-
-##### 评估与路线
-
-离线：schema pass、faithfulness、citation precision、Prompt regression、injection red-team、模型路由质量/成本 Pareto。系统：latency、tool error、fallback、cost/session、event delivery。教学层最终仍用学习结果实验判断模型/表达 variant，而非“更流畅”作为成功标准。
-
-### 4.9 系统接口与完整教学闭环
-
-直接接口：
-
-| 生产方 | 消费方 | 主要对象/命令 | 禁止越权 |
+| Producer | Consumer | Object / Command | Forbidden override |
 |---|---|---|---|
-| 4.1 | 4.2 | SourceChunk/KnowledgeUnit/graph snapshot | 4.2 不改知识事实 |
-| 4.1 | 4.4 | KnowledgeUnit/Misconception/PedagogicalAsset candidate | 4.1 不发布 AssessmentResult |
-| 4.1 | 4.6 | PrerequisiteRelation | 4.6 不直接改图 |
-| 4.2 | 4.8 | EvidenceBundle | 4.8 不重选证据 |
-| 4.2 | 4.4 | grader/source EvidenceBundle | 4.2 不评分 |
-| 4.4 | 4.3 | AssessmentResult | 4.4 不写 mastery |
-| 4.3 | 4.5 | LearnerState/MasteryEstimate | 4.5 不写 learner state |
-| 4.3 | 4.6 | LearnerState/MasteryEstimate | 4.6 不写 learner state |
-| 4.7 | 4.6 | ReviewSchedule/ReviewDue | 4.6 不改 next_due_at |
-| 4.6 | 4.5 | LearningObjective/LearningActivity | 4.5 不重排长期计划 |
-| 4.5 | 4.2 | TeachingAction/evidence requirements | 4.2 不改变 TeachingAction |
-| 4.5 | 4.8 | TeachingAction | 4.8 不私自换教学策略 |
-| 4.8 | 4.4 | SubmitAttempt command | 4.8 不评分 |
-| 4.8 | 4.3/4.7 | LearningEvent/FeedbackSignal | 4.8 不直接写状态 |
+| SYS01 | SYS02 | SourceSpan/Chunk/KnowledgeUnit | SYS02 不改知识事实 |
+| SYS01 | SYS04 | KnowledgeUnit/Misconception definitions | SYS01 不发布 AssessmentResult |
+| SYS01 | SYS06 | PrerequisiteRelation | SYS06 不直接改 graph truth |
+| SYS02 | SYS08 | EvidenceBundle | SYS08 不重选 canonical evidence set |
+| SYS04 | SYS03 | AssessmentResult / actual assistance | SYS04 不写 mastery |
+| SYS03 | SYS05 | LearnerState/MasteryEstimate | SYS05 不写 learner state |
+| SYS03 | SYS06 | LearnerState/MasteryEstimate | SYS06 不写 learner state |
+| SYS07 | SYS06 | ReviewSchedule/ReviewDue | SYS06 不改 next_due |
+| SYS07 | SYS05 | review/delay context | SYS05 不改 ReviewSchedule |
+| SYS06 | SYS05 | LearningObjective/LearningActivity | SYS05 不改 objective/plan |
+| SYS05 | SYS02 | TeachingAction evidence/exposure requirement | SYS02 不改变 TeachingAction |
+| SYS05 | SYS08 | TeachingAction | SYS08 不扩大 support/exposure |
+| SYS08 | SYS04 | SubmitAttempt + actual assistance/exposure | SYS08 不评分 |
+| SYS04 | SYS05 | AssessmentResult/Diagnosis | SYS05 不重评 |
+| SYS08 | Ledger | LearningEvent/ModelInference | Ledger 不反写业务 truth |
 
 完整闭环：
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant P as 4.6 Plan
-    participant S as 4.5 Strategy
-    participant R as 4.2 Retrieval
-    participant X as 4.8 Execution
-    participant A as 4.4 Assessment
-    participant L as 4.3 Learner Model
-    participant V as 4.7 Review
+    participant P as SYS06 Plan
+    participant S as SYS05 Policy
+    participant R as SYS02 Retrieval
+    participant X as SYS08 Execution
+    participant A as SYS04 Assessment
+    participant L as SYS03 Learner Model
+    participant V as SYS07 Review
 
-    U->>P: LearningGoal / constraints
-    P->>S: LearningActivity + Objective
-    L->>S: LearnerState snapshot
-    S->>R: TeachingAction + evidence requirements
+    U->>P: Goal / constraints
+    P->>S: Objective + Activity
+    L->>S: LearnerState refs
+    A->>S: recent Assessment/Diagnosis refs
+    V->>S: review/delay context
+    S->>S: build TeachingContext + select deterministic action
+    S->>R: TeachingAction evidence/exposure envelope
     R->>X: EvidenceBundle
-    S->>X: TeachingAction
-    X->>U: teaching interaction
+    S->>X: immutable TeachingAction
+    X->>U: interaction
     U->>X: response / feedback
-    X->>A: SubmitAttempt
+    X->>A: Attempt + actual assistance/exposure
     A->>L: AssessmentResult
     L->>L: new LearnerState version
     A->>V: valid retrieval evidence
-    V->>V: new ReviewSchedule version
-    V->>P: ReviewDue / risk
+    V->>V: new ReviewSchedule
     L->>P: state changed
-    P->>P: replan if needed
+    V->>P: review due
 ```
 
-循环依赖的处理原则是“读取旧 snapshot → 产生新不可变结果 → 下一轮消费新版本”，不在同一事务中互相写状态。
+---
 
-### 4.10 统一评估体系
+## 4.10 Outcome、Experiment 与 Evaluation Canonical Design
 
-Askora 采用四级指标，任何算法升级都不得只报告一级指标。
+### 4.10.1 Canonical Outcome Hierarchy
 
-#### 一级：算法指标
+#### Primary Learning Outcomes
 
-- 检索：Recall@K、MRR、nDCG、citation precision；
-- 学习者模型：log loss、Brier、ECE/calibration；
-- 评估：专家一致性、F1、kappa/ICC；
-- 教学策略：constraint violations、OPE policy value（成熟阶段）；
-- 计划：constraint satisfaction、plan stability；
-- 记忆调度：recall calibration、workload-retention；
-- LLM/Agent：schema pass、faithfulness、tool success。
-
-#### 二级：系统指标
-
-- latency / availability；
-- event lag；
-- retry/fallback；
-- index freshness；
-- model/tool failure；
-- cost；
-- security/validation failure。
-
-#### 三级：教学过程指标
-
-- 独立尝试率；
-- 提示依赖；
-- scaffold fading；
-- 前置缺口修复；
-- error recurrence；
-- answer leakage；
-- 到期复习执行；
-- 计划稳定性。
-
-#### 四级：学习结果指标
-
-优先级最高：
-
-1. 无提示独立完成；
-2. 延迟保持；
-3. 陌生情境迁移；
-4. 单位学习时间的稳定能力增益。
-
-冻结结论：
+冻结优先级：
 
 ```text
-点击率、学习时长、对话次数、点赞
-≠ 最终学习效果
+1. no-hint independent success
+2. delayed independent performance
+3. independent transfer
+4. unit-time capability gain
 ```
+
+每个具体实验必须只预先指定一个 primary outcome。
+
+#### Secondary Learning Outcomes
+
+可包括：
+
+- next independent success；
+- immediate independent post-test；
+- additional delayed windows；
+- misconception recurrence；
+- relearning speed；
+- time to stable capability。
+
+#### Process Diagnostics
+
+可包括：
 
 ```text
-离线算法最优
-≠ 教育效果最优
+hint count
+hint specificity
+scaffold control
+answer exposure
+strategy switch count
+conversation turns
+response latency
+worked-example exposure
+fallback
+user override
 ```
 
-实验设计优先用户级/课程阶段级持久分流，避免同一用户频繁切 variant 造成 carryover。关键教学策略应尽量使用随机对照或可信反事实评价，而不是观察性相关。
+它们用于解释过程，不能宣称等于 learning。
 
-### 4.11 隐私、安全、伦理与用户控制
+#### Safety / Trust Guardrails
 
-#### 数据最小化
+至少：
+
+```text
+hard constraint violation
+answer leakage
+assessment contamination
+LLM override
+unsupported citation
+grader disagreement
+system failure → learner failure
+false mastery promotion
+experiment opt-out violation
+```
+
+冻结：
+
+```text
+engagement
+conversation duration
+likes
+hint count
+token count
+≠ primary learning objective/reward
+```
+
+### 4.10.2 Outcome / Experiment Data Model
+
+Design 概念层正式引入：
+
+```text
+TeachingEpisode
+LearningTrajectory
+OutcomeObservation
+ExperimentAssignment
+```
+
+**TeachingEpisode**：围绕一个相对稳定 strategy/control intent 的教学片段，可包含多个 TeachingAction，但不拥有 LearnerState。
+
+**LearningTrajectory**：跨多个 episode 的 longitudinal reference view，用于延迟结果与实验分析。
+
+**ExperimentAssignment**：实验分组事实，包含 experiment/variant、assignment mechanism/version 与 assignment probability；不等于 action propensity。
+
+**OutcomeObservation** 至少表达：
+
+```text
+outcome_type
+measurement_reference
+independence
+assistance_state
+scaffold_control
+hint_specificity
+answer_exposure
+actual_delay
+transfer_distance / novelty
+score / success
+measurement_confidence
+active_learning_time / time_cost
+hint_cost
+contamination_status
+attribution_scope
+teaching_episode_ref
+learning_trajectory_ref
+experiment_association
+```
+
+OutcomeObservation 不应全部塞入 DecisionTrace；DecisionTrace 记录“为什么当时做这个决策”，OutcomeObservation 记录“之后实际测到了什么”。
+
+### 4.10.3 Attribution Scope
+
+冻结：
+
+```text
+ACTION_DIRECT
+EPISODE_ASSOCIATED
+TRAJECTORY_ASSOCIATED
+EXPERIMENTALLY_CAUSAL
+UNATTRIBUTABLE
+```
+
+禁止 last-touch attribution：延迟保持或迁移成功不能简单归因给最近一条 TeachingAction。
+
+只有满足相应实验设计条件的结果才允许标 `EXPERIMENTALLY_CAUSAL`。
+
+### 4.10.4 Offline Policy Verification & Evaluation（OPVE）
+
+v0.3 使用 OPVE 一词，避免与 reinforcement learning 的 causal Off-Policy Evaluation 混淆。
+
+评估层级：
+
+```text
+Contract Verification
+→ Gold Set
+→ Scenario Replay
+→ Sequential Transition Replay
+→ Property / Metamorphic Tests
+→ Baseline Differential Replay
+→ Synthetic Learner Stress Test
+→ Real-user N-of-1
+→ B2 vs B3
+→ Delayed Independent
+→ Near Transfer
+→ Efficiency
+```
+
+Offline 能证明：
+
+- deterministic replay；
+- constraint compliance；
+- transition correctness；
+- candidate validity；
+- anti-oscillation；
+- no infinite loops；
+- policy behavior difference。
+
+Offline 不能证明：
+
+- human learning efficacy；
+- retention benefit；
+- transfer benefit；
+- population superiority。
+
+Synthetic Learner 只能测试系统结构和 policy dynamics，绝不能作为“学习效果提高”的证据。
+
+### 4.10.5 Gold Set 分层
+
+建议：
+
+```text
+G0 — Hard Constraint Gold
+G1 — Acceptable Action Set Gold
+G2 — Research / Calibration Cases
+```
+
+- G0：必须 100% 通过；
+- G1：selected action 必须属于 acceptable set，不要求唯一动作；
+- G2：用于 policy tuning/研究，不直接作为 blocking correctness truth。
+
+专家一致性只证明 policy reasonableness/contract fit，不能证明学习效果。
+
+### 4.10.6 B2 vs B3 Experiment
+
+B2：
+
+```text
+same TeachingContext
+same action vocabulary
+same retrieval
+same model snapshot
+same assessment
+same hard shield
+
+LLM proposes/chooses action
+```
+
+B3：
+
+```text
+Askora deterministic Adaptive Teaching Policy
+```
+
+核心差异：
+
+```text
+LLM strategy judgment
+vs
+explicit deterministic policy
+```
+
+B2 仍必须经过完全相同的 hard policy shield；不得让 B2 因“自由 LLM tutor”获得在 B3 中被禁止的答案泄漏或越权动作。
+
+首选 matched-content randomized/counterbalanced N-of-1：
+
+```text
+Pretest
+→ Teaching episode
+→ Immediate no-hint independent
+→ Delayed independent
+→ Near transfer
+→ optional far transfer
+```
+
+同一 experiment 只指定一个 primary outcome；其他 outcome 为 secondary/guardrail。
+
+### 4.10.7 v0.3 Release Gate
+
+#### Engineering Gate
+
+至少：
+
+- deterministic replay；
+- immutable TeachingAction；
+- trace completeness；
+- no policy bypass；
+- assessment integrity；
+- failure semantics；
+- state ownership；
+- versioning/recovery。
+
+#### Policy Correctness Gate
+
+至少：
+
+- G0 hard constraint gold 100%；
+- forbidden action = 0；
+- G1 selected action ∈ acceptable set；
+- repeated failure 能退出；
+- independent success 能 fading；
+- answer exposure 产生 validation obligation；
+- low confidence conservative；
+- synthetic stress 无 infinite loop / illegal oscillation。
+
+#### Learning Evidence Gate
+
+不要求群体统计显著性，但要求：
+
+```text
+Engineering Correct
++
+Policy Correct
++
+No Learning Harm
++
+Directional Individual Learning Evidence
++
+Correct Experimental Data Foundation
+```
+
+pilot 至少采集：
+
+- immediate independent；
+- delayed independent；
+- near transfer；
+- active learning time。
+
+当工程和 policy 正确但真实学习证据不足时，状态必须是：
+
+```text
+LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+不得外推 population efficacy。
+
+---
+
+## 4.11 隐私、安全、伦理与用户控制
+
+### 数据最小化
 
 - 只收集教学所需 learner signals；
 - 区分认知状态、体验偏好、敏感属性；
-- 普通日志不保存完整敏感对话；
-- 发往外部模型供应商的数据做字段最小化。
+- raw private content 不默认进入 telemetry；
+- 外部模型上下文最小化。
 
-#### 隔离与访问
+### Prompt Injection / Tool Security
 
-- 用户材料、LearnerState、评估、事件、向量索引按用户/租户隔离；
-- Agent 工具按 least privilege 授权；
-- 高影响写操作走领域 command + audit；
-- 任何副作用工具需要显式权限边界。
-
-#### Prompt Injection
-
-上传书籍、网页、PDF、代码块中的“指令”均视为 source data。防御包括：
+上传书籍、网页、PDF、代码块中的“指令”全部视为 source data：
 
 ```text
-不可信数据标记
+untrusted-data marker
 → instruction/data separation
 → tool allowlist
 → least privilege
 → parameter validation
 → no-secret context by default
-→ output validation
+→ output/exposure validation
 → monitoring/red-team
 ```
 
-#### 用户控制
+### 用户控制
 
 用户可以：
 
 - 编辑/确认 LearningGoal；
-- 查看 LearnerState 的依据和置信度；
-- 对评分和误区判断提出异议；
-- 要求更直接/更苏格拉底/更简单/更难；
-- 暂停或跳过任务；
-- 查看/导出关键学习记录；
-- 触发状态复核，而不是被不可见算法永久贴标签。
+- 查看 LearnerState 依据；
+- 对评分/误区/状态提出争议；
+- 要求更直接或更引导；
+- 暂停/跳过活动；
+- 查看/导出关键学习记录。
 
-#### 公平与伦理
+用户 request 是 TeachingContext 输入，不直接覆盖 hard constraint。
 
-学习者状态是模型推断，不得用“能力标签”造成不可逆路径锁定。低置信状态优先诊断；系统应允许重新证明能力，并记录模型版本和纠错过程。
+---
 
-### 4.12 整体技术选型
+## 4.12 整体技术选型
 
-| 能力 | MVP 推荐 | 增强版 | 成熟版/研究 |
+| 能力 | v0.3 Canonical / MVP | 增强但不改变 owner | Deferred research |
 |---|---|---|---|
-| 规范数据 | PostgreSQL | 分区/事件投影 | 按规模拆服务 |
-| 文档解析 | format adapters + DocumentIR | 版面/公式/多模态 | 高级多模态模型 |
-| 检索 | BM25 + dense + RRF + reranker | GraphRAG + hierarchy | LTR/局部 bandit |
-| 向量 | pgvector 或成熟向量服务 | 独立向量服务按规模 | 多 embedding 路由 |
-| 图 | PostgreSQL adjacency/edge model | 图投影/图服务 | 独立图数据库仅在收益明确时 |
-| 学习者模型 | BKT + evidence weighting | PFA/IRT/calibration | Deep KT challenger |
-| 评估 | deterministic + rubric LLM | IRT/CAT/adjudication | 题目质量模型 |
-| 教学策略 | rules + state machine + weighted score | supervised/contextual bandit | Offline RL 研究 |
-| 学习计划 | DAG feasibility + heuristic scheduler | OR-Tools/MILP | learned ranking/OPE |
-| 复习 | FSRS-compatible + baseline | 个体参数优化 | 多目标长期调度 |
-| Agent | explicit workflow + tool calling | 局部 agentic workflow | 受约束自治子任务 |
-| 事件 | Outbox + append-only LearningEvent | replay/materialized views | 更完整事件平台按规模 |
-| 可观测 | OpenTelemetry 思路 | experiment/decision dashboards | 自动异常分析 |
+| 规范数据 | SQLite/PostgreSQL domain stores | projection/index optimization | microservices only by scale |
+| 内容解析 | format adapters + DocumentIR | multi-modal/layout improvements | — |
+| 检索 | BM25 + dense + RRF + reranker | graph/hierarchy routes, LTR | Bandit routing only future research |
+| 学习者模型 | interpretable baseline + evidence weighting | PFA/IRT calibration challengers | Deep KT challenger, never sole truth in v0.3 |
+| 评估 | deterministic + rubric LLM | diagnostic probes/adjudication | complex IRT-CAT deferred |
+| 教学策略 | constrained deterministic policy stack | supervised model may later become feature/challenger only after evidence | Contextual Bandit / Offline RL / Online RL deferred |
+| 学习计划 | DAG feasibility + heuristic scheduler | OR-Tools/MILP | learned long-horizon policy deferred |
+| 复习 | FSRS-compatible + baseline | individual parameter tuning | RL replacement deferred |
+| Agent | explicit workflow + tool calling | bounded agentic subtask | multi-agent teaching control deferred |
+| 事件/决策 | Outbox + LearningEvent + DecisionTrace | richer materialized views | — |
+| Outcomes | TeachingEpisode/Trajectory/OutcomeObservation/ExperimentAssignment | experiment dashboards | population experimentation later |
+| 可观测 | structured trace + decision/outcome linkage | experiment/quality dashboards | — |
 
-当前明确不应采用：
+v0.3 不把“未来可能研究”写成产品承诺或实现路线默认下一步。
 
-- 在线强化学习自由探索教学动作；
-- Deep KT 作为唯一 learner state 真相；
-- 所有请求默认 GraphRAG；
-- 完全 autonomous Agent 统管学习者模型、评分、计划和状态写入；
-- LLM 单独承担关键判分和知识发布；
-- 独立图数据库作为第一阶段事实源；
-- 以 engagement 指标作为教学主奖励。
+---
 
-### 4.13 MVP、增强版与成熟版实施路线
-
-推荐实施顺序不是按“AI 炫技程度”，而是按闭环依赖。
-
-#### MVP：先形成可验证闭环
-
-1. 统一公共对象、状态所有权和事件协议；
-2. 完成 4.1 DocumentIR、SourceSpan、KnowledgeUnit 最小模型；
-3. 完成 4.2 混合检索、EvidenceBundle 和泄漏控制；
-4. 建 4.4 AssessmentItem/Attempt/AssessmentResult 与 deterministic/rubric grader；
-5. 建 4.3 BKT + evidence weighting LearnerState；
-6. 建 4.5 规则 + 状态机 + 加权 TeachingAction；
-7. 建 4.6 基于 DAG/优先级/时间预算的 LearningPlan；
-8. 建 4.7 FSRS-compatible ReviewSchedule；
-9. 建 4.8 明确 workflow、ModelInference、LearningEvent、DecisionTrace 和基础安全；
-10. 建统一四级离线/在线评价。
-
-#### 增强版：提高测量和个性化
-
-- 4.1 跨材料 canonical / 更强知识关系；
-- 4.2 graph/hierarchy routes；
-- 4.3 PFA/IRT/calibration/Open Learner Model；
-- 4.4 自适应诊断、多评估器；
-- 4.5 监督 outcome model、局部 Contextual Bandit；
-- 4.6 constraint solver、时长/成功模型；
-- 4.7 个体 FSRS 参数和知识类型策略；
-- 4.8 多模型路由、sandbox、Prompt regression、red-team。
-
-#### 成熟版：数据证明后进入高级算法
-
-- Learning-to-Rank / retrieval personalization；
-- Deep KT ensemble/challenger；
-- 教学策略 Offline RL 研究；
-- 长程 curriculum OPE；
-- transfer probe scheduling；
-- 受约束 Agent 子任务自动化；
-- 更严格的长期 RCT/准实验评估。
-
-高级算法的进入条件：
+## 4.13 v0.3 实施路线（Design Dependency）
 
 ```text
-简单 baseline 存在明确瓶颈
-AND 数据量与覆盖足够
-AND 离线/反事实评价可靠
-AND 可解释、可回滚
-AND 在线实验有安全边界
-AND 学习结果有增益
+Research Synthesis
+→ Canonical Design Delta       [本文件]
+→ ADR Resolution               [仅必须 ADR]
+→ Spec Delta
+→ v0.3 Vertical Slice
+→ EXEC-007+
+→ Implementation
 ```
 
-### 4.14 关键设计结论
+当前阶段只冻结 Design。
 
-以下直接回答本轮必须明确的 20 个关键问题。
+v0.3 的 policy baseline 固定为：
 
-| 问题 | 结论 |
+```text
+TeachingContext
+→ Hard Constraints
+→ TeachingStage
+→ Candidate Table
+→ Feature Builder
+→ Normalized Weighted Score
+→ Anti-Oscillation
+→ Deterministic Tie-break
+→ TeachingAction
+→ DecisionTrace
+```
+
+任何 Contextual Bandit、Offline RL、Online RL 或 learned reward 均不属于本版本实施路线。
+
+---
+
+## 4.14 关键设计结论
+
+| 问题 | v0.3 结论 |
 |---|---|
-| 1. 八类系统是否构成完整教学闭环？ | 是。知识→计划→策略→证据→执行→评估→状态→复习→重规划形成闭环，并通过事件/版本解耦。 |
-| 2. 哪些属于知识基础设施？ | 内容解析与知识建模、检索与知识供给。 |
-| 3. 哪些属于教学内核？ | 教学策略选择是即时教学内核；学习路径与任务调度是长期教学决策内核。 |
-| 4. 哪些属于学习者建模？ | 学习者建模独占 LearnerState/MasteryEstimate；评估和复习只提供证据/辅助状态。 |
-| 5. 哪些属于长期规划？ | 学习路径与任务调度拥有 LearningPlan；复习系统只拥有 next_due。 |
-| 6. 哪些属于交互编排？ | LLM 生成、Agent 编排与可信控制。 |
-| 7. 每个核心决策唯一所有者是谁？ | 已在 4.2 冻结；知识4.1、证据包4.2、掌握4.3、评分4.4、教学动作4.5、计划4.6、复习时点4.7、执行4.8。 |
-| 8. 学习者模型与评估系统如何划分？ | 4.4 判断“这一次表现如何”；4.3 判断“综合历史后当前状态如何”。 |
-| 9. 教学策略与学习计划如何划分？ | 4.6 决定学哪个目标/任务；4.5 决定当前任务怎么教。 |
-| 10. 检索相关性与教学适用性有什么区别？ | 相关文本可能直接泄漏答案；教学适用性还需满足阶段、前置、提示和暴露约束。 |
-| 11. 推荐内容与安排教学顺序是同一个问题吗？ | 不是。候选内容相关性属于供给/排序证据；跨目标教学顺序属于 4.6 受约束规划。 |
-| 12. 如何避免答案泄漏？ | 4.5 定 exposure 上限；4.2 召回/重排/选包多阶段过滤；4.8 最终输出再验证。 |
-| 13. 如何控制提示与脚手架强度？ | TeachingAction 显式 scaffold/hint level，策略依据 learner state 和错误逐级调整并在成功后撤除。 |
-| 14. 如何判断真正掌握与暂时答对？ | 单次 AssessmentResult 不等于 mastery；需要多次独立成功、延迟证据、误区消退和迁移证据。 |
-| 15. 如何评估延迟保持和知识迁移？ | 4.7 负责调度延迟提取，4.4 发布延迟/迁移 AssessmentResult，4.3 综合更新状态。 |
-| 16. 如何处理错误的学习者状态估计？ | 用户/后续证据产生 FeedbackSignal/correction，4.3 通过 replay/recompute 生成新状态版本，历史不静默改写。 |
-| 17. 如何允许用户纠正系统判断？ | Open Learner Model 显示依据、置信度和异议入口；纠错触发复测/复评/重算，而非直接强制概率。 |
-| 18. 如何证明教学策略真正有效？ | 不能靠点赞/时长；使用用户级实验、下一次独立表现、延迟保持、迁移及单位时间能力增益。 |
-| 19. 哪些高级算法当前不应采用？ | 在线 RL、全局 Offline RL、Deep KT 唯一真相、全请求 GraphRAG、完全 autonomous Agent。 |
-| 20. Askora 与普通 RAG 问答工具的本质区别是什么？ | 普通 RAG 优化“找资料并回答”；Askora 维护长期 learner state、主动选择教学动作、控制答案暴露、安排复习/迁移并用真实学习结果闭环优化。 |
-
-最核心的系统关系可以压缩为：
-
-```text
-知识事实由 4.1 管
-证据供给由 4.2 管
-长期认知状态由 4.3 管
-单次测量由 4.4 管
-当前怎么教由 4.5 管
-长期学什么由 4.6 管
-何时复习由 4.7 管
-怎么可靠执行由 4.8 管
-```
-
-### 4.15 尚未解决的问题
-
-以下不是文档占位，而是需要用 Askora 数据验证的明确假设：
-
-1. 不同知识类型最合适的 KnowledgeUnit 粒度；
-2. BKT 的提示/延迟/迁移证据权重如何校准；
-3. 稳定掌握与迁移掌握的最优门槛；
-4. LLM 开放式评分在不同学科的人工一致性上限；
-5. 学习者误区 hypothesis 需要几类鉴别证据才足够可靠；
-6. FSRS-compatible 状态对概念理解、程序技能的适用程度；
-7. graph/hierarchy retrieval 对学习结果是否显著优于普通 hybrid RAG；
-8. Contextual Bandit 在教学策略中的真实增益是否超过规则/监督模型；
-9. 如何定义跨周甚至跨月的长期策略 reward 与可靠 OPE；
-10. 用户可编辑 learner model 后，如何在尊重用户控制与保持测量一致性之间平衡；
-11. 不同 LLM/Prompt 对教学表达的差异是否真的改变长期学习结果；
-12. 何种迁移任务才足够新颖，能避免“题型记忆”伪装成迁移能力。
-
-每个问题必须进入实验/评估 backlog，不得用模型推测直接填成“事实”。
-
-### 4.16 参考资料
-
-教育科学与测量：
-
-1. Dunlosky, J. et al. (2013). *Improving Students’ Learning With Effective Learning Techniques*. https://doi.org/10.1177/1529100612453266
-2. Cepeda, N. J. et al. (2006). *Distributed practice in verbal recall tasks*. https://pubmed.ncbi.nlm.nih.gov/16719566/
-3. Roediger, H. L. & Karpicke, J. D. (2006). *Test-enhanced learning*. https://pubmed.ncbi.nlm.nih.gov/16507066/
-4. Pan, S. C. & Rickard, T. C. (2018). *Transfer of test-enhanced learning*. https://pubmed.ncbi.nlm.nih.gov/29733621/
-5. Brunmair, M. & Richter, T. (2019). *Interleaved learning meta-analysis*. https://pubmed.ncbi.nlm.nih.gov/31556629/
-6. van Gog, T., Paas, F., & Sweller, J. (2010). Worked examples / Cognitive Load Theory. https://link.springer.com/article/10.1007/s10648-010-9145-4
-7. Hattie, J. & Timperley, H. (2007). *The Power of Feedback*. https://doi.org/10.3102/003465430298487
-8. Black, P. & Wiliam, D. (1998). *Assessment and Classroom Learning*. https://doi.org/10.1080/0969595980050102
-9. Corbett, A. T. & Anderson, J. R. *Knowledge tracing*. https://doi.org/10.1007/BF01099821
-10. Pavlik, P. I. et al. (2009). *Performance Factors Analysis*. https://doi.org/10.3233/978-1-60750-028-5-531
-11. Piech, C. et al. (2015). *Deep Knowledge Tracing*. https://proceedings.neurips.cc/paper_files/paper/2015/hash/bac9162b47c56fc8a4d2a519803d51b3-Abstract.html
-12. ETS (2020). *An Introduction to Item Response Theory*. https://www.ets.org/research/policy_research_reports/publications/report/2020/kbxx.html
-13. Ma, W. et al. (2014). ITS learning outcomes meta-analysis. https://doi.org/10.1037/a0037123
-
-检索、序列决策与记忆：
-
-14. Lewis, P. et al. (2020). *Retrieval-Augmented Generation*. https://arxiv.org/abs/2005.11401
-15. Robertson, S. & Zaragoza, H. (2009). *BM25 and Beyond*. https://doi.org/10.1561/1500000019
-16. Karpukhin, V. et al. (2020). *Dense Passage Retrieval*. https://aclanthology.org/2020.emnlp-main.550/
-17. Cormack, G. V. et al. (2009). *Reciprocal Rank Fusion*. https://doi.org/10.1145/1571941.1572114
-18. Edge, D. et al. (2024). *GraphRAG*. https://arxiv.org/abs/2404.16130
-19. Sarthi, P. et al. (2024). *RAPTOR*. https://arxiv.org/abs/2401.18059
-20. Belfer, R. et al. (2022). Adaptive Curriculum + Contextual Bandits. https://arxiv.org/abs/2207.14003
-21. Levine, S. et al. (2020). *Offline Reinforcement Learning*. https://arxiv.org/abs/2005.01643
-22. Kumar, A. et al. (2020). *Conservative Q-Learning*. https://arxiv.org/abs/2006.04779
-23. Settles, B. & Meeder, B. (2016). *A Trainable Spaced Repetition Model*. https://aclanthology.org/P16-1174/
-24. Open Spaced Repetition. *FSRS*. https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler
-25. Anki Manual. *FSRS / Deck Options*. https://docs.ankiweb.net/deck-options.html
-
-LLM、Agent 与可信工程：
-
-26. Yao, S. et al. *ReAct*. https://arxiv.org/abs/2210.03629
-27. Schick, T. et al. *Toolformer*. https://arxiv.org/abs/2302.04761
-28. NIST. *AI RMF Generative AI Profile, NIST AI 600-1*. https://doi.org/10.6028/NIST.AI.600-1
-29. OWASP GenAI Security Project. *LLM01:2025 Prompt Injection*. https://genai.owasp.org/llmrisk/llm01-prompt-injection/
-30. CNCF. *CloudEvents Specification*. https://github.com/cloudevents/spec
-31. Debezium. *Outbox Event Router*. https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html
-32. OpenTelemetry. *Documentation*. https://opentelemetry.io/docs/
-
-完整研究索引见：`docs/design/research/八类技术系统-参考资料索引.md`。
+| 八类系统是否仍构成完整闭环？ | 是，owner 不变；v0.3 只增强 Adaptive Teaching Loop。 |
+| Assessment 与 Learner Model 如何分？ | SYS04 判断“这一次怎样”；SYS03 判断“综合历史后怎样”。 |
+| Plan 与 Teaching Policy 如何分？ | SYS06 决定学什么；SYS05 决定当前怎么教。 |
+| TeachingStage 是 learner state 吗？ | 不是；它是 activity-specific derived policy feature。 |
+| Strategy Family 有多少个？ | 6 个，其他历史名称映射为 move/pattern/modifier 或 deferred。 |
+| Socratic tutor 是否是默认策略？ | 否；Socratic 是 GUIDED_PRACTICE 下 bounded move。 |
+| 如何表达帮助？ | scaffold、hint specificity、answer exposure、actual assistance 分离。 |
+| assisted success 是否掌握？ | 不是独立验证；需要后续 no-hint evidence。 |
+| answer-exposed success 是否掌握？ | 当前不能作为 independent/stable-mastery 高权 evidence。 |
+| error 是否等于 misconception？ | 不等于；单次 error/evidence 与长期 hypothesis 分离。 |
+| SYS05 如何做决定？ | constrained deterministic policy stack。 |
+| hard rule 可被高分抵消吗？ | 不可以。 |
+| low confidence 如何处理？ | conservative，不做高确定激进 personalization。 |
+| 如何避免策略振荡？ | material evidence + sticky continuity + dwell + hysteresis + failure override。 |
+| Policy config 如何管理？ | immutable PolicyBundle + exact version pinning。 |
+| deterministic policy propensity 是多少？ | `null`，不能伪造 1.0。 |
+| 实验 assignment probability 是 action propensity 吗？ | 不是。 |
+| offline replay 能证明学习有效吗？ | 不能，只能证明 policy correctness/behavior。 |
+| synthetic learner 能证明学习收益吗？ | 不能。 |
+| v0.3 是否使用 Bandit/RL？ | 不使用，明确 deferred。 |
 
 ---
 
-## 5. DeepTutor 与 Askora 的判断
+## 4.15 Open Questions 与 Versioned Parameters
 
-### 5.1 DeepTutor 的优势
+### 4.15.1 Versioned configurable parameters
 
-DeepTutor 当前是成熟度较高的通用 AI 学习工作台，强项包括：
+以下数值全部不是学习科学定律：
 
-- 文档解析；
-- 多种 RAG；
-- 知识库；
-- Book Engine；
-- Chat、Quiz、Research、Solve、Visualize；
-- Agent 和 Tool 框架；
-- 多模型接入；
-- 记忆系统；
-- Mastery Path；
-- 间隔复习；
-- 前端、部署和工程生态。
+| Parameter | Status |
+|---|---|
+| mastery thresholds | `versioned configurable parameter` + `Askora Experiment Required` |
+| failure ceiling | `versioned configurable parameter` + `Askora Experiment Required` |
+| minimum dwell | `versioned configurable parameter` + `Askora Experiment Required` |
+| switch margin / hysteresis | `versioned configurable parameter` + `Askora Experiment Required` |
+| hint sequence | `versioned configurable parameter` + `Askora Experiment Required` |
+| scaffold fade amount | `versioned configurable parameter` + `Askora Experiment Required` |
+| diagnostic confidence cutoff | `versioned configurable parameter` + `Askora Experiment Required` |
+| transfer novelty threshold | `versioned configurable parameter` + `Askora Experiment Required` |
+| delay windows | `versioned configurable parameter` + `Askora Experiment Required` |
+| policy weights | `versioned configurable parameter` + `Askora Experiment Required` |
+| practical harm margin | `versioned configurable parameter` + `Askora Experiment Required` |
 
-### 5.2 DeepTutor 的主要短板
+### 4.15.2 Remaining research questions
 
-其核心短板集中在教育算法：
+1. 不同 activity/content type 需要多少 fresh independent evidence 才足以清除 validation obligation？
+2. minimum dwell、failure ceiling、switch margin、fade amount 的最佳组合是什么？
+3. 不同知识/技能类型的 hint specificity sequence 是否应不同？
+4. 生成式输出中的 semantic answer exposure 如何可靠检测和分级？
+5. bounded Socratic probe 与 direct explanation 在不同内容类型上的长期效果差异是什么？
+6. near/far transfer novelty 的可操作 taxonomy 如何校准？
+7. 用户重复要求直接答案时，怎样尊重请求又不把动机/能力误诊为 mastery signal？
+8. Learning Evidence Gate 的 practical harm margin、最低覆盖和 stop rule 如何校准？
 
-- 掌握度主要使用最近答题的加权正确率；
-- 题目难度未充分校准；
-- 提示后答对和独立答对未严格区分；
-- 概念型知识较依赖 LLM 定性判断；
-- 教学策略主要由 LLM 临场决定；
-- 学习路径主要按模块和知识点顺序推进；
-- 复习间隔主要采用固定规则；
-- 延迟保持和迁移尚未成为完整硬门槛。
-
-总体判断：
-
-```text
-DeepTutor =
-优秀的知识与 Agent 基础设施
-+
-可用的掌握式学习闭环
-+
-相对基础的教育算法
-```
-
-### 5.3 Askora 的优势方向
-
-Askora 应重点增强：
-
-- 学习目标结构化；
-- 精细学习者模型；
-- 独立教学策略引擎；
-- 行为证据系统；
-- 提示依赖追踪；
-- 动态学习路径；
-- 个性化遗忘模型；
-- 延迟保持门槛；
-- 迁移掌握门槛；
-- 学习事件溯源。
-
-### 5.4 推荐工程路线
-
-不建议完全从零重做 DeepTutor 已有的成熟基础设施。
-
-更合理的方案是：
-
-> **参考或复用成熟项目的文档、RAG、模型接入和前端能力，重新设计 Askora 的教学内核。**
-
-优先重写：
-
-1. 学习者模型；
-2. 证据模型；
-3. 教学策略引擎；
-4. 动态路径规划器；
-5. 复习调度器；
-6. 掌握门槛；
-7. 教学效果评估。
+这些问题进入实验 backlog；不得在 Spec 中伪装成科学常数。
 
 ---
 
-## 6. Askora 建议采用的算法架构
+## 4.16 Canonical Design Delta Register
 
-### 6.1 掌握度模型
+本登记先解决 Design 冲突，再向下游产生 Spec Delta。
 
-第一阶段采用：
-
-```text
-BKT + 题目难度分级 + 证据权重
-```
-
-后续逐步引入：
-
-- IRT；
-- 个性化参数；
-- 置信区间；
-- 跨知识点关联更新。
-
-不同证据使用不同权重：
-
-```text
-看答案后复述：极低
-强提示后答对：低
-轻提示后答对：中
-无提示相似题成功：较高
-延迟后独立回忆：高
-陌生任务迁移成功：最高
-```
-
-### 6.2 教学策略算法
-
-第一阶段不直接采用完整强化学习，而使用：
-
-```text
-硬规则过滤 + 状态机 + 加权评分
-```
-
-策略输入：
-
-```text
-学习目标
-先备知识
-掌握概率
-状态置信度
-内容复杂度
-错误类型
-提示历史
-挫败信号
-时间预算
-```
-
-策略输出：
-
-```text
-教学模式
-提示等级
-预期学习证据
-退出条件
-选择理由
-```
-
-积累数据后再引入：
-
-- Contextual Bandit，用于局部个性化；
-- 受约束强化学习，用于长期教学序列优化。
-
-规则负责教学安全底线，强化学习不能自由探索所有动作。
-
-### 6.3 动态任务优先级
-
-任务优先级综合：
-
-```text
-目标相关性
-+ 知识缺口
-+ 遗忘风险
-+ 前置价值
-+ 截止时间紧迫度
-+ 状态不确定性
-- 学习成本
-```
-
-同时满足：
-
-- 前置知识约束；
-- 今日时间预算；
-- 新学、复习和迁移比例；
-- 认知负荷限制；
-- 学习任务多样性。
-
-### 6.4 掌握门槛
-
-稳定掌握建议定义为：
-
-```text
-掌握概率达到阈值
-AND 至少两次无提示独立成功
-AND 至少一次延迟回忆成功
-AND 不存在活跃稳定误区
-```
-
-迁移掌握建议定义为：
-
-```text
-稳定掌握
-AND 陌生情境任务成功
-AND 未使用关键提示
-```
-
-### 6.5 事件溯源
-
-所有学习行为保存为不可变事件，例如：
-
-```text
-MaterialImported
-GoalConfirmed
-QuestionPresented
-HintRequested
-AttemptSubmitted
-AnswerRevised
-MisconceptionDetected
-DelayedRecallCompleted
-TransferTaskCompleted
-ReviewCompleted
-StrategyFeedbackSubmitted
-```
-
-学习者状态由事件投影计算。
-
-收益：
-
-- 替换算法后重算历史状态；
-- 审计掌握判断；
-- 回滚错误推断；
-- 进行离线算法比较；
-- 支持未来训练策略模型。
+| ID | Topic | Current conflict | Classification | Canonical resolution |
+|---|---|---|---|---|
+| CDDR-001 | Eight-system ownership | Current Design/Spec 已基本一致 | `NO_CHANGE` | 保持 SYS01～08 唯一 owner |
+| CDDR-002 | LLM boundary | Current Design/Spec 已基本一致 | `NO_CHANGE` | LLM 执行/生成，不拥有核心 truth/action |
+| CDDR-003 | 9 strategies → 6 families | Current Design/Spec 仍使用 9 top-level family | `ADR_CANDIDATE` | 冻结 6 Strategy Families + migration mapping |
+| CDDR-004 | Strategy/Action/Move/Modifier | Current Design 未正式分层 | `DESIGN_DELTA_REQUIRED` | 四层语义正式冻结 |
+| CDDR-005 | TeachingStage | Current Spec 有 `learning_stage_summary`、旧 state-machine names | `DESIGN_CLARIFICATION` | activity-specific derived feature，非 learner truth |
+| CDDR-006 | TeachingContext | Current Design 只有宽泛 snapshot 概念 | `DESIGN_DELTA_REQUIRED` | immutable reference/version snapshot + missing semantics |
+| CDDR-007 | Error taxonomy | Current Design/Spec 使用 condition/metacognitive/incomplete_expression 顶层值 | `DESIGN_DELTA_REQUIRED` | 7 canonical + UNKNOWN；旧值迁移 |
+| CDDR-008 | Diagnostic confidence | Current Spec 主要只有 assessment confidence | `DESIGN_DELTA_REQUIRED` | diagnostic confidence / alternatives / needs_probe 分离 |
+| CDDR-009 | Hard/Soft/Experiment rules | Current Spec 只部分区分 hard/soft | `DESIGN_DELTA_REQUIRED` | 三类正式 taxonomy，hard 不可被 override |
+| CDDR-010 | Scaffold/hint/exposure | Current Spec 使用 class + integer hint/scaffold | `ADR_CANDIDATE` | orthogonal support/exposure model |
+| CDDR-011 | Independent validation | Current design 有 evidence weighting 但缺 control obligation | `DESIGN_DELTA_REQUIRED` | SYS05 validation obligation，非 MasteryState |
+| CDDR-012 | Deterministic policy stack | Current SYS05 baseline 缺 feature builder/anti-oscillation完整层 | `ADR_CANDIDATE` | constrained deterministic policy architecture |
+| CDDR-013 | Anti-oscillation | Current design 只有策略振荡指标 | `DESIGN_DELTA_REQUIRED` | material evidence/sticky/dwell/hysteresis/failure override |
+| CDDR-014 | PolicyBundle | Current Spec 只有 loose policy version/config | `DESIGN_DELTA_REQUIRED` | immutable bundle + atomic activation + exact replay |
+| CDDR-015 | DecisionTrace | Current contract fields不足 | `SPEC_DELTA_REQUIRED_LATER` | refs/fingerprint/stage/features/transitions/replayability |
+| CDDR-016 | Probability semantics | Current DecisionTrace 只有 generic experiment propensity | `SPEC_DELTA_REQUIRED_LATER` | deterministic action_propensity=null；assignment probability 分离 |
+| CDDR-017 | Outcome data model | Current observability 主要是指标，不足以表达 attribution | `DESIGN_DELTA_REQUIRED` | Episode/Trajectory/OutcomeObservation/ExperimentAssignment |
+| CDDR-018 | Evaluation framework | Current testing 有 L6，但缺完整 OPVE 与 Gold 分层 | `DESIGN_DELTA_REQUIRED` | OPVE + G0/G1/G2 + N-of-1 + B2/B3 |
+| CDDR-019 | Release Gate | Current DoD 主要工程级 | `DESIGN_DELTA_REQUIRED` | Engineering + Policy Correctness + Learning Evidence |
+| CDDR-020 | Bandit/RL/Productive Failure | Current Design 把它们列为自然演进下一步 | `DEFER_TO_V0.4` | v0.3 明确 deferred，不进入实现范围 |
 
 ---
 
-## 7. 对话气泡反馈系统
+## 4.17 ADR Candidate Register
 
-建议在每条教学气泡下设计情境化反馈入口。
+本阶段只判断，不创建 `docs/adr/**`。
 
-### 7.1 基础入口
+| ADR Candidate | Decision | Rationale | Breaking? | Required before Spec Delta? |
+|---|---|---|---:|---:|
+| **A — Teaching Strategy Ontology**：9 top-level strategies → 6 Strategy Families + TeachingAction + Interaction Move + Action Modifier | **ADR REQUIRED** | 属于核心领域模型语义重构；影响 enum、TeachingAction、policy config、trace、历史数据解释 | Yes | Yes |
+| **B — SYS05 Constrained Deterministic Policy Architecture** | **ADR REQUIRED** | 属于关键算法/架构选择；需要固定为何 v0.3 选择 typed hard constraints + decision table + versioned scoring + anti-oscillation，而不采用 generic rule engine、LLM selector、Bandit/RL 作为 canonical owner | Yes at behavior/config contract level | Yes |
+| **C — Outcome / Experiment Data Model**：TeachingEpisode / LearningTrajectory / OutcomeObservation / ExperimentAssignment | **ADR NOT REQUIRED CURRENTLY** | 当前是 additive Design/Spec Delta，不改变八系统 truth owner；若未来把它升级为独立 durable service/aggregate owner，再评估 ADR | No | No |
+
+DecisionTrace 的 `action_propensity=null` 与 assignment probability 分离，作为 ADR-B 的 replay/experiment data-foundation约束一并固化，不单独增加 ADR。
+
+---
+
+## 4.18 Spec Delta Input
+
+本节仅作为下一阶段输入，**禁止据此认为 Spec 已修改**。
+
+| ID | Target | Required Change | Design Source | Breaking? | Migration? | ADR Dependency? |
+|---|---|---|---|---:|---:|---|
+| `SD-01` | Domain Model + SYS05 | 9 strategy family enum → 6 Strategy Families；增加历史 mapping；明确 Action/Move/Modifier | 4.8.5.1～3 | Yes | Yes | ADR-A |
+| `SD-02` | Domain Model + SYS05 | 正式定义 immutable/reference-based TeachingContext、fingerprint、missing/stale/low-confidence semantics | 4.8.5.4 | No/Additive | historical trace replay status | ADR-B |
+| `SD-03` | SYS04 | AssessmentResult/diagnosis 增加 diagnostic_confidence、diagnostic_evidence_refs、alternative_hypotheses、needs_probe | 4.8.4 | Mostly additive | optional backfill = unknown | None |
+| `SD-04` | Domain Model + SYS04 | ErrorType 迁移为 KNOWLEDGE_GAP/CONCEPTUAL_MISCONCEPTION/METHOD_SELECTION/EXECUTION/RETRIEVAL_FAILURE/TRANSFER_FAILURE/EXPRESSION_FORMAT/UNKNOWN；旧 condition/metacognitive/incomplete mapping | 2.4, 4.8.4 | Yes | Yes | None |
+| `SD-05` | Domain Model + SYS03/SYS04/SYS05 | TeachingAction/Attempt support schema 改为 scaffold_control + hint_specificity + answer_exposure + assistance_state + delivery/support/transition；加入 validation obligation | 4.8.5.5～6 | Yes | Yes/best-effort | ADR-A |
+| `SD-06` | SYS05 | 加入 material evidence gate、sticky continuity、evidence-opportunity dwell、hysteresis、repeated-failure override | 4.8.5.12 | Behavior-breaking | policy config migration | ADR-B |
+| `SD-07` | SYS05 + Domain config | 定义 immutable PolicyBundle、版本组件、content_digest、atomic activation、historical bundle retention | 4.8.5.13 | No/Additive but required | existing config → bundle | ADR-B |
+| `SD-08` | Decision Contract | TeachingContext refs/fingerprint、available/hard-filtered actions、stage、features/confidence、transition/material evidence/tie-break、behavior policy、action_propensity、replayability；deterministic propensity=null；assignment probability 分离 | 4.5.2 | Yes schema semantics | versioned reader/upcaster | ADR-B |
+| `SD-09` | Domain/Observability/Outcome | 增加 TeachingEpisode、LearningTrajectory、OutcomeObservation、ExperimentAssignment 与 attribution scope；不要塞入 DecisionTrace | 4.10.2～3 | No/Additive | telemetry linkage best-effort | None（ADR-C reviewed） |
+| `SD-10` | Testing Standard | 加入 OPVE：G0/G1/G2、scenario/sequential replay、property/metamorphic、baseline differential、synthetic stress；明确 offline 不能证明 efficacy | 4.10.4～5 | No | No | ADR-B |
+| `SD-11` | Observability + DoD + Vertical Slice | 加入 outcome hierarchy、B2/B3、三层 release gate、`LEARNING_EVIDENCE_INSUFFICIENT`、pilot outcome collection | 4.10.1, 4.10.6～7 | Process/acceptance change | dashboard/test fixture updates | ADR-B |
+
+分类汇总：
 
 ```text
-有帮助
-没理解
+Domain Model Delta       → SD-01, SD-02, SD-04, SD-05, SD-09
+SYS03 Delta              → SD-05
+SYS04 Delta              → SD-03, SD-04, SD-05
+SYS05 Delta              → SD-01, SD-02, SD-05, SD-06, SD-07
+Decision Contract Delta  → SD-08
+Testing Delta            → SD-10
+Observability Delta      → SD-09, SD-11
+Vertical Slice Delta     → SD-11
+```
+
+---
+
+## 4.19 v0.3 Canonical Design Decisions
+
+| ID | Decision | Status |
+|---|---|---|
+| `V03-CD-001` | Adaptive Teaching Loop 以 TeachingContext → deterministic TeachingAction 为正式即时教学控制闭环 | **FROZEN** |
+| `V03-CD-002` | 顶层 Strategy Family 固定为 6 个 | **FROZEN** |
+| `V03-CD-003` | Strategy Family / TeachingAction / Interaction Move / Action Modifier 四层分离 | **FROZEN** |
+| `V03-CD-004` | TeachingStage 是 activity-specific、transient、derived policy feature，不是 LearnerState | **FROZEN** |
+| `V03-CD-005` | TeachingContext 是 immutable、versioned/reference-based decision snapshot；missing ≠ 0 | **FROZEN** |
+| `V03-CD-006` | ErrorType 冻结为 7 类 + UNKNOWN；error/evidence/hypothesis 分离 | **FROZEN** |
+| `V03-CD-007` | Hard Constraint / Soft Preference / Experiment Guardrail 三类规则严格分离 | **FROZEN** |
+| `V03-CD-008` | scaffold_control / hint_specificity / answer_exposure / assistance_state 正交建模 | **FROZEN** |
+| `V03-CD-009` | assisted/answer-exposed performance 产生 fresh independent validation obligation | **FROZEN** |
+| `V03-CD-010` | SYS05 使用 constrained deterministic policy stack，不以 LLM/rule DSL/Bandit/RL 作为 canonical selector | **FROZEN** |
+| `V03-CD-011` | Anti-oscillation 采用 material evidence、sticky continuity、dwell、hysteresis 与 repeated-failure override | **FROZEN** |
+| `V03-CD-012` | Policy configuration 采用 immutable/versioned PolicyBundle + atomic activation | **FROZEN** |
+| `V03-CD-013` | DecisionTrace 增加 context/stage/features/transitions/propensity/replayability；deterministic action_propensity=null | **FROZEN** |
+| `V03-CD-014` | Outcome 层采用 TeachingEpisode / LearningTrajectory / OutcomeObservation / ExperimentAssignment，并禁止简单 last-touch attribution | **FROZEN** |
+| `V03-CD-015` | 学习效果采用 Primary/Secondary/Process/Safety hierarchy + OPVE → real-user evidence framework | **FROZEN** |
+| `V03-CD-016` | B2 vs B3 只比较 LLM strategy judgment 与 explicit deterministic policy，其他关键条件匹配且共享 hard shield | **FROZEN** |
+| `V03-CD-017` | v0.3 Release Gate 分 Engineering / Policy Correctness / Learning Evidence 三层；证据不足使用 `LEARNING_EVIDENCE_INSUFFICIENT` | **FROZEN** |
+| `V03-CD-018` | Contextual Bandit、Offline/Online RL、Deep KT truth、complex IRT-CAT、generic Productive Failure 等不进入 v0.3 | **FROZEN** |
+
+所有数值阈值与权重仍按 4.15 标记为 `versioned configurable parameter` / `Askora Experiment Required`，不因为核心设计冻结而变成固定科学常数。
+
+---
+
+## 4.20 v0.3 Out of Scope
+
+以下重新确认不进入 v0.3：
+
+```text
+Contextual Bandit
+Offline RL
+Online RL
+Deep KT as canonical truth
+complex IRT-CAT
+open-world misconception discovery
+school-level population A/B
+multi-agent teaching control
+automatic learned reward
+synthetic learner as learning evidence
+free-form LLM TeachingAction ownership
+generic Productive Failure strategy
+always-on Socratic tutor
+```
+
+---
+
+## 4.21 参考资料
+
+完整研究证据与引用见：
+
+- `docs/design/research/synthesis/v0.3-Research-Synthesis-Adaptive-Teaching-Loop.md`；
+- `docs/design/research/synthesis/DR-03-01-教学策略与支架转换研究.md`；
+- `docs/design/research/synthesis/DR-03-02-错误诊断到教学补救研究.md`；
+- `docs/design/research/synthesis/DR-03-03-Teaching-Policy-决策算法与数据契约研究.md`；
+- `docs/design/research/synthesis/DR-03-04-学习效果验证与产品实验研究.md`；
+- `docs/design/research/八类技术系统-参考资料索引.md`。
+
+既有教育科学、ITS、BKT/PFA/IRT、RAG、FSRS、NIST、OWASP、CloudEvents、OpenTelemetry 等基础研究仍保留为背景依据；Research Synthesis 已经解决的问题在本阶段不重新投票。
+
+---
+
+# 5. DeepTutor 与 Askora 的判断
+
+## 5.1 DeepTutor 的优势
+
+DeepTutor 作为通用 AI 学习工作台，在文档解析、RAG、知识库、Book Engine、Quiz/Research/Solve、Agent/Tool、多模型接入、前端和部署方面具有成熟基础。
+
+## 5.2 Askora 的差异方向
+
+Askora 不应通过“更多 Agent / 更多模型”竞争，而应在以下方面形成严格差异：
+
+- canonical learner-state ownership；
+- 独立 AssessmentResult；
+- constrained deterministic Teaching Policy；
+- support/exposure integrity；
+- independent validation obligation；
+- delayed/transfer outcome；
+- DecisionTrace replay；
+- learning-effect experiment foundation。
+
+准确表述：
+
+> Askora 的目标不是宣称产品整体已经优于 DeepTutor，而是建立一个对学习证据、教学决策与长期学习结果要求更严格的个人自适应教学内核。
+
+---
+
+# 6. Askora Canonical Algorithm Architecture Summary
+
+## 6.1 Learner Model
+
+v0.3 继续采用可解释 baseline，具体 mastery threshold、evidence weighting、delay/transfer calibration 由版本化参数与实验决定。
+
+```text
+AssessmentResult / LearningEvent
+→ evidence eligibility
+→ evidence weighting
+→ interpretable learner-state update
+→ MasteryEstimate + confidence
+```
+
+Deep KT 仅可作为 challenger/auxiliary feature，不成为 canonical truth。
+
+## 6.2 Teaching Policy
+
+v0.3 唯一 canonical 路径：
+
+```text
+TeachingContext Snapshot
+→ Typed Hard Constraints
+→ Derived TeachingStage
+→ Candidate Table
+→ Feature Builder
+→ Normalized Weighted Scoring
+→ Anti-Oscillation
+→ Deterministic Tie-break
+→ TeachingAction
+→ DecisionTrace
+```
+
+不再把“硬规则 + 状态机 + 加权评分”作为模糊三段式；每层职责、版本和 replay data 已在 4.8.5 冻结。
+
+## 6.3 Dynamic Planning
+
+SYS06 继续按目标相关性、知识缺口、前置价值、复习紧迫、deadline、uncertainty、transfer need、time cost 进行受约束规划；不能被 SYS05 每轮微小交互扰动而频繁全量 replan。
+
+## 6.4 Mastery / Transfer
+
+稳定掌握和迁移标签必须基于 independent、delayed、transfer evidence 与 active misconception hypothesis，而不是单个概率或最近一题正确。
+
+具体 threshold 与 evidence count 仍为实验参数。
+
+## 6.5 Event Sourcing / Replay
+
+LearningEvent、DecisionTrace、PolicyBundle、输入对象历史版本共同构成重放基础。replay 不重新调用在线 LLM；历史依赖缺失时明确 downgrade replayability。
+
+---
+
+# 7. 对话气泡反馈系统
+
+反馈体系继续保留，但用途进一步收敛。
+
+## 7.1 体验反馈
+
+```text
+有帮助 / 没理解
 换种讲法
-调整难度
-更多
-```
-
-### 7.2 讲解反馈
-
-```text
-太抽象
-信息太多
-太简单
+太抽象 / 信息太多
 例子不合适
-内容可能有误
-和问题无关
 ```
 
-### 7.3 练习反馈
+## 7.2 教学控制反馈
 
 ```text
-题目太难
-题目太简单
-题意不清
-缺少条件
-超出范围
-题目可能有误
-```
-
-### 7.4 提示反馈
-
-```text
-提示太弱
-提示太强
+提示太弱 / 太强
 已经暴露答案
-没有解决卡点
+拆成更小步骤
+让我自己再试
+直接解释
+改用引导提问
+提高 / 降低难度
 ```
 
-### 7.5 评分反馈
+这些反馈进入 TeachingContext 的 user request / support signal，不直接改 mastery。
+
+## 7.3 题目与评分反馈
 
 ```text
+题目太难 / 太简单
+题意不清 / 缺少条件
+题目可能有误
 评分有误
-没有理解我的答案
 错误原因判断不准
 参考答案有问题
 ```
 
-### 7.6 直接教学控制
+评分争议由 SYS04 review/reassess；learner-state dispute 由 SYS03 recompute/retest。
+
+## 7.4 反馈的正确用途
+
+反馈只形成可审计 signal。真正验证策略效果仍依赖：
+
+- 后续 no-hint independent performance；
+- delayed independent；
+- transfer；
+- unit-time capability gain。
+
+点赞、对话时长或“感觉更喜欢”不能替代这些结果。
+
+---
+
+# 8. Advanced Policy Learning 的适用边界
+
+v0.3 不进入 Contextual Bandit / Offline RL / Online RL。
+
+未来是否研究这些算法，只能在以下条件同时满足后重新开题：
 
 ```text
-换一个例子
-拆成更小步骤
-先补前置知识
-让我自己再试一次
-直接解释
-改用苏格拉底提问
-提高难度
-降低难度
+canonical deterministic baseline 已稳定
+AND hard shield 已验证
+AND action vocabulary / availability logs 完整
+AND behavior policy semantics 正确
+AND outcome linkage 足够
+AND 延迟/迁移 reward 可定义
+AND 数据覆盖足够
+AND simple baseline 存在明确瓶颈
+AND 有可信 offline/experimental evaluation
 ```
 
-### 7.7 反馈数据分类
+即使未来研究，hard constraints 仍不允许被 learned policy 覆盖。
 
-后台应将反馈分为三类：
-
-1. 体验反馈：表达、长度、例子和风格；
-2. 教学反馈：策略、提示强度和难度；
-3. 质量反馈：事实错误、题目错误和评分争议。
-
-不能把用户点赞直接视为教学有效。
-
-### 7.8 反馈的正确用途
-
-显式反馈只用于提出假设，例如：
-
-- 用户可能不适合当前抽象讲解；
-- 用户可能需要更强提示；
-- 当前题目可能偏难；
-- 当前评分可能存在争议。
-
-真正验证策略效果的证据仍然是：
-
-- 下一题是否独立成功；
-- 提示依赖是否下降；
-- 是否能自行解释；
-- 延迟后是否能回忆；
-- 是否能完成迁移题。
-
-完整信号：
+v0.3 不把以下指标作为 reward：
 
 ```text
-显式反馈
-+ 即时行为反馈
-+ 后续学习表现
-+ 延迟保持结果
+likes
+conversation duration
+token count
+hint count
+engagement
 ```
 
 ---
 
-## 8. 强化学习的适用边界
+# 9. 当前阶段结论
 
-强化学习的潜在收益包括：
-
-- 学习不同用户的个体差异；
-- 优化长期结果而非即时正确率；
-- 自动发现复杂教学策略组合；
-- 学习何时撤除提示；
-- 平衡探索与利用；
-- 优化多步教学序列。
-
-主要风险是奖励函数错位。
-
-若奖励设置为点赞、完成率、活跃度或即时正确率，系统可能学会：
-
-- 降低难度；
-- 过度提示；
-- 直接给答案；
-- 避免挑战；
-- 追求满意而非真实学习。
-
-建议的长期奖励重点包含：
+Askora v0.3 Adaptive Teaching Loop 的设计现在收敛为：
 
 ```text
-延迟保持
-+ 独立完成
-+ 迁移成功
-- 提示依赖
-- 重复误区
-- 无效学习时间
+Explicit domain ownership
++ Immutable TeachingContext
++ Six Strategy Families
++ Orthogonal support/exposure semantics
++ Typed hard constraints
++ Derived TeachingStage
++ Deterministic candidate/scoring policy
++ Anti-oscillation
++ Immutable PolicyBundle / TeachingAction
++ Replayable DecisionTrace
++ Independent validation
++ Outcome / experiment foundation
 ```
 
-落地顺序建议：
+当前阶段完成的是 Canonical Design，不是 Spec 或实现。
 
-```text
-专家规则
-→ Contextual Bandit
-→ 群体预训练与个人适配
-→ 有限的长期强化学习
-```
+由于 **ADR-A Teaching Strategy Ontology** 与 **ADR-B Constrained Deterministic Policy Architecture** 都属于必须先固化的重大设计选择，后续流程必须先进入 ADR Resolution，再进入 Spec Delta。
 
 ---
 
-## 9. 当前阶段结论
+# 10. 文档职责与后续边界
 
-Askora 可以在教学算法层面设计得比 DeepTutor 更严格，但当前不应声称产品整体已经优于 DeepTutor。
+本文件继续作为 Askora 算法与教学内核的 Canonical Design 主文档，不再建议把 v0.3 Teaching Policy 复制成多份平行设计文档。
 
-准确判断是：
-
-> **DeepTutor 是更成熟的现成 AI 学习平台；Askora 应成为更强调学习成果、学习证据和教学决策的自适应教学系统。**
-
-Askora 下一阶段不应继续优先增加更多 RAG、Agent 或模型入口，而应优先实现：
-
-1. 统一知识点模型；
-2. 学习事件模型；
-3. 学习者状态模型；
-4. 教学策略引擎；
-5. 掌握门槛；
-6. 动态任务调度；
-7. 对话气泡反馈体系；
-8. 延迟复习和迁移测试；
-9. 算法离线评估框架。
-
-## 10. 推荐下一步文档拆分
-
-当前文档作为总体设计基线。进入实现阶段后，建议拆分为：
+后续各阶段职责：
 
 ```text
-docs/design/01-产品定位与学习闭环.md
-docs/design/02-八类算法与技术框架.md
-docs/design/03-学习者模型与证据系统.md
-docs/design/04-教学策略与动态路径规划.md
-docs/design/05-反馈系统与强化学习.md
-docs/research/DeepTutor对比分析.md
+Canonical Design → 定义“系统应该是什么”
+ADR              → 固化重大、breaking、替代方案明确的设计选择及理由
+Spec Delta       → 定义“实现必须满足什么合同”
+Vertical Slice   → 定义 v0.3 最小端到端验收场景
+EXEC             → 给 Codex 的具体实施任务
+Code             → 仅实现已经冻结的 Spec/EXEC
 ```
+
+本次设计冻结没有修改任何 `docs/specs/**`、`docs/adr/**`、`docs/exec-plans/**` 或生产代码。
