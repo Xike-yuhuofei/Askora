@@ -3,305 +3,528 @@
 > Spec ID：`SYS05-*`  
 > 对应设计：4.5 教学策略选择  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.3  
+> ADR：ADR-0001、ADR-0002（Accepted）
 
 ## 1. Responsibility
 
 ### SYS05-001
 
-4.5 的唯一职责是在当前 LearningObjective/LearningActivity 已确定的前提下，根据 LearnerState、最近 AssessmentResult、Review context 和用户约束选择下一步具体 `TeachingAction`。
+SYS05 是 `TeachingAction` 的唯一 owner。它 MUST 将 immutable `TeachingContext` 与 exact `PolicyBundle` 转换成一个 immutable、可解释、可 replay、可测试的 TeachingAction，并产生完整 DecisionTrace。
 
-一句话：**决定当前怎么教。**
+SYS05 MUST NOT 持久化第二份 LearnerState、AssessmentResult、LearningPlan 或 ReviewSchedule truth。
 
-## 2. Non-responsibility
+## 2. Canonical Strategy Ontology
 
-4.5 MUST NOT：
+### SYS05-010 — StrategyFamily
 
-- 选择长期学习目标或重排 LearningPlan；
-- 修改 LearnerState/MasteryEstimate；
-- 对 Attempt 重新评分；
-- 计算 next_due_at；
-- 自己执行模型/工具；
-- 自己重选 EvidenceBundle；
-- 把策略逻辑交给 LLM 自由决定。
+v0.3 top-level canonical StrategyFamily 仅允许：
 
-## 3. Owned State
+```text
+EXPLICIT_INSTRUCTION
+GUIDED_PRACTICE
+FADING_PRACTICE
+RETRIEVAL_PRACTICE
+ERROR_REMEDIATION
+TRANSFER_CHALLENGE
+```
 
-4.5 独占：
+`DIRECT_INSTRUCTION`、`WORKED_EXAMPLE`、`SOCRATIC_PROBE`、`SELF_EXPLANATION_PROMPT`、`METACOGNITIVE_CHECK` 等 MUST 处于 InteractionMove/ActionModifier 层；`PRODUCTIVE_FAILURE` MUST NOT 成为 selectable v0.3 StrategyFamily。
 
-- TeachingStrategy definition/version；
-- TeachingAction；
-- scaffold/hint level；
-- answer_exposure_max；
-- evidence requirements；
-- current action success/failure/exit conditions；
-- policy parameters/version。
+### SYS05-011 — Four-layer Model
 
-TeachingAction 是不可变决策；执行状态归 4.8。
+SYS05 MUST 区分：
 
-## 4. Inputs
+```text
+StrategyFamily
+TeachingAction
+InteractionMove
+ActionModifier
+```
 
-允许读取：
+TeachingAction MUST NOT 被实现为“strategy enum 的别名”；InteractionMove MUST NOT 取得 final TeachingAction ownership。
 
-- LearningObjective；
-- current LearningActivity；
-- LearnerState/MasteryEstimate snapshot；
-- recent AssessmentResult；
-- active misconception hypothesis；
-- ReviewSchedule/retrievability read-only context；
-- user request/constraints：直接讲解、时间预算、无障碍等；
-- prior TeachingAction outcome。
+### SYS05-012 — Canonical Moves
 
-### SYS05-010
-
-用户明确要求“直接告诉我”可以改变候选动作，但不自动取消安全、评估有效性或资料边界约束。
-
-## 5. Outputs
-
-输出必须为结构化：
-
-- TeachingAction；
-- TeachingContext snapshot/reference；
-- EvidenceRequest requirements；
-- DecisionTrace payload；
-- 必要的 PolicyDecisionMade event。
-
-## 6. Domain Objects
-
-遵循 `domain-model.md`。
-
-默认策略族：
+InteractionMove vocabulary 至少支持：
 
 ```text
 DIRECT_INSTRUCTION
-WORKED_EXAMPLE_FADING
-SOCRATIC_PROBING
-GUIDED_PRACTICE
-ERROR_REMEDIATION
-RETRIEVAL_PRACTICE
-PRODUCTIVE_FAILURE
-TRANSFER_CHALLENGE
-METACOGNITIVE_REFLECTION
+WORKED_EXAMPLE
+SOCRATIC_PROBE
+SELF_EXPLANATION_PROMPT
+ORIENTATION_HINT
+CONCEPTUAL_HINT
+SUBGOAL_HINT
+PARTIAL_STEP
+COMPLETION_PROBLEM
+FADING_STEP
+CORRECTNESS_FEEDBACK
+PROCESS_FEEDBACK
+RETRIEVAL_REQUEST
+DELAYED_RETRIEVAL_REQUEST
+TRANSFER_TASK
+DIRECT_ANSWER_OVERRIDE
+METACOGNITIVE_CHECK
 ```
 
-### SYS05-020
+ActionModifier 至少支持：`self_explanation`、`metacognitive_reflection`、`feedback_type`、`representation_style`、`transition_intent`、`support_reason`、`target_scope`、`delivery_mode`。
 
-TeachingAction 至少包含：action type、strategy version、scaffold/hint、answer exposure、evidence requirements、success/failure conditions、reason codes、policy version。
+## 3. TeachingContext Contract
 
-## 7. Commands
+### SYS05-020 — Immutable Snapshot
 
-建议：
+每次 canonical policy evaluation MUST 先构造 immutable `TeachingContext`。它是 decision-input snapshot，不是 learner state truth。
+
+Snapshot 语义 MUST 覆盖：
+
+- objective/activity/task/capability 与 task structure；
+- exact MasteryEstimate、prerequisite state 与 confidence/evidence sufficiency；
+- recent AssessmentResult/correctness/assessment confidence；
+- ErrorType、diagnostic confidence、misconception evidence、alternative hypotheses、needs_probe；
+- assistance/scaffold/hint/answer exposure/worked-example history；
+- independent/assisted success history；
+- previous TeachingAction/outcomes；
+- delayed independent/review/transfer evidence 与 novelty；
+- direct-answer/explanation request；
+- time/accessibility constraints；
+- ExperimentAssignment/opt-out；
+- decision_time、context_schema_version、context_fingerprint。
+
+### SYS05-021 — Missing Semantics
+
+每个可缺失语义 MUST 显式表达 `AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE`。`missing = 0` 禁止。
+
+### SYS05-022 — Replay Boundary
+
+TeachingContext MUST 固定 exact owner version；derived feature MUST 可追溯 source refs；policy evaluator MUST NOT 隐式读取 mutable state；replay MUST NOT 重新调用在线 LLM。
+
+## 4. Support / Hint / Exposure Envelope
+
+### SYS05-030 — Orthogonal Envelope
+
+TeachingAction 的 canonical envelope MUST 使用：
 
 ```text
-SelectTeachingAction
-ReevaluateTeachingAction
-ActivateTeachingStrategyVersion
-RetireTeachingStrategyVersion
+scaffold_control = NONE | LOW | MEDIUM | HIGH
+hint_specificity = NONE | ORIENTATION | CONCEPTUAL_STRATEGIC | SUBGOAL | PARTIAL_STEP | BOTTOM_OUT
+answer_exposure = NONE | PARTIAL | COMPLETE
 ```
 
-不得暴露 `SetMastery`、`ReplanCourse`、`SetNextReviewAt`。
+`assistance_state = INDEPENDENT|ASSISTED|ANSWER_EXPOSED` 是 SYS04 对实际经历的记录，不是 SYS05 预写的学习结果。
 
-## 8. Events
+### SYS05-031 — Ownership
 
-消费：
+SYS05 MUST 定义 allowed scaffold/hint/exposure envelope；SYS08 MAY 在执行时收紧，但 MUST NOT 扩大；SYS04 MUST 记录 actual experienced assistance/exposure；SYS03 MUST 基于实际记录判断 evidence eligibility/weight。
 
-- AssessmentResult available；
-- LearnerState changed；
-- Activity selected；
-- review context/due；
-- execution failure/feedback。
+### SYS05-032 — Independent Validation Obligation
 
-产生：
+`ASSISTED` success 或 `ANSWER_EXPOSED` success 后，SYS05 MUST 产生 `INDEPENDENT_VALIDATION_REQUIRED`。Answer-exposed 当前结果 MUST NOT 视为 independent mastery evidence。该 obligation 是 policy-control semantics，MUST NOT 成为新的 MasteryState；在 fresh independent Attempt 前不得标记完成。
 
-- `PolicyDecisionMade`
-
-若改变教学语义，必须新建 TeachingAction，不得修改旧 action。
-
-## 9. Algorithms
-
-### SYS05-030：MVP Baseline
-
-固定演进顺序：
-
-```text
-hard constraints
-→ strategy state machine
-→ candidate generation
-→ weighted action scoring
-→ deterministic tie-break
-→ TeachingAction
-```
-
-### SYS05-031：Hard constraints
-
-至少包含：
-
-- 无提示评估禁止高答案暴露；
-- 先备知识严重缺失时不得持续高难独立任务；
-- 连续失败存在上限，需增加支架/切换讲解；
-- 用户已经稳定独立成功时应降低不必要支架；
-- 低 LearnerState confidence 时优先安全诊断/低风险动作；
-- 4.6 已固定 objective，不得偷偷切目标。
-
-硬约束不得通过软评分被抵消。
-
-### SYS05-032：State machine baseline
-
-```text
-UNKNOWN → DIAGNOSE
-NOVICE → EXPLAIN / WORKED_EXAMPLE
-EMERGING → SOCRATIC / GUIDED_PRACTICE
-PRACTICING → FADED_EXAMPLE / PRACTICE
-INDEPENDENT → NO_HINT_RETRIEVAL
-RETAINED → DELAYED_RETRIEVAL
-TRANSFER → TRANSFER_TASK
-```
-
-该状态机是策略控制映射，不是新的 LearnerState truth。
-
-### SYS05-033：Weighted score
-
-可采用：
-
-```text
-expected_learning_value
-+ diagnostic_value
-+ stage_fit
-- hint_dependency_risk
-- cognitive_load_penalty
-- time_cost
-```
-
-权重必须版本化、可回放、可离线比较。
-
-### SYS05-034：策略演进
-
-必须按：
-
-```text
-规则
-→ 启发式评分
-→ 监督 outcome model
-→ Contextual Bandit
-→ Offline RL
-→ 受约束在线 RL
-```
-
-逐级证明收益。
-
-v0.2 MUST 停在规则/状态机/启发式评分，不实施 RL。
-
-### SYS05-035：Bandit/RL future guard
-
-未来若实验：
-
-- 只能在 hard constraint 过滤后的安全动作集合探索；
-- reward 以之后无提示成功、延迟保持、迁移为主；
-- 必须记录 action availability 和 propensity；
-- 不能用聊天时长/点赞作为主 reward。
-
-## 10. Persistence
-
-- TeachingStrategy 使用 semantic version；
-- TeachingAction append-only；
-- policy weights/config versioned；
-- DecisionTrace 关联 input snapshot versions；
-- 当前策略运行不得依赖不可审计的自由 Prompt 状态。
+## 5. Canonical Policy Stack
 
 ### SYS05-040
 
-正在执行的 TeachingAction 固定 policy/strategy version；策略配置热更新只影响新 action。
+B3 canonical runtime MUST 严格按以下语义栈执行：
 
-## 11. Failure Semantics
+```text
+TeachingContext Snapshot
+→ Typed Hard Constraints
+→ Derived TeachingStage
+→ Typed Candidate Generation / Decision Table
+→ Feature Builder
+→ Normalized Weighted Scoring
+→ Anti-Oscillation Gate
+→ Deterministic Tie-break
+→ Immutable TeachingAction
+→ DecisionTrace
+```
 
-- LearnerState missing/stale → conservative diagnostic/default policy；
-- AssessmentResult low confidence → 降低该信号权重，不自行重评；
-- no eligible actions → explicit policy failure + safe fallback action；
-- conflicting hard rules → SPEC/config error，不由 LLM仲裁；
-- 4.8 execution failure → 可原动作重试或返回 4.5 新决策；
-- policy config unavailable → previous stable/default version。
+不得让 LLM、legacy selector 或实验层跳过任一 hard shield。
 
-### SYS05-050
+### SYS05-041 — Layer Contract
 
-策略执行失败与策略业务失败必须分开。模型供应商超时不自动等于“应换教学策略”。
+| Layer | Input | Output | Responsibility | Must Not | Failure semantics | Versioning | Testability |
+|---|---|---|---|---|---|---|---|
+| Context Snapshot | owner refs + decision time | TeachingContext | freeze exact decision inputs | implicit mutable reads | missing/stale/invalid context status | context schema | fixture + fingerprint replay |
+| Hard Constraints | context + PolicyBundle | allowed/blocked set + reasons | enforce non-negotiable integrity | weighted override/LLM override | conflict/fail-closed/fallback | hard rule set | G0 + property tests |
+| Stage Mapper | filtered context | TeachingStage | derive current control stage | persist learner stage | unknown/low-confidence stage path | stage mapper | deterministic mapper tests |
+| Candidate Table | stage + context | typed candidates | enumerate legal actions | free-form LLM action creation | no candidate → typed fallback/failure | candidate table | scenario fixtures |
+| Feature Builder | context + candidates | versioned features | build comparable evidence-based features | hide missing as zero | availability/confidence preserved | feature schema | feature contract tests |
+| Normalized Scoring | features + weights | candidate scores | apply soft preferences | cancel hard rule | invalid normalization → fallback/fail | normalization + weights | differential/property tests |
+| Anti-Oscillation | score result + previous action + material evidence | transition permission/hold | control unnecessary switching | wall-clock/chat-turn switching | repeated-failure override/fallback | anti-oscillation profile | sequential replay |
+| Tie-break | surviving candidates | one selected candidate | stable final selection | random runtime tie-break | no stable order → config error | tie-break version | determinism test |
+| Action Build | selected candidate | immutable TeachingAction | freeze executable semantic envelope | post-build mutation | validation failure → no action | action schema + policy bundle | schema/immutability test |
+| Trace | all above | DecisionTrace | explain/replay decision | omit losing candidates/reasons | trace persistence failure visible | trace schema | trace completeness test |
 
-## 12. Idempotency
+## 6. Typed Hard Constraints
 
-相同 TeachingContext snapshot + fixed policy version + fixed experiment assignment SHOULD 得到同一 TeachingAction。
+### SYS05-050 — Taxonomy
 
-同一 decision request 重试不得创建多个语义相同 action，除非明确需要新决策轮次。
+Policy MUST distinguish：
 
-## 13. Observability
+```text
+Hard Constraint
+Soft Preference
+Experiment Guardrail
+```
 
-必须记录：
+Hard Constraint MUST NOT 被 weighted score 抵消、被 LLM override、被实验恢复或被 SYS08 扩大。
 
-- TeachingContext input versions；
-- feasible candidates；
-- hard-filter reason codes；
-- scores/weights；
-- selected action；
-- policy/strategy version；
-- scaffold changes；
-- answer exposure；
-- experiment variant（如有）。
+### SYS05-051 — Required Hard Constraint Families
 
-指标：constraint violation=0、expert agreement、decision p95、fallback rate、strategy switch frequency、hint dependency、scaffold fading、下一次无提示成功、延迟保持、迁移。
+PolicyBundle 至少 MUST 定义以下 typed hard-constraint family，并给出稳定 reason code：
 
-## 14. Security
+1. `Assessment Integrity` — 独立评估期间禁止不允许的 hint/answer exposure；
+2. `Answer Exposure Integrity` — 不得超过 action envelope，exposure 后建立 validation obligation；
+3. `Prerequisite Safety` — hard prerequisite evidence 不足时不得直接选择不安全高阶挑战；
+4. `Repeated Failure Ceiling` — 达到版本化失败上限时必须退出/升级支持/重新诊断；
+5. `Independent Success Constraint` — 新独立成功证据允许 fade，不得无证据增加支架；
+6. `Low-confidence Conservatism` — 关键证据低置信时选择保守诊断/支持路径，不得伪确定；
+7. `Objective Ownership` — SYS05 不得改写 SYS06 objective/plan；
+8. `Model/LLM Override` — LLM/Agent 不得拥有或扩大 TeachingAction；
+9. `Unsupported Configuration` — 缺失/未知 policy component 必须 fail closed 或走 versioned fallback；
+10. `Hard-rule Conflict` — 冲突必须显式检测并记录，不得靠 score/tie-break 隐式解决；
+11. `User Direct Answer` — explicit user request MAY 触发 bounded `DIRECT_ANSWER_OVERRIDE`，但必须仍满足 assessment integrity、安全与 exposure hard rules。
 
-- 4.8/LLM 不能篡改 action/exposure；
-- user content/prompt injection 不得改变 policy config；
-- user override 只能在产品允许范围内形成约束输入；
-- 评估期间的 answer exposure 是高影响安全/有效性边界。
+### SYS05-052 — Direct Answer Semantics
 
-## 15. Tests
+用户明确索要答案时 MAY 改变候选集/InteractionMove；它 MUST NOT 自动取消 assessment integrity、answer exposure guard、prerequisite safety 或后续 independent validation obligation。
 
-必须覆盖：
+## 7. Derived TeachingStage
 
-- novice → explain/worked example；
-- high hint dependency → scaffold reduction/独立检验合理行为；
-- prerequisite gap；
-- repeated failure escalation；
-- explicit user direct explanation request；
-- assessment no-answer hard constraint；
-- low-confidence learner state；
-- deterministic tie-break；
-- stale/missing state fallback；
-- 4.8 不能修改 TeachingAction；
-- policy version replay。
+### SYS05-060
 
-## 16. Acceptance Criteria
+`TeachingStage = f(TeachingContext, PolicyBundle)`，canonical vocabulary：
 
-- `SYS05-AC-001`：每个 TeachingAction 可追溯到输入状态版本、候选和 reason codes。
-- `SYS05-AC-002`：无提示 assessment 不能选择/执行超过暴露上限的动作。
-- `SYS05-AC-003`：策略层不能修改 LearningPlan 或 ReviewSchedule。
-- `SYS05-AC-004`：同输入+同 policy version 可重复产生相同决策。
-- `SYS05-AC-005`：连续失败存在显式退出/支架升级机制，不会无限苏格拉底追问。
-- `SYS05-AC-006`：连续独立成功后能减少不必要支架。
-- `SYS05-AC-007`：模型/工具故障不会被误解释为 learner state 改变。
+```text
+DIAGNOSE
+EXPLICIT_INSTRUCTION
+GUIDED_PRACTICE
+FADING_PRACTICE
+RETRIEVAL_PRACTICE
+DELAYED_RETRIEVAL
+ERROR_REMEDIATION
+TRANSFER_CHALLENGE
+```
 
-## 17. Forbidden Implementations
+TeachingStage MUST NOT 被解释为 LearnerState、MasteryState 或 persistent learner stage；SYS03 的 progress summary 与其无 ownership/inheritance 关系。
 
-禁止：
+### SYS05-061
 
-- `LLM.choose_strategy()` 直接成为最终策略 owner；
-- 把全部策略写在自由 Prompt 里而无版本化 policy；
-- Teaching Policy 自行切换 LearningObjective；
-- 用点赞/会话长度优化教学动作；
-- 在线 RL 自由探索答案泄漏或高风险动作；
-- 同一个 TeachingAction 在执行中被原地改语义；
-- 4.8 因生成方便而提高 exposure level；
-- 永久默认苏格拉底式提问，无新手讲解/支架退出机制。
+Stage mapper MUST versioned、deterministic、traceable。关键 evidence `MISSING|STALE|LOW_CONFIDENCE` 时 MUST 走显式保守路径，而不是用默认数值假定 stage。
 
-## Legacy Mapping
+## 8. Candidate Generation & Error Remediation
 
-当前主要相关：
+### SYS05-070
+
+Candidate generation MUST 使用 typed decision table。候选只能来自当前 PolicyBundle 支持的 StrategyFamily/InteractionMove/action template；MUST NOT 由 LLM 自由发明 semantic TeachingAction。
+
+### SYS05-071
+
+SYS05 对 SYS04 的 ErrorType 只读消费：
+
+```text
+KNOWLEDGE_GAP
+CONCEPTUAL_MISCONCEPTION
+METHOD_SELECTION
+EXECUTION
+RETRIEVAL_FAILURE
+TRANSFER_FAILURE
+EXPRESSION_FORMAT
+UNKNOWN
+```
+
+`UNKNOWN` 或低 diagnostic confidence MUST 允许 probe/保守候选；MUST NOT 强制猜错因后进入特定 remediation。
+
+## 9. Feature / Scoring Contract
+
+### SYS05-080 — Feature Shape
+
+每个 scoring feature MUST 至少包含：
+
+```yaml
+value: number|null
+availability: AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE
+confidence: float|null
+feature_version: string
+source_refs: [versioned_ref]
+```
+
+### SYS05-081 — Soft Score
+
+Soft scoring MAY 包含：
+
+```text
++ learning_value_proxy
++ diagnostic_value
++ stage_fit
++ remediation_fit
++ review_fit
+- hint_dependency_risk
+- cognitive_load_penalty
+- time_cost
+- transition_cost
+- oscillation_penalty
+```
+
+`learning_value_proxy` MUST 被标记为 policy heuristic/proxy，MUST NOT 被描述为 causal learning-effect estimate。
+
+### SYS05-082 — Normalization
+
+Normalization MUST 独立版本化。MUST NOT 根据当前 candidate set 动态 min-max 后把结果当稳定语义，因为 candidate composition 改变会导致不可追踪漂移。
+
+### SYS05-083 — Parameters
+
+Weights、mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、practical harm margin MUST 进入 versioned PolicyBundle/profile；Spec MUST NOT 写死并宣称为学习科学常数。
+
+## 10. Anti-Oscillation
+
+### SYS05-090 — Material Evidence Gate
+
+Strategy/major action transition MUST 由 material evidence 支持。至少可包括：
+
+- new AssessmentResult；
+- new independent Attempt；
+- diagnostic probe result；
+- LearnerState update；
+- explicit user request；
+- prerequisite evidence；
+- exposure event；
+- meaningful review/delay transition。
+
+以下 MUST NOT 单独触发 transition：又多一轮聊天、policy 再调用一次、LLM wording 改变、wall clock 多几秒。
+
+### SYS05-091 — Sticky Continuity
+
+无 material evidence 且旧动作仍合法时，policy SHOULD 保持当前 StrategyFamily/episode continuity；重新评分不等于必须切换。
+
+### SYS05-092 — Minimum Dwell by Evidence Opportunity
+
+Minimum dwell MUST 以“获得新 evidence 的机会/事件”建模，而非纯 wall-clock 秒数或聊天轮数；阈值属于 versioned profile。
+
+### SYS05-093 — Hysteresis
+
+从当前动作切换到替代动作 MUST 满足版本化 switch margin/transition condition，防止边界附近反复横跳。
+
+### SYS05-094 — Transition Priority
+
+当多个转换同时满足时 MUST 使用 versioned transition priority；hard constraint 与 repeated-failure override 高于 soft score improvement。
+
+### SYS05-095 — Repeated Failure Override
+
+达到 failure ceiling 或出现新的 material failure evidence 时，anti-oscillation MUST NOT 以“保持稳定”为由阻止必要退出、升级支持、重新诊断或 prerequisite remediation。
+
+## 11. Deterministic Tie-break
+
+### SYS05-100
+
+B3 runtime MUST 使用 stable、versioned deterministic tie-break；禁止随机 tie-break。
+
+在相同：
+
+```text
+TeachingContext
++ exact PolicyBundle
++ ExperimentAssignment
+```
+
+下 MUST 产生同一个 semantic TeachingAction。
+
+### SYS05-101
+
+若候选在 score 后仍相同，tie-break MUST 使用 PolicyBundle 中显式稳定序（例如 typed candidate priority + stable action key），并写 DecisionTrace `tie_break_reason`。
+
+## 12. PolicyBundle
+
+### SYS05-110
+
+PolicyBundle MUST immutable/versioned，至少包含：
+
+```text
+schema_version
+policy_version
+hard_rule_set_version
+stage_mapper_version
+candidate_table_version
+feature_schema_version
+normalization_version
+weight_profile_version
+anti_oscillation_profile_version
+tie_break_version
+fallback_profile_version
+subject_profile_version
+content_digest
+```
+
+### SYS05-111
+
+Publish MUST immutable；activation MUST atomic；每个 TeachingAction MUST pin exact bundle；历史 bundle MUST 保留用于 replay/audit。
+
+### SYS05-112
+
+新 bundle activation 只影响新 TeachingAction。历史 action/DecisionTrace MUST NOT 被新 bundle 重解释。
+
+### SYS05-113
+
+禁止 PolicyBundle 承载 executable DSL、embedded Python、free-form runtime policy code、LLM-generated rules。
+
+## 13. DecisionTrace & Probability
+
+### SYS05-120
+
+每个 canonical TeachingAction MUST 产生符合 `decision-contract.md` 的 DecisionTrace，并记录 context fingerprint、PolicyBundle hash/ref、hard filters、stage、features、scores、anti-oscillation、tie-break、material evidence、experiment assignment 与 replayability。
+
+### SYS05-121
+
+B3 deterministic behavior MUST 写：
+
+```text
+behavior_policy_type = DETERMINISTIC
+action_propensity = null
+```
+
+MUST NOT 写 `action_propensity = 1.0`。
+
+### SYS05-122
+
+ExperimentAssignment probability MUST 与 action selection propensity 分离。历史 `experiment.propensity` 只有在 provenance 明确证明其含义时才能迁移；否则 action propensity MUST 为 null/unknown，并记录 migration reason 与 partial replayability。
+
+## 14. LLM / Legacy Socratic Boundary
+
+### SYS05-130
+
+LLM/Agent MAY 生成 explanation、worked example、hint、diagnostic candidate、feedback、self-explanation prompt、language realization 或执行 tool；MUST NOT 成为 TeachingAction owner、hard-rule override 或 answer-exposure override。
+
+### SYS05-131 — Legacy Socratic Engine
+
+以下 legacy components：
 
 ```text
 apps/backend/app/engines/socratic/strategy_selector.py
 apps/backend/app/engines/socratic/strategy_library.py
-apps/backend/app/data/strategies/
 apps/backend/app/engines/state_graph.py
+apps/backend/app/data/strategies/
 ```
 
-选择策略的业务逻辑应从具体 Socratic engine 中抽出；response generation、guardrail 与引擎执行归 SYS08。
+MUST NOT 作为 final TeachingAction owner。迁移期间 MAY 仅作为 legacy adapter、bounded InteractionMove provider、stage-definition source 或 execution component，并始终受 SYS05 canonical decision envelope 约束。
+
+### SYS05-132 — B2 Baseline
+
+B2 LLM selector MAY 作为 experiment baseline，但 MUST 使用与 B3 相同 hard shield、相同 action vocabulary，且 MUST NOT bypass hard rule。
+
+## 15. Failure Semantics
+
+### SYS05-140
+
+必须显式区分：
+
+- invalid/missing/stale TeachingContext；
+- unsupported PolicyBundle/config；
+- hard-rule conflict；
+- no legal candidate；
+- feature/normalization failure；
+- anti-oscillation profile failure；
+- tie-break configuration failure；
+- DecisionTrace persistence failure。
+
+### SYS05-141
+
+Hard-rule conflict、unsupported configuration 或无法确定合法候选时 MUST fail closed 或使用 PolicyBundle 内 versioned fallback；MUST NOT 让 LLM 临时创造规则。
+
+### SYS05-142
+
+DecisionTrace 无法可靠持久化时，系统 MUST 将 action emission 标为 degraded/failed；不得产生“已可 replay”的假记录。
+
+## 16. Persistence & Idempotency
+
+### SYS05-150
+
+TeachingAction、TeachingContext snapshot、DecisionTrace 与 PolicyBundle refs MUST immutable/versioned。相同 decision request/idempotency key MUST NOT 产生语义重复 action。
+
+### SYS05-151
+
+Replay MUST 使用历史 exact refs；缺失 owner version、PolicyBundle 或 context source 时必须返回 `PARTIAL`/`NON_REPLAYABLE`，不得静默用当前状态补齐。
+
+## 17. Observability
+
+### SYS05-160
+
+至少记录：
+
+- context_fingerprint/source versions；
+- derived TeachingStage；
+- available/filtered candidates + reason codes；
+- feature value/availability/confidence/version；
+- normalized scores；
+- material evidence refs；
+- anti-oscillation decision；
+- tie-break reason；
+- selected action + previous action；
+- validation obligation；
+- PolicyBundle ref/hash；
+- behavior policy type/action propensity；
+- experiment assignment；
+- replayability status。
+
+## 18. Tests
+
+### SYS05-170
+
+测试 MUST 覆盖：
+
+- six StrategyFamily only；
+- InteractionMove/Modifier 分层；
+- Productive Failure 不可被选择；
+- Socratic 只作为 bounded move；
+- TeachingContext exact-version replay 与 missing semantics；
+- hard rule 不被 score/LLM/experiment 覆盖；
+- ErrorType UNKNOWN 走 probe/保守路径；
+- support/hint/exposure orthogonal envelope；
+- assisted/answer-exposed → validation obligation；
+- independent success 可 fade；
+- repeated failure 必须退出/升级；
+- low confidence 保守；
+- material evidence gate；
+- sticky continuity/min dwell/hysteresis/transition priority；
+- no illegal oscillation / no infinite loop；
+- normalization versioning；
+- deterministic tie-break；
+- same context+bundle+assignment → same semantic action；
+- `action_propensity=null`；
+- legacy Socratic cannot own action；
+- historical partial replay behavior。
+
+## 19. Acceptance Criteria
+
+- `SYS05-AC-001`：canonical StrategyFamily 恰为六类。
+- `SYS05-AC-002`：每个 TeachingAction 可追溯 immutable TeachingContext 与 exact PolicyBundle。
+- `SYS05-AC-003`：hard constraint 的 forbidden action 为 0。
+- `SYS05-AC-004`：无 material evidence 时不会因重复调用或 wording 改变而非法切换。
+- `SYS05-AC-005`：repeated failure 能越过 continuity 约束进入合法退出/升级路径。
+- `SYS05-AC-006`：assisted/answer-exposed success 均建立 independent validation obligation。
+- `SYS05-AC-007`：相同 context+bundle+assignment 的 semantic action deterministic。
+- `SYS05-AC-008`：B3 trace 固定 `behavior_policy_type=DETERMINISTIC`、`action_propensity=null`。
+- `SYS05-AC-009`：LLM、SYS08、legacy Socratic 均无法扩大 action envelope 或取得 final ownership。
+- `SYS05-AC-010`：所有 configurable thresholds/weights 可版本化、可 trace，不以伪科学常数写死。
+
+## 20. Superseded v0.2 Requirements
+
+旧 `SYS05-020` integer action contract、旧 `SYS05-030` 模糊 baseline、旧 `SYS05-032` learner-like state machine、旧 `SYS05-033 expected_learning_value`、旧 `SYS05-034/035` 对 future learning policy 的开放表述，均由本 v0.3 新 ID 合同 supersede。旧文本只属于版本历史，不再是 canonical runtime contract。
+
+## 21. Forbidden Implementations
+
+禁止：
+
+- 旧九类 strategy enum 继续作为 v0.3 top-level truth；
+- generic Productive Failure family；
+- always-on Socratic tutor；
+- LLM/free-form Agent 直接选 final TeachingAction；
+- executable policy DSL / embedded Python rules；
+- hard rule 作为可被 score 抵消的 penalty；
+- candidate-set dynamic min-max 作为 canonical normalization；
+- random tie-break；
+- `action_propensity=1.0` 伪装 deterministic probability；
+- 用聊天轮数/几秒 wall clock 单独触发 strategy switch；
+- SYS05 写 LearnerState/AssessmentResult/LearningPlan/ReviewSchedule；
+- 新旧 support/strategy 字段永久双写。
