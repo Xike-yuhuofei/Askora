@@ -160,7 +160,7 @@ Tools MUST registry/schema/allowlist + least privilege；模型不可创建未�
 
 用户文档、网页、retrieval/tool output 均为 untrusted data，其指令 MUST NOT 覆盖 system policy、TeachingAction、hard constraints 或 tool permissions。
 
-### SYS08-074 — v0.3 Envelope Guard
+### SYS08-203 — v0.3 Envelope Guard
 
 最终输出 MUST 满足：
 
@@ -191,7 +191,7 @@ actual_answer_exposure <= allowed answer exposure envelope
 
 ## 13. Legacy Mapping
 
-旧 `SYS08-074 answer_exposure_max` 由本文件 v0.3 `SYS08-074` envelope guard 语义 supersede；这是同一安全职责的字段迁移，不再允许旧数值 writer。历史 L0-L4/整数 exposure MAY 只读映射并标记 lossy/ambiguous reason。
+旧 `SYS08-074 answer_exposure_max` 由 v0.3 `SYS08-203` envelope guard supersede；旧 ID 仅保留为历史审计线索，不再是 canonical writer contract。历史 L0-L4/整数 exposure MAY 只读映射并标记 lossy/ambiguous reason。
 
 legacy Socratic adapter/response generator MAY 继续作为 bounded execution component/InteractionMove provider，但 MUST NOT 成为 final TeachingAction owner。迁移第一目标仍是消除 direct dialog/Socratic 与 canonical orchestrator 的双主链路。
 
