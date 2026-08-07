@@ -44,7 +44,7 @@ Research Synthesis
 - `systems/04-assessment.md`
 - `systems/05-teaching-policy.md`
 - `systems/06-learning-planner.md`
-- `systems/07-review-scheduling.md`
+- `systems/07-review-scheduler.md`
 - `systems/08-ai-orchestration.md`
 
 ### Quality
@@ -52,7 +52,8 @@ Research Synthesis
 - `quality/testing-standard.md` — L0～L6 + OPVE/G0/G1/G2
 - `quality/observability-standard.md` — decision/outcome observability + learning outcome hierarchy
 - `quality/definition-of-done.md` — Engineering/Policy/Learning Evidence release gates
-- other quality/security/versioning specs remain applicable unless explicitly superseded
+- `quality/security-standard.md` — hard-rule / answer-exposure / grader-only security boundary
+- other quality/versioning specs remain applicable unless explicitly superseded
 
 ### Historical Vertical Slice
 
@@ -65,10 +66,10 @@ Research Synthesis
 | `V03-CD-002` six Strategy Families | ADR-0001 | `DOMAIN-083/086`, `SYS05-201` |
 | `V03-CD-003` four-layer ontology | ADR-0001 | `DOMAIN-083..085`, `SYS05-202/203` |
 | `V03-CD-005` TeachingContext | ADR-0002 | `DOMAIN-088`, `SYS05-210..212` |
-| `V03-CD-006` ErrorType | — | `DOMAIN-072..074`, `SYS04-210..214` |
+| `V03-CD-006` ErrorType | — | `DOMAIN-072..074`, `SYS04-220..224` |
 | `V03-CD-007` hard/soft/experiment | ADR-0002 | `SYS05-240..242`, `DECISION-240` |
-| `V03-CD-008` support/exposure | ADR-0001 | `DOMAIN-061/062`, `SYS05-220/221`, `SYS04-200/201` |
-| `V03-CD-009` validation obligation | — | `DOMAIN-091`, `SYS05-222`, `SYS03-230/231`, `SYS04-220..222` |
+| `V03-CD-008` support/exposure | ADR-0001 | `DOMAIN-061..063`, `SYS05-220/221`, `SYS04-210/211` |
+| `V03-CD-009` validation obligation | — | `DOMAIN-091`, `SYS05-222`, `SYS03-230/231`, `SYS04-230..232` |
 | `V03-CD-010` deterministic policy | ADR-0002 | `SYS05-230/231`, `SYS05-290/291`, `DECISION-210` |
 | `V03-CD-011` anti-oscillation | ADR-0002 | `SYS05-280..285`, `TEST-240..242` |
 | `V03-CD-012` PolicyBundle | ADR-0002 | `DOMAIN-089`, `SYS05-300..303` |
