@@ -49,7 +49,11 @@ def _imported_modules(tree: ast.AST) -> list[tuple[str, int]]:
 
 
 def _is_learner_persistence(module: str) -> bool:
-    return module == "app.models.profile" or module.startswith(
+    return module in {
+        "app.models.assessment",
+        "app.models.profile",
+        "app.infrastructure.learning_records",
+    } or module.startswith(
         (
             "app.domains.learner_model.persistence",
             "app.domains.learner_model.repository",

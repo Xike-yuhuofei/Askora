@@ -71,6 +71,12 @@ def _seed_user_with_legacy_and_canonical(
                     "confidence": 0.8,
                     "algorithm_id": "weighted-bkt",
                     "algorithm_version": "1.0",
+                    "independent_success_count": 2,
+                    "delayed_recall_evidence_count": 1,
+                    "transfer_evidence_count": 1,
+                    "evidence_count": 3,
+                    "effective_evidence_weight": 2.4,
+                    "active_misconception_ids": [],
                 },
             )
         )
@@ -79,7 +85,7 @@ def _seed_user_with_legacy_and_canonical(
 
 @pytest.mark.asyncio
 async def test_profile_query_uses_canonical_mastery_not_legacy_summary(tmp_path) -> None:
-    """EXEC007-AC-002: canonical skills_mastered comes from SYS03 projection."""
+    """EXEC007-AC-002: canonical mastery comes from the SYS03 projection."""
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
@@ -100,14 +106,16 @@ async def test_profile_query_uses_canonical_mastery_not_legacy_summary(tmp_path)
 
         model = await ProfileQueryService(session).get_profile(user)
 
-        # canonical aggregate uses the latest version (0.85) -> 1 mastered skill
+        # canonical aggregate uses the latest version (0.85) and keeps the
+        # evidence dimensions required by the frozen MasteryEstimate contract.
         assert model.canonical_mastery.knowledge_units_assessed == 1
-        assert model.canonical_mastery.skills_mastered == 1
         assert model.canonical_mastery.entries[0].competence_probability == 0.85
-        assert model.canonical_mastery.entries[0].mastered is True
-        # legacy stored count (99) must NOT leak into canonical projection
-        assert model.canonical_mastery.skills_mastered != 99
+        assert model.canonical_mastery.entries[0].independent_success_count == 2
+        assert model.canonical_mastery.entries[0].delayed_recall_evidence_count == 1
+        assert model.canonical_mastery.entries[0].transfer_evidence_count == 1
+        assert model.canonical_mastery.entries[0].evidence_count == 3
         # legacy fields retained only as compatibility projection
+        assert model.compatibility.skills_mastered == 99
         assert model.compatibility.mastery_summary == {
             "math": {"mastery": 0.95, "mastered_count": 50}
         }
@@ -139,9 +147,10 @@ async def test_legacy_mastery_cannot_override_canonical_projection(tmp_path) -> 
 
         model = await ProfileQueryService(session).get_profile(user)
 
-        assert model.canonical_mastery.skills_mastered == 0
-        assert model.canonical_mastery.entries[0].mastered is False
+        assert model.canonical_mastery.entries[0].competence_probability == 0.1
+        assert model.canonical_mastery.entries[0].evidence_count == 3
         # legacy claims full mastery but must not shape canonical projection
+        assert model.compatibility.skills_mastered == 100
         assert model.compatibility.mastery_summary["math"]["mastery"] == 1.0
     await engine.dispose()
 
@@ -192,16 +201,15 @@ async def test_get_profile_http_endpoint_uses_query_boundary(tmp_path) -> None:
         assert data["user"]["id"] == user_id
         profile = data["profile"]
         # frontend-compatible core fields preserved
-        assert profile["mastery_summary"] == {
-            "science": {"mastery": 0.9, "mastered_count": 3}
-        }
+        assert profile["mastery_summary"] == {"science": {"mastery": 0.9, "mastered_count": 3}}
         assert profile["favorite_subjects"] == ["math", "science"]
         assert "total_sessions" in profile
-        # canonical mastery present and no canonical records -> 0 mastered
-        assert profile["skills_mastered"] == 0
+        # Existing frontend field remains compatibility-only. Canonical mastery
+        # is exposed separately without inventing a single-threshold label.
+        assert profile["skills_mastered"] == 7
         assert profile["mastery"]["knowledge_units_assessed"] == 0
         # explicit source markers
-        assert profile["sources"]["skills_mastered"] == "canonical_sys03"
+        assert profile["sources"]["skills_mastered"] == "legacy_compatibility"
         assert profile["sources"]["mastery_summary"] == "legacy_compatibility"
     finally:
         fastapi_app.dependency_overrides.clear()

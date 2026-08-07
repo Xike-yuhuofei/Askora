@@ -17,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["用户"])
 # 每个 profile 字段的来源标注：canonical 来自 SYS03 query projection，
 # legacy 仅作为明确标注的 compatibility projection，不作为第二事实源。
 _FIELD_SOURCES = {
-    "skills_mastered": "canonical_sys03",
+    "skills_mastered": "legacy_compatibility",
     "mastery": "canonical_sys03",
     "total_sessions": "legacy_compatibility",
     "total_learning_minutes": "legacy_compatibility",
@@ -50,7 +50,7 @@ async def get_profile(
             "total_sessions": compat.total_sessions,
             "total_learning_minutes": compat.total_learning_minutes,
             "streak_days": compat.streak_days,
-            "skills_mastered": canonical.skills_mastered,
+            "skills_mastered": compat.skills_mastered,
             "mastery_summary": compat.mastery_summary,
             "metacognition": compat.metacognition,
             "affective": compat.affective,
@@ -58,7 +58,6 @@ async def get_profile(
             "grade_level": compat.grade_level,
             "mastery": {
                 "knowledge_units_assessed": canonical.knowledge_units_assessed,
-                "skills_mastered": canonical.skills_mastered,
                 "entries": [
                     {
                         "knowledge_unit_id": entry.knowledge_unit_id,
@@ -67,7 +66,12 @@ async def get_profile(
                         "confidence": entry.confidence,
                         "algorithm_id": entry.algorithm_id,
                         "algorithm_version": entry.algorithm_version,
-                        "mastered": entry.mastered,
+                        "independent_success_count": entry.independent_success_count,
+                        "delayed_recall_evidence_count": (entry.delayed_recall_evidence_count),
+                        "transfer_evidence_count": entry.transfer_evidence_count,
+                        "evidence_count": entry.evidence_count,
+                        "effective_evidence_weight": entry.effective_evidence_weight,
+                        "active_misconception_ids": entry.active_misconception_ids,
                     }
                     for entry in canonical.entries
                 ],

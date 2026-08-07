@@ -23,10 +23,6 @@ from app.models.assessment import MasteryEstimateRecord
 from app.models.profile import UserProfile
 from app.models.user import User
 
-# Versioned/configurable UI aggregate threshold; NOT a learning-science
-# constant (docs/specs/README.md §9).
-MASTERED_PROBABILITY_THRESHOLD = 0.7
-
 
 @dataclass(frozen=True)
 class CanonicalMasteryEntry:
@@ -35,10 +31,15 @@ class CanonicalMasteryEntry:
     knowledge_unit_id: str
     version: int
     competence_probability: float | None
-    confidence: float
-    algorithm_id: str
-    algorithm_version: str
-    mastered: bool
+    confidence: float | None
+    algorithm_id: str | None
+    algorithm_version: str | None
+    independent_success_count: int | None
+    delayed_recall_evidence_count: int | None
+    transfer_evidence_count: int | None
+    evidence_count: int | None
+    effective_evidence_weight: float | None
+    active_misconception_ids: list[str] | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,6 @@ class CanonicalMasteryProjection:
     """Read-only canonical SYS03 learner mastery projection."""
 
     knowledge_units_assessed: int
-    skills_mastered: int
     entries: list[CanonicalMasteryEntry] = field(default_factory=list)
 
 
@@ -56,11 +56,17 @@ class LegacyProfileCompatibility:
 
     Compatibility projection only: these are not canonical learner/mastery
     truth and must not be treated as a second factual source.
+
+    Retirement condition: learning aggregates retire after every supported
+    frontend consumer reads the SYS03 projection; preference/statistics fields
+    retire only after an owning canonical query replaces them and the frontend
+    migration is complete.
     """
 
     total_sessions: int
     total_learning_minutes: int
     streak_days: int
+    skills_mastered: int
     mastery_summary: dict[str, Any]
     metacognition: dict[str, Any]
     affective: dict[str, Any]
@@ -85,6 +91,18 @@ class ProfileQueryService:
 
     def __init__(self, db: AsyncSession) -> None:
         self._db = db
+
+    @staticmethod
+    def _optional_int(value: Any) -> int | None:
+        return int(value) if value is not None else None
+
+    @staticmethod
+    def _optional_float(value: Any) -> float | None:
+        return float(value) if value is not None else None
+
+    @staticmethod
+    def _optional_str(value: Any) -> str | None:
+        return str(value) if value is not None else None
 
     async def get_profile(self, current_user: User) -> ProfileReadModel:
         """Assemble the profile from canonical SYS03 + legacy compatibility."""
@@ -119,26 +137,36 @@ class ProfileQueryService:
         for record in latest_by_unit.values():
             payload = record.payload
             competence = payload.get("competence_probability")
-            mastered = (
-                competence is not None
-                and float(competence) >= MASTERED_PROBABILITY_THRESHOLD
-            )
             entries.append(
                 CanonicalMasteryEntry(
                     knowledge_unit_id=record.knowledge_unit_id,
-                    version=int(payload.get("version", record.version) or 0),
-                    competence_probability=(
-                        float(competence) if competence is not None else None
+                    version=record.version,
+                    competence_probability=(float(competence) if competence is not None else None),
+                    confidence=self._optional_float(payload.get("confidence")),
+                    algorithm_id=self._optional_str(payload.get("algorithm_id")),
+                    algorithm_version=self._optional_str(payload.get("algorithm_version")),
+                    independent_success_count=self._optional_int(
+                        payload.get("independent_success_count")
                     ),
-                    confidence=float(payload.get("confidence", 0.0) or 0.0),
-                    algorithm_id=str(payload.get("algorithm_id", "") or ""),
-                    algorithm_version=str(payload.get("algorithm_version", "") or ""),
-                    mastered=bool(mastered),
+                    delayed_recall_evidence_count=self._optional_int(
+                        payload.get("delayed_recall_evidence_count")
+                    ),
+                    transfer_evidence_count=self._optional_int(
+                        payload.get("transfer_evidence_count")
+                    ),
+                    evidence_count=self._optional_int(payload.get("evidence_count")),
+                    effective_evidence_weight=self._optional_float(
+                        payload.get("effective_evidence_weight")
+                    ),
+                    active_misconception_ids=(
+                        [str(item) for item in payload["active_misconception_ids"]]
+                        if payload.get("active_misconception_ids") is not None
+                        else None
+                    ),
                 )
             )
         return CanonicalMasteryProjection(
             knowledge_units_assessed=len(entries),
-            skills_mastered=sum(1 for entry in entries if entry.mastered),
             entries=entries,
         )
 
@@ -152,6 +180,7 @@ class ProfileQueryService:
             total_sessions=profile.total_sessions if profile else 0,
             total_learning_minutes=profile.total_learning_minutes if profile else 0,
             streak_days=profile.streak_days if profile else 0,
+            skills_mastered=profile.skills_mastered if profile else 0,
             mastery_summary=profile.mastery_summary if profile else {},
             metacognition=profile.metacognition if profile else {},
             affective=profile.affective if profile else {},
