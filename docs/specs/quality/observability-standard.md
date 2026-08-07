@@ -1,103 +1,172 @@
-# Askora Observability Standard
+# Observability Standard
 
 > Spec ID：`OBS-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.3
 
-## 1. 原则
+## 1. Purpose
+
+Observability MUST 支持三类问题：系统是否正确执行、policy 为什么这样决定、学习结果后来发生了什么。三者 MUST 通过 correlation refs 连接，但不得混成同一事实。
 
 ### OBS-001
 
-任何关键学习结果必须能够从用户请求追踪到领域决策、检索/模型/工具执行、AssessmentResult、LearnerEvidence 和状态更新。
+关键链路 SHOULD 可关联：request/session → TeachingContext → TeachingAction → DecisionTrace → EvidenceBundle → SYS08 execution → Attempt/AssessmentResult → LearnerEvidence/MasteryEstimate → OutcomeObservation/ExperimentAssignment。
 
-### OBS-002
+## 2. Decision vs Outcome
 
-日志、指标、trace 是观测投影，不得成为业务事实源。
+### OBS-200
 
-## 2. Correlation
+`DecisionTrace` 只回答 decision-time reasoning；`OutcomeObservation` 只回答 later measurement。Outcome MUST NOT 回写修改历史 DecisionTrace。
 
-每个教学轮次必须传播：
+### OBS-201
+
+Delayed outcome MUST NOT 自动 last-touch attribution 给最后一个 TeachingAction。Attribution scope 仅允许：
 
 ```text
-request_id
-correlation_id
-trace_id
-session_id
-workflow_run_id
+ACTION_DIRECT
+EPISODE_ASSOCIATED
+TRAJECTORY_ASSOCIATED
+EXPERIMENTALLY_CAUSAL
+UNATTRIBUTABLE
 ```
 
-关键 domain object/decision/event 应关联 correlation/trace。
+只有满足实验识别条件时才可使用 `EXPERIMENTALLY_CAUSAL`。
 
-## 3. Structured Logging
+## 3. Outcome Hierarchy
 
-日志至少包含：timestamp、level、component/system、event/error code、trace/correlation、object ids/versions（适用时）。
+### OBS-210 — Primary Learning Outcomes
 
-不得默认记录：密码、token、API key、完整敏感文档、完整用户隐私 Prompt。
+v0.3 primary learning outcomes：
 
-## 4. Decision Observability
+```text
+no-hint independent success
+delayed independent performance
+independent transfer
+unit-time capability gain
+```
 
-所有 `DecisionTrace` 按 `decision-contract.md` 持久化。用户解释不能只依赖运行时自然语言日志。
+实现 MUST 能从实际 assistance/exposure、delay、transfer novelty、measurement refs 与 active learning time 计算/聚合这些指标，而不是从聊天表象推断。
 
-## 5. Model Observability
+### OBS-211 — Secondary Learning Outcomes
 
-`ModelInference` 至少记录：provider/model/snapshot、task、prompt version、latency、usage、fallback、validation result、error code。
+Secondary MAY 包括：近迁移/解释质量、不同能力维度改善、独立成功率的稳定性、误区消退等；必须明确 measurement definition/version，不得与 primary 混名。
 
-## 6. Retrieval Observability
+### OBS-212 — Process Diagnostics
 
-必须可查看：candidate routes/ranks、filters、selected evidence、index versions、citation validation、leakage reason。
+Process diagnostics MAY 包括：engagement、conversation turns、likes、hint count、token count、session duration、candidate distribution、transition rate、latency/cost、retrieval metrics。
 
-## 7. Learning Observability
+这些指标 MUST NOT 被标记为 primary learning outcome/reward，也 MUST NOT 单独用于宣称学习效果。
 
-必须可查看：
+### OBS-213 — Safety / Trust Guardrails
 
-- Attempt assistance state；
-- AssessmentResult；
-- EvidenceAccepted/Rejected；
-- Mastery prior/new version；
-- Review prior/new schedule；
-- Plan/TeachingAction reason codes。
+至少 SHOULD 观测：forbidden-action rate、answer leakage、assessment integrity violation、hard-rule conflict、policy bypass attempt、prompt injection/tool authorization failure、trace persistence failure、replayability、learning-harm indicators。
 
-## 8. 核心指标
+## 4. OutcomeObservation Contract
 
-系统指标：availability、p95 latency、error/fallback、queue lag、restart recovery。
+### OBS-220
 
-AI 指标：model failure、schema fail、citation unsupported、answer leakage、tool denial、cost。
+OutcomeObservation 至少 MUST 支持：
 
-学习指标：independent success、hint dependency、delayed retention、transfer success、false mastery promotion、misconception recurrence。
+```text
+outcome_type
+measurement_reference
+independence
+assistance_state
+scaffold_control
+hint_specificity
+answer_exposure
+actual_delay
+transfer_distance / novelty
+score / success
+measurement_confidence
+active_learning_time
+time_cost
+hint_cost
+contamination_status
+attribution_scope
+teaching_episode_ref
+learning_trajectory_ref
+experiment_association
+```
+
+### OBS-221
+
+Measurement/confidence/contamination MUST 随 observation 保存。缺失值使用 explicit missing semantics；MUST NOT 用 0 伪装 missing。
+
+## 5. Teaching Policy Observability
+
+### OBS-230
+
+每个 SYS05 decision SHOULD 暴露/记录：context fingerprint、exact source versions、PolicyBundle ref/hash、TeachingStage、available/filtered candidates + reason codes、feature values/availability/confidence/version、scores、material evidence、anti-oscillation decision、tie-break reason、selected/previous action、validation obligation、experiment assignment、replayability。
+
+### OBS-231
+
+B3 MUST 可审计：
+
+```text
+behavior_policy_type = DETERMINISTIC
+action_propensity = null
+```
+
+ExperimentAssignment `assignment_probability` MUST 作为独立字段观测，不得复用 action propensity 名义。
+
+## 6. TeachingEpisode / LearningTrajectory
+
+### OBS-240
+
+TeachingEpisode/Trajectory MAY 用于聚合跨动作 outcome，但它们是 grouping/analytics references，不是新 TeachingAction/LearnerState owner。
+
+### OBS-241
+
+Trajectory outcome 的 association MUST 保留 attribution uncertainty。MUST NOT 因某 action 时间上最近就自动获得因果归因。
+
+## 7. Engineering Metrics
 
 ### OBS-010
 
-聊天时长、token 数、点赞只能作为体验/成本指标，不得作为主要学习效果指标。
+系统层至少 SHOULD 覆盖 latency、error/retry/fallback、queue/outbox lag、cache/index health、model/tool availability/cost、schema validation、persistence conflict、recovery success。
 
-## 9. Privacy
+### OBS-011
 
-Telemetry 必须按 privacy classification 最小化采集。若 raw content 对问题诊断不是必要项，优先保存 hash/reference/结构化 reason code。
+指标/日志必须具有足够 labels 连接版本，但 MUST 避免高基数敏感全文作为标签。
 
-## 10. Health
+## 8. Privacy / Security
 
-至少区分：
+### OBS-020
 
-- liveness；
-- database readiness；
-- durable queue/outbox health；
-- configured model availability（可单独 degraded）；
-- index freshness。
+Logs/traces MUST 数据最小化。密钥、完整敏感 Prompt、整份用户文档、无需长期保存的原始回答 MUST NOT 为 observability 无限复制。
 
-模型 unavailable 不一定意味着整个本地应用不可启动。
+### OBS-021
+
+需要 debug 的敏感内容 SHOULD 通过受控 reference、短期 retention 或授权 sampling，而不是永久明文日志。
+
+## 9. Alerting
+
+### OBS-250
+
+至少应为以下条件建立 release/runtime guard/alert：forbidden action > 0、assessment leakage、hard-rule bypass、trace persistence failure、event/outbox backlog、unexpected non-null deterministic action_propensity、illegal oscillation/no-progress loop、cross-owner write violation。
+
+## 10. Tests
+
+测试 MUST 覆盖：DecisionTrace/Outcome separation；primary vs process metric classification；delayed outcome no last-touch；attribution enum；actual assistance/exposure observability；deterministic probability fields；trace correlation；missing semantics；privacy redaction。
 
 ## 11. Acceptance Criteria
 
-- `OBS-AC-001`：任一 TeachingAction 可通过 trace 找到执行模型与最终 response。
-- `OBS-AC-002`：任一 MasteryEstimate 可找到 source AssessmentResult/LearnerEvidence。
-- `OBS-AC-003`：fallback/repair 可区分并可统计。
-- `OBS-AC-004`：日志扫描不包含测试密钥/认证 token。
-- `OBS-AC-005`：queue/outbox lag 和 failure 可观测。
+- `OBS-AC-201`：四类 primary learning outcome 可从可审计 measurement/event refs 计算。
+- `OBS-AC-202`：engagement/turns/likes/hint/token/session duration 不会进入 primary learning outcome/reward。
+- `OBS-AC-203`：OutcomeObservation 不修改 DecisionTrace。
+- `OBS-AC-204`：delayed outcome 不自动 last-touch attribution。
+- `OBS-AC-205`：deterministic B3 可检测任何非 null `action_propensity` 异常。
+- `OBS-AC-206`：SYS05 decision 可关联 exact context/bundle 与后续 outcome，而不混淆 ownership。
 
 ## 12. Forbidden Implementations
 
 禁止：
 
-- 只有自由文本日志，无稳定 event/reason code；
-- 把完整敏感 Prompt 当默认日志字段；
-- 没有 trace 关联的模型调用；
-- 仅统计 engagement 而不统计学习结果和可信指标。
+- engagement、对话轮次、点赞、hint count、token count、session duration 作为主要 learning outcome/reward；
+- delayed outcome 自动归因最后 action；
+- analytics grouping object 取得 domain ownership；
+- Outcome 回写 DecisionTrace；
+- deterministic action_propensity 写 1.0；
+- 为观测方便永久保存全部敏感 Prompt/文档；
+- 用 Engineering Correct 指标替代 learning efficacy evidence。
