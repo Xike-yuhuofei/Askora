@@ -1,300 +1,217 @@
-# Askora Decision Trace Contract
+# Decision Contract
 
-> Spec ID 范围：`DECISION-*`  
+> Spec ID：`DECISION-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v1.0
+> 版本：v0.3
 
-## 1. 目的
+## 1. Purpose
 
-Askora 的关键决策必须可以回答：**当时看到了什么、有哪些候选、受什么约束、为什么选择这个结果、由哪个算法/策略/模型版本产生。**
-
-`DecisionTrace` 是审计记录，不是新的业务状态 owner。
-
-## 2. 所有权
+DecisionTrace 记录**决策发生当时为什么这样决定**。它 MUST immutable、可审计、可 replay，并与后续 OutcomeObservation 严格分离。
 
 ### DECISION-001
 
-做出业务决策的领域系统负责产生 DecisionTrace payload；4.8 的 Decision Ledger 负责 append-only 持久化、索引和查询。
+所有会改变 canonical system behavior 的关键决策 SHOULD 有 DecisionTrace；SYS05 TeachingAction selection MUST 有 DecisionTrace。
 
-### DECISION-002
+## 2. DecisionTrace v0.3
 
-4.8 不得修改 `selected_action`、`reason_codes` 或其他领域决策语义来“修复”记录。
-
-## 3. `DecisionTrace v1`
+### DECISION-200 — Required Shape
 
 ```yaml
 decision_trace:
   decision_id: uuid
-  decision_type: string
-  schema_version: "1.0"
+  decision_schema_version: string
+  decision_type: teaching_action_selection|string
+  decision_time: datetime
 
-  owner_system: content_knowledge|retrieval|learner_model|assessment|teaching_policy|learning_planner|review_scheduler|ai_orchestration
+  teaching_context_ref: versioned_ref
+  teaching_context_schema_version: string
+  context_fingerprint: string
+  context_source_refs: [versioned_ref]
 
-  inputs:
-    - entity_type: string
-      entity_id: uuid|string
-      version: string|integer|null
+  policy_bundle_ref: versioned_ref
+  policy_bundle_hash: string
+  policy_version: string
 
-  candidates: [object]
-  selected: object
-  constraints: [object]
-  reason_codes: [string]
-  confidence: float|null
+  strategy_family: string
+  strategy_version: string
+  derived_teaching_stage: string
+  stage_mapper_version: string
 
-  algorithm:
-    algorithm_id: string
-    algorithm_version: string
-    model_inference_ids: [uuid]
-    prompt_versions: [string]
+  available_actions: [object]
+  hard_filtered_actions:
+    - action_ref: string
+      filter_reason_codes: [string]
 
-  experiment:
-    experiment_id: string|null
-    variant_id: string|null
-    propensity: float|null
+  features:
+    - feature_name: string
+      value: number|null
+      availability: AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE
+      confidence: float|null
+      feature_version: string
+      source_refs: [versioned_ref]
+
+  candidate_scores: [object]
+  selected_teaching_action_ref: versioned_ref
+  previous_teaching_action_ref: versioned_ref|null
+
+  transition_reason_codes: [string]
+  material_evidence_refs: [versioned_ref]
+  anti_oscillation_decision: object
+  tie_break_reason: string|null
+
+  experiment_assignment_ref: versioned_ref|null
+  experiment_assignment_probability: float|null
+
+  behavior_policy_type: DETERMINISTIC|STOCHASTIC_EXPERIMENTAL|UNKNOWN
+  action_propensity: float|null
+
+  replayability_status: FULL|PARTIAL|NON_REPLAYABLE
+  replayability_reason_codes: [string]
+  migration_metadata: object|null
 
   created_at: datetime
-  correlation_id: uuid
-  trace_id: string
 ```
 
-## 4. 必须记录的决策
+### DECISION-201 — Trace Completeness
 
-### DECISION-010：4.1 高影响知识发布
+SYS05 trace MUST 保存所有 available candidates、hard-filter reasons、feature availability/confidence/version、candidate scores、selected/previous action、transition/material evidence、anti-oscillation 与 tie-break reason。MUST NOT 只保存赢家。
 
-至少记录：
+### DECISION-202 — Immutable Historical Semantics
 
-- KnowledgeUnit 合并/拆分；
-- hard prerequisite 发布/拒绝；
-- 无法自动确定而进入人工审核的高影响关系。
+DecisionTrace MUST 固定 decision-time TeachingContext、PolicyBundle 与 source versions。后续 LearnerState、PolicyBundle 或 OutcomeObservation 变化 MUST NOT 回写修改旧 trace。
 
-### DECISION-011：4.2 EvidenceBundle 选择
+## 3. Probability Semantics
 
-必须记录：
+### DECISION-210 — Deterministic B3
 
-- 检索请求；
-- 主要候选/排名来源；
-- 硬过滤原因；
-- 最终 selected evidence；
-- exposure 过滤；
-- missing/conflict。
-
-### DECISION-012：4.3 MasteryEstimate 更新
-
-必须记录：
-
-- 使用的 evidence ids；
-- evidence weights；
-- prior state version；
-- new estimate version；
-- algorithm version；
-- reason codes。
-
-### DECISION-013：4.4 非平凡评估
-
-开放题、模型辅助评分、评估器冲突或误区判断必须记录：
-
-- evaluator candidates/results；
-- rubric/version；
-- adjudication constraints；
-- selected AssessmentResult。
-
-纯确定性 exact grader MAY 以精简 trace 记录。
-
-### DECISION-014：4.5 TeachingAction
-
-必须记录全部可行动作候选、硬约束过滤、评分、最终动作和 reason codes。
-
-### DECISION-015：4.6 Plan / Replan
-
-必须记录：
-
-- feasible candidates；
-- prerequisite/deadline/time constraints；
-- priority factors；
-- selected activities；
-- replan trigger。
-
-### DECISION-016：4.7 ReviewSchedule 更新
-
-必须记录：
-
-- prior memory state；
-- valid retrieval evidence；
-- desired retention；
-- new next_due_at；
-- scheduler/model version。
-
-### DECISION-017：4.8 高影响模型路由与降级
-
-以下情况必须记录：
-
-- 隐私等级导致的本地/云模型选择；
-- 主模型失败后 fallback；
-- 工具权限拒绝；
-- 输出验证导致重试/降级；
-- 影响任务质量/成本的重要 route。
-
-## 5. Reason Codes
-
-### DECISION-020
-
-每个关键决策 MUST 至少有一个稳定、机器可查询的 `reason_code`。自然语言解释只能作为附加显示，不得替代 reason code。
-
-建议格式：
+canonical B3 runtime MUST 写：
 
 ```text
-<DOMAIN>_<CAUSE>
+behavior_policy_type = DETERMINISTIC
+action_propensity = null
 ```
 
-例如：
+`action_propensity = 1.0` 禁止，因为 deterministic selection 没有需要伪装成概率的 stochastic propensity。
+
+### DECISION-211 — Assignment Probability Separation
+
+`ExperimentAssignment.assignment_probability` 表示实验 variant 分配概率；它 MUST NOT 被解释为 action selection propensity。
 
 ```text
-TEACH_HIGH_HINT_DEPENDENCY
-TEACH_PREREQUISITE_GAP
-RETRIEVAL_EXPOSURE_LIMIT
-RETRIEVAL_CITATION_INVALID
-ASSESS_LOW_GRADER_CONFIDENCE
-MASTERY_NO_DELAYED_EVIDENCE
-PLAN_HARD_PREREQUISITE
-PLAN_REVIEW_OVERDUE
-REVIEW_RECALL_FAILURE
-ROUTE_PROVIDER_UNAVAILABLE
+experiment assignment probability
+!=
+action selection propensity
 ```
 
-### DECISION-021
+### DECISION-212 — Historical Propensity
 
-Reason code 语义一旦发布，不得改变含义复用同一个 code。语义变化需要新 code 或新主版本。
+历史 `experiment.propensity` 只有在 provenance 明确证明其表示 assignment probability 或真实 stochastic behavior propensity 时 MAY 迁移到对应字段。
 
-## 6. Candidate 与约束
-
-### DECISION-030
-
-对存在真实候选选择的决策，trace MUST 保存足够候选摘要以支持离线 replay/counterfactual comparison。
-
-不要求保存巨量 raw context，但必须能重建核心 feature/score/eligibility。
-
-### DECISION-031
-
-硬约束与软评分必须分开记录。
-
-例如 Teaching Policy：
+若语义不明：
 
 ```text
-hard constraint: assessment_no_answer_exposure
-soft score: expected_learning_value = 0.74
+action_propensity = null
+behavior_policy_type = UNKNOWN（若历史行为策略类型也不明）
+migration_reason = AMBIGUOUS_LEGACY_PROPENSITY
+replayability_status = PARTIAL
 ```
 
-不得把硬安全规则仅表示成一个可被高分抵消的 penalty。
+原始值 MAY 保留为 legacy/audit metadata，MUST NOT 无条件解释成 action propensity。
 
-## 7. Confidence
+## 4. Replay Contract
 
-### DECISION-040
+### DECISION-220
 
-`confidence` 只在有明确定义/校准方法时使用。若没有校准依据，字段应为 null 或使用离散 reason code，不得让 LLM 自报 0.93 作为系统置信度。
+`FULL` replay 至少要求 exact TeachingContext snapshot/source versions、exact PolicyBundle、deterministic evaluator components、experiment assignment 与 stable tie-break 可用。
 
-## 8. 模型参与
+### DECISION-221
 
-### DECISION-050
+Canonical policy replay MUST NOT 重新读取当前 mutable state，也 MUST NOT 重新调用在线 LLM。缺失历史 owner version/bundle/feature source 时 MUST 返回 PARTIAL/NON_REPLAYABLE，并给 reason code。
 
-模型参与关键决策时必须通过 `model_inference_ids` 关联 `ModelInference`，而不是只记录模型名字。
+### DECISION-222
 
-### DECISION-051
+同 TeachingContext + exact PolicyBundle + ExperimentAssignment MUST 产生同一个 semantic TeachingAction；若不能，属于 determinism defect 或历史 replayability 不足。
 
-最终领域决策与模型输出必须分开：
+## 5. Decision vs Outcome
 
-```text
-ModelInference = 模型产生了什么
-DecisionTrace = 领域系统最终接受了什么、为什么
-```
+### DECISION-230
 
-## 9. 实验与策略学习
+`DecisionTrace = 当时为什么这么决定`；`OutcomeObservation = 后来实际测到了什么`。
 
-### DECISION-060
+OutcomeObservation MUST NOT 修改 candidate score、transition reason、feature value 或 selected-action reasoning。延迟 outcome 的 attribution 在 Outcome contract 中处理。
 
-任何 A/B、Bandit 或策略实验必须记录：
+## 6. Hard / Soft / Experiment Trace
 
-- experiment_id；
-- variant_id；
-- 可选动作集合；
-- behavior policy/propensity（需要 OPE 时）。
+### DECISION-240
 
-### DECISION-061
+Trace MUST 能区分：
 
-没有 propensity/action availability 日志，不得声称可以可靠进行 IPS/SNIPS/DR 等 off-policy evaluation。
+- typed Hard Constraint filter；
+- Soft Preference feature/score；
+- Experiment Guardrail/assignment。
 
-### DECISION-062
+Hard-filtered action MUST NOT 出现在被 soft score/experiment 恢复后的合法候选集中。
 
-实验 reward 的主目标不得使用聊天时长、点击率或点赞替代学习结果。它们只能作为体验 guardrail/辅助指标。
+### DECISION-241
 
-## 10. Replay 与 Counterfactual
+`learning_value_proxy` MAY 作为 soft feature 名称，但 trace/documentation MUST 明确它是 heuristic/proxy，MUST NOT 称为 causal learning-effect estimate。
 
-### DECISION-070
+## 7. Persistence / Idempotency
 
-DecisionTrace 必须支持至少以下用途：
+### DECISION-250
 
-```text
-历史解释
-→ 同版本 replay
-→ 新旧算法 shadow compare
-→ counterfactual candidate compare
-→ 回滚定位
-```
+DecisionTrace MUST append-only/immutable。相同 `decision_id` 或 idempotency key 重试 MUST NOT 创建语义重复记录。
 
-### DECISION-071
+### DECISION-251
 
-重放旧决策时，若输入实体的历史版本不可取得，则该决策不能标记为“可完整重放”；必须显式标记 replayability 缺口。
+trace persistence 失败时，依赖该 trace 的 canonical action emission MUST degraded/failed；不得把无审计决策标为 replayable。
 
-## 11. 用户可解释性
+## 8. Observability / Security
 
-### DECISION-080
+### DECISION-260
 
-面向用户的解释 SHOULD 从稳定 reason codes 和真实 evidence 生成，不得让 LLM 凭空编造“为什么系统这样安排”。
+Trace SHOULD 可通过 correlation id 连接 TeachingAction、AssessmentResult、LearningEvent、OutcomeObservation、ExperimentAssignment、ModelInference；敏感 raw prompt/response 不应为方便 debug 无限复制到 trace。
 
-例：
+## 9. Tests
 
-```text
-系统安排复习
-→ PLAN_REVIEW_OVERDUE + ReviewSchedule v12
-→ 用户解释：“该知识点已超过建议复习时间。”
-```
+必须覆盖：
 
-## 12. 持久化
+- deterministic B3 `action_propensity=null`；
+- assignment probability/action propensity 分离；
+- ambiguous historical propensity → null + PARTIAL；
+- trace includes losing candidates/hard filters/features/anti-oscillation/tie-break；
+- full replay 不读 mutable state、不调用在线 LLM；
+- same context+bundle+assignment deterministic；
+- OutcomeObservation 不修改 trace；
+- hard-filtered action 不被 scoring/experiment 恢复。
 
-### DECISION-090
+## 10. Acceptance Criteria
 
-DecisionTrace MUST append-only。更正通过新 trace/关联 correction record 完成。
+- `DECISION-AC-201`：任一 SYS05 action 可从 trace 恢复 decision-time context/bundle 与筛选过程。
+- `DECISION-AC-202`：B3 trace 不出现 `action_propensity=1.0`。
+- `DECISION-AC-203`：assignment probability 与 action propensity 有独立字段和语义。
+- `DECISION-AC-204`：历史 ambiguous propensity 的 migration/replay status 显式。
+- `DECISION-AC-205`：Outcome 不会回写历史 DecisionTrace。
 
-### DECISION-091
+## 11. Superseded v0.2 Register
 
-Decision Ledger SHOULD 支持按以下字段索引：
+以下旧要求保留审计含义但不再是 v0.3 canonical behavior：
 
-- decision_id；
-- decision_type；
-- owner_system；
-- correlation_id；
-- trace_id；
-- input entity id；
-- algorithm version；
-- experiment id；
-- created_at。
+- 旧 `DECISION-031` 中 `expected_learning_value` 示例由 `DECISION-241` 的 `learning_value_proxy` 语义替代；
+- 旧 `DECISION-060` 将 A/B/Bandit/OPE 混合描述的 propensity 语义由 `DECISION-210..212` 明确拆分；
+- 旧 `experiment.propensity` 字段由 v0.3 assignment probability / action propensity 两套字段替代。
 
-## 13. Acceptance Criteria
+旧字段 MAY read-only/audit，MUST NOT 双写为第二 canonical probability truth。
 
-- `DECISION-AC-001`：任一 TeachingAction 可追溯到 LearnerState/AssessmentResult/Plan 输入版本。
-- `DECISION-AC-002`：任一 MasteryEstimate 更新可列出 source evidence 和算法版本。
-- `DECISION-AC-003`：EvidenceBundle 中被排除的高暴露候选可通过 reason code 解释。
-- `DECISION-AC-004`：Plan replan 可说明触发原因和前后版本。
-- `DECISION-AC-005`：模型 fallback 有 ModelInference 与 route trace。
-- `DECISION-AC-006`：用户看到的“为什么”解释能映射到真实 reason codes，而非模型自由生成原因。
-
-## 14. Forbidden Implementations
+## 12. Forbidden Implementations
 
 禁止：
 
-- 只保存最终动作，不保存关键输入版本；
-- 只保存自然语言“因为用户需要帮助”而无 reason code；
-- 将 ModelInference 与 DecisionTrace 合成一个对象；
-- Decision Ledger 反向修改领域业务状态；
-- 没有实验分配/propensity 日志却训练或评估策略并宣称无偏；
-- 用点赞、会话时长作为教学策略主要 reward；
-- LLM 为历史决策事后编造理由。
+- deterministic policy 写 `action_propensity=1.0`；
+- 把 experiment assignment probability 当 action propensity；
+- ambiguous legacy propensity 强行解释；
+- 只记录 selected action、不记录候选/过滤过程；
+- replay 重新调用在线 LLM 或读取当前 mutable state；
+- OutcomeObservation 回写 DecisionTrace；
+- dynamic/current PolicyBundle 重解释历史 action；
+- 把 `learning_value_proxy` 宣称为 causal effect。
