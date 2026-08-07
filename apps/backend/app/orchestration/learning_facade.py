@@ -6,11 +6,32 @@ Spec coverage: API-010/011, SYS08-002, VSLICE-010/011.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+from uuid import NAMESPACE_URL, uuid5
 
+from app.contracts.adaptive import (
+    EvidenceBundleV03,
+    ExperimentAssignmentV03,
+    PolicyBundleV03,
+    TeachingActionV03,
+    TeachingContextV03,
+)
+from app.contracts.decisions import DecisionTraceV03
+from app.contracts.events import ActualAssistanceRecordedPayloadV03
 from app.contracts.learning import EvidenceBundle, MasteryEstimate, TeachingAction
+from app.domains.retrieval.adaptive_evidence_service import (
+    AdaptiveEvidenceRetriever,
+    AdaptiveRetrievalCandidate,
+)
+from app.domains.teaching_policy import PolicyRuntimeProfile, TeachingPolicyKernel
 from app.engines import FlowStage, LearnerTurn, LearningFlowOrchestrator, get_orchestrator
+from app.orchestration.adaptive_execution import (
+    AdaptiveExecutionResult,
+    AdaptiveExecutionService,
+    AdaptiveRenderer,
+    PolicyBoundTemplateRenderer,
+)
 
 
 @dataclass(frozen=True)
@@ -28,6 +49,13 @@ class CanonicalTurnRequest:
     teaching_action: TeachingAction | None = None
     evidence_bundle: EvidenceBundle | None = None
     mastery_estimate: MasteryEstimate | None = None
+    teaching_context_v03: TeachingContextV03 | None = None
+    policy_bundle_v03: PolicyBundleV03 | None = None
+    policy_profile_v03: PolicyRuntimeProfile | None = None
+    experiment_assignment_v03: ExperimentAssignmentV03 | None = None
+    adaptive_retrieval_candidates: tuple[AdaptiveRetrievalCandidate, ...] | None = None
+    adaptive_source_scope: dict[str, object] = field(default_factory=dict)
+    adaptive_index_versions: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -40,6 +68,11 @@ class CanonicalTurnResult:
     engine_debug: dict[str, Any]
     execution_snapshot: dict[str, Any]
     correlation_id: str
+    teaching_action_v03: TeachingActionV03 | None = None
+    decision_trace_v03: DecisionTraceV03 | None = None
+    evidence_bundle_v03: EvidenceBundleV03 | None = None
+    actual_assistance_event_v03: ActualAssistanceRecordedPayloadV03 | None = None
+    adaptive_execution_v03: AdaptiveExecutionResult | None = None
 
 
 @dataclass(frozen=True)
@@ -52,8 +85,20 @@ class CanonicalStreamEvent:
 class LearningOrchestrationFacade:
     """Production application entry; transport adapters never select engines directly."""
 
-    def __init__(self, orchestrator: LearningFlowOrchestrator | None = None) -> None:
+    def __init__(
+        self,
+        orchestrator: LearningFlowOrchestrator | None = None,
+        *,
+        policy_kernel: TeachingPolicyKernel | None = None,
+        adaptive_retriever: AdaptiveEvidenceRetriever | None = None,
+        adaptive_executor: AdaptiveExecutionService | None = None,
+        adaptive_renderer: AdaptiveRenderer | None = None,
+    ) -> None:
         self._orchestrator = orchestrator or get_orchestrator()
+        self._policy_kernel = policy_kernel or TeachingPolicyKernel()
+        self._adaptive_retriever = adaptive_retriever or AdaptiveEvidenceRetriever()
+        self._adaptive_executor = adaptive_executor or AdaptiveExecutionService()
+        self._adaptive_renderer = adaptive_renderer or PolicyBoundTemplateRenderer()
 
     async def run_turn(self, request: CanonicalTurnRequest) -> CanonicalTurnResult:
         """Execute one canonical teaching turn for a non-streaming transport."""
@@ -69,6 +114,90 @@ class LearningOrchestrationFacade:
         yield CanonicalStreamEvent(type="final", result=result)
 
     async def _execute_turn(self, request: CanonicalTurnRequest) -> CanonicalTurnResult:
+        adaptive_fields = (
+            request.teaching_context_v03,
+            request.policy_bundle_v03,
+            request.policy_profile_v03,
+            request.adaptive_retrieval_candidates,
+        )
+        if any(value is not None for value in adaptive_fields):
+            if any(value is None for value in adaptive_fields):
+                raise ValueError("ADAPTIVE_CANONICAL_INPUT_INCOMPLETE")
+            return await self._execute_adaptive_turn(request)
+        return await self._execute_legacy_turn(request)
+
+    async def _execute_adaptive_turn(self, request: CanonicalTurnRequest) -> CanonicalTurnResult:
+        context = request.teaching_context_v03
+        bundle = request.policy_bundle_v03
+        profile = request.policy_profile_v03
+        candidates = request.adaptive_retrieval_candidates
+        if context is None or bundle is None or profile is None or candidates is None:
+            raise ValueError("ADAPTIVE_CANONICAL_INPUT_INCOMPLETE")
+        decision = self._policy_kernel.decide(
+            context=context,
+            bundle=bundle,
+            profile=profile,
+            assignment=request.experiment_assignment_v03,
+        )
+        request_id = uuid5(
+            NAMESPACE_URL,
+            f"askora:v03:turn:{request.session_id}:{request.turn_id}:{context.context_fingerprint}",
+        )
+        evidence = self._adaptive_retriever.build(
+            request_id=request_id,
+            teaching_action=decision.action,
+            query=request.text,
+            candidates=candidates,
+            source_scope=request.adaptive_source_scope,
+            index_versions=request.adaptive_index_versions,
+        )
+        execution = await self._adaptive_executor.execute(
+            user_text=request.text,
+            teaching_action=decision.action,
+            evidence_bundle=evidence.bundle,
+            renderer=self._adaptive_renderer,
+        )
+        trace_table = [
+            {
+                "chunk_id": item.chunk_id,
+                "score": item.score,
+                "selected": item.selected,
+                "reason_codes": list(item.reason_codes),
+            }
+            for item in evidence.trace.candidate_table
+        ]
+        return CanonicalTurnResult(
+            reply_text=execution.text,
+            engine_id="sys08_policy_bound_execution",
+            flow_stage=decision.action.teaching_stage.value,
+            switched_to=None,
+            decision_trace=(
+                *decision.trace.reason_codes,
+                *execution.integrity_reason_codes,
+            ),
+            engine_debug={
+                "final_action_owner": "SYS05",
+                "retrieval_owner": "SYS02",
+                "execution_owner": "SYS08",
+                "retrieval_trace": trace_table,
+            },
+            execution_snapshot={
+                "teaching_context": context.model_dump(mode="json"),
+                "teaching_action": decision.action.model_dump(mode="json"),
+                "decision_trace": decision.trace.model_dump(mode="json"),
+                "evidence_bundle": evidence.bundle.model_dump(mode="json"),
+                "actual_assistance": execution.actual_assistance.model_dump(mode="json"),
+            },
+            correlation_id=request.correlation_id,
+            teaching_action_v03=decision.action,
+            decision_trace_v03=decision.trace,
+            evidence_bundle_v03=evidence.bundle,
+            actual_assistance_event_v03=execution.assistance_event,
+            adaptive_execution_v03=execution,
+        )
+
+    async def _execute_legacy_turn(self, request: CanonicalTurnRequest) -> CanonicalTurnResult:
+        """v0.2 compatibility path; it cannot produce canonical v0.3 actions."""
         await self._orchestrator.ensure_session(
             session_id=request.session_id,
             subject=request.subject,

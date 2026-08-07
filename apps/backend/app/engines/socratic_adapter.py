@@ -65,7 +65,12 @@ class SocraticEngineState:
 
 @register_engine
 class SocraticTeachingEngine(TeachingEngine[SocraticEngineState]):
-    """苏格拉底教学引擎的 TEI 适配器（MVP 重构版）"""
+    """苏格拉底教学引擎的 legacy v0.2 rendering/move adapter。
+
+    Canonical v0.3 requests are decided by SYS05 before SYS08 execution and do
+    not enter this selector.  This adapter may keep selecting private wording
+    strategies for compatibility sessions, but it cannot emit TeachingActionV03.
+    """
 
     engine_id: str = "socratic"
     engine_name: str = "苏格拉底引导引擎"
@@ -173,7 +178,7 @@ class SocraticTeachingEngine(TeachingEngine[SocraticEngineState]):
                 mastery = float(probability)
         engine_state.mastery_snapshot = mastery
 
-        # 3. 策略选择
+        # 3. Legacy 私有措辞/move 选择；不是 canonical v0.3 TeachingAction 决策。
         selected_strategy = self.strategy_selector.select(
             parsed_input=parsed_input,
             mastery=mastery,

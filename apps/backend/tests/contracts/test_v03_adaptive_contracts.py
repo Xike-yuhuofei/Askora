@@ -182,6 +182,13 @@ def test_v03_assistance_and_diagnosis_are_orthogonal_and_strict() -> None:
         answer_exposure=AnswerExposure.NONE,
         assistance_state=AssistanceState.ASSISTED,
     )
+    with pytest.raises(ValidationError):
+        AssistanceSnapshotV03(
+            scaffold_control=ScaffoldControl.HIGH,
+            hint_specificity=HintSpecificity.BOTTOM_OUT,
+            answer_exposure=AnswerExposure.COMPLETE,
+            assistance_state=AssistanceState.INDEPENDENT,
+        )
     result = AssessmentResultV03(
         result_id=uuid4(),
         result_version=1,

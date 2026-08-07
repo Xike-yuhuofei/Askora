@@ -198,6 +198,24 @@ class AssistanceSnapshotV03(ContractModel):
     support_reason: tuple[str, ...] = ()
     delivery_mode: str | None = None
 
+    @model_validator(mode="after")
+    def require_consistent_assistance_state(self) -> AssistanceSnapshotV03:
+        if self.answer_exposure is AnswerExposure.COMPLETE:
+            expected = AssistanceState.ANSWER_EXPOSED
+        elif (
+            self.scaffold_control is not ScaffoldControl.NONE
+            or self.hint_specificity is not HintSpecificity.NONE
+            or self.answer_exposure is not AnswerExposure.NONE
+        ):
+            expected = AssistanceState.ASSISTED
+        else:
+            expected = AssistanceState.INDEPENDENT
+        if self.assistance_state is not expected:
+            raise ValueError(
+                "assistance_state must match actual scaffold/hint/answer exposure axes"
+            )
+        return self
+
 
 class AssessmentDiagnosisV03(ContractModel):
     error_type: ErrorType
@@ -365,6 +383,46 @@ class TeachingActionV03(ContractModel):
     created_at: datetime
 
 
+class EvidenceItemV03(ContractModel):
+    """DOMAIN-050/SYS02-200 canonical learner evidence item."""
+
+    evidence_id: UUID
+    source_span_ids: tuple[UUID, ...] = Field(min_length=1)
+    knowledge_unit_ids: tuple[UUID, ...] = ()
+    pedagogical_role: Literal[
+        "definition",
+        "example",
+        "counterexample",
+        "prerequisite",
+        "hint",
+        "rubric",
+        "solution",
+        "context",
+    ]
+    content: str
+    relevance: float | None = None
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    answer_exposure: AnswerExposure
+    allowed_use: Literal["learner_visible", "grader_only", "internal_only"]
+
+
+class EvidenceBundleV03(ContractModel):
+    """SYS02-owned immutable v0.3 bundle with explicit missing semantics."""
+
+    bundle_id: UUID
+    bundle_schema_version: str = Field(default="3.0", pattern=r"^3\.")
+    request_id: UUID
+    teaching_action_ref: VersionedRef
+    source_scope: dict[str, Any]
+    index_versions: dict[str, str]
+    items: tuple[EvidenceItemV03, ...]
+    conflicts: tuple[dict[str, Any], ...] = ()
+    missing_roles: tuple[str, ...] = ()
+    missing_reason_codes: tuple[str, ...] = ()
+    bundle_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    retrieval_trace_id: UUID
+
+
 class ExperimentAssignmentV03(ContractModel):
     assignment_id: UUID
     assignment_schema_version: str = Field(default="3.0", pattern=r"^3\.")
@@ -432,3 +490,27 @@ class OutcomeObservationV03(ContractModel):
         ):
             raise ValueError("EXPERIMENTALLY_CAUSAL requires an experiment association")
         return self
+
+
+class LearnerEvidenceV03(ContractModel):
+    """DOMAIN-071/SYS03 evidence accepted from actual assistance facts."""
+
+    evidence_id: UUID
+    evidence_schema_version: str = Field(default="3.0", pattern=r"^3\.")
+    user_id: UUID
+    knowledge_unit_id: UUID
+    attempt_ref: VersionedRef
+    result_ref: VersionedRef
+    accepted_at: datetime
+    dimension: Literal["recall", "routine_application", "transfer", "explanation"]
+    outcome: Literal["success", "partial", "failure"]
+    score: float
+    confidence: float = Field(ge=0.0, le=1.0)
+    assistance_state: AssistanceState
+    delay_seconds: int = Field(ge=0)
+    novelty: Literal["repeated", "near_variant", "far_variant"]
+    evidence_weight: float = Field(ge=0.0)
+    item_difficulty: float | None = None
+    source_event_refs: tuple[VersionedRef, ...] = Field(min_length=1)
+    eligibility_reason_codes: tuple[str, ...] = Field(min_length=1)
+    eligibility_algorithm_version: str = Field(min_length=1)
