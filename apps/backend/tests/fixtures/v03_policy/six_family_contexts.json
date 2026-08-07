@@ -1,0 +1,38 @@
+[
+  {
+    "case_id": "explicit",
+    "expected_family": "EXPLICIT_INSTRUCTION",
+    "mastery": 0.2
+  },
+  {
+    "case_id": "guided",
+    "expected_family": "GUIDED_PRACTICE",
+    "mastery": 0.4,
+    "assisted_success": true
+  },
+  {
+    "case_id": "fading",
+    "expected_family": "FADING_PRACTICE",
+    "mastery": 0.6,
+    "independent_success": true,
+    "last_scaffold_control": "MEDIUM"
+  },
+  {
+    "case_id": "retrieval",
+    "expected_family": "RETRIEVAL_PRACTICE",
+    "mastery": 0.9
+  },
+  {
+    "case_id": "remediation",
+    "expected_family": "ERROR_REMEDIATION",
+    "mastery": 0.4,
+    "error_type": "EXECUTION"
+  },
+  {
+    "case_id": "transfer",
+    "expected_family": "TRANSFER_CHALLENGE",
+    "mastery": 0.9,
+    "transfer_evidence": true,
+    "transfer_novelty": 0.9
+  }
+]

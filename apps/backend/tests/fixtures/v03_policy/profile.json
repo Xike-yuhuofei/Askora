@@ -1,0 +1,50 @@
+{
+  "profile_id": "exec009-fixture-profile",
+  "policy_version": "policy-1",
+  "hard_rule_set_version": "hard-1",
+  "stage_mapper_version": "stage-1",
+  "candidate_table_version": "candidates-1",
+  "feature_schema_version": "features-1",
+  "normalization_version": "fixed-bounds-1",
+  "weight_profile_version": "weights-1",
+  "tie_break_version": "tie-1",
+  "fallback_profile_version": "fallback-1",
+  "content_digest": "sha256:exec009-fixture-profile",
+  "failure_ceiling": 3,
+  "diagnostic_confidence_cutoff": 0.6,
+  "mastery_threshold": 0.8,
+  "prerequisite_confidence_cutoff": 0.7,
+  "transfer_novelty_cutoff": 0.7,
+  "practical_harm_margin": 0.1,
+  "normalization_ranges": {
+    "stage_fit": {"minimum": 0.0, "maximum": 1.0},
+    "diagnostic_value": {"minimum": 0.0, "maximum": 1.0},
+    "remediation_fit": {"minimum": 0.0, "maximum": 1.0},
+    "review_fit": {"minimum": 0.0, "maximum": 1.0},
+    "learning_value_proxy": {"minimum": 0.0, "maximum": 1.0},
+    "direct_request_fit": {"minimum": 0.0, "maximum": 1.0},
+    "hint_dependency_risk": {"minimum": 0.0, "maximum": 1.0},
+    "cognitive_load_penalty": {"minimum": 0.0, "maximum": 1.0},
+    "time_cost": {"minimum": 0.0, "maximum": 1.0}
+  },
+  "feature_weights": {
+    "stage_fit": 10.0,
+    "diagnostic_value": 2.0,
+    "remediation_fit": 2.0,
+    "review_fit": 2.0,
+    "learning_value_proxy": 1.0,
+    "direct_request_fit": 20.0,
+    "hint_dependency_risk": -1.0,
+    "cognitive_load_penalty": -0.5,
+    "time_cost": -0.2
+  },
+  "candidate_priority": [
+    "error_remediation.core",
+    "guided_practice.core",
+    "explicit_instruction.core",
+    "fading_practice.core",
+    "retrieval_practice.core",
+    "transfer_challenge.core",
+    "direct_answer.bounded"
+  ]
+}

@@ -91,6 +91,7 @@ class ReplayabilityStatus(StrEnum):
 class HardConstraintResultV03(ContractModel):
     rule_id: str = Field(min_length=1)
     rule_version: str = Field(min_length=1)
+    parameters: dict[str, Any] = Field(default_factory=dict)
     passed: bool
     reason_codes: tuple[str, ...]
     forbidden_action_refs: tuple[str, ...] = ()

@@ -1,0 +1,27 @@
+[
+  {
+    "case_id": "assessment_integrity",
+    "activity_type": "summative_exam",
+    "mastery": 0.9,
+    "forbidden": ["explicit_instruction.core", "guided_practice.core", "fading_practice.core", "error_remediation.core", "direct_answer.bounded"]
+  },
+  {
+    "case_id": "prerequisite_safety",
+    "mastery": 0.2,
+    "prerequisite_confidence": 0.2,
+    "forbidden": ["transfer_challenge.core"]
+  },
+  {
+    "case_id": "failure_ceiling",
+    "mastery": 0.4,
+    "error_type": "EXECUTION",
+    "consecutive_failures": 3,
+    "forbidden": ["fading_practice.core", "retrieval_practice.core", "transfer_challenge.core"]
+  },
+  {
+    "case_id": "low_confidence",
+    "mastery": 0.2,
+    "diagnostic_confidence": 0.2,
+    "forbidden": ["fading_practice.core", "retrieval_practice.core", "transfer_challenge.core"]
+  }
+]
