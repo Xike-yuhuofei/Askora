@@ -146,11 +146,11 @@ At-least-once delivery consumer MUST idempotent；outbox retry MUST NOT 导致 m
 
 Event schema evolution MUST 遵循 versioned reader/upcaster contract。Upcaster MAY 补结构，不得伪造历史不可知语义。
 
-### EVENT-200A — Legacy Ambiguity Rule
+### EVENT-230 — Legacy Ambiguity Rule
 
 旧 support/error/propensity payload 无法无损映射时 MUST 保留 raw legacy value + migration reason，并把 canonical value 标记为 unknown/unavailable/partial replay，而不是猜测。
 
-### EVENT-201A — Replay
+### EVENT-231 — Replay
 
 Historical replay MUST 使用 event-time object/policy versions；缺失版本时必须显式 PARTIAL/NON_REPLAYABLE。Policy replay MUST NOT 重新调用在线 LLM。
 
