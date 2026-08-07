@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Spec Delta
+> 当前版本：v0.3 Adaptive Teaching Loop Vertical Slice Frozen
 
 ## 1. Purpose
 
@@ -14,12 +14,12 @@ Research Synthesis
 → Canonical Design
 → Accepted ADR-0001 / ADR-0002
 → Updated v0.3 Specs
-→ Vertical Slice
-→ EXEC
+→ v0.3 Vertical Slice
+→ EXEC-007+
 → Implementation
 ```
 
-一旦本次 Spec Delta 通过 gate，实现必须服从 updated Spec；发现 Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 Spec gap/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
+实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
 
 ## 2. Spec Index
 
@@ -55,9 +55,10 @@ Research Synthesis
 - `quality/security-standard.md` — hard-rule / answer-exposure / grader-only security boundary
 - other quality/versioning specs remain applicable unless explicitly superseded
 
-### Historical Vertical Slice
+### Vertical Slices
 
-- `vertical-slices/v0.2-learning-loop.md` — v0.2 historical implementation slice. Where it conflicts with v0.3 ontology/support/probability contracts, v0.3 canonical specs supersede it; it MUST NOT be used to reintroduce old canonical truth.
+- `vertical-slices/v0.3-adaptive-teaching-loop.md` — **current frozen v0.3 implementation slice**；定义 EXEC-007+ 的范围、阶段、迁移路径与 release gate
+- `vertical-slices/v0.2-learning-loop.md` — historical v0.2 implementation slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede，MUST NOT reintroduce old truth
 
 ## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
 
@@ -105,7 +106,7 @@ Research Synthesis
 | BC-005 DecisionTrace probability / replay | deterministic `action_propensity=null`; assignment probability separated; explicit replayability |
 | BC-006 Legacy Socratic selector | bounded move/provider/adapter only; SYS05 owns final TeachingAction |
 
-All six are **RESOLVED IN SPEC**. Implementation migration remains a later phase and MUST follow these contracts.
+All six are **RESOLVED IN SPEC**。Implementation migration MUST follow `vertical-slices/v0.3-adaptive-teaching-loop.md`。
 
 ## 6. Migration Candidate Register — Contract Resolution
 
@@ -125,7 +126,7 @@ All nine migration candidates have canonical target、compatibility read、ambig
 
 ## 7. Spec-ID Governance
 
-Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 IDs remain visible in each affected Spec's superseded/legacy register; v0.3 additions use new unused ranges (principally `*-2xx/3xx`).
+Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 IDs remain visible in each affected Spec's superseded/legacy register; v0.3 additions use new unused ranges (principally `*-2xx/3xx`)。v0.3 Vertical Slice 使用 `VSLICE-3xx`。
 
 ## 8. v0.3 Canonical Invariants
 
@@ -160,23 +161,21 @@ Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex I
 
 B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
 
-## 11. Spec Delta Gate
+## 11. Vertical Slice Gate
 
-v0.3 Spec Delta PASS requires：
+v0.3 Vertical Slice is frozen when：
 
 ```text
-ADR-0001 fully reflected
-ADR-0002 fully reflected
-SD-01..SD-11 resolved
-No duplicate truth source
-Six breaking changes have migration semantics
-Nine migration candidates resolved
-All new public objects have owner/semantics
-All policy layers testable
-Decision probability semantics unambiguous
-Legacy Socratic ownership bounded
-No fixed pseudo-scientific parameters
-No blocking SPEC GAP
+Scope is narrow and end-to-end
+No new Canonical Design decision introduced
+No ADR conflict
+No Spec conflict
+All six breaking changes have implementation path
+All nine migration candidates have executable verification path
+Single-writer ownership remains intact
+Engineering / Policy / Learning Evidence claims remain separated
 ```
 
-When all conditions are met, next phase is **v0.3 Vertical Slice**. This index MUST NOT itself create EXEC or implementation work.
+Current status：**PASS**。
+
+下一阶段：正式生成 `EXEC-007` ～ `EXEC-013`，再交由 Codex 按依赖顺序执行。
