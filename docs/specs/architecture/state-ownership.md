@@ -1,292 +1,149 @@
-# Askora State Ownership Specification
+# State Ownership
 
-> Spec ID 范围：`STATE-*`  
+> Spec ID：`STATE-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.3
 
-## 1. 核心原则
+## 1. Single-writer Principle
 
-### STATE-001：一个状态，一个唯一写入者
+### STATE-001
 
-任何跨会话、可影响后续教学决策的核心业务状态 MUST 有唯一写入系统。
+每类 canonical domain truth MUST 有且只有一个写 owner。其他系统 MAY 读取、缓存、投影或托管 ledger，但 MUST NOT 形成可独立演进的第二事实源。
 
-### STATE-002：读权限不等于写权限
+## 2. Eight-system Ownership Matrix
 
-一个系统可以读取另一个系统的状态用于决策，但不得因此获得更新该状态的权限。
+| Canonical truth / decision | Owner | Other systems may |
+|---|---|---|
+| Knowledge truth / relations / Misconception definition | SYS01 | read / retrieve / reference |
+| EvidenceBundle / RetrievalTrace | SYS02 | consume |
+| LearnerEvidence acceptance / MasteryEstimate / LearnerState / MisconceptionHypothesis | SYS03 | read |
+| AssessmentItem / Attempt / AssessmentResult / MisconceptionEvidence / actual assistance | SYS04 | consume |
+| TeachingAction / TeachingContext decision snapshot semantics / TeachingStage derivation / PolicyBundle governance / validation obligation | SYS05 | execute/read |
+| LearningGoal / Objective / LearningActivity / LearningPlan | SYS06 | read |
+| ReviewSchedule / next_due | SYS07 | read / plan from |
+| WorkflowRun / ModelInference / Tool execution / execution validation | SYS08 | execute / host ledgers |
 
-### STATE-003：建议不是状态更新
+### STATE-002
 
-LLM、评估器、检索器或用户反馈产生的“建议/证据/候选”必须先被状态 owner 接纳，才能形成新的 canonical state version。
-
-### STATE-004：核心状态版本化
-
-以下对象 MUST 采用 append/version 或 immutable snapshot 语义，不得原地静默覆盖历史：
-
-- KnowledgeUnit/Relation 的已发布 revision；
-- AssessmentResult；
-- MasteryEstimate；
-- TeachingAction；
-- LearningPlan；
-- ReviewSchedule；
-- LearningEvent；
-- DecisionTrace。
-
-## 2. 状态所有权矩阵
-
-符号：
-
-- `C`：创建；
-- `W`：更新/新版本；
-- `R`：只读；
-- `E`：只能提交 evidence/event；
-- `X`：执行动作，无状态所有权。
-
-| 状态 | 4.1 | 4.2 | 4.3 | 4.4 | 4.5 | 4.6 | 4.7 | 4.8 | 唯一写入者 |
-|---|---|---|---|---|---|---|---|---|---|
-| RawAsset metadata | C/W | R | - | - | - | R | - | R | 4.1 |
-| SourceDocument/MaterialRevision | C/W | R | R | R | R | R | R | R | 4.1 |
-| SourceChunk/SourceSpan projection | C/W | R | R | R | R | R | R | R | 4.1 |
-| KnowledgeUnit | C/W | R | R | R | R | R/E | R | R | 4.1 |
-| Concept | C/W | R | R | R | R | R | R | R | 4.1 |
-| PrerequisiteRelation | C/W | R | R | R | R | R/E | R | R | 4.1 |
-| Misconception definition | C/W | R | R | R | R | R | R | R | 4.1 |
-| EvidenceBundle | R | C/W* | R | R | R | R | R | X | 4.2 |
-| LearnerState | R | R | C/W | E | R | R | E | E | 4.3 |
-| MasteryEstimate | R | R | C/W | E | R | R | E | R | 4.3 |
-| learner misconception hypothesis | R | R | C/W | E | R | R | R | E | 4.3 |
-| AssessmentItem | R | R | R | C/W | R | R | R | X | 4.4 |
-| Attempt | R | R | R | C/W* | R | R | R | X/CMD | 4.4 |
-| AssessmentResult | R | R | R | C/W* | R | R | R | X | 4.4 |
-| TeachingStrategy | R | R | R | R | C/W | R | R | X | 4.5 |
-| TeachingAction | R | R | R | R | C/W* | R | R | X | 4.5 |
-| LearningGoal | R | R | R | R | R | C/W | R | X | 4.6 |
-| LearningObjective | R | R | R | R | R | C/W* | R | X | 4.6 |
-| LearningActivity | R | R | R | R | R | C/W* | R | X | 4.6 |
-| LearningPlan | R | R | R | R | R | C/W | R | X | 4.6 |
-| ReviewSchedule | R | R | R | E | R | R | C/W | X | 4.7 |
-| memory model state | R | R | R | E | R | R | C/W | X | 4.7 |
-| SessionState/WorkflowRun | R | R | R | R | R | R | R | C/W | 4.8 |
-| ModelInference | R | R | R | R | R | R | R | C append-only | 4.8 |
-| FeedbackSignal | E | E | E | E | E | E | E | C append-only | 4.8 ledger |
-| LearningEvent | E | E | E | E | E | E | E | C append-only | 4.8 ledger |
-| DecisionTrace | E | E | E | E | E | E | E | C append-only | 4.8 ledger |
-
-`*`：结果对象通过新记录/新版本演进，不允许静默修改已发布结论。
-
-## 3. 关键边界
-
-### STATE-010：AssessmentResult ≠ MasteryEstimate
-
-`AssessmentResult` 只描述一次 Attempt：
+固定边界：
 
 ```text
-score
-correctness
-rubric dimensions
-error type
-misconception evidence
-independence
-assessment confidence
+AssessmentResult != MasteryEstimate
+LearningPlan != TeachingAction
+ReviewSchedule != LearnerState
+MisconceptionEvidence != MisconceptionHypothesis
+TeachingStage != LearnerState
+StrategyFamily != TeachingAction
+TeachingAction != InteractionMove
+DecisionTrace != OutcomeObservation
+Experiment assignment probability != action selection propensity
 ```
 
-只有 4.3 可以把一个或多个 AssessmentResult 与其他 evidence 融合为 MasteryEstimate。
+## 3. v0.3 Non-state / Derived Objects
 
-任何代码如果存在：
+### STATE-200 — TeachingContext
 
-```python
-assessment_result.mastery = ...
-learner.mastery = score
-```
+TeachingContext 是 SYS05 的 immutable decision-input snapshot。它引用 exact owner versions，但 MUST NOT 成为第二 LearnerState/AssessmentResult/Plan truth。Snapshot retention 是 replay/audit 需求，不改变 source ownership。
 
-或等价逻辑，必须视为越权。
+### STATE-201 — TeachingStage
 
-### STATE-011：ReviewSchedule ≠ MasteryEstimate
+TeachingStage 由 SYS05 以 `TeachingContext + PolicyBundle` 派生，只在 policy-control 语义中存在。MUST NOT 持久化为 SYS03 learner stage truth。
 
-记忆可提取性与完整掌握不是同一状态。
+### STATE-202 — PolicyBundle
 
-4.7 可以维护：
+PolicyBundle 是 SYS05 的 immutable/versioned policy configuration artifact；它不是 LearnerState，也不是 experiment result。Activation 只影响新 TeachingAction。
 
-- stability；
-- difficulty；
-- retrievability；
-- next_due_at。
+### STATE-203 — Independent Validation Obligation
 
-但不能宣布用户“稳定掌握/迁移掌握”。
+Validation obligation 属于 SYS05 policy-control semantics。SYS04 产生可满足它的 fresh Attempt/AssessmentResult；SYS03 仅消费 evidence，不拥有/预先完成 obligation。
 
-### STATE-012：LearningPlan ≠ TeachingAction
+## 4. Outcome / Experiment Additive Contracts
 
-4.6 决定：
+### STATE-210 — OutcomeObservation
 
-- 学什么；
-- 顺序；
-- 今日任务；
-- 任务优先级。
+OutcomeObservation 是 immutable measurement/analytics record。其 measurement truth 必须引用既有 owner 的事实（例如 SYS04 result、SYS03 estimate），MUST NOT 替代这些 owner 的 canonical state。
 
-4.5 决定：
+### STATE-211 — ExperimentAssignment
 
-- 当前讲解/提问/练习/测试；
-- 提示强度；
-- 答案暴露；
-- 本轮退出条件。
+ExperimentAssignment 是 experiment control/analytics record。它 MAY 被 durable ledger 托管并被 SYS05 只读消费，但 MUST NOT 成为第二 TeachingAction owner 或第二 LearnerState truth。
 
-两个状态必须独立版本化。
+### STATE-212 — Ledger Hosting
 
-### STATE-013：SourceChunk ≠ KnowledgeUnit
+SYS08 MAY 托管 LearningEvent、DecisionTrace、OutcomeObservation、ExperimentAssignment 的 durable persistence/outbox。托管权 = storage/transport responsibility，MUST NOT 被实现为修改领域 payload 语义的 ownership。
 
-SourceChunk 是可重建检索投影；KnowledgeUnit 是规范教学/评估语义单元。
+## 5. LLM / Agent Boundary
 
-重新分块不得自动导致 KnowledgeUnit identity 全量漂移。
+### STATE-220
 
-### STATE-014：Misconception definition ≠ learner hypothesis
+LLM/Agent MAY 生成 explanation、worked example、hint、diagnostic candidate、feedback、self-explanation prompt、language realization、tool result。
 
-4.1 维护“某种典型误区是什么”。
+LLM/Agent MUST NOT 成为：LearnerState owner、Assessment truth owner、TeachingAction owner、LearningPlan owner、ReviewSchedule owner、hard-rule override、answer-exposure override。
 
-4.4 可以产生“本次回答与该误区匹配”的 evidence。
+### STATE-221
 
-4.3 决定“当前是否有理由认为该用户存在该误区”。
+SYS08 MAY 收紧 TeachingAction envelope；MUST NOT 扩大 scaffold、hint specificity、answer exposure 或 action semantics。
 
-## 4. 状态更新合同
+## 6. Misconception Ownership
 
-### STATE-020：所有关键更新必须有 provenance
-
-关键状态新版本 MUST 至少能追溯：
-
-- 输入对象/事件 ID；
-- algorithm/policy/model version；
-- occurred/created time；
-- reason codes；
-- trace/correlation id。
-
-### STATE-021：关键状态不得从聊天文本直接更新
-
-聊天消息 MAY 触发 command，但 MUST 经结构化验证后才能成为领域事实。
-
-示例：
+### STATE-230
 
 ```text
-“我已经会了”
+Misconception definition      → SYS01
+MisconceptionEvidence         → SYS04
+MisconceptionHypothesis       → SYS03
+Remediation decision          → SYS05
 ```
 
-只能形成 self-report / feedback signal，不能直接把 mastery 设置为 1.0。
+任一 shortcut 将 definition/evidence/hypothesis/remediation 合并为一个跨系统可写对象均禁止。
 
-### STATE-022：用户纠错采用争议/复核流程
+## 7. Write-path Rules
 
-用户认为系统判断错误时：
+### STATE-010
 
-```text
-FeedbackSignal
-→ disputed/review required
-→ retest / evidence correction / replay
-→ new state version
-```
+跨 owner 写入 MUST 通过 owner command/application service 或 accepted event/evidence path；禁止跨模块直接 ORM UPDATE 他人 canonical table。
 
-禁止直接编辑概率为用户指定值，除非未来 Spec 明确定义人工 override 类型且单独展示。
+### STATE-011
 
-### STATE-023：删除与纠正
+Projection/cache MUST 标明 source owner/version，并可删除重建。Cache 不得在 source unavailable 时被自动升级为 truth。
 
-历史学习事件出现错误时：
+### STATE-012
 
-- 普通纠正：追加 correction event；
-- 用户依法/明确要求删除：执行删除策略并保留允许范围内的审计墓碑；
-- 删除后需要重建受影响投影。
+状态更新与关键 outbox/event 应满足对应 persistence transaction contract；失败必须可见，不得产生“业务已成功但审计链丢失”的静默分叉。
 
-## 5. 并发与幂等
+## 8. State Ownership Sweep Requirements
 
-### STATE-030
+### STATE-240
 
-同一 aggregate 的 canonical version MUST 单调递增，并在数据库建立唯一约束。
+每次新增公共对象必须回答：
 
-### STATE-031
+1. 是否是真实领域 state、derived decision artifact、measurement record 或 ledger record；
+2. 谁可写；
+3. 谁只读/执行；
+4. 是否可能复制现有 truth；
+5. replay 时使用哪一个 exact version。
 
-重复 command 不得生成第二份等价 evidence 或第二次 mastery 更新。必须通过 `idempotency_key` 或等效机制返回原结果。
+### STATE-241
 
-### STATE-032
+v0.3 implementation MUST 通过 architecture tests 证明不存在：第二 LearnerState、第二 TeachingAction、第二 Experiment truth、第二 Outcome truth。
 
-投影消费者必须幂等；重放同一事件集合 + 同一 projection version MUST 产生相同状态。
+## 9. Legacy Compatibility
 
-### STATE-033
+### STATE-250
 
-重放过程 MUST NOT 调用在线 LLM 重新“理解”历史事件。需要 LLM 产物时，应使用当时已持久化的结构化 result 或明确的新重评流程。
+legacy `DialogSession.mastery_estimate`、Socratic selector/state graph、old policy config、integer support/exposure MAY 暂留为 read projection/adapter/audit source，但 MUST 有 canonical source 与 retirement condition；MUST NOT 与 v0.3 fields 双写并独立演进。
 
-## 6. Persistence Boundary
+## 10. Tests
 
-每个领域 SHOULD 拥有逻辑独立 repository interface，即使物理上共用 SQLite/PostgreSQL。
+必须覆盖：cross-owner write prohibition；TeachingContext/TeachingStage 非第二 state；SYS08 tightening-only；Misconception four-way boundary；Outcome/Experiment ledger hosting 不等于 truth ownership；legacy adapter no write；replay uses exact owner version。
 
-目标示意：
+## 11. Acceptance Criteria
 
-```text
-ContentKnowledgeRepository   → 4.1
-RetrievalProjectionStore     → 4.2 可重建投影/cache
-LearnerStateRepository       → 4.3
-AssessmentRepository         → 4.4
-TeachingPolicyRepository     → 4.5
-LearningPlanRepository       → 4.6
-ReviewScheduleRepository     → 4.7
-Execution/EventLedger        → 4.8
-```
+- `STATE-AC-201`：SYS01～SYS08 每类 canonical truth 只有一个 writer。
+- `STATE-AC-202`：TeachingContext/TeachingStage 不形成第二 LearnerState。
+- `STATE-AC-203`：validation obligation 由 SYS05 控制，SYS03 不能无 fresh Attempt 完成。
+- `STATE-AC-204`：OutcomeObservation/ExperimentAssignment 的托管记录不覆盖八系统 domain truth。
+- `STATE-AC-205`：LLM/SYS08/legacy Socratic 无 final TeachingAction ownership。
 
-共享数据库不代表共享写权限。
+## 12. Forbidden Implementations
 
-## 7. Legacy 数据治理
-
-### STATE-040：迁移先确定 owner
-
-任何现有表/模型在重构前必须先标注：
-
-- target owner；
-- 当前写入者；
-- 是否存在多写入者；
-- 迁移策略；
-- legacy 删除条件。
-
-### STATE-041：双写只允许短期迁移
-
-若迁移必须双写：
-
-- EXEC Plan 必须明确主 truth；
-- 必须有 reconciliation check；
-- 必须有明确停止双写条件；
-- 不得把双写变成永久架构。
-
-### STATE-042：DKT/KT 状态收敛
-
-现有 `services/kt/` 和 `services/dkt/` 输出不得分别作为两个 canonical mastery source。v0.2 必须指定一个 canonical learner state projector；其他模型只能 challenger/feature provider。
-
-## 8. 必须测试的所有权场景
-
-### STATE-AC-001
-
-提交 AssessmentResult 后，只有 learner-model application path 可以创建新的 MasteryEstimate。
-
-### STATE-AC-002
-
-LLM 返回包含 `mastery`, `next_review_at`, `plan` 等字段时，4.8 必须忽略/拒绝任何未授权业务状态写入。
-
-### STATE-AC-003
-
-Planner 接收 ReviewDue 后只能把其纳入 LearningActivity，不能修改 ReviewSchedule 的 memory state。
-
-### STATE-AC-004
-
-Assessment 识别误区后只发布 misconception evidence，Learner Model 决定 active hypothesis。
-
-### STATE-AC-005
-
-重放相同事件集合得到相同 MasteryEstimate version content（除不可避免的创建时间字段外应 deterministic）。
-
-### STATE-AC-006
-
-重新分块 SourceChunk 不得无条件重建全部 KnowledgeUnit identity。
-
-## 9. Forbidden Implementations
-
-禁止：
-
-- 共享 `UserLearningState` 大表由所有模块任意更新；
-- 通过 JSON blob 把 mastery/plan/review/teaching 混在一份 conversation state 中；
-- `AssessmentService`、`Orchestrator`、`Planner` 同时拥有 `mastery` 更新方法；
-- 4.3 和 4.7 同时保存语义相同但值不同的 `next_review_at`；
-- 将用户点赞直接转换成 mastery 增量；
-- 将 LLM confidence 直接作为 MasteryEstimate confidence；
-- 历史 AssessmentResult 被新评分器静默覆盖；
-- event replay 时重新请求在线模型导致同一事件集投影不同。
+禁止：跨系统直接写 canonical tables；聊天/session shared context 写 mastery；SYS04 写 mastery；SYS05 写 plan/review；SYS08 因模型输出改 action；TeachingStage 进入 LearnerState truth；analytics table 反向成为 outcome/experiment 的独立业务 truth；legacy 和 v0.3 双写。
