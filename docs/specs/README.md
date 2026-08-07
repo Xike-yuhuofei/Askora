@@ -1,275 +1,181 @@
 # Askora Implementation Specifications
 
-> 状态：Canonical Implementation Contract  
-> 版本：v0.1  
-> 生效日期：2026-08-07  
-> 目的：把 `docs/design/` 的正式设计转化为可由 Codex 直接执行、可测试、可审计的工程合同。
+> 状态：Canonical Implementation Contract Index  
+> 当前版本：v0.3 Adaptive Teaching Loop Spec Delta
 
-## 1. 本目录的职责
+## 1. Purpose
 
-`docs/specs/` 回答唯一问题：**Askora 必须怎样实现。**
+`docs/specs/**` 将已冻结 Canonical Design 与 Accepted ADR 转换为可直接约束实现、测试、迁移、replay 与 release 的合同。
 
-它不负责重新论证“为什么这样设计”。设计依据、算法比较、研究证据和长期演进仍属于 `docs/design/` 与 `docs/design/research/`。
-
-知识形成与执行链路固定为：
+v0.3 authoritative formation chain：
 
 ```text
-Research
-  ↓
-Canonical Design
-  ↓
-Implementation Specs
-  ↓
-Execution Plan
-  ↓
-Code + Migration + Tests
-  ↓
-Implementation Validation
+Research Synthesis
+→ Canonical Design
+→ Accepted ADR-0001 / ADR-0002
+→ Updated v0.3 Specs
+→ Vertical Slice
+→ EXEC
+→ Implementation
 ```
 
-## 2. 权威性与冲突处理
+一旦本次 Spec Delta 通过 gate，实现必须服从 updated Spec；发现 Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 Spec gap/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
 
-实现阶段的权威优先级：
+## 2. Spec Index
+
+### Domain
+
+- `domain/domain-model.md` — canonical objects、ontology、TeachingContext、PolicyBundle、Outcome/Experiment、migration
+- `domain/decision-contract.md` — DecisionTrace v0.3、probability、replay
+- `domain/event-contract.md` — LearningEvent、assistance/outcome/experiment event semantics
+- `domain/lifecycle-state-machines.md` — lifecycle contracts（按需引用）
+
+### Architecture
+
+- `architecture/state-ownership.md` — SYS01～SYS08 single-writer ownership
+- `architecture/system-architecture.md`
+- `architecture/dependency-rules.md`
+
+### Systems
+
+- `systems/01-content-knowledge.md`
+- `systems/02-retrieval.md`
+- `systems/03-learner-model.md`
+- `systems/04-assessment.md`
+- `systems/05-teaching-policy.md`
+- `systems/06-learning-planner.md`
+- `systems/07-review-scheduling.md`
+- `systems/08-ai-orchestration.md`
+
+### Quality
+
+- `quality/testing-standard.md` — L0～L6 + OPVE/G0/G1/G2
+- `quality/observability-standard.md` — decision/outcome observability + learning outcome hierarchy
+- `quality/definition-of-done.md` — Engineering/Policy/Learning Evidence release gates
+- other quality/security/versioning specs remain applicable unless explicitly superseded
+
+### Historical Vertical Slice
+
+- `vertical-slices/v0.2-learning-loop.md` — v0.2 historical implementation slice. Where it conflicts with v0.3 ontology/support/probability contracts, v0.3 canonical specs supersede it; it MUST NOT be used to reintroduce old canonical truth.
+
+## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
+
+| Canonical Decision | ADR | Canonical Spec Requirements |
+|---|---|---|
+| `V03-CD-002` six Strategy Families | ADR-0001 | `DOMAIN-083/086`, `SYS05-201` |
+| `V03-CD-003` four-layer ontology | ADR-0001 | `DOMAIN-083..085`, `SYS05-202/203` |
+| `V03-CD-005` TeachingContext | ADR-0002 | `DOMAIN-088`, `SYS05-210..212` |
+| `V03-CD-006` ErrorType | — | `DOMAIN-072..074`, `SYS04-210..214` |
+| `V03-CD-007` hard/soft/experiment | ADR-0002 | `SYS05-240..242`, `DECISION-240` |
+| `V03-CD-008` support/exposure | ADR-0001 | `DOMAIN-061/062`, `SYS05-220/221`, `SYS04-200/201` |
+| `V03-CD-009` validation obligation | — | `DOMAIN-091`, `SYS05-222`, `SYS03-230/231`, `SYS04-220..222` |
+| `V03-CD-010` deterministic policy | ADR-0002 | `SYS05-230/231`, `SYS05-290/291`, `DECISION-210` |
+| `V03-CD-011` anti-oscillation | ADR-0002 | `SYS05-280..285`, `TEST-240..242` |
+| `V03-CD-012` PolicyBundle | ADR-0002 | `DOMAIN-089`, `SYS05-300..303` |
+| `V03-CD-013` DecisionTrace probability/replay | ADR-0002 | `DECISION-200..222`, `SYS05-310..312` |
+| `V03-CD-014` Outcome data model | — | `DOMAIN-111..113`, `OBS-200..221` |
+| `V03-CD-015` OPVE / outcome hierarchy | — | `TEST-200..281`, `OBS-210..213` |
+| `V03-CD-017` release gate | — | `DOD-200..260` |
+
+## 4. SD-01～SD-11 Resolution Matrix
+
+| SD | Status | Primary Specs |
+|---|---|---|
+| SD-01 Strategy Ontology | RESOLVED | domain-model, SYS05 |
+| SD-02 TeachingContext | RESOLVED | domain-model, SYS05, DecisionTrace |
+| SD-03 Assessment | RESOLVED | domain-model, SYS04 |
+| SD-04 Error Diagnosis | RESOLVED | domain-model, SYS04, SYS03/SYS05 boundary |
+| SD-05 Support/Hint/Exposure/Assistance | RESOLVED | domain-model, SYS02/03/04/05/08, events |
+| SD-06 Anti-Oscillation | RESOLVED | SYS05, testing |
+| SD-07 PolicyBundle / Policy Stack | RESOLVED | domain-model, SYS05 |
+| SD-08 DecisionTrace v0.3 | RESOLVED | decision-contract, SYS05 |
+| SD-09 Outcome / Experiment | RESOLVED | domain-model, event, ownership, observability |
+| SD-10 Testing / OPVE | RESOLVED | testing-standard |
+| SD-11 Observability / DoD / Release Gate | RESOLVED | observability-standard, definition-of-done |
+
+## 5. Breaking Change Register — Spec Resolution
+
+| BC | Resolution |
+|---|---|
+| BC-001 Strategy enum | six StrategyFamily is only v0.3 canonical top-level enum; old nine values read-only/audit |
+| BC-002 TeachingAction semantics | immutable four-layer action contract + exact context/bundle pinning |
+| BC-003 Support / exposure | canonical orthogonal scaffold/hint/exposure/assistance model |
+| BC-004 Policy configuration | immutable/versioned PolicyBundle; no executable/free-form rules |
+| BC-005 DecisionTrace probability / replay | deterministic `action_propensity=null`; assignment probability separated; explicit replayability |
+| BC-006 Legacy Socratic selector | bounded move/provider/adapter only; SYS05 owns final TeachingAction |
+
+All six are **RESOLVED IN SPEC**. Implementation migration remains a later phase and MUST follow these contracts.
+
+## 6. Migration Candidate Register — Contract Resolution
+
+| Candidate | Canonical target | Compatibility read | Classification / ambiguity | Replayability | Retirement condition |
+|---|---|---|---|---|---|
+| historical strategy records | six StrategyFamily | legacy audit allowed | ambiguous mapping must be explicit | FULL/PARTIAL by refs | supported history migrated/archived |
+| historical TeachingAction | v0.3 immutable action | read adapter | non-lossless semantics marked | usually PARTIAL when fields absent | no active v0.2 workflow |
+| old `scaffold_level` | `scaffold_control` | read adapter | lossy/unknown marked | PARTIAL if inference required | no active writer + migrated history |
+| old `hint_level` | `hint_specificity` | read adapter | lossy/unknown marked | PARTIAL if inference required | no active writer + migrated history |
+| old answer exposure scale | `answer_exposure` | read adapter | lossy mapping marked | PARTIAL if inference required | no active writer + migrated history |
+| legacy Socratic selector/state machine | bounded InteractionMove provider/legacy adapter | bounded compatibility | never final owner | replay only behind fixed SYS05 contract | canonical path covers supported flows |
+| old policy config | immutable PolicyBundle | audit/import only | executable config never executed | exact bundle required for FULL | migrated/retired configs |
+| old DecisionTrace propensity | separated assignment/action probability | raw audit allowed | ambiguous → null/unknown + reason | PARTIAL | historical migrator complete |
+| historical replay | exact historical refs | best effort | missing versions never guessed | FULL/PARTIAL/NON_REPLAYABLE | explicit status retained |
+
+All nine migration candidates have canonical target、compatibility read、ambiguity、replayability 与 retirement semantics。Permanent dual truth is forbidden。
+
+## 7. Spec-ID Governance
+
+Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 IDs remain visible in each affected Spec's superseded/legacy register; v0.3 additions use new unused ranges (principally `*-2xx/3xx`).
+
+## 8. v0.3 Canonical Invariants
 
 ```text
-1. docs/specs/               可执行实现合同
-2. docs/adr/                 已接受的架构决策
-3. docs/design/              Canonical Design
-4. 代码、迁移和测试           当前实现事实
-5. Codex 自主推断             不具备设计权威性
+Knowledge truth / relations     → SYS01
+EvidenceBundle                  → SYS02
+LearnerState / MasteryEstimate  → SYS03
+AssessmentResult                → SYS04
+TeachingAction                  → SYS05
+LearningPlan / Activity         → SYS06
+ReviewSchedule / next_due       → SYS07
+Model / Tool execution          → SYS08
 ```
 
-规则：
-
-1. `docs/specs/` 不得与 Canonical Design 静默冲突；发现冲突必须先回到设计层解决；
-2. 已冻结 Spec 与当前代码冲突时，默认判定为实现偏差，而不是用现有代码反推新规范；
-3. 破坏性架构变化必须先建立 ADR，再更新对应 Spec，最后修改代码；
-4. Codex 不得因为“现有实现更方便”而绕过状态所有权、领域边界或验收标准；
-5. 未被 Spec 定义的重要决策属于 `SPEC GAP`，不得由 Codex 自行补全。
-
-## 3. 规范语言
-
-本目录使用 RFC 风格约束词：
-
-- **MUST / 必须**：违反即实现不合格；
-- **MUST NOT / 禁止**：任何实现不得采用；
-- **SHOULD / 应当**：默认必须遵守，偏离需要说明理由；
-- **MAY / 可以**：允许的实现自由度。
-
-Codex 只拥有 `MAY` 范围内的自主选择权。
-
-## 4. 当前目录结构
+And:
 
 ```text
-docs/specs/
-├── README.md
-├── architecture/
-│   ├── system-architecture.md
-│   ├── dependency-rules.md
-│   └── state-ownership.md
-├── domain/
-│   ├── domain-model.md
-│   ├── event-contract.md
-│   ├── decision-contract.md
-│   └── lifecycle-state-machines.md
-├── systems/
-│   ├── 01-content-knowledge.md
-│   ├── 02-retrieval.md
-│   ├── 03-learner-model.md
-│   ├── 04-assessment.md
-│   ├── 05-teaching-policy.md
-│   ├── 06-learning-planner.md
-│   ├── 07-review-scheduler.md
-│   └── 08-ai-orchestration.md
-├── interfaces/
-│   ├── api-contract.md
-│   ├── persistence-contract.md
-│   ├── error-contract.md
-│   └── schema-versioning.md
-├── quality/
-│   ├── testing-standard.md
-│   ├── observability-standard.md
-│   ├── security-standard.md
-│   └── definition-of-done.md
-└── vertical-slices/
-    └── v0.2-learning-loop.md
+TeachingStage != LearnerState
+DecisionTrace != OutcomeObservation
+Experiment assignment probability != action selection propensity
+SYS08/SYS02 may tighten but may not expand TeachingAction envelope
+LLM/Agent never owns final TeachingAction or canonical learner/assessment/plan/review truth
 ```
 
-上述 v0.1 文件均已建立。新领域出现时必须先扩展本规范体系，不能由 Codex 在代码中隐式创造新边界。
+## 9. Versioned Parameters
 
-## 5. 每个系统 Spec 的固定模板
+mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST remain versioned/traceable configurable parameters. No Spec may claim arbitrary fixed values are universal learning-science constants.
 
-八类技术系统统一使用：
+## 10. v0.3 Out of Scope
 
-1. `Responsibility`：唯一职责；
-2. `Non-responsibility`：明确禁止负责的内容；
-3. `Owned State`：唯一可写状态；
-4. `Inputs`：允许读取的对象；
-5. `Outputs`：必须产生的对象；
-6. `Domain Objects`：系统拥有/消费的领域模型；
-7. `Commands`：接受的命令；
-8. `Events`：消费与产生的事件；
-9. `Algorithms`：baseline、可选算法、升级门槛；
-10. `Persistence`：表、索引、事务、并发和版本语义；
-11. `Failure Semantics`：失败、重试和降级；
-12. `Idempotency`：幂等要求；
-13. `Observability`：日志、指标和 trace；
-14. `Security`：权限、数据边界和不可信输入；
-15. `Tests`：必须存在的测试；
-16. `Acceptance Criteria`：完成定义；
-17. `Forbidden Implementations`：明确禁止实现方式。
+Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。
 
-## 6. Spec 标识与可追踪性
+B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
 
-规范条款采用稳定 ID：
+## 11. Spec Delta Gate
+
+v0.3 Spec Delta PASS requires：
 
 ```text
-ARCH-xxx       顶层架构规则
-DEP-xxx        依赖规则
-STATE-xxx      状态所有权规则
-DOMAIN-xxx     公共领域模型
-EVENT-xxx      学习事件规则
-DECISION-xxx   决策追踪规则
-LIFE-xxx       生命周期规则
-SYS01-xxx ... SYS08-xxx  八类系统规则
-API-xxx        外部接口规则
-PERSIST-xxx    持久化规则
-ERROR-xxx      错误语义
-SCHEMA-xxx     Schema 演进
-TEST-xxx       测试规则
-OBS-xxx        可观测性
-SEC-xxx        安全规则
-DOD-xxx        完成定义
-VSLICE-xxx     垂直切片规则
+ADR-0001 fully reflected
+ADR-0002 fully reflected
+SD-01..SD-11 resolved
+No duplicate truth source
+Six breaking changes have migration semantics
+Nine migration candidates resolved
+All new public objects have owner/semantics
+All policy layers testable
+Decision probability semantics unambiguous
+Legacy Socratic ownership bounded
+No fixed pseudo-scientific parameters
+No blocking SPEC GAP
 ```
 
-执行任务必须形成：
-
-```text
-Design → Spec Rule → ADR（如有）→ EXEC → Code → Test
-```
-
-测试名称、docstring、marker 或相邻注释应能追溯至少一个 Spec/AC ID。
-
-## 7. Codex 的设计权限
-
-### 7.1 Codex 可以自行决定
-
-仅在不改变公共行为和系统边界的前提下，Codex 可以决定：
-
-- 局部变量和私有函数命名；
-- 私有函数拆分；
-- 单模块内部等价重构；
-- 测试 fixture 的局部组织；
-- 不改变公共契约的错误消息细节；
-- Spec 明确标记为 `MAY` 的实现选项。
-
-### 7.2 Codex 不得自行决定
-
-Codex **禁止**自行改变：
-
-- bounded context 和模块边界；
-- 状态所有权；
-- 公共领域对象语义；
-- 数据库领域模型和迁移语义；
-- API / Command / Event Schema；
-- 算法 baseline 或模型升级；
-- 教学策略业务规则；
-- 错误、重试和降级语义；
-- 安全和隐私策略；
-- 技术栈、基础设施或新增生产依赖；
-- 跨模块调用方向。
-
-## 8. SPEC GAP 协议
-
-当 Codex 遇到下列情况时必须标记 `SPEC GAP`：
-
-- 两份高权威规范互相冲突；
-- 任务要求改变状态所有权或公共接口；
-- 关键错误语义未定义；
-- 需要新增生产依赖或基础设施；
-- 存在多个会产生不同业务结果的合理实现，而 Spec 未指定；
-- 为完成任务必须违反任一 `MUST NOT`。
-
-处理规则：
-
-1. 完成所有不依赖该缺口的工作；
-2. 不对缺口做隐式架构选择；
-3. 在执行结果中报告 `SPEC GAP`、受影响规则、候选方案与最小需要决策；
-4. 等待 Spec/ADR 更新后再实现该部分。
-
-## 9. Legacy Code 规则
-
-当前代码结构是实现历史，不是最终领域边界。现有 `engines/`、`services/dkt/`、`services/kt/`、`services/documents/`、`services/knowledge_graph/` 等目录可以在迁移期继续存在，但：
-
-- 不得因为历史目录存在就获得新的状态所有权；
-- 新功能必须遵循 Target Architecture；
-- 旧能力跨越多个未来系统时，应通过执行计划逐步拆分，而不是继续扩大耦合；
-- 迁移过程中允许 adapter/compatibility layer，但必须有删除条件；
-- 禁止产生第二套长期并存的业务事实源。
-
-## 10. 规范变更流程
-
-```text
-发现需求/问题
-→ 判断是否影响 Canonical Design
-→ 如影响：先修改 design 并形成 ADR
-→ 更新 Spec
-→ 创建/更新 EXEC Plan
-→ Codex 修改代码与测试
-→ 验收
-```
-
-严禁先让 Codex 改代码，再倒推规范合理化实现。
-
-## 11. Codex 执行入口
-
-Codex 的根入口是：
-
-```text
-/AGENTS.md
-```
-
-任何实现任务还必须读取当前：
-
-```text
-docs/exec-plans/active/<EXEC>.md
-```
-
-当前 v0.2 执行顺序：
-
-```text
-EXEC-001 contracts + event/outbox foundation
-→ EXEC-002 canonical teaching entry
-→ EXEC-003 content + EvidenceBundle
-→ EXEC-004 assessment + learner projection
-→ EXEC-005 review + planner integration
-→ EXEC-006 E2E/recovery/security gate
-```
-
-具体任务位于 `docs/exec-plans/active/`。
-
-## 12. 顶层不变量摘要
-
-Codex 在任何任务中都必须保持：
-
-```text
-知识事实发布             → SYS01
-EvidenceBundle           → SYS02
-LearnerState/Mastery     → SYS03
-AssessmentResult         → SYS04
-TeachingAction           → SYS05
-LearningPlan/Activity    → SYS06
-ReviewSchedule/next_due  → SYS07
-模型/工具/工作流执行      → SYS08
-```
-
-并保持：
-
-```text
-AssessmentResult ≠ MasteryEstimate
-LearningPlan ≠ TeachingAction
-ReviewSchedule ≠ LearnerState
-SourceChunk ≠ KnowledgeUnit
-Misconception definition ≠ learner misconception hypothesis
-```
+When all conditions are met, next phase is **v0.3 Vertical Slice**. This index MUST NOT itself create EXEC or implementation work.
