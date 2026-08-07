@@ -1,0 +1,8 @@
+{
+  "candidate": "legacy_socratic_selector",
+  "payload": {"component": "app.engines.socratic.strategy_selector"},
+  "expected_target": "bounded SOCRATIC_PROBE provider/execution adapter",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": false,
+  "expected_reason": "LEGACY_SOCRATIC_OWNERSHIP_REMOVED"
+}

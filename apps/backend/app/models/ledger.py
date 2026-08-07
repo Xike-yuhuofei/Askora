@@ -50,6 +50,8 @@ class LearningEventRecord(Base):
     provenance: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     trace: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     privacy: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    producer_system: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    v03_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -67,6 +69,7 @@ class LearningEventRecord(Base):
         ),
         Index("ix_learning_event_type_recorded", "event_type", "recorded_at"),
         Index("ix_learning_event_correlation", "correlation_id"),
+        Index("ix_learning_event_producer", "producer_system"),
     )
 
 
@@ -90,6 +93,14 @@ class DecisionTraceRecord(Base):
     algorithm_version: Mapped[str] = mapped_column(String(100), nullable=False)
     experiment: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     experiment_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    decision_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    v03_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    teaching_context_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    policy_bundle_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    behavior_policy_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    action_propensity: Mapped[float | None] = mapped_column(nullable=True)
+    experiment_assignment_probability: Mapped[float | None] = mapped_column(nullable=True)
+    replayability_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     correlation_id: Mapped[str] = mapped_column(String(36), nullable=False)
     trace_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -107,6 +118,10 @@ class DecisionTraceRecord(Base):
         Index("ix_decision_trace_trace_id", "trace_id"),
         Index("ix_decision_trace_algorithm", "algorithm_id", "algorithm_version"),
         Index("ix_decision_trace_experiment", "experiment_id"),
+        Index("ix_decision_trace_context", "teaching_context_id"),
+        Index("ix_decision_trace_policy_bundle", "policy_bundle_id"),
+        Index("ix_decision_trace_behavior", "behavior_policy_type"),
+        Index("ix_decision_trace_replayability", "replayability_status"),
     )
 
 

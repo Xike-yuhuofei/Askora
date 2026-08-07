@@ -1,0 +1,11 @@
+{
+  "candidate": "historical_strategy",
+  "payload": {
+    "strategy": "SOCRATIC_PROBING",
+    "strategy_version": "legacy-1"
+  },
+  "expected_target": "StrategyFamily + InteractionMove",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": false,
+  "expected_reason": "LEGACY_STRATEGY_PROJECTED_ADR0001"
+}

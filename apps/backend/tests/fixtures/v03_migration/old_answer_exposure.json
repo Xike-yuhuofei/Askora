@@ -1,0 +1,8 @@
+{
+  "candidate": "old_answer_exposure",
+  "payload": {"answer_exposure_max": 3},
+  "expected_target": "answer_exposure",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "AMBIGUOUS_LEGACY_ANSWER_EXPOSURE"
+}

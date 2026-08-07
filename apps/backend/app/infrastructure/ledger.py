@@ -85,11 +85,16 @@ class LearningEventRepository:
 
     async def get(self, event_id: UUID | str) -> LearningEventEnvelope | None:
         record = await self._session.get(LearningEventRecord, str(event_id))
-        return self._to_contract(record) if record is not None else None
+        if record is None or record.schema_version != "1.0":
+            return None
+        return self._to_contract(record)
 
     async def get_by_idempotency_key(self, key: str) -> LearningEventEnvelope | None:
         record = await self._session.scalar(
-            select(LearningEventRecord).where(LearningEventRecord.idempotency_key == key)
+            select(LearningEventRecord).where(
+                LearningEventRecord.idempotency_key == key,
+                LearningEventRecord.schema_version == "1.0",
+            )
         )
         return self._to_contract(record) if record is not None else None
 
@@ -100,7 +105,7 @@ class LearningEventRepository:
         correlation_id: UUID | str | None = None,
         limit: int = 100,
     ) -> list[LearningEventEnvelope]:
-        statement = select(LearningEventRecord)
+        statement = select(LearningEventRecord).where(LearningEventRecord.schema_version == "1.0")
         if event_type is not None:
             statement = statement.where(LearningEventRecord.event_type == event_type)
         if correlation_id is not None:
@@ -123,6 +128,7 @@ class LearningEventRepository:
             await self._session.scalars(
                 select(LearningEventRecord)
                 .where(
+                    LearningEventRecord.schema_version == "1.0",
                     LearningEventRecord.aggregate_type == aggregate_type,
                     LearningEventRecord.aggregate_id == str(aggregate_id),
                     LearningEventRecord.sequence > after_sequence,
@@ -138,6 +144,8 @@ class LearningEventRepository:
 
     @staticmethod
     def _to_contract(record: LearningEventRecord) -> LearningEventEnvelope:
+        if record.schema_version != "1.0":
+            raise ValueError("v0.3 events require LearningEventV03Repository")
         return LearningEventEnvelope.model_validate(
             {
                 "event_id": record.event_id,
@@ -219,7 +227,9 @@ class DecisionTraceRepository:
 
     async def get(self, decision_id: UUID | str) -> DecisionTrace | None:
         record = await self._session.get(DecisionTraceRecord, str(decision_id))
-        return self._to_contract(record) if record is not None else None
+        if record is None or record.schema_version != "1.0":
+            return None
+        return self._to_contract(record)
 
     async def query(
         self,
@@ -233,7 +243,7 @@ class DecisionTraceRepository:
         algorithm_version: str | None = None,
         limit: int = 100,
     ) -> list[DecisionTrace]:
-        statement = select(DecisionTraceRecord)
+        statement = select(DecisionTraceRecord).where(DecisionTraceRecord.schema_version == "1.0")
         if entity_id is not None:
             statement = statement.join(DecisionTraceInputRecord)
             statement = statement.where(DecisionTraceInputRecord.entity_id == str(entity_id))
@@ -259,6 +269,8 @@ class DecisionTraceRepository:
 
     @staticmethod
     def _to_contract(record: DecisionTraceRecord) -> DecisionTrace:
+        if record.schema_version != "1.0":
+            raise ValueError("v0.3 traces require DecisionTraceV03Repository")
         return DecisionTrace.model_validate(
             {
                 "decision_id": record.decision_id,

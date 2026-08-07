@@ -1,0 +1,11 @@
+{
+  "candidate": "old_policy_config",
+  "payload": {
+    "policy_version": "legacy-policy-1",
+    "weights": {"mastery": 0.5}
+  },
+  "expected_target": "immutable PolicyBundle manifest",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "LEGACY_POLICY_COMPONENT_VERSIONS_MISSING"
+}

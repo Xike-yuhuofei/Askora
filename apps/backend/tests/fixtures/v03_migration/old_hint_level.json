@@ -1,0 +1,8 @@
+{
+  "candidate": "old_hint_level",
+  "payload": {"hint_level": 4},
+  "expected_target": "hint_specificity",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "AMBIGUOUS_LEGACY_HINT_LEVEL"
+}

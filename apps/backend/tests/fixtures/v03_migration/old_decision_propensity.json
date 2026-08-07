@@ -1,0 +1,8 @@
+{
+  "candidate": "old_decision_propensity",
+  "payload": {"propensity": 0.5},
+  "expected_target": "separate assignment_probability and action_propensity",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "AMBIGUOUS_LEGACY_PROPENSITY"
+}

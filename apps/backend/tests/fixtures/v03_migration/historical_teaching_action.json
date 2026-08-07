@@ -1,0 +1,14 @@
+{
+  "candidate": "historical_teaching_action",
+  "payload": {
+    "action_id": "legacy-action-1",
+    "strategy_id": "GUIDED_PRACTICE",
+    "scaffold_level": 2,
+    "hint_level": 3,
+    "answer_exposure_max": 1
+  },
+  "expected_target": "TeachingAction v0.3 read projection",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "LEGACY_ACTION_MISSING_V03_EXACT_REFS"
+}

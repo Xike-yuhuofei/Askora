@@ -1,0 +1,8 @@
+{
+  "candidate": "old_scaffold_level",
+  "payload": {"scaffold_level": 2},
+  "expected_target": "scaffold_control",
+  "expected_replayability": "PARTIAL",
+  "expected_ambiguous": true,
+  "expected_reason": "AMBIGUOUS_LEGACY_SCAFFOLD_LEVEL"
+}

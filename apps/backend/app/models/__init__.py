@@ -3,6 +3,16 @@
 精简版：仅保留核心业务模型
 """
 
+from app.models.adaptive import (
+    ExperimentAssignmentRecord,
+    LearningTrajectoryRecord,
+    OutcomeObservationRecord,
+    PolicyBundleActivationRecord,
+    PolicyBundleRecord,
+    TeachingActionV03Record,
+    TeachingContextRecord,
+    TeachingEpisodeRecord,
+)
 from app.models.assessment import (
     AssessmentItem,
     AssessmentResult,
@@ -30,6 +40,14 @@ from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
+    "ExperimentAssignmentRecord",
+    "LearningTrajectoryRecord",
+    "OutcomeObservationRecord",
+    "PolicyBundleActivationRecord",
+    "PolicyBundleRecord",
+    "TeachingActionV03Record",
+    "TeachingContextRecord",
+    "TeachingEpisodeRecord",
     "User",
     "UserRole",
     "UserStatus",

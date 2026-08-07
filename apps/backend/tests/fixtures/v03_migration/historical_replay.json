@@ -1,0 +1,12 @@
+{
+  "candidate": "historical_replay",
+  "payload": {
+    "decision_id": "legacy-decision-1",
+    "teaching_context_ref": null,
+    "policy_bundle_ref": null
+  },
+  "expected_target": "exact-version policy replay",
+  "expected_replayability": "NON_REPLAYABLE",
+  "expected_ambiguous": true,
+  "expected_reason": "HISTORICAL_REPLAY_EXACT_REFS_MISSING"
+}
