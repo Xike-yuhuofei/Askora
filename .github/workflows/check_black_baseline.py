@@ -17,9 +17,6 @@ LEGACY_UNFORMATTED: dict[str, str] = {
     "app/domains/assessment/service.py": (
         "f8fbad33293fe93fcd4a04b2114e526aaa2fed165fa1e17896d5e25be2d36ef6"
     ),
-    "app/domains/learner_model/projector.py": (
-        "0a11e2d59d8d95dfd97801f09ec01fa260b5284f3bab91ee1760901948551181"
-    ),
     "app/domains/learning_planner/planner.py": (
         "b493d33ff3edd078bf1324658b6fe1cd9c8a3993fdcd741c9140014581e82520"
     ),

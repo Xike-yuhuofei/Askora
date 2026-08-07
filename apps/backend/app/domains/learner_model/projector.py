@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
+from app.contracts.adaptive import AssistanceState, LearnerEvidenceV03
 from app.contracts.assessment import AssessmentAttempt
 from app.contracts.learning import AssessmentResult, LearnerEvidence, MasteryEstimate
 
@@ -63,9 +65,7 @@ class EvidenceEligibility:
         outcome: Literal["success", "partial", "failure"] = (
             "success"
             if result.correctness == "correct"
-            else "partial"
-            if result.correctness == "partial"
-            else "failure"
+            else "partial" if result.correctness == "partial" else "failure"
         )
         evidence = LearnerEvidence(
             evidence_id=evidence_id,
@@ -104,7 +104,7 @@ class WeightedBKTProjector:
         *,
         user_id: UUID,
         knowledge_unit_id: UUID,
-        evidence: list[LearnerEvidence],
+        evidence: Sequence[LearnerEvidence | LearnerEvidenceV03],
         version: int,
         invalidated_evidence_ids: set[UUID] | None = None,
     ) -> MasteryEstimate:
@@ -124,25 +124,27 @@ class WeightedBKTProjector:
                 likelihood_unmastered = 1.0 - self.P_GUESS
             else:
                 likelihood_mastered = likelihood_unmastered = 0.5
-            denominator = probability * likelihood_mastered + (1 - probability) * likelihood_unmastered
-            observed = probability if denominator == 0 else probability * likelihood_mastered / denominator
+            denominator = (
+                probability * likelihood_mastered + (1 - probability) * likelihood_unmastered
+            )
+            observed = (
+                probability if denominator == 0 else probability * likelihood_mastered / denominator
+            )
             weighted = probability + item.evidence_weight * (observed - probability)
             probability = weighted + (1.0 - weighted) * self.P_TRANSIT * item.evidence_weight
             probability = min(1.0, max(0.0, probability))
             effective_weight += item.evidence_weight
 
         independent_successes = [
-            item
-            for item in ordered
-            if item.independence == "independent" and item.outcome == "success"
+            item for item in ordered if _is_independent(item) and item.outcome == "success"
         ]
-        delayed = [item for item in ordered if item.delay_seconds >= 86_400 and item.outcome == "success"]
+        delayed = [
+            item for item in ordered if item.delay_seconds >= 86_400 and item.outcome == "success"
+        ]
         transfers = [
             item for item in ordered if item.dimension == "transfer" and item.outcome == "success"
         ]
-        assisted_weight = sum(
-            item.evidence_weight for item in ordered if item.independence != "independent"
-        )
+        assisted_weight = sum(item.evidence_weight for item in ordered if not _is_independent(item))
         source_ids = [item.evidence_id for item in ordered]
         created_at = max(
             (item.accepted_at for item in ordered),
@@ -185,3 +187,9 @@ class WeightedBKTProjector:
             source_evidence_ids=source_ids,
             created_at=created_at,
         )
+
+
+def _is_independent(evidence: LearnerEvidence | LearnerEvidenceV03) -> bool:
+    if isinstance(evidence, LearnerEvidenceV03):
+        return evidence.assistance_state is AssistanceState.INDEPENDENT
+    return evidence.independence == "independent"

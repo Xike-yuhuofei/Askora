@@ -1,9 +1,15 @@
 {
   "provider": "deepseek",
   "model": "deepseek-chat",
-  "prompt_version": "explain-evidence/1.0",
+  "prompt_version": "v03-policy-bound-render/1.0",
+  "policy_bundle_version": "policy-1",
   "result": "success",
-  "response_length": 583,
-  "latency_ms": 5861,
-  "recorded_at": "2026-08-07T04:17:28.665993+00:00"
+  "response_length": 128,
+  "latency_ms": 1404,
+  "teaching_action_id": "4c69d9fa-ebbf-54bc-99fe-39610850f1a0",
+  "decision_id": "e79fe90c-87ad-5657-8088-8a5088b28002",
+  "actual_assistance": "ASSISTED",
+  "assessment_result_id": "c7ccc395-3d37-5b2d-89a6-8e3032ebc957",
+  "next_strategy_family": "GUIDED_PRACTICE",
+  "recorded_at": "2026-08-07T14:54:57.617899+00:00"
 }
