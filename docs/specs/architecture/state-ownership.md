@@ -1,16 +1,28 @@
-# State Ownership
+# Askora State Ownership Specification
 
-> Spec ID：`STATE-*`  
+> Spec ID 范围：`STATE-*`  
 > 状态：Canonical Implementation Contract  
 > 版本：v0.3
 
-## 1. Single-writer Principle
+## 1. Existing Ownership Principles Retained
 
-### STATE-001
+### STATE-001 — One State, One Writer
 
-每类 canonical domain truth MUST 有且只有一个写 owner。其他系统 MAY 读取、缓存、投影或托管 ledger，但 MUST NOT 形成可独立演进的第二事实源。
+任何跨会话、可影响后续教学决策的 canonical state MUST 有唯一写入 owner。其他系统 MAY 读取、缓存、投影或托管 ledger，但 MUST NOT 形成第二 truth。
 
-## 2. Eight-system Ownership Matrix
+### STATE-002 — Read Permission != Write Permission
+
+系统读取另一 owner 的 exact-version state 用于决策，并不获得更新该 state 的权限。
+
+### STATE-003 — Suggestion / Evidence != State Update
+
+LLM、grader、retriever、experiment 或用户反馈产生的建议/evidence/candidate 必须先由对应 owner 按 contract 接纳，才能形成新的 canonical state/version。
+
+### STATE-004 — Core State Is Versioned
+
+已发布 KnowledgeUnit/Relation revision、AssessmentResult、MasteryEstimate、TeachingAction、LearningPlan、ReviewSchedule、LearningEvent、DecisionTrace MUST 使用 append/version/immutable semantics；v0.3 TeachingContext、PolicyBundle、OutcomeObservation、ExperimentAssignment 也 MUST immutable/versioned。MUST NOT 静默覆盖历史。
+
+## 2. v0.3 Ownership Matrix
 
 | Canonical truth / decision | Owner | Other systems may |
 |---|---|---|
@@ -18,132 +30,160 @@
 | EvidenceBundle / RetrievalTrace | SYS02 | consume |
 | LearnerEvidence acceptance / MasteryEstimate / LearnerState / MisconceptionHypothesis | SYS03 | read |
 | AssessmentItem / Attempt / AssessmentResult / MisconceptionEvidence / actual assistance | SYS04 | consume |
-| TeachingAction / TeachingContext decision snapshot semantics / TeachingStage derivation / PolicyBundle governance / validation obligation | SYS05 | execute/read |
+| TeachingAction / TeachingContext decision-snapshot semantics / TeachingStage derivation / PolicyBundle governance / validation obligation | SYS05 | execute / read |
 | LearningGoal / Objective / LearningActivity / LearningPlan | SYS06 | read |
-| ReviewSchedule / next_due | SYS07 | read / plan from |
+| ReviewSchedule / memory scheduling state / next_due_at | SYS07 | read / plan from |
 | WorkflowRun / ModelInference / Tool execution / execution validation | SYS08 | execute / host ledgers |
 
-### STATE-002
+## 3. Existing Boundary Requirements Retained
 
-固定边界：
+### STATE-010 — AssessmentResult != MasteryEstimate
 
-```text
-AssessmentResult != MasteryEstimate
-LearningPlan != TeachingAction
-ReviewSchedule != LearnerState
-MisconceptionEvidence != MisconceptionHypothesis
-TeachingStage != LearnerState
-StrategyFamily != TeachingAction
-TeachingAction != InteractionMove
-DecisionTrace != OutcomeObservation
-Experiment assignment probability != action selection propensity
-```
+AssessmentResult 只描述一次 Attempt/measurement；只有 SYS03 可把一个或多个 accepted evidence 融合为 MasteryEstimate。SYS04/Assessment MUST NOT 直接写 mastery。
 
-## 3. v0.3 Non-state / Derived Objects
+### STATE-011 — ReviewSchedule != MasteryEstimate
+
+SYS07 MAY 维护 stability/difficulty/retrievability/next_due_at，但 MUST NOT 宣布 stable/transfer mastery。
+
+### STATE-012 — LearningPlan != TeachingAction
+
+SYS06 决定 learning objective/activity/priority/sequence；SYS05 决定当前教学动作、支架/提示/答案暴露 envelope 与 policy-control semantics。两者 MUST 独立 versioned。
+
+### STATE-013 — SourceChunk != KnowledgeUnit
+
+SourceChunk 是可重建 retrieval projection；KnowledgeUnit 是 canonical knowledge identity。重新分块 MUST NOT 自动重建全部 KnowledgeUnit identity。
+
+### STATE-014 — Misconception Definition != Learner Hypothesis
+
+SYS01 定义 misconception；SYS04 产生 MisconceptionEvidence；SYS03 维护 MisconceptionHypothesis；SYS05 决定 remediation。
+
+## 4. Existing Update / Replay Requirements Retained
+
+### STATE-020 — Provenance
+
+关键 state 新版本 MUST 至少追溯 input/event refs、algorithm/policy/model version、time、reason codes、trace/correlation id。
+
+### STATE-021 — No Direct State Update From Chat
+
+Chat MAY 触发 command/self-report/feedback，但 MUST 经结构化 owner contract 才能影响 state；“我已经会了”等 MUST NOT 直接设置 mastery。
+
+### STATE-022 — Dispute / Review
+
+用户争议系统判断时 MUST 进入 FeedbackSignal → dispute/retest/evidence correction/replay → new state version；MUST NOT 通用直接编辑概率。
+
+### STATE-023 — Correction / Deletion
+
+普通纠错追加 correction/invalidation；明确删除/法律删除按 privacy contract 删除并重建受影响 projection，保留允许范围 audit tombstone。
+
+### STATE-030 — Monotonic Version
+
+同一 aggregate canonical version MUST 单调递增，并有唯一性约束。
+
+### STATE-031 — Command Idempotency
+
+重复 command MUST NOT 生成第二份等价 evidence/state update。
+
+### STATE-032 — Projection Idempotency
+
+重放相同 event/evidence set + exact projection version MUST 得到相同 semantic state。
+
+### STATE-033 — Replay No Online LLM
+
+Replay MUST NOT 调用在线 LLM 重新理解历史；使用当时持久化结构化 result/inference 或显式新 reassessment/recompute。
+
+## 5. Existing Legacy Governance Retained
+
+### STATE-040 — Migration Starts With Owner
+
+任何 legacy table/model 重构前 MUST 标注 target owner、current writers、multi-writer risk、migration strategy、retirement condition。
+
+### STATE-041 — Dual-write Only Temporarily
+
+若 migration 必须短期 dual-write，必须指定 canonical truth、reconciliation、停止条件；MUST NOT 形成永久架构。
+
+### STATE-042 — KT/DKT Convergence
+
+SYS03 MUST 只有一个 canonical learner-state projector。DKT/Deep KT MAY challenger/feature provider，MUST NOT 成为第二 mastery truth。
+
+## 6. v0.3 Derived / Control Objects
 
 ### STATE-200 — TeachingContext
 
-TeachingContext 是 SYS05 的 immutable decision-input snapshot。它引用 exact owner versions，但 MUST NOT 成为第二 LearnerState/AssessmentResult/Plan truth。Snapshot retention 是 replay/audit 需求，不改变 source ownership。
+TeachingContext 是 SYS05 immutable decision-input snapshot，引用 exact owner versions；MUST NOT 成为第二 LearnerState/AssessmentResult/LearningPlan truth。
 
 ### STATE-201 — TeachingStage
 
-TeachingStage 由 SYS05 以 `TeachingContext + PolicyBundle` 派生，只在 policy-control 语义中存在。MUST NOT 持久化为 SYS03 learner stage truth。
+TeachingStage = SYS05 从 `TeachingContext + PolicyBundle` 派生的当前 control stage；MUST NOT 持久化为 SYS03 learner/mastery stage truth。
 
 ### STATE-202 — PolicyBundle
 
-PolicyBundle 是 SYS05 的 immutable/versioned policy configuration artifact；它不是 LearnerState，也不是 experiment result。Activation 只影响新 TeachingAction。
+PolicyBundle 是 SYS05 immutable/versioned policy configuration artifact；activation 只影响新 TeachingAction，MUST NOT 重解释历史 action。
 
 ### STATE-203 — Independent Validation Obligation
 
-Validation obligation 属于 SYS05 policy-control semantics。SYS04 产生可满足它的 fresh Attempt/AssessmentResult；SYS03 仅消费 evidence，不拥有/预先完成 obligation。
+Validation obligation 属 SYS05 policy-control semantics。SYS04 产生 fresh Attempt/AssessmentResult facts；SYS03 仅判断 evidence eligibility，MUST NOT 创建/提前完成 obligation。
 
-## 4. Outcome / Experiment Additive Contracts
+## 7. v0.3 Outcome / Experiment Contracts
 
 ### STATE-210 — OutcomeObservation
 
-OutcomeObservation 是 immutable measurement/analytics record。其 measurement truth 必须引用既有 owner 的事实（例如 SYS04 result、SYS03 estimate），MUST NOT 替代这些 owner 的 canonical state。
+OutcomeObservation 是 immutable measurement/analytics record，必须引用既有 measurement/evidence owner facts；MUST NOT 替代 AssessmentResult、MasteryEstimate 或 TeachingAction truth。
 
 ### STATE-211 — ExperimentAssignment
 
-ExperimentAssignment 是 experiment control/analytics record。它 MAY 被 durable ledger 托管并被 SYS05 只读消费，但 MUST NOT 成为第二 TeachingAction owner 或第二 LearnerState truth。
+ExperimentAssignment 是 experiment control/analytics record，MAY 被 SYS05 read-only 消费；MUST NOT 成为第二 TeachingAction/LearnerState owner。
 
 ### STATE-212 — Ledger Hosting
 
-SYS08 MAY 托管 LearningEvent、DecisionTrace、OutcomeObservation、ExperimentAssignment 的 durable persistence/outbox。托管权 = storage/transport responsibility，MUST NOT 被实现为修改领域 payload 语义的 ownership。
+SYS08 MAY 托管 LearningEvent、DecisionTrace、OutcomeObservation、ExperimentAssignment durable ledger/outbox；hosting = storage/transport responsibility，MUST NOT 修改 payload/domain semantics。
 
-## 5. LLM / Agent Boundary
+## 8. v0.3 LLM / Policy Boundaries
 
 ### STATE-220
 
-LLM/Agent MAY 生成 explanation、worked example、hint、diagnostic candidate、feedback、self-explanation prompt、language realization、tool result。
-
-LLM/Agent MUST NOT 成为：LearnerState owner、Assessment truth owner、TeachingAction owner、LearningPlan owner、ReviewSchedule owner、hard-rule override、answer-exposure override。
+LLM/Agent MAY 生成 explanation、worked example、hint、diagnostic candidate、feedback、self-explanation prompt、language realization、tool result；MUST NOT 成为 LearnerState、Assessment truth、TeachingAction、LearningPlan、ReviewSchedule owner 或 hard-rule/answer-exposure override。
 
 ### STATE-221
 
-SYS08 MAY 收紧 TeachingAction envelope；MUST NOT 扩大 scaffold、hint specificity、answer exposure 或 action semantics。
+SYS08/SYS02 MAY 收紧 TeachingAction envelope；MUST NOT 扩大 scaffold、hint specificity、answer exposure 或 action semantics。
 
-## 6. Misconception Ownership
+### STATE-230 — Misconception Four-way Ownership
 
-### STATE-230
+`Misconception definition → SYS01`；`MisconceptionEvidence → SYS04`；`MisconceptionHypothesis → SYS03`；`Remediation decision → SYS05`。MUST NOT 合并为跨系统可写对象。
 
-```text
-Misconception definition      → SYS01
-MisconceptionEvidence         → SYS04
-MisconceptionHypothesis       → SYS03
-Remediation decision          → SYS05
-```
-
-任一 shortcut 将 definition/evidence/hypothesis/remediation 合并为一个跨系统可写对象均禁止。
-
-## 7. Write-path Rules
-
-### STATE-010
-
-跨 owner 写入 MUST 通过 owner command/application service 或 accepted event/evidence path；禁止跨模块直接 ORM UPDATE 他人 canonical table。
-
-### STATE-011
-
-Projection/cache MUST 标明 source owner/version，并可删除重建。Cache 不得在 source unavailable 时被自动升级为 truth。
-
-### STATE-012
-
-状态更新与关键 outbox/event 应满足对应 persistence transaction contract；失败必须可见，不得产生“业务已成功但审计链丢失”的静默分叉。
-
-## 8. State Ownership Sweep Requirements
+## 9. v0.3 Ownership Sweep
 
 ### STATE-240
 
-每次新增公共对象必须回答：
-
-1. 是否是真实领域 state、derived decision artifact、measurement record 或 ledger record；
-2. 谁可写；
-3. 谁只读/执行；
-4. 是否可能复制现有 truth；
-5. replay 时使用哪一个 exact version。
+新增公共对象必须明确：state/derived/control/measurement/ledger 分类、唯一 writer、read/execute roles、duplicate-truth risk、replay exact version source。
 
 ### STATE-241
 
-v0.3 implementation MUST 通过 architecture tests 证明不存在：第二 LearnerState、第二 TeachingAction、第二 Experiment truth、第二 Outcome truth。
+Architecture tests MUST 证明不存在第二 LearnerState、第二 TeachingAction、第二 Experiment truth、第二 Outcome truth。
 
-## 9. Legacy Compatibility
+### STATE-250 — Legacy Compatibility
 
-### STATE-250
+Legacy dialog mastery、Socratic selector/state graph、old policy config、integer support/exposure MAY 暂作 read projection/adapter/audit，必须有 canonical source 与 retirement condition，MUST NOT permanent dual-write。
 
-legacy `DialogSession.mastery_estimate`、Socratic selector/state graph、old policy config、integer support/exposure MAY 暂留为 read projection/adapter/audit source，但 MUST 有 canonical source 与 retirement condition；MUST NOT 与 v0.3 fields 双写并独立演进。
+## 10. Acceptance Criteria
 
-## 10. Tests
+原有 AC 保留：
 
-必须覆盖：cross-owner write prohibition；TeachingContext/TeachingStage 非第二 state；SYS08 tightening-only；Misconception four-way boundary；Outcome/Experiment ledger hosting 不等于 truth ownership；legacy adapter no write；replay uses exact owner version。
+- `STATE-AC-001`：AssessmentResult 后只有 SYS03 owner path 可创建 MasteryEstimate。
+- `STATE-AC-002`：LLM 返回 mastery/next_review_at/plan/action 等字段不能越权写 canonical state。
+- `STATE-AC-003`：Planner 消费 ReviewDue 不能修改 ReviewSchedule memory state。
+- `STATE-AC-004`：Assessment misconception evidence 由 SYS03 决定是否形成 learner hypothesis。
+- `STATE-AC-005`：相同 event/evidence + exact projector replay deterministic。
+- `STATE-AC-006`：SourceChunk 重分块不无条件重建 KnowledgeUnit identity。
 
-## 11. Acceptance Criteria
+新增 v0.3 AC：
 
-- `STATE-AC-201`：SYS01～SYS08 每类 canonical truth 只有一个 writer。
+- `STATE-AC-201`：SYS01～SYS08 canonical truth single-writer。
 - `STATE-AC-202`：TeachingContext/TeachingStage 不形成第二 LearnerState。
-- `STATE-AC-203`：validation obligation 由 SYS05 控制，SYS03 不能无 fresh Attempt 完成。
-- `STATE-AC-204`：OutcomeObservation/ExperimentAssignment 的托管记录不覆盖八系统 domain truth。
+- `STATE-AC-203`：validation obligation 由 SYS05 控制，fresh Attempt 前不能被 SYS03 完成。
+- `STATE-AC-204`：Outcome/Experiment ledger records 不覆盖八系统 domain truth。
 - `STATE-AC-205`：LLM/SYS08/legacy Socratic 无 final TeachingAction ownership。
 
-## 12. Forbidden Implementations
+## 11. Forbidden Implementations
 
-禁止：跨系统直接写 canonical tables；聊天/session shared context 写 mastery；SYS04 写 mastery；SYS05 写 plan/review；SYS08 因模型输出改 action；TeachingStage 进入 LearnerState truth；analytics table 反向成为 outcome/experiment 的独立业务 truth；legacy 和 v0.3 双写。
+禁止：共享大状态表多模块任意写；conversation JSON 混 mastery/plan/review/teaching；多个 mastery/next_due writers；点赞直接转 mastery；LLM confidence 直接变 MasteryEstimate confidence；历史 AssessmentResult 静默覆盖；replay 调在线模型；TeachingStage 进入 learner truth；Outcome/Experiment analytics table 反向成为独立业务 truth；legacy/v0.3 permanent dual-write。
