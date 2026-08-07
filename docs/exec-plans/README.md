@@ -1,6 +1,6 @@
 # Askora Execution Plans
 
-> 本目录保存可直接交给 Codex 执行的工程任务合同。
+> 本目录保存可直接交给 Codex 执行的工程任务合同，以及已完成任务的不可变归档。
 
 ## 1. 权威性
 
@@ -16,8 +16,10 @@ Spec > ADR > EXEC > Code
 
 ```text
 active/      尚未完成或正在执行
-completed/   已全部满足 AC，并保留最终 commit/验证记录
+completed/   已满足完成条件的历史任务合同与完成记录
 ```
+
+任务进入 `completed/` 后，原 EXEC 文件作为历史执行合同保留，不回写或改写其执行前状态字段；最终状态、实现 commit、验证证据和遗留债务以 `completed/README.md` 与对应 Release Completion Report 为准。
 
 ## 3. 每份 EXEC 必须包含
 
@@ -38,15 +40,13 @@ Codex 开始任务前必须读取根 `AGENTS.md`、本 EXEC 引用的全部 Spec
 
 执行完成后按 `docs/specs/quality/definition-of-done.md` 返回 `DONE | PARTIAL | BLOCKED_BY_SPEC_GAP`。
 
-## 5. v0.2 执行顺序
+## 5. v0.2 状态
 
-```text
-EXEC-001 contracts + event/outbox foundation
-→ EXEC-002 canonical teaching entry
-→ EXEC-003 content + EvidenceBundle
-→ EXEC-004 assessment + learner projection
-→ EXEC-005 review + planner integration
-→ EXEC-006 E2E/recovery/security gate
-```
+`EXEC-001` ～ `EXEC-006` 已于 2026-08-07 完成并归档，v0.2 First Vertical Learning Loop 已冻结为基线。
 
-前一任务未达到其阻断性 AC 时，后续任务不得通过临时绕过方式继续。
+权威收口记录：
+
+- `docs/exec-plans/completed/README.md`
+- `docs/releases/v0.2-first-vertical-learning-loop.md`
+
+当前 `active/` 无 v0.2 EXEC。下一阶段必须先完成 v0.3 顶层设计与 Spec 增量，再生成新的 EXEC；不得由 Codex 直接从 v0.2 实现自行推导新架构。
