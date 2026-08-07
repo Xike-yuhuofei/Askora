@@ -1,7 +1,7 @@
-# SYS04 — Assessment
+# SYS04 — Assessment & Error Diagnosis
 
 > Spec ID：`SYS04-*`  
-> 对应设计：4.4 评估与形成性诊断  
+> 对应设计：4.4 评估与错误诊断  
 > 状态：Canonical Implementation Contract  
 > 版本：v0.3
 
@@ -9,13 +9,17 @@
 
 ### SYS04-001
 
-SYS04 是 `AssessmentItem`、`Attempt`、`AssessmentResult`、`MisconceptionEvidence` 与实际经历 assistance/exposure snapshot 的唯一 domain owner。
+SYS04 的唯一职责是对一次学习者 Attempt 进行可复现测量，发布 AssessmentItem、Attempt、AssessmentResult，并产生可验证 error/misconception evidence。
 
 ### SYS04-002
 
-SYS04 负责判定“这次作答发生了什么、得分如何、可观察错误证据是什么”；MUST NOT 将 AssessmentResult 直接升级为 MasteryEstimate，也 MUST NOT 选择 TeachingAction。
+SYS04 独占单次 Attempt 的评分、correctness、rubric dimension result、canonical ErrorType、MisconceptionEvidence、assessment confidence、diagnostic confidence 与实际经历 assistance/exposure snapshot。
+
+SYS04 MUST NOT 宣布长期 MasteryEstimate、修改 LearnerState、选择 TeachingAction、修改 LearningPlan/ReviewSchedule，或让单一 LLM judge 成为学习者状态真相。
 
 ## 2. Ownership Boundary
+
+### SYS04-200 — Misconception Boundary
 
 ```text
 Misconception definition      → SYS01
@@ -24,23 +28,67 @@ MisconceptionHypothesis       → SYS03
 Remediation decision          → SYS05
 ```
 
-### SYS04-003
+`AssessmentResult != MasteryEstimate`。SYS03 MAY 消费结果形成 LearnerEvidence；SYS04 MUST NOT 写 mastery truth。
 
-`AssessmentResult ≠ MasteryEstimate`。SYS03 MAY 消费结果形成 LearnerEvidence；SYS04 MUST NOT 写 mastery truth。
+## 3. Existing v0.2 Contracts Retained
 
-## 3. AssessmentItem / Attempt
+### SYS04-010 — AssessmentResult Contract
 
-### SYS04-010
+AssessmentResult MUST 包含/引用：result/version、attempt/item version、score/correctness、rubric dimensions、canonical diagnosis、actual assistance/independence snapshot、assessment confidence、evaluator versions、reason codes 与 reviewer_result。MUST NOT 包含最终 canonical mastery 裁决。
 
-AssessmentItem MUST 固定 item/version、claims、scoring method/rubric version、provenance 与 exposure metadata。模型生成 item 默认 MUST 为 draft，经可解性/答案一致性/安全检查后才 MAY active。
+### SYS04-020 — Evaluator Router
 
-### SYS04-011
+默认优先：exact/MCQ → deterministic；numeric → tolerance + units；symbolic → equivalence/CAS；code → isolated tests + static constraints；structured steps → step validator；open response → rubric-constrained model + evidence + confidence。
 
-Attempt MUST 固定 item/version、response、timestamps、assessment type 与实际 assistance snapshot，保证之后 eligibility/replay 不依赖聊天文本推断。
+### SYS04-021 — Deterministic-first
 
-### SYS04-200 — Canonical Assistance Snapshot
+凡可用确定性方法可靠评分的题型 MUST 优先程序判分，不得为统一接口而强制交给 LLM。
 
-每个 Attempt MUST 记录：
+### SYS04-022 — Model-assisted Scoring
+
+开放题模型评分 MUST 绑定 rubric/version、source/reference evidence、structured output、evaluator/model/prompt version，并提供 reason/evidence。低置信或 evaluator disagreement MUST 进入 `needs_review`/adjudication；模型调用失败 MUST NOT 被解释为 learner failure。
+
+### SYS04-023 — Generation / Validation Separation
+
+模型生成题默认 `draft`。生成与最终验证 MUST 分离；至少有独立规则/第二步验证，关键评估 SHOULD 有独立 reviewer。
+
+### SYS04-024 — Misconception Diagnosis
+
+诊断 SHOULD 按：score/error rule → known misconception matching → structured classifier（如需）→ diagnostic probe（如 ambiguity）→ MisconceptionEvidence。SYS04 只能断言“本次出现证据”，MUST NOT 直接断言长期 learner misconception。
+
+### SYS04-025 — Adaptive Testing Scope
+
+MVP 只允许 coverage constraints + uncertainty + difficulty bucket + exposure control + information-gain heuristic。Complex IRT-CAT MUST NOT 成为 v0.3 canonical runtime，除非未来新的 Design/ADR/Spec 冻结。
+
+### SYS04-026 — RL Scope
+
+Offline/Online RL MUST NOT 控制 v0.3 canonical assessment runtime。
+
+### SYS04-030 — Versioned Assessment Assets
+
+AssessmentItem、答案、rubric、scoring/evaluator 与来源 MUST versioned；Attempt MUST 引用 exact item version。
+
+### SYS04-031 — Response Revision
+
+Response revision MUST 使用 append/revision chain，MUST NOT 覆盖首次提交。
+
+### SYS04-032 — Reassessment
+
+Reassessment MUST 产生新的 AssessmentResult version 并保留 supersedes link。
+
+### SYS04-033 — Grader-only Isolation
+
+reference answer/rubric evidence MAY 为 grader-only，MUST NOT 自动进入 learner-visible context。
+
+### SYS04-040 — System Failure != Learner Error
+
+系统/工具/模型故障与 learner error MUST 可区分；sandbox/LLM timeout 等 MUST NOT 形成 learner failure evidence。
+
+## 4. v0.3 Assistance / Exposure Contract
+
+### SYS04-210 — Canonical Assistance Snapshot
+
+每个 Attempt MUST 记录实际经历：
 
 ```text
 scaffold_control = NONE | LOW | MEDIUM | HIGH
@@ -49,15 +97,15 @@ answer_exposure = NONE | PARTIAL | COMPLETE
 assistance_state = INDEPENDENT | ASSISTED | ANSWER_EXPOSED
 ```
 
-SYS04 记录的是**实际经历**，而非 SYS05 的 allowed envelope。历史 `max_hint_level`、整数 `hint_level/scaffold_level`、0..4 exposure 只允许兼容读取。
+SYS04 记录的是**实际经历**，不是 SYS05 allowed envelope。历史 `max_hint_level`、整数 `hint_level/scaffold_level` 与 0..4 exposure 只允许兼容读取/audit。
 
-### SYS04-201 — Assistance Integrity
+### SYS04-211 — Assistance Integrity
 
-若执行过程中实际 exposure/support 与 TeachingAction envelope 不一致，SYS04 MUST 保存实际经历并产生 integrity reason/event；MUST NOT 为“符合计划”而篡改 Attempt snapshot。
+若实际 support/exposure 与 TeachingAction envelope 不一致，SYS04 MUST 保存实际经历并产生 integrity reason/event；MUST NOT 为符合计划而篡改 Attempt snapshot。
 
-## 4. AssessmentResult & Diagnosis
+## 5. v0.3 Error Diagnosis
 
-### SYS04-210 — Canonical ErrorType
+### SYS04-220 — Canonical ErrorType
 
 v0.3 ErrorType 仅允许：
 
@@ -72,33 +120,21 @@ EXPRESSION_FORMAT
 UNKNOWN
 ```
 
-### SYS04-211 — Diagnosis Contract
+### SYS04-221 — Diagnosis Contract
 
-AssessmentResult MUST 能表达：
+AssessmentResult/Diagnosis MUST 能表达：`error_type`、`diagnostic_confidence`、`diagnostic_evidence_refs`、`misconception_evidence_refs`、`alternative_hypotheses`、`needs_probe`、`reason_codes`，并单独表达 `assessment_confidence`。
 
-```text
-error_type
-diagnostic_confidence
-diagnostic_evidence_refs
-misconception_evidence_refs
-alternative_hypotheses
-needs_probe
-reason_codes
-```
+### SYS04-222 — Confidence Separation
 
-并单独表达 `assessment_confidence`。
+`assessment_confidence != diagnostic_confidence`。高评分可信度 MUST NOT 隐式等于高错因归因可信度。
 
-### SYS04-212 — Confidence Separation
+### SYS04-223 — UNKNOWN Is Valid
 
-`assessment_confidence != diagnostic_confidence`。高评分可信度 MUST NOT 被实现为高错因归因可信度的隐式默认值。
+证据不足或假设不可区分时 MUST 允许 `UNKNOWN`；MUST NOT 为 enum 完整性强制猜具体 ErrorType。`needs_probe=true` MAY 与 UNKNOWN/低置信诊断并存。
 
-### SYS04-213 — UNKNOWN Is Valid
+### SYS04-224 — Legacy Error Mapping
 
-证据不足或假设不可区分时，SYS04 MUST 允许 `UNKNOWN`；MUST NOT 为满足 enum 完整性强制猜测一个具体 ErrorType。`needs_probe=true` MAY 与 UNKNOWN 或低置信诊断同时存在。
-
-### SYS04-214 — Legacy Error Mapping
-
-兼容读取历史数据时：
+兼容读取历史数据：
 
 ```text
 condition_omission     → reason code / subcategory
@@ -106,117 +142,87 @@ metacognitive          → behavioral/policy signal、ActionModifier 或 reason 
 expression_incomplete  → EXPRESSION_FORMAT
 ```
 
-若历史记录无法无歧义映射，canonical diagnosis MUST 为 `UNKNOWN` 并保存 `migration_reason`；不得伪造 diagnostic confidence。
-
-## 5. Scoring & Evaluation
-
-### SYS04-020
-
-可确定性评分任务 SHOULD 优先使用 exact/equivalence/tests/rubric deterministic path；LLM judge MAY 用于适合的开放任务，但 MUST 固定 model/prompt/rubric/schema versions，并允许 `unscorable|needs_review`。
-
-### SYS04-021
-
-评分系统 MUST 区分：score/correctness、assessment confidence、diagnosis、diagnostic confidence。任何单一 LLM 输出 MUST NOT 同时无验证地产生四者并被视为 truth。
-
-### SYS04-022
-
-评估失败、模型/工具失败或系统异常 MUST NOT 被记录为 learner failure evidence。
+无法无歧义映射时 canonical diagnosis MUST 为 `UNKNOWN` 并保存 migration reason；不得伪造 diagnostic confidence。
 
 ## 6. Independent Validation Semantics
 
-### SYS04-220
+### SYS04-230
 
-SYS04 MUST 忠实记录 `ASSISTED` 与 `ANSWER_EXPOSED` success，并将其提供给 SYS05/SYS03；它 MUST NOT 自行把这些 success 标记为 independent。
+SYS04 MUST 忠实记录 `ASSISTED` 与 `ANSWER_EXPOSED` success，并提供给 SYS05/SYS03；MUST NOT 自行标记为 independent。
 
-### SYS04-221
+### SYS04-231
 
-`ANSWER_EXPOSED` 当前结果 MUST NOT 被标记为 independent mastery evidence。独立验证只有在后续 fresh Attempt 实际发生且满足 independent criteria 后才能形成新的 AssessmentResult/LearnerEvidence。
+`ANSWER_EXPOSED` 当前结果 MUST NOT 被标记为 independent mastery evidence。独立验证只有后续 fresh Attempt 实际发生并满足 independent criteria 时才能形成新事实。
 
-### SYS04-222
+### SYS04-232
 
-SYS05 的 `INDEPENDENT_VALIDATION_REQUIRED` 是 policy-control obligation，不属于 AssessmentResult/MasteryState；SYS04 只产生能够满足或未满足该 obligation 的新事实。
+SYS05 `INDEPENDENT_VALIDATION_REQUIRED` 是 policy-control obligation，不属于 AssessmentResult/MasteryState；SYS04 只产生能满足或未满足 obligation 的事实。
 
-## 7. Persistence / Versioning
+## 7. Idempotency / Replay
 
-### SYS04-030
+`SubmitResponse` MUST 使用 idempotency key；同一 Attempt 重复 score request MUST NOT 产生重复结果，除非显式 ReassessAttempt；deterministic grader 在 fixed item/response/version 下 MUST deterministic；exposure_count/event consumption MUST 防重复。
 
-AssessmentItem、Attempt、AssessmentResult MUST 有稳定 identity/version/provenance。重新评分产生新 Result revision 或 superseding result；MUST NOT 原地改写历史评分理由。
+Canonical replay MUST 固定 item/rubric/evaluator/model/prompt/schema versions。
 
-### SYS04-031
+## 8. Failure Semantics
 
-Evaluator/rubric/model/prompt/normalization/migration versions MUST 可追踪。历史 raw diagnosis MAY 保留为 audit metadata，但 canonical field MUST 服从 v0.3 enum。
+必须区分：invalid item/version、unscorable response、grader unavailable、rubric/evaluator unavailable、model schema failure、sandbox failure、low assessment confidence、low diagnostic confidence、UNKNOWN diagnosis、assistance snapshot missing、integrity mismatch、persistence failure。
 
-## 8. Idempotency
+### SYS04-240 — Missing Assistance
 
-### SYS04-040
+缺失 assistance snapshot 时 MUST conservative 标记 evidence eligibility 不完整，MUST NOT 默认 `INDEPENDENT`。
 
-同一 submit command/idempotency key MUST NOT 产生多个语义重复 Attempt；同一 Attempt + exact evaluator bundle SHOULD 得到 deterministic result，非确定组件必须保存足够版本与输出引用。
+## 9. Observability
 
-## 9. Events / Observability
+至少记录 item/rubric/evaluator versions、scoring method、grader latency/failure、rubric dimensions、assessment confidence、diagnostic confidence、ErrorType、alternative hypotheses、needs_probe、actual assistance/exposure、migration reason 与 evidence/source refs。
 
-### SYS04-050
+## 10. Security
 
-至少发布/记录：
-
-- AssessmentItemPresented；
-- ResponseSubmitted；
-- AssessmentResultProduced；
-- DiagnosisProduced/DiagnosisUncertain；
-- AssistanceExperienced/AnswerExposed（发生时）；
-- AssessmentEvaluationFailed。
-
-### SYS04-051
-
-观测 MUST 包含 item/result/evaluator versions、assessment confidence、diagnostic confidence、ErrorType、alternative hypotheses、needs_probe、actual assistance/exposure、migration reason 与 source refs。
-
-## 10. Failure Semantics
-
-必须区分：invalid item/version、unscorable response、rubric/evaluator unavailable、low assessment confidence、low diagnostic confidence、UNKNOWN diagnosis、assistance snapshot missing、integrity mismatch、persistence failure。
-
-### SYS04-060
-
-缺失 assistance snapshot 时，系统 MUST 标记 evidence eligibility 不完整/保守，MUST NOT 默认 `INDEPENDENT`。
+Code assessment MUST isolated；learner-visible prompt MUST NOT 包含 grader-only answer/rubric secrets；prompt injection MUST NOT 修改评分规则；model judge 不获得不必要 PII。
 
 ## 11. Tests
 
-### SYS04-230
+### SYS04-250
 
-测试 MUST 覆盖：
-
-- canonical 7 + UNKNOWN ErrorType；
-- `UNKNOWN` 合法且不会被强制分类；
-- assessment/diagnostic confidence 独立；
-- alternative hypotheses/needs_probe；
-- legacy `condition_omission`/`metacognitive`/`expression_incomplete` mapping；
-- four-axis assistance snapshot；
-- answer-exposed success 不等于 independent；
-- execution/system failure 不生成 learner failure evidence；
-- MisconceptionEvidence 不直接变成 LearnerState hypothesis；
-- deterministic scoring replay / versioned LLM judge；
-- missing assistance fail conservative。
+测试 MUST 覆盖：exact/numeric/symbolic/code/open route；item version mismatch；canonical 7+UNKNOWN ErrorType；UNKNOWN 不被强制分类；assessment/diagnostic confidence 独立；alternative hypotheses/needs_probe；legacy error mapping；four-axis assistance snapshot；answer-exposed success != independent；ambiguous item rejection；model grader schema failure；deterministic repeatability；sandbox failure != learner failure；reassessment new version；MisconceptionEvidence 不直接写 learner hypothesis；grader-only isolation；missing assistance fail conservative。
 
 ## 12. Acceptance Criteria
 
-- `SYS04-AC-201`：AssessmentResult 可完整表达 v0.3 diagnosis contract。
-- `SYS04-AC-202`：ErrorType 只能是 7 类 + UNKNOWN，历史旧值不能作为 canonical 写入。
-- `SYS04-AC-203`：`assessment_confidence` 与 `diagnostic_confidence` 可独立变化。
-- `SYS04-AC-204`：实际 assistance/exposure 可由 Attempt 直接审计，不依赖聊天内容推断。
-- `SYS04-AC-205`：ANSWER_EXPOSED result 不能被标记为 independent evidence。
-- `SYS04-AC-206`：SYS04 不写 MasteryEstimate、MisconceptionHypothesis 或 TeachingAction。
+原有 AC 保留并更新 v0.3 字段语义：
+
+- `SYS04-AC-001`：任一 AssessmentResult 可追溯 exact item/rubric/evaluator version。
+- `SYS04-AC-002`：support、answer exposure 与 revision history 被稳定记录。
+- `SYS04-AC-003`：确定性题型不依赖 LLM 即可评分。
+- `SYS04-AC-004`：模型生成题未验证前不能 active。
+- `SYS04-AC-005`：评分器/系统故障不会形成 learner failure evidence。
+- `SYS04-AC-006`：AssessmentResult 不能直接修改 MasteryEstimate。
+- `SYS04-AC-007`：reassessment 保留旧结果并产生新版本。
+
+新增 v0.3 AC：
+
+- `SYS04-AC-201`：ErrorType 只能是 7 类 + UNKNOWN，历史旧值不能 canonical 写入。
+- `SYS04-AC-202`：`assessment_confidence` 与 `diagnostic_confidence` 可独立变化。
+- `SYS04-AC-203`：actual assistance/exposure 可由 Attempt 直接审计。
+- `SYS04-AC-204`：ANSWER_EXPOSED result 不能被标记为 independent evidence。
+- `SYS04-AC-205`：SYS04 不写 MisconceptionHypothesis 或 TeachingAction。
 
 ## 13. Legacy Mapping
 
-v0.2 ErrorType 与整数帮助/暴露字段只允许 read adapter/audit。迁移后 canonical writer MUST 只写 v0.3 schema；当所有活跃记录/工作流不再依赖旧字段且历史 migrator 可提供明确 replayability status 后，旧 writer/adapter SHOULD retirement。
+v0.2 ErrorType 与整数帮助/暴露字段只允许 read adapter/audit。Canonical writer MUST 只写 v0.3 schema；active workflows 全部切换且 historical migrator 能给出明确 replayability 后，旧 writer/adapter SHOULD retirement。
 
 ## 14. Forbidden Implementations
 
 禁止：
 
-- 把 AssessmentResult 当 MasteryEstimate；
+- 一个 LLM 同时出题、给参考答案、评分并直接改 mastery；
+- `AssessmentResult.mastered=true` 作为长期 truth；
 - 强制猜 ErrorType；
-- `assessment_confidence = diagnostic_confidence` 的硬绑定；
-- 用 `missing=0`；
+- `assessment_confidence = diagnostic_confidence` 硬绑定；
+- `missing=0`；
 - 继续写 `condition_omission`、`metacognitive`、`expression_incomplete` 为 canonical ErrorType；
-- 继续用一个整数 hint/scaffold/exposure 表示全部帮助语义；
-- LLM judge 直接写 LearnerState；
-- 系统故障算作 learner failure。
+- 继续用单一 integer hint/scaffold/exposure 表示全部帮助语义；
+- code 在不受控宿主执行；
+- reassessment 覆盖原结果；
+- system failure 算作 learner failure；
+- 未校准题库直接上 complex CAT；
+- v0.3 Offline/Online RL assessment control。
