@@ -2,229 +2,177 @@
 
 > Spec ID 范围：`DEP-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.3
 
 ## 1. 目的
 
-本规范定义 Askora 各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移期间的限制。任何违反本文件的实现都必须先通过 ADR 修改架构，而不能由 Codex 临场决定。
+本规范定义各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移限制。违反本文件的实现必须先通过 Design/ADR/Spec 变更，MUST NOT 由执行代理临场重定义架构。
 
 ## 2. 基本规则
 
-### DEP-001：领域模块不得通过 ORM 直接写其他领域状态
+### DEP-001：单一 owner 写入
 
-跨领域业务变更必须通过以下之一发生：
+领域模块 MUST NOT 通过 ORM/repository 直接写其他领域状态。跨领域变更只能通过 public command、append-only event/evidence、只读 query 或 owner application service。
 
-- 显式 application command；
-- append-only domain/learning event；
-- 只读 query contract；
-- 领域 owner 明确暴露的 application service。
+### DEP-002：公共 Schema 唯一
 
-禁止直接 import 其他领域 persistence model 后执行 INSERT/UPDATE/DELETE。
+`LearningEvent`、`AssessmentResult`、`MasteryEstimate`、`TeachingContext`、`TeachingAction`、`PolicyBundle`、`LearningPlan`、`ReviewSchedule`、`EvidenceBundle`、`OutcomeObservation`、`ExperimentAssignment` 等跨系统对象 MUST 在公共 contract 中有唯一 canonical schema；MUST NOT 复制“几乎一样”的长期本地 schema。
 
-### DEP-002：公共 Schema 必须集中定义
+### DEP-003：领域与基础设施分离
 
-跨系统使用的 `LearningEvent`、`AssessmentResult`、`MasteryEstimate`、`TeachingAction`、`LearningPlan`、`ReviewSchedule`、`EvidenceBundle` 等公共对象 MUST 在公共 contracts/domain schema 中有唯一版本定义。
-
-各模块禁止复制一份“几乎一样”的本地 dataclass/Pydantic model 作为长期公共协议。
-
-### DEP-003：领域依赖与基础设施依赖分离
-
-领域逻辑 MUST NOT 依赖：
-
-- FastAPI Request/Response；
-- Electron；
-- Redis 客户端；
-- Kafka 客户端；
-- 具体模型供应商 SDK；
-- SQLAlchemy Session 的隐式全局状态。
-
-上述能力应通过 adapter/port 注入。
+Domain logic MUST NOT 依赖 FastAPI transport、Electron、Redis/Kafka client、具体模型 SDK 或隐式全局 SQLAlchemy Session；这些能力 SHOULD 通过 port/adapter 注入。
 
 ### DEP-004：API 是 transport adapter
 
-`apps/backend/app/api/` 只负责：
+API 只负责 auth、transport validation、command/query、HTTP/WebSocket/streaming mapping 与 error mapping；MUST NOT 持有 mastery、Teaching Policy、assessment、plan、review 算法。
 
-- 认证/授权；
-- transport schema 校验；
-- command/query 调用；
-- HTTP/WebSocket/streaming 映射；
-- 错误到 transport response 的转换。
+### DEP-005：SYS08 执行，不拥有 SYS01～SYS07 规则
 
-API 层 MUST NOT 持有 mastery、教学策略、评分、计划或复习算法。
+SYS08 MAY 决定 workflow/retry/model/tool route，但 MUST NOT 复制/覆盖领域规则。例如：
 
-### DEP-005：4.8 编排不拥有 4.1～4.7 的领域规则
+- “hint 从 `CONCEPTUAL_STRATEGIC` 是否升级到 `SUBGOAL` / 是否 fade scaffold”属于 SYS05；
+- “某 AssessmentResult 是否可形成高权 LearnerEvidence”属于 SYS03 eligibility contract；
+- “下次建议复习时间”属于 SYS07；
+- SYS08 只能在 TeachingAction envelope 内执行，且 MAY 收紧、MUST NOT 扩大。
 
-Orchestrator MAY 决定工作流步骤、重试、模型/工具 route，但不能把领域规则复制进 orchestration 代码。
+### DEP-006：同步 query，异步/显式反馈
 
-例如：
+读取 snapshot MAY 同步；跨系统产生新状态 SHOULD 通过 command/event 形成新版本。MUST NOT 用一个巨大 service method 在单调用栈直接修改所有系统表。
 
-- “什么时候从 hint L2 升到 L3”属于 4.5；
-- “评分 0.8 是否 evidence eligible”属于 4.4/证据合同；
-- “下次复习 3 天后”属于 4.7；
-- orchestrator 只能执行这些结果。
+## 3. Allowed Logical Dependency Matrix
 
-### DEP-006：同步 query，异步反馈
+符号：`Q` read-only query；`C` public command；`E` event；`X` execute decided action；`-` no direct business dependency。
 
-读取最新 snapshot MAY 使用同步 query；跨系统产生新的状态反馈 SHOULD 通过 command/event 形成新版本。
-
-不允许为了方便把整个闭环实现成一个巨大 service method，在一个调用栈内修改所有系统表。
-
-## 3. 允许依赖矩阵
-
-符号：
-
-- `Q`：只读 query；
-- `C`：可发 command；
-- `E`：可发/消费 event；
-- `X`：执行已决定动作；
-- `-`：无直接业务依赖。
-
-| From \ To | 4.1 | 4.2 | 4.3 | 4.4 | 4.5 | 4.6 | 4.7 | 4.8 |
+| From \ To | SYS01 | SYS02 | SYS03 | SYS04 | SYS05 | SYS06 | SYS07 | SYS08 |
 |---|---|---|---|---|---|---|---|---|
-| 4.1 Content | - | E/Q | E/Q | E/Q | - | E/Q | - | E |
-| 4.2 Retrieval | Q | - | - | Q | E | - | - | E/X |
-| 4.3 Learner | Q | - | - | Q | E/Q | E/Q | E/Q | E |
-| 4.4 Assessment | Q | Q | Q/E | - | E | - | E | C/E |
-| 4.5 Teaching Policy | Q | C | Q | Q | - | Q | Q | C |
-| 4.6 Planner | Q | - | Q | - | E | - | Q | C/E |
-| 4.7 Review | - | - | Q/E | Q | E | E | - | E |
-| 4.8 Orchestration | Q | C | E | C | C | C | C | - |
+| SYS01 | - | E/Q | E/Q | E/Q | - | E/Q | - | E |
+| SYS02 | Q | - | - | Q | E | - | - | E/X |
+| SYS03 | Q | - | - | Q | E/Q | E/Q | E/Q | E |
+| SYS04 | Q | Q | Q/E | - | E | - | E | C/E |
+| SYS05 | Q | C | Q | Q | - | Q | Q | C |
+| SYS06 | Q | - | Q | - | E | - | Q | C/E |
+| SYS07 | - | - | Q/E | Q | E | E | - | E |
+| SYS08 | Q | C | E | C | C | C | C | - |
 
-矩阵表示允许出现的**逻辑协作**，不意味着允许互相 import 内部实现。
+矩阵表示逻辑协作，不授权 import 对方内部实现或越权写入。
 
-## 4. Python 包依赖规则
+## 4. v0.3 Adaptive Teaching Dependencies
 
-目标结构下：
+### DEP-200 — TeachingContext Assembly
+
+SYS05 构造 TeachingContext 时 MAY 读取 SYS03/SYS04/SYS06/SYS07 exact versioned refs 与用户请求/experiment refs；MUST NOT 把这些 source snapshot 变成 SYS05 可写副本。
+
+### DEP-201 — Policy Execution Boundary
 
 ```text
-contracts  ← 所有领域可以依赖
-    ↑
-domains/*  ← 可依赖自己的 domain + contracts + ports
-    ↑
-orchestration ← 可依赖各领域公开 application ports/contracts
-    ↑
-api/workers ← 可依赖 orchestration/application facade
+SYS05 TeachingAction
+→ SYS02 evidence supply (tighten only)
+→ SYS08 execution (tighten only)
+→ SYS04 actual assistance/Attempt/AssessmentResult
+→ SYS03 evidence/state update
+→ new material evidence
+→ SYS05 next decision
+```
 
-infrastructure → 实现 domains/orchestration 定义的 ports
+任何环节需要改变 StrategyFamily/InteractionMove/envelope 语义时 MUST 回到 SYS05 创建新 TeachingAction。
+
+### DEP-202 — Validation Obligation
+
+SYS05 owns validation obligation；SYS04 creates fresh independent evidence；SYS03 evaluates evidence eligibility。SYS03/SYS08 MUST NOT 直接 clear/complete obligation。
+
+### DEP-203 — Decision / Outcome
+
+DecisionTrace payload 由 decision owner 定义并可由 SYS08 ledger 托管；OutcomeObservation/ExperimentAssignment MAY 由 analytics ledger 托管，但 MUST NOT 回写 DecisionTrace 或取得 TeachingAction/LearnerState ownership。
+
+## 5. Python Package Rules
+
+```text
+contracts  ← domains can depend
+    ↑
+domains/*  ← own domain + contracts + ports
+    ↑
+orchestration ← public application ports/contracts
+    ↑
+api/workers ← orchestration/application facade
+
+infrastructure → implements ports
 ```
 
 ### DEP-020
 
-`domains/<A>/` MUST NOT import `domains/<B>/internal_*`、repository implementation 或 ORM persistence model。
+`domains/<A>/` MUST NOT import `domains/<B>/internal_*`、repository implementation 或 ORM model。
 
 ### DEP-021
 
-跨领域只允许依赖对方的：
-
-- public contract；
-- public query interface；
-- public command interface；
-- event schema。
+跨 domain 只允许依赖 public contract/query/command/event schema。
 
 ### DEP-022
 
-`infrastructure/` 可以依赖具体数据库/Redis/模型 SDK；domain 不得反向依赖 infrastructure implementation。
+Infrastructure MAY 依赖 DB/Redis/model SDK；domain MUST NOT 反向依赖 infrastructure implementation。
 
 ### DEP-023
 
-`api/` 不得直接调用 repository；必须通过 application/orchestration facade。
+API MUST NOT 直接调用 repository。
 
-## 5. 事务规则
+## 6. Transaction / Delivery
 
-### DEP-030：单 owner 事务
+### DEP-030
 
-一个领域事务 SHOULD 只修改该领域拥有的业务状态，加上同一事务中的 Outbox/Event record。
+一个 domain transaction SHOULD 只修改该 owner 的业务状态，加同一事务的 outbox/event record。
 
-### DEP-031：Transactional Outbox
+### DEP-031
 
-需要可靠向其他系统传播的关键事件 MUST 与领域状态更新在同一事务写入 outbox。
+关键跨系统事件 MUST 与 owner state update 可靠写入 outbox/等价机制。
 
-### DEP-032：消费者至少一次语义
+### DEP-032
 
-事件消费者 MUST 假设至少一次交付，因此必须幂等。
+Consumers MUST 假设 at-least-once delivery，因此必须幂等。
 
-### DEP-033：禁止分布式事务作为默认方案
+### DEP-033
 
-v0.2 禁止为跨领域一致性引入 2PC/分布式事务。采用：
+默认采用 local transaction → outbox → idempotent consumer/projection → eventual convergence；MUST NOT 为 v0.3 默认引入 2PC。
 
-```text
-local transaction
-→ outbox
-→ idempotent projection/consumer
-→ eventual convergence
-```
+## 7. Legacy Governance
 
-## 6. 当前 Legacy 代码的依赖治理
+### DEP-040
 
-### DEP-040：现有 service 可以暂存，但不能扩大越权
+现有 `services/*`、`engines/*` MAY 在迁移期保留，但新增能力 SHOULD 朝 canonical owner/adapter 边界收敛；legacy path MUST NOT 扩大越权。
 
-以下现有路径在迁移期允许保留：
+### DEP-041 — Socratic
 
-- `app/services/documents/`
-- `app/services/assessment/`
-- `app/services/kt/`
-- `app/services/dkt/`
-- `app/services/knowledge_graph/`
-- `app/engines/`
-- `app/services/dialog/`
+`engines/socratic/strategy_selector.py` / state graph MUST NOT 成为 final TeachingAction owner。迁移期 MAY 作为 bounded InteractionMove provider、legacy adapter、stage-definition source 或 execution component；final policy ownership 必须回到 SYS05。
 
-修 bug 可以在原位置进行，但新增架构能力 SHOULD 放入目标边界或通过 adapter 包装。
+### DEP-042 — Documents
 
-### DEP-041：Socratic 逻辑拆分方向
+`services/documents/` 中 parser/model/provenance → SYS01；retrieval/ranking/EvidenceBundle → SYS02；storage → infrastructure；security scan → trust/security adapter，不得改变知识业务语义。
 
-`engines/socratic/strategy_selector.py` 中与“选择教学动作”有关的逻辑最终归 4.5；语言生成、提示表达、guardrail 执行归 4.8。
+### DEP-043 — KT/DKT
 
-### DEP-042：Documents 拆分方向
+SYS03 MUST 只有一个 canonical state projector。DKT/Deep KT 若保留只能是 challenger/辅助预测，不能独立持有 learner truth。
 
-`services/documents/` 中：
+### DEP-204 — No Legacy Dual Truth
 
-- parser/document model/provenance → 4.1；
-- retrieval/ranking/EvidenceBundle → 4.2；
-- 文件存储 → infrastructure；
-- injection/security scan → 4.8/shared security adapter，但不得改变知识业务语义。
+旧 strategy enum、integer scaffold/hint/exposure、old policy config/propensity MAY 只读兼容/audit；MUST NOT 与 v0.3 canonical fields 永久双写。
 
-### DEP-043：KT/DKT
+## 8. Prohibited Dependencies
 
-`services/kt/` 与 `services/dkt/` 不能分别持有不同 learner truth。
+- SYS04 MUST NOT direct-update SYS03 mastery repository；
+- SYS08/LLM MUST NOT direct-update SYS03/SYS05/SYS06/SYS07 truth；
+- SYS06 MUST NOT 调用 SYS05 private implementation 决定 hint/explanation；
+- SYS02 MUST NOT 写 LearnerState；
+- SYS07 MUST NOT 修改 LearningPlan；
+- 任一 domain MUST NOT 从聊天文本直接更新关键 state；
+- SYS08/SYS02 MUST NOT expand TeachingAction envelope；
+- experiment layer MUST NOT restore hard-filtered action。
 
-- 4.3 MUST 有一个 canonical state projector；
-- DKT 若保留，只能作为 challenger/辅助预测；
-- 任何 challenger 输出必须通过 4.3 接纳规则后才能影响 canonical MasteryEstimate。
+## 9. Architecture Tests
 
-## 7. 禁止依赖
+代码库 SHOULD 验证：domains 不 import api/infrastructure implementation；cross-owner repository writes 不可达；SYS08 no direct mastery/plan/review/action write；legacy direct paths 单调减少；SYS02/SYS08 tightening-only；legacy Socratic no final action owner；Outcome/Experiment ledger hosting no domain takeover。
 
-### DEP-050
+## 10. Acceptance Criteria
 
-4.4 Assessment MUST NOT 调用 4.3 repository 直接更新 mastery。
-
-### DEP-051
-
-4.8 Orchestrator/LLM MUST NOT 调用 4.3/4.6/4.7 repository 直接更新状态。
-
-### DEP-052
-
-4.6 Planner MUST NOT 调用 4.5 private strategy implementation 决定提示/讲解。
-
-### DEP-053
-
-4.2 Retrieval MUST NOT 调用 4.3 写接口，也不得生成 LearnerState 副本作为长期状态。
-
-### DEP-054
-
-4.7 Review MUST NOT 修改 LearningPlan；它只能发布 due/risk，4.6 决定是否进入实际计划。
-
-### DEP-055
-
-任何领域模块 MUST NOT 以聊天文本解析结果直接更新关键业务状态；必须先形成对应 command/evidence/result。
-
-## 8. 自动化验证建议
-
-代码库 SHOULD 建立 architecture tests，至少验证：
-
-- `domains/` 不 import `api/`；
-- `domains/` 不 import `infrastructure/` implementation；
-- 4.4 不 import 4.3 persistence；
-- 4.8 不 import 4.3/4.6/4.7 persistence；
-- legacy direct paths 数量随迁移单调减少。
-
-若使用 import-linter、grimp 或自定义 AST 测试，需要 ADR/Spec 明确批准新增生产/开发依赖；也可先用 Python AST 标准库实现，无需新增依赖。
+- `DEP-AC-201`：TeachingContext assembly 只读 exact owner refs。
+- `DEP-AC-202`：SYS02/SYS08 无扩大 scaffold/hint/exposure 路径。
+- `DEP-AC-203`：validation obligation 只能由 SYS05 policy-control 管理，并由 fresh SYS04 evidence 满足。
+- `DEP-AC-204`：legacy Socratic 无 final TeachingAction ownership。
+- `DEP-AC-205`：无 legacy/v0.3 permanent dual truth。
