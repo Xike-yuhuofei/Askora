@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import hashlib
 import uuid
 from datetime import datetime, timezone
@@ -40,6 +41,7 @@ from app.domains.content_knowledge import (
     SAFETY_SCANNER_VERSION,
     SEGMENTATION_VERSION,
     build_content_revision,
+    build_multi_granularity_projections,
 )
 from app.domains.content_knowledge.epub_structure import replay_epub_locator
 from app.infrastructure.outbox import OutboxProducer, OutboxStatus
@@ -546,11 +548,35 @@ class DocumentService:
             for span_id in item.get("evidence_span_ids", []):
                 knowledge_unit_ids_by_span.setdefault(span_id, []).append(item["knowledge_unit_id"])
 
-        for idx, content in enumerate(chunks):
-            span = spans[idx]
-            role, exposure_level, allowed_use = self._classify_projection_visibility(content)
+        retrieval_chunks = revision.get("retrieval_chunks", [])
+        projection_rows = (
+            retrieval_chunks
+            if retrieval_chunks
+            else [
+                {
+                    "chunk_id": str(uuid5(revision_id, f"{SEGMENTATION_VERSION}:chunk:{idx}")),
+                    "text": content,
+                    "source_span_ids": [spans[idx]["span_id"]],
+                    "knowledge_unit_ids": knowledge_unit_ids_by_span.get(spans[idx]["span_id"], []),
+                    "pedagogical_role": self._classify_projection_visibility(content)[0],
+                    "answer_exposure": (
+                        "COMPLETE"
+                        if self._classify_projection_visibility(content)[2] == "grader_only"
+                        else "NONE"
+                    ),
+                    "allowed_use": self._classify_projection_visibility(content)[2],
+                    "hierarchy_scope_refs": [],
+                    "segmentation_version": SEGMENTATION_VERSION,
+                }
+                for idx, content in enumerate(chunks)
+            ]
+        )
+
+        for idx, projection in enumerate(projection_rows):
+            content = projection["text"]
+            exposure_level = 4 if projection["answer_exposure"] == "COMPLETE" else 0
             chunk = DocumentChunk(
-                id=str(uuid5(revision_id, f"{SEGMENTATION_VERSION}:chunk:{idx}")),
+                id=projection["chunk_id"],
                 document_id=document_id,
                 chunk_index=idx,
                 content=content,
@@ -558,15 +584,19 @@ class DocumentService:
                 chunk_metadata={
                     **metadata,
                     "chunk_index": idx,
-                    "total_chunks": len(chunks),
-                    "position": round(idx / max(len(chunks) - 1, 1), 2),
+                    "total_chunks": len(projection_rows),
+                    "position": round(idx / max(len(projection_rows) - 1, 1), 2),
                     "revision_id": str(revision_id),
-                    "segmentation_version": SEGMENTATION_VERSION,
-                    "source_span_ids": [span["span_id"]],
-                    "knowledge_unit_ids": knowledge_unit_ids_by_span.get(span["span_id"], []),
-                    "pedagogical_role": role,
+                    "segmentation_version": projection["segmentation_version"],
+                    "source_span_ids": projection["source_span_ids"],
+                    "knowledge_unit_ids": projection["knowledge_unit_ids"],
+                    "semantic_unit_ids": projection.get("semantic_unit_ids", []),
+                    "pedagogical_role": projection["pedagogical_role"],
+                    "answer_exposure": projection["answer_exposure"],
                     "exposure_level": exposure_level,
-                    "allowed_use": allowed_use,
+                    "allowed_use": projection["allowed_use"],
+                    "hierarchy_scope_refs": projection["hierarchy_scope_refs"],
+                    "compatibility_projection": "legacy-exposure-read-v1",
                 },
             )
             chunk_objects.append(chunk)
@@ -581,12 +611,11 @@ class DocumentService:
         document = await self.db.get(UserDocument, document_id)
         if document is None:
             raise ValueError(f"文档不存在: {document_id}")
-        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        content_record = self._rebuild_current_revision_projections(document)
         revision = self._current_revision(content_record)
         if revision is None:
             raise ValueError("canonical content revision missing")
-        spans = revision.get("source_spans", [])
-        chunks = [item["text"] for item in spans]
+        chunks = [item["text"] for item in revision.get("source_spans", [])]
         count = await self._create_chunks(
             document_id=document_id,
             chunks=chunks,
@@ -596,6 +625,36 @@ class DocumentService:
         document.chunk_count = count
         await self.db.commit()
         return count
+
+    async def rebuild_content_projections(self, document_id: str) -> dict:
+        """Rebuild all D02 working sets/projections without changing content truth."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            raise ValueError(f"文档不存在: {document_id}")
+        content_record = self._rebuild_current_revision_projections(document)
+        await self.db.commit()
+        revision = self._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        return revision
+
+    @staticmethod
+    def _rebuild_current_revision_projections(document: UserDocument) -> dict:
+        """Replace only rebuildable D02 fields in the current immutable revision envelope."""
+        details = copy.deepcopy(document.moderation_details or {})
+        content_record = details.get(CONTENT_RECORD_KEY, {})
+        revision = DocumentService._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        rebuilt = build_multi_granularity_projections(
+            revision_id=UUID(revision["revision_id"]),
+            source_spans=revision.get("source_spans", []),
+            document_nodes=revision.get("document_nodes", []),
+            knowledge_units=revision.get("knowledge_units", []),
+        )
+        revision.update(rebuilt)
+        document.moderation_details = details
+        return content_record
 
     async def get_source_span(self, document_id: str, span_id: str) -> dict | None:
         """Replay a citation anchor from canonical content truth (SYS01-AC-001)."""

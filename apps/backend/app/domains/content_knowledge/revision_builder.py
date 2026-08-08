@@ -19,10 +19,14 @@ from app.contracts.content import (
     SourceLocator,
     SourceSpan,
 )
+from app.domains.content_knowledge.projections import (
+    RETRIEVAL_SEGMENTATION_VERSION,
+    build_multi_granularity_projections,
+)
 
 CONTENT_RECORD_KEY = "content_knowledge_v1"
 PARSER_VERSION = "askora-parser-bundle-v2"
-SEGMENTATION_VERSION = "askora-segmentation-v1"
+SEGMENTATION_VERSION = RETRIEVAL_SEGMENTATION_VERSION
 ANCHOR_VERSION = "source-span-v1"
 EXTRACTION_VERSION = "deterministic-structure-v2"
 
@@ -80,6 +84,14 @@ def build_content_revision(
         structured_nodes=document_nodes or [],
         node_local_ids=node_local_ids,
     )
+    source_span_records = [span.model_dump(mode="json") for span in spans]
+    document_node_records = [node.model_dump(mode="json") for node in persisted_nodes]
+    working_projections = build_multi_granularity_projections(
+        revision_id=revision_id,
+        source_spans=source_span_records,
+        document_nodes=document_node_records,
+        knowledge_units=[],
+    )
     knowledge_units = _build_knowledge_units(
         document_id=document_id,
         original_filename=original_filename,
@@ -87,15 +99,24 @@ def build_content_revision(
         full_text=full_text,
         knowledge_point_id=knowledge_point_id,
         revision_number=len(revisions) + 1,
+        semantic_units=working_projections["semantic_units"],
+    )
+    knowledge_unit_records = [item.model_dump(mode="json") for item in knowledge_units]
+    projections = build_multi_granularity_projections(
+        revision_id=revision_id,
+        source_spans=source_span_records,
+        document_nodes=document_node_records,
+        knowledge_units=knowledge_unit_records,
     )
     new_revision = {
         **revision.model_dump(mode="json"),
-        "source_spans": [span.model_dump(mode="json") for span in spans],
-        "knowledge_units": [item.model_dump(mode="json") for item in knowledge_units],
+        "source_spans": source_span_records,
+        "knowledge_units": knowledge_unit_records,
         "relations": [],
         "full_text_checksum": hashlib.sha256(full_text.encode("utf-8")).hexdigest(),
         "document_ir": document_ir.model_dump(mode="json") if document_ir else None,
-        "document_nodes": [node.model_dump(mode="json") for node in persisted_nodes],
+        "document_nodes": document_node_records,
+        **projections,
     }
     return {
         "document_id": str(document_id),
@@ -229,13 +250,16 @@ def _build_spans(
         local_id = structured.get("local_id") if structured else None
         if isinstance(local_id, str):
             used_nodes.add(local_id)
+        locator = structured.get("source_locator", {}) if structured else {}
+        nav_path = locator.get("nav_path", []) if isinstance(locator, dict) else []
+        structured_chapter = nav_path[-1] if nav_path else None
         spans.append(
             SourceSpan(
                 span_id=span_id,
                 revision_id=revision_id,
                 node_id=node_local_ids.get(local_id) if isinstance(local_id, str) else None,
                 page=int(page_match.group(1)) if page_match else None,
-                chapter=chapter_match.group(1).strip() if chapter_match else None,
+                chapter=(chapter_match.group(1).strip() if chapter_match else structured_chapter),
                 start_offset=start,
                 end_offset=end,
                 text=text,
@@ -261,6 +285,7 @@ def _build_knowledge_units(
     full_text: str,
     knowledge_point_id: str | None,
     revision_number: int,
+    semantic_units: list[dict[str, Any]],
 ) -> list[KnowledgeUnit]:
     """Build conservative structural candidates; publication requires an owner decision."""
     visible_spans = [span for span in spans if not _is_grader_only(span.text)]
@@ -269,8 +294,16 @@ def _build_knowledge_units(
 
     units: list[KnowledgeUnit] = []
     occurrences: dict[str, int] = {}
-    for span in visible_spans:
-        for heading, description in _headings_with_descriptions(span.text):
+    visible_span_ids = {str(span.span_id) for span in visible_spans}
+    for semantic_unit in semantic_units:
+        evidence_span_ids = [
+            UUID(span_id)
+            for span_id in semantic_unit.get("source_span_ids", [])
+            if span_id in visible_span_ids
+        ]
+        if not evidence_span_ids:
+            continue
+        for heading, description in _headings_with_descriptions(semantic_unit["text"]):
             normalized = _normalize_identity(heading)
             if not normalized:
                 continue
@@ -288,7 +321,7 @@ def _build_knowledge_units(
                     canonical_name=heading[:200],
                     description=description or heading[:500],
                     concept_ids=[],
-                    evidence_span_ids=[span.span_id],
+                    evidence_span_ids=evidence_span_ids,
                     provenance_type="source_explicit",
                     confidence=None,
                     status="candidate",

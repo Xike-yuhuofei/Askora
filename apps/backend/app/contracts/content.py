@@ -49,6 +49,58 @@ class SourceChunk(ContractModel):
     metadata: dict[str, Any]
 
 
+class EvidenceSpanRef(ContractModel):
+    """D02-020 typed evidence role over canonical SourceSpan references."""
+
+    source_span_ids: list[UUID] = Field(min_length=1)
+    evidence_role: Literal[
+        "source_fact",
+        "definition",
+        "example",
+        "counterexample",
+        "procedure",
+        "relation_evidence",
+        "assessment_support",
+    ]
+    evidence_hash: str
+
+
+class SemanticUnit(ContractModel):
+    """D02-030 deterministic SYS01 extraction working record."""
+
+    semantic_unit_id: UUID
+    revision_id: UUID
+    segmentation_version: str
+    source_span_ids: list[UUID] = Field(min_length=1)
+    parent_node_ids: list[UUID]
+    text: str
+    semantic_role: Literal[
+        "definition",
+        "argument",
+        "procedure",
+        "example",
+        "exercise",
+        "narrative",
+        "other",
+    ]
+    context_refs: list[UUID]
+    evidence_ref: EvidenceSpanRef
+    ordinal: int = Field(ge=0)
+
+
+class HierarchyNode(ContractModel):
+    """D02-050 rebuildable scope-routing projection, never prerequisite truth."""
+
+    hierarchy_node_id: UUID
+    projection_version: str
+    revision_id: UUID
+    document_node_id: UUID
+    parent_hierarchy_node_id: UUID | None = None
+    node_type: Literal["BOOK", "PART", "CHAPTER", "SECTION"]
+    heading: str | None = None
+    ordinal: int = Field(ge=0)
+
+
 class SourceLocator(ContractModel):
     """D01-040 SYS01-owned locator value used by DocumentNode replay."""
 

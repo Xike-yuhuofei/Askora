@@ -6,7 +6,7 @@
 > UI-01 收口日期：2026-08-08
 > UI-02A 收口日期：2026-08-08
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A FROZEN BASELINES；Book-to-Learning EXEC-017 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A FROZEN BASELINES；Book-to-Learning EXEC-017～018 DONE
 
 ## Completion Matrix
 
@@ -29,6 +29,7 @@
 | EXEC-015 — UI-01 Learning Shell and Compatibility Tutor Workspace | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-016 — UI-02A Canonical Library and Scoped Knowledge Map | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-017 — Structure-Preserving EPUB Ingestion & Source Replay | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-018 — Multi-Granularity Content Model & Rebuildable Projections | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 

@@ -179,6 +179,8 @@ class WorkspaceLibraryQueryService:
         else:
             nodes, edges, spans, build_reasons = self._build_map(document, revision)
             reason_codes.extend(build_reasons)
+            if revision.get("hierarchy_nodes"):
+                reason_codes.append("HIERARCHY_PROJECTION_AVAILABLE")
 
         graph_version = (
             f"material_revision:{revision['revision_id']}"

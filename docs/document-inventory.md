@@ -129,7 +129,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017 已完成，EXEC-018～024 待执行 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～018 已完成，EXEC-019～024 待执行 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～017 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -148,6 +148,7 @@
 | `docs/exec-plans/completed/EXEC-015-ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-016-ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A 任务合同；保留已解决 CI baseline 授权记录 |
 | `docs/exec-plans/completed/EXEC-017-structure-preserving-epub-ingestion.md` | HISTORICAL-RETAIN | Book-to-Learning 结构保真 EPUB ingestion 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-018-multi-granularity-content-projections.md` | HISTORICAL-RETAIN | Book-to-Learning 多粒度内容模型与可重建投影不可变任务合同 |
 
 ## 6. 后续维护规则
 
