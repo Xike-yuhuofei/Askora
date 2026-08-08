@@ -285,9 +285,9 @@ class HybridEvidenceRetriever:
             items=items,
             conflicts=[],
             missing_roles=missing_roles,
-            bundle_confidence=(sum(item.confidence or 0.0 for item in items) / len(items))
-            if items
-            else None,
+            bundle_confidence=(
+                (sum(item.confidence or 0.0 for item in items) / len(items)) if items else None
+            ),
             retrieval_trace_id=trace_id,
         )
         return EvidenceBundleBuildResult(

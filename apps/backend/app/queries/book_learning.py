@@ -340,9 +340,9 @@ class BookLearningReadinessQuery:
             state="READY_TO_LEARN" if selected else "PLAN_READY",
             refs=refs,
             reasons=("LEARNING_ACTIVITY_SELECTED" if selected else "LEARNING_PLAN_READY",),
-            commands=("StartCanonicalTeachingRound",)
-            if selected
-            else ("SelectNextLearningActivity",),
+            commands=(
+                ("StartCanonicalTeachingRound",) if selected else ("SelectNextLearningActivity",)
+            ),
             now=now,
             correlation_id=correlation_id,
         )

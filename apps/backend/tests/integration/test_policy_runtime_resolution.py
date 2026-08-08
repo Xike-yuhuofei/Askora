@@ -46,9 +46,7 @@ async def test_active_policy_runtime_resolves_exact_default(policy_runtime_db) -
 
 @pytest.mark.asyncio
 async def test_active_policy_runtime_missing_activation_fails_closed(policy_runtime_db) -> None:
-    with pytest.raises(
-        PolicyRuntimeResolutionError, match="POLICY_RUNTIME_PROFILE_UNAVAILABLE"
-    ):
+    with pytest.raises(PolicyRuntimeResolutionError, match="POLICY_RUNTIME_PROFILE_UNAVAILABLE"):
         await ActivePolicyRuntimeResolver(policy_runtime_db).resolve()
 
 

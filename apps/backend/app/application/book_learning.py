@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.adaptive import (
     AvailabilityStatus,
+    TeachingActionV03,
     TeachingContextV03,
     ValueWithAvailability,
     VersionedRef,
@@ -25,18 +26,22 @@ from app.contracts.book_learning import (
     BookLearningTeachingResponseV1,
 )
 from app.contracts.events import (
+    ActualAssistanceRecordedPayloadV03,
     EventActor,
     EventContext,
     EventPrivacy,
     EventProvenance,
+    EventProvenanceV03,
     EventTrace,
     LearningEventEnvelope,
+    LearningEventEnvelopeV03,
 )
 from app.contracts.learning import LearningActivity, LearningPlan, MasteryEstimate
 from app.contracts.planning import LearningGoalV1
 from app.infrastructure.adaptive_records import (
     AdaptiveContractRepository,
     DecisionTraceV03Repository,
+    LearningEventV03Repository,
 )
 from app.infrastructure.learning_records import LearnerModelRepository
 from app.infrastructure.ledger import LearningEventRepository
@@ -424,10 +429,36 @@ class BookLearningApplication:
             result.teaching_action_v03 is None
             or result.decision_trace_v03 is None
             or result.evidence_bundle_v03 is None
+            or result.actual_assistance_event_v03 is None
+            or result.adaptive_execution_v03 is None
         ):
             raise BookLearningApplicationError("CANONICAL_TEACHING_HANDOFF_INCOMPLETE")
         await records.save_action(result.teaching_action_v03)
         await DecisionTraceV03Repository(self._db).append(result.decision_trace_v03)
+        assistance_event = self._actual_assistance_event(
+            user=user,
+            goal=goal,
+            activity=activity,
+            teaching_action=result.teaching_action_v03,
+            event_payload=result.actual_assistance_event_v03,
+            response_id=result.adaptive_execution_v03.response_id,
+            policy_version=runtime.bundle.policy_version,
+            session_id=session_id,
+            correlation_id=correlation_id,
+            occurred_at=context.decision_time,
+        )
+        event_records = LearningEventV03Repository(self._db)
+        existing_assistance_event = await event_records.get(assistance_event.event_id)
+        if existing_assistance_event is not None:
+            if (
+                existing_assistance_event.aggregate_id != assistance_event.aggregate_id
+                or existing_assistance_event.payload != assistance_event.payload
+                or existing_assistance_event.context.user_id != assistance_event.context.user_id
+            ):
+                raise BookLearningApplicationError("ACTUAL_ASSISTANCE_IDEMPOTENCY_CONFLICT")
+            assistance_event = existing_assistance_event
+        else:
+            await event_records.append(assistance_event)
         refs = (
             self._owner_ref("SYS06", "LearningGoal", goal.goal_id, goal.version, goal.status),
             self._owner_ref("SYS06", "LearningPlan", plan.plan_id, plan.version, plan.status),
@@ -452,6 +483,13 @@ class BookLearningApplication:
                 result.evidence_bundle_v03.bundle_schema_version,
                 "selected",
             ),
+            self._owner_ref(
+                "SYS08",
+                "ActualAssistanceRecorded",
+                assistance_event.event_id,
+                assistance_event.schema_version,
+                "recorded",
+            ),
         )
         return BookLearningTeachingResponseV1(
             reply_text=result.reply_text,
@@ -459,6 +497,59 @@ class BookLearningApplication:
             evidence_bundle=result.evidence_bundle_v03,
             owner_refs=refs,
             correlation_id=str(correlation_id),
+        )
+
+    @staticmethod
+    def _actual_assistance_event(
+        *,
+        user: User,
+        goal: LearningGoalV1,
+        activity: LearningActivity,
+        teaching_action: TeachingActionV03,
+        event_payload: ActualAssistanceRecordedPayloadV03,
+        response_id: UUID,
+        policy_version: str,
+        session_id: UUID,
+        correlation_id: UUID,
+        occurred_at: datetime,
+    ) -> LearningEventEnvelopeV03:
+        event_id = uuid5(
+            NAMESPACE_URL,
+            f"askora:actual-assistance:{teaching_action.action_id}:{response_id}",
+        )
+        return LearningEventEnvelopeV03(
+            event_id=event_id,
+            event_type="ActualAssistanceRecorded",
+            aggregate_type="TeachingAction",
+            aggregate_id=teaching_action.action_id,
+            aggregate_version=1,
+            sequence=1,
+            occurred_at=occurred_at,
+            recorded_at=occurred_at,
+            idempotency_key=f"book-actual-assistance:{teaching_action.action_id}:{response_id}",
+            correlation_id=correlation_id,
+            causation_id=teaching_action.decision_id,
+            actor=EventActor(actor_type="system", actor_id="SYS08"),
+            context=EventContext(
+                user_id=UUID(user.id),
+                session_id=session_id,
+                goal_id=goal.goal_id,
+                knowledge_unit_ids=list(activity.knowledge_unit_ids),
+                content_revision_ids=[],
+            ),
+            producer_system="SYS08",
+            payload=event_payload.model_dump(mode="json"),
+            provenance=EventProvenanceV03(
+                source="orchestrator",
+                policy_version=policy_version,
+                policy_bundle_ref=teaching_action.policy_bundle_ref,
+            ),
+            trace=EventTrace(trace_id=f"book-assistance:{event_id}"),
+            privacy=EventPrivacy(
+                classification="personal",
+                external_processing=False,
+                retention_class="core_learning",
+            ),
         )
 
     async def _require_goal(self, user: User, goal_id: UUID) -> LearningGoalV1:

@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Spec Pack Frozen / Not Implemented
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Frozen / Implemented Baseline
 
 ## 1. Purpose
 
@@ -26,11 +26,11 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 → Gap Analysis
 → SPEC-D01～D06
 → Spec Freeze
-→ future EXEC decomposition
-→ Implementation
+→ EXEC-017～024
+→ Implemented Baseline
 ```
 
-当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTATION NOT STARTED**。Spec Freeze 不预占 EXEC 编号。
+当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
 
 实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
 
@@ -83,7 +83,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
 - [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
 
-### Book-to-Learning Bootstrap（Frozen / Not Implemented）
+### Book-to-Learning Bootstrap（Frozen / Implemented Baseline）
 
 - [SPEC-D01 Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — structure-preserving ingestion、DocumentIR/DocumentNode、source locator/replay
 - [SPEC-D02 Multi-Granularity Content Model](systems/01-content-granularity.md) — EvidenceSpan/SemanticUnit/RetrievalChunk/HierarchyNode 边界
@@ -258,4 +258,6 @@ EXEC number pre-allocation                NONE
 
 **Book-to-Learning Spec Freeze Gate：PASS**。
 
-后续只能先生成新的 EXEC Plan，再交给 Codex 实现；Codex 不得从 D01～D06 自行扩大范围或补充未冻结的架构决定。
+Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Frozen 状态，也不构成真人学习效果结论。
+
+后续变化仍只能先生成新的 EXEC Plan，再交给 Codex 实现；Codex 不得从 D01～D06 自行扩大范围或补充未冻结的架构决定。

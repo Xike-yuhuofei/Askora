@@ -6,8 +6,21 @@ import io
 import zipfile
 
 
-def minimal_structured_epub() -> bytes:
+def minimal_structured_epub(*, include_prerequisite_relation: bool = False) -> bytes:
     """Build a legal, tiny EPUB3 with spine, nav, footnote, image and internal links."""
+    chapter_two = b"""<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Application</title></head><body>
+<h1>Application</h1><h2>Replay</h2>
+<p>Replay validates the locator and content hash before evidence publication.</p>
+<ul><li>Use the exact spine order.</li><li>Fail closed when the anchor changes.</li></ul>
+<p><a href="chapter1.xhtml#definition">Return to the source definition.</a></p>
+</body></html>"""
+    if include_prerequisite_relation:
+        chapter_two = chapter_two.replace(
+            b"<h1>Application</h1><h2>Replay</h2>",
+            b"<h1>Application</h1><h2>Replay</h2>"
+            b"<p>Foundations are a prerequisite for Replay.</p>",
+        )
     files = {
         "META-INF/container.xml": b"""<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -43,13 +56,7 @@ def minimal_structured_epub() -> bytes:
 <aside id="note-one" epub:type="footnote"><p>A footnote remains linked to its source.</p></aside>
 <figure id="figure-one"><img src="figure.svg" alt="A source-to-evidence diagram"/></figure>
 </body></html>""",
-        "OEBPS/chapter2.xhtml": b"""<?xml version="1.0" encoding="utf-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Application</title></head><body>
-<h1>Application</h1><h2>Replay</h2>
-<p>Replay validates the locator and content hash before evidence publication.</p>
-<ul><li>Use the exact spine order.</li><li>Fail closed when the anchor changes.</li></ul>
-<p><a href="chapter1.xhtml#definition">Return to the source definition.</a></p>
-</body></html>""",
+        "OEBPS/chapter2.xhtml": chapter_two,
         "OEBPS/figure.svg": b"""<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">
 <rect width="10" height="10"/></svg>""",
     }
@@ -64,3 +71,9 @@ def minimal_structured_epub() -> bytes:
             info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
             archive.writestr(info, content, compress_type=zipfile.ZIP_DEFLATED)
     return output.getvalue()
+
+
+def book_to_learning_epub() -> bytes:
+    """Frozen EXEC-024 EPUB with one explicit, verifiable hard prerequisite."""
+
+    return minimal_structured_epub(include_prerequisite_relation=True)

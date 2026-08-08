@@ -83,7 +83,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 implemented baseline + Book-to-Learning SPEC-D01～D06 freeze index |
+| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 + Book-to-Learning implemented baseline 与 SPEC-D01～D06 freeze index |
 | `docs/specs/architecture/state-ownership.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/system-architecture.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/dependency-rules.md` | CANONICAL-RETAIN | v0.3 canonical contract |
@@ -116,7 +116,7 @@
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN | v0.2 frozen baseline；已补充生命周期 |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CURRENT-UPDATED | 冻结合同；已更新 EXEC 完成状态 |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN | v0.3.1 additive presentation slice |
-| `docs/specs/vertical-slices/book-to-adaptive-learning.md` | CANONICAL-RETAIN | SPEC-D06；Book-to-Adaptive-Learning E2E 冻结合同，尚未实现 |
+| `docs/specs/vertical-slices/book-to-adaptive-learning.md` | CANONICAL-RETAIN | SPEC-D06；Book-to-Adaptive-Learning E2E 冻结合同，EXEC-017～024 已实现 |
 | `docs/specs/ui/README.md` | CANONICAL-RETAIN | 已批准冻结的 UI 重设计合同入口 |
 | `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN | 导航、路由与页面层级合同 |
 | `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN | 页面状态与交互合同 |
@@ -130,8 +130,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～023 已完成，EXEC-024 待执行 |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～023 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning EXEC-017～024 已完成；当前无 active EXEC |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～024 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -155,8 +155,16 @@
 | `docs/exec-plans/completed/EXEC-021-learning-goal-knowledge-mapping.md` | HISTORICAL-RETAIN | Book-to-Learning 自然语言 Goal 到 published KnowledgeUnit 映射不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md` | HISTORICAL-RETAIN | Book-to-Learning prerequisite diagnostic 与现有 Planner handoff 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN | Book-to-Learning readiness/additive API 与现有 canonical teaching handoff 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN | Book-to-Learning E2E、replay、security 与 release gate 不可变任务合同 |
 
-## 6. 后续维护规则
+## 6. Release Evidence
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/releases/README.md` | CURRENT-UPDATED | 历史发布与验收证据索引 |
+| `docs/releases/book-to-adaptive-learning.md` | CURRENT-UPDATED | Book-to-Learning Engineering/Contract、Policy/Ownership 与 Learning Evidence 分离报告 |
+
+## 7. 后续维护规则
 
 1. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
 2. Canonical Spec/ADR 的语义变化不能借“文档整理”完成。

@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
@@ -17,6 +18,7 @@ from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.infrastructure.adaptive_records import AdaptiveContractRepository
 from app.models.assessment import AssessmentItem
 from app.models.document import ModerationStatus, ProcessingStatus
+from app.models.ledger import LearningEventRecord
 from app.models.user import User, UserRole, UserStatus
 from app.services.documents.document_service import DocumentService
 from app.services.policy_runtime import default_policy_activation, default_policy_bundle
@@ -285,7 +287,12 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert teaching.evidence_bundle.source_scope["document_ids"] == [document.id]
     assert all(item.source_span_ids for item in teaching.evidence_bundle.items)
     assert all(item.allowed_use != "grader_only" for item in teaching.evidence_bundle.items)
-    assert {item.owner_system for item in teaching.owner_refs} >= {"SYS02", "SYS05", "SYS06"}
+    assert {item.owner_system for item in teaching.owner_refs} >= {
+        "SYS02",
+        "SYS05",
+        "SYS06",
+        "SYS08",
+    }
 
     duplicate_teaching = await app.start_teaching_round(
         user=user,
@@ -303,6 +310,16 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert duplicate_teaching.teaching_action == teaching.teaching_action
     assert duplicate_teaching.evidence_bundle == teaching.evidence_bundle
     assert duplicate_teaching.reply_text == teaching.reply_text
+    assistance_events = (
+        await db.scalars(
+            select(LearningEventRecord).where(
+                LearningEventRecord.event_type == "ActualAssistanceRecorded",
+                LearningEventRecord.aggregate_id == str(teaching.teaching_action.action_id),
+            )
+        )
+    ).all()
+    assert len(assistance_events) == 1
+    assert assistance_events[0].producer_system == "SYS08"
 
 
 @pytest.mark.asyncio

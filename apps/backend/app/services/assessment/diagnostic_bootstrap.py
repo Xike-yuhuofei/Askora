@@ -522,9 +522,7 @@ class PrerequisiteDiagnosticService:
         edges = self._exact_edges(subgraph=subgraph, scope=scope)
         return goal, mapping, subgraph, scope, edges
 
-    async def _reload_need_inputs(
-        self, *, user: User, need: DiagnosticNeedV1
-    ) -> tuple[
+    async def _reload_need_inputs(self, *, user: User, need: DiagnosticNeedV1) -> tuple[
         GoalKnowledgeMappingV1,
         GoalSpecificKnowledgeSubgraphV1,
         LearningGoalV1,
@@ -744,9 +742,9 @@ class PrerequisiteDiagnosticService:
             context=EventContext(
                 user_id=need.user_id,
                 goal_id=None,
-                knowledge_unit_ids=[need.current_knowledge_unit_id]
-                if need.current_knowledge_unit_id
-                else [],
+                knowledge_unit_ids=(
+                    [need.current_knowledge_unit_id] if need.current_knowledge_unit_id else []
+                ),
                 assessment_attempt_id=result.attempt_id,
                 content_revision_ids=[],
             ),
