@@ -35,6 +35,7 @@ from app.models.planning import (
 )
 from app.models.user import User
 from app.queries.goal_knowledge import GoalKnowledgeQueryService
+from app.services.auth.canonical_identity import canonical_user_id
 
 
 class BookLearningReadinessQuery:
@@ -124,7 +125,8 @@ class BookLearningReadinessQuery:
                 correlation_id=correlation_id,
             )
 
-        goal = await self._latest_goal_for_document(user_id=UUID(user.id), document_id=document_id)
+        user_id = canonical_user_id(user.id)
+        goal = await self._latest_goal_for_document(user_id=user_id, document_id=document_id)
         if goal is None:
             return self._result(
                 document_id=document_id,
@@ -219,7 +221,7 @@ class BookLearningReadinessQuery:
                 subgraph.reason_codes,
             ),
         )
-        diagnostic = await self._latest_diagnostic(mapping.mapping_id, UUID(user.id))
+        diagnostic = await self._latest_diagnostic(mapping.mapping_id, user_id)
         if diagnostic is None:
             return self._result(
                 document_id=document_id,
@@ -334,14 +336,58 @@ class BookLearningReadinessQuery:
                 now=now,
                 correlation_id=correlation_id,
             )
-        selected = await self._activity_selected(plan, UUID(user.id))
+        selection_found, selected_activity_id = await self._selected_activity_id(plan, user_id)
+        if selection_found and selected_activity_id is None:
+            return self._result(
+                document_id=document_id,
+                state="BLOCKED",
+                refs=refs,
+                reasons=("SELECTED_ACTIVITY_REF_INVALID",),
+                commands=(),
+                now=now,
+                correlation_id=correlation_id,
+            )
+        if selected_activity_id is not None:
+            selected_activity = next(
+                (item for item in activities if item.activity_id == selected_activity_id),
+                None,
+            )
+            if selected_activity is None:
+                return self._result(
+                    document_id=document_id,
+                    state="BLOCKED",
+                    refs=refs,
+                    reasons=("SELECTED_ACTIVITY_NOT_IN_CURRENT_PLAN",),
+                    commands=(),
+                    now=now,
+                    correlation_id=correlation_id,
+                )
+            refs = (
+                *refs,
+                self._owner_ref(
+                    "SYS06",
+                    "LearningActivity",
+                    selected_activity.activity_id,
+                    selected_activity.plan_version,
+                    "selected",
+                    ("ACTIVITY_SELECTED",),
+                ),
+            )
         return self._result(
             document_id=document_id,
-            state="READY_TO_LEARN" if selected else "PLAN_READY",
+            state="READY_TO_LEARN" if selected_activity_id is not None else "PLAN_READY",
             refs=refs,
-            reasons=("LEARNING_ACTIVITY_SELECTED" if selected else "LEARNING_PLAN_READY",),
+            reasons=(
+                (
+                    "LEARNING_ACTIVITY_SELECTED"
+                    if selected_activity_id is not None
+                    else "LEARNING_PLAN_READY"
+                ),
+            ),
             commands=(
-                ("StartCanonicalTeachingRound",) if selected else ("SelectNextLearningActivity",)
+                ("StartCanonicalTeachingRound",)
+                if selected_activity_id is not None
+                else ("SelectNextLearningActivity",)
             ),
             now=now,
             correlation_id=correlation_id,
@@ -502,7 +548,9 @@ class BookLearningReadinessQuery:
         ).all()
         return tuple(LearningActivity.model_validate(item.payload) for item in records)
 
-    async def _activity_selected(self, plan: LearningPlan, user_id: UUID) -> bool:
+    async def _selected_activity_id(
+        self, plan: LearningPlan, user_id: UUID
+    ) -> tuple[bool, UUID | None]:
         records = (
             await self._session.scalars(
                 select(LearningEventRecord)
@@ -511,11 +559,21 @@ class BookLearningReadinessQuery:
             )
         ).all()
         plan_ref = f"learning_plan:{plan.plan_id}:v{plan.version}"
-        return any(
-            str(item.context.get("user_id")) == str(user_id)
-            and item.payload.get("plan_ref") == plan_ref
-            for item in records
+        selected = next(
+            (
+                item
+                for item in records
+                if str(item.context.get("user_id")) == str(user_id)
+                and item.payload.get("plan_ref") == plan_ref
+            ),
+            None,
         )
+        if selected is None:
+            return False, None
+        try:
+            return True, UUID(selected.aggregate_id)
+        except ValueError:
+            return True, None
 
     @staticmethod
     def _owner_ref(

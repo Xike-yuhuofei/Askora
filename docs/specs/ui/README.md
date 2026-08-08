@@ -86,7 +86,7 @@
 - `/api/v1/documents/**`；
 - `/health/config`。
 
-当前未公开面向 UI 的 LearningGoal、LearningPlan、LearningActivity、ReviewSchedule、KnowledgeUnit 关系图与证据详情 Query。本 Spec Set 冻结了 additive read contract，但每个 endpoint 只有在对应 Vertical Slice/EXEC 完成后才可描述为已实现。
+当前 UI-02A 已公开资料库/知识地图 Query；Book-to-Learning baseline 已公开单资料 Goal、mapping、diagnostic、plan、activity selection 与 teaching façade。完整 Goals/Path/Evidence Query 仍未实施。UI-02B1 只冻结单资料 launch 路径，不把它描述为完整 UI-02B。
 
 ## 6. 明确不在本 Spec Set 中授权的事项
 
@@ -106,10 +106,12 @@ FROZEN UI SPEC
 → UI-01 DONE gate
 → UI-02A Library/Knowledge Map + EXEC-016
 → UI-02A DONE gate
+→ UI-02B1 Material-to-Learning Launch + EXEC-025
+→ UI-02B1 DONE gate
 → UI-02B Goals/Path/Evidence + independent EXEC
 → UI-02B DONE gate
 → UI-03 Vertical Slice + independent EXEC
 → UI-03 DONE gate
 ```
 
-UI-01 与 UI-02A 已 DONE。UI-02B/UI-03 仍受严格串行门禁约束；后续能力必须先冻结独立 Vertical Slice 与 EXEC，不得由 UI-02A 暗含扩展。
+UI-01、UI-02A 与 UI-02B1 已 DONE。完整 UI-02B/UI-03 仍受严格串行门禁约束，不得由 UI-02B1 暗含扩展。

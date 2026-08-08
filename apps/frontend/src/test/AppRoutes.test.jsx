@@ -23,6 +23,14 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     })
   })
 
+  it('routes a document-scoped UI-02B1 launch without treating it as a dialog session', () => {
+    expect(resolveRoute('/book-learning/document%201')).toMatchObject({
+      type: 'book-learning',
+      documentId: 'document 1',
+      shell: 'standard',
+    })
+  })
+
   it('exposes the seven canonical standard destinations', () => {
     expect(resolveRoute('/today').type).toBe('page')
     expect(resolveRoute('/goals')).toMatchObject({ type: 'unavailable', kind: 'goals' })

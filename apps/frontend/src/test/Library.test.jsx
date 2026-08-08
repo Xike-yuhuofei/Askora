@@ -112,6 +112,10 @@ describe('UI02A 资料库', () => {
     expect(screen.getByText(/函数描述输入和输出之间的关系/)).toBeInTheDocument()
     expect(screen.getByText('未知，未伪造分数')).toBeInTheDocument()
     expect(screen.getByText('资料与知识')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '从这份资料开始学习' })).toHaveAttribute(
+      'href',
+      `#/book-learning/${documentView.document_id}`,
+    )
   })
 
   it('上传真实文件并刷新 Canonical 资料列表', async () => {
@@ -197,6 +201,7 @@ describe('UI02A 资料库', () => {
       await screen.findByText('电子书包包含不安全的文件路径，资料已隔离；知识建模未启动，也不会进入检索或知识地图。'),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '使用新版策略重新检查' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '从这份资料开始学习' })).not.toBeInTheDocument()
   })
 
   it('显式提交新版策略复检并防止重复提交', async () => {

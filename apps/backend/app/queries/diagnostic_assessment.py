@@ -7,7 +7,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.adaptive import VersionedRef
 from app.contracts.assessment import AssessmentItemV1
+from app.contracts.book_learning import LearnerVisibleDiagnosticItemV1
 from app.models.assessment import AssessmentItem
 
 
@@ -40,6 +42,32 @@ class DiagnosticAssessmentItemQuery:
             )
         )
         return self._to_contract(record) if record is not None else None
+
+    async def get_learner_visible(
+        self,
+        *,
+        item_id: UUID,
+        version: str,
+        need_id: UUID,
+        need_version: int,
+    ) -> LearnerVisibleDiagnosticItemV1 | None:
+        """UI02B1-030/031 exposes prompt/options without answer or grader metadata."""
+
+        item = await self.get_exact(item_id=item_id, version=version)
+        if item is None or item.status != "active":
+            return None
+        return LearnerVisibleDiagnosticItemV1(
+            item_ref=VersionedRef(
+                entity_type="AssessmentItem",
+                entity_id=str(item.item_id),
+                version=item.version,
+            ),
+            need_id=need_id,
+            need_version=need_version,
+            item_type=item.item_type,
+            prompt=item.prompt,
+            options=tuple(item.options),
+        )
 
     @staticmethod
     def _to_contract(record: AssessmentItem) -> AssessmentItemV1:

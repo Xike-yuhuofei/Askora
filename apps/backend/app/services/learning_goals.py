@@ -36,6 +36,7 @@ from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepo
 from app.infrastructure.planning_records import GoalPlanningRepository
 from app.models.user import User
 from app.queries.goal_knowledge import GoalKnowledgeQueryService
+from app.services.auth.canonical_identity import canonical_user_id
 
 GOAL_FORMATION_PROMPT_VERSION = "goal-formation-bounded-v1"
 GOAL_FORMATION_OUTPUT_SCHEMA_VERSION = "1.0"
@@ -133,7 +134,7 @@ class LearningGoalService:
         existing = await self._repo.find_goal_by_idempotency(idempotency_key)
         if existing is not None:
             return existing
-        prior = await self._repo.latest_goal(goal_id=goal_id, user_id=UUID(user.id))
+        prior = await self._repo.latest_goal(goal_id=goal_id, user_id=canonical_user_id(user.id))
         if prior is None:
             raise ValueError("LEARNING_GOAL_NOT_FOUND")
         version = await self._repo.next_goal_version(goal_id)
@@ -173,7 +174,9 @@ class LearningGoalService:
         existing = await self._repo.find_goal_by_idempotency(idempotency_key)
         if existing is not None:
             return existing
-        candidate = await self._repo.latest_goal(goal_id=goal_id, user_id=UUID(user.id))
+        candidate = await self._repo.latest_goal(
+            goal_id=goal_id, user_id=canonical_user_id(user.id)
+        )
         if candidate is None:
             raise ValueError("LEARNING_GOAL_NOT_FOUND")
         if candidate.status != "candidate":
@@ -212,10 +215,10 @@ class LearningGoalService:
             await self._repo.get_goal_version(
                 goal_id=goal_id,
                 version=existing.goal_version,
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
             )
             if existing is not None
-            else await self._repo.latest_goal(goal_id=goal_id, user_id=UUID(user.id))
+            else await self._repo.latest_goal(goal_id=goal_id, user_id=canonical_user_id(user.id))
         )
         if goal is None:
             raise ValueError("LEARNING_GOAL_NOT_FOUND")
@@ -313,7 +316,7 @@ class LearningGoalService:
         return LearningGoalV1(
             goal_id=goal_id,
             version=version,
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             title=title,
             topic=topic,
             target_capabilities=capabilities,

@@ -5,8 +5,9 @@
 > v0.3.1 收口日期：2026-08-08
 > UI-01 收口日期：2026-08-08
 > UI-02A 收口日期：2026-08-08
+> UI-02B1 收口日期：2026-08-08
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
 
 ## Completion Matrix
 
@@ -36,6 +37,7 @@
 | EXEC-022 — Prerequisite Diagnostic Bootstrap & LearningPlan Handoff | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-023 — Book-to-Adaptive Orchestration, Readiness & Additive API | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-024 — Book-to-Learning E2E, Replay, Security & Release Gate | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-025 — UI-02B1 Material-to-Learning Launch | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 

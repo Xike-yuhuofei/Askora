@@ -7,7 +7,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.contracts.adaptive import VersionedRef
-from app.contracts.book_learning import BookLearningOwnerRefV1, BookLearningReadinessV1
+from app.contracts.book_learning import (
+    BookLearningOwnerRefV1,
+    BookLearningReadinessV1,
+    LearnerVisibleDiagnosticItemV1,
+)
 
 
 def test_exec023_readiness_contract_accepts_only_frozen_states_and_exact_refs() -> None:
@@ -62,3 +66,25 @@ def test_exec023_readiness_requires_reason_codes() -> None:
             generated_at=datetime.now(timezone.utc),
             correlation_id="exec023",
         )
+
+
+def test_exec025_learner_visible_diagnostic_contract_has_no_grader_fields() -> None:
+    """UI02B1-AC-005: the public learner item cannot serialize grader-only data."""
+
+    item = LearnerVisibleDiagnosticItemV1(
+        item_ref=VersionedRef(
+            entity_type="AssessmentItem",
+            entity_id="11111111-1111-4111-8111-111111111111",
+            version="1.0",
+        ),
+        need_id="22222222-2222-4222-8222-222222222222",
+        need_version=2,
+        item_type="multiple_choice",
+        prompt="Which statement is supported by the source?",
+        options=("A", "B"),
+    )
+    payload = item.model_dump(mode="json")
+
+    assert payload["prompt"].startswith("Which")
+    assert payload["options"] == ["A", "B"]
+    assert not {"answer_key", "correct_answer", "rubric", "explanation"} & payload.keys()

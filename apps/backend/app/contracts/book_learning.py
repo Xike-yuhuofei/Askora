@@ -43,6 +43,17 @@ class BookLearningReadinessV1(ContractModel):
     correlation_id: str
 
 
+class LearnerVisibleDiagnosticItemV1(ContractModel):
+    """UI02B1-030 safe SYS04 projection; grader-only fields are structurally absent."""
+
+    item_ref: VersionedRef
+    need_id: UUID
+    need_version: int = Field(ge=1)
+    item_type: Literal["exact", "multiple_choice"]
+    prompt: str = Field(min_length=1)
+    options: tuple[str, ...] = ()
+
+
 class CreateBookLearningGoalRequestV1(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     intent: str = Field(min_length=1, max_length=2000)

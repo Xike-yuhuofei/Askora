@@ -101,14 +101,17 @@ async def get_readiness(
 async def get_goal(
     goal_id: UUID,
     request: Request,
+    response: Response,
     current_user: User = Depends(get_current_user),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
-    return await _execute(
+    result = await _execute(
         application.get_goal(
             user=current_user, goal_id=goal_id, correlation_id=_correlation_id(request)
         )
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.get(
@@ -119,14 +122,17 @@ async def get_goal(
 async def get_mapping(
     goal_id: UUID,
     request: Request,
+    response: Response,
     current_user: User = Depends(get_current_user),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
-    return await _execute(
+    result = await _execute(
         application.get_mapping(
             user=current_user, goal_id=goal_id, correlation_id=_correlation_id(request)
         )
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.get(
@@ -137,14 +143,17 @@ async def get_mapping(
 async def get_diagnostic(
     goal_id: UUID,
     request: Request,
+    response: Response,
     current_user: User = Depends(get_current_user),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
-    return await _execute(
+    result = await _execute(
         application.get_diagnostic(
             user=current_user, goal_id=goal_id, correlation_id=_correlation_id(request)
         )
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.get(
@@ -155,14 +164,17 @@ async def get_diagnostic(
 async def get_plan(
     goal_id: UUID,
     request: Request,
+    response: Response,
     current_user: User = Depends(get_current_user),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
-    return await _execute(
+    result = await _execute(
         application.get_plan(
             user=current_user, goal_id=goal_id, correlation_id=_correlation_id(request)
         )
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.post(

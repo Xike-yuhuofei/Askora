@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：Book-to-Learning Bootstrap DONE
+> 状态：UI-02B1 DONE
 > Active：none
-> 已完成：EXEC-001～EXEC-024
+> 已完成：EXEC-001～EXEC-025
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -20,7 +20,7 @@ Accepted ADR / Canonical Design
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
 | `active/` | NO ACTIVE EXEC | 新任务必须先有冻结 Spec 与明确 EXEC，不得由实现代理自行生成 |
-| [`completed/`](completed/README.md) | EXEC-001～024 | 保留执行任务合同及其显式决策记录 |
+| [`completed/`](completed/README.md) | EXEC-001～025 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -34,6 +34,7 @@ Accepted ADR / Canonical Design
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
 | Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | DONE |
+| UI-02B1 Material-to-Learning Launch | EXEC-025 | DONE |
 
 v0.3 最终状态：
 

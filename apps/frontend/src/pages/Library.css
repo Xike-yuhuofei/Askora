@@ -98,6 +98,12 @@
   min-width: 0;
 }
 
+.library-learning-link {
+  width: 100%;
+  margin-bottom: 14px;
+  text-decoration: none;
+}
+
 .library-documents,
 .knowledge-map,
 .source-inspector {

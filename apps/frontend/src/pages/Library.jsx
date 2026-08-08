@@ -5,6 +5,7 @@ import {
   ChevronRight,
   FileText,
   FolderOpen,
+  GraduationCap,
   Network,
   RefreshCw,
   Trash2,
@@ -531,6 +532,15 @@ export default function Library() {
             </div>
             <Network size={18} />
           </div>
+          {selectedDocument && !knowledgeBlockedStatuses.has(selectedDocument.processing_status) && (
+            <a
+              className="button button--primary library-learning-link"
+              href={`#/book-learning/${encodeURIComponent(selectedDocument.document_id)}`}
+            >
+              <GraduationCap size={16} />
+              从这份资料开始学习
+            </a>
+          )}
           {!selectedDocument ? (
             <div className="library-empty"><p>选择一份资料后查看知识候选。</p></div>
           ) : map.status === 'loading' ? (

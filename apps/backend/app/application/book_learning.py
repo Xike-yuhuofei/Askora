@@ -24,6 +24,7 @@ from app.contracts.book_learning import (
     BookLearningOwnerRefV1,
     BookLearningReadinessV1,
     BookLearningTeachingResponseV1,
+    LearnerVisibleDiagnosticItemV1,
 )
 from app.contracts.events import (
     ActualAssistanceRecordedPayloadV03,
@@ -55,10 +56,12 @@ from app.models.ledger import LearningEventRecord
 from app.models.user import User
 from app.orchestration.learning_facade import CanonicalTurnRequest, LearningOrchestrationFacade
 from app.queries.book_learning import BookLearningReadinessQuery
+from app.queries.diagnostic_assessment import DiagnosticAssessmentItemQuery
 from app.services.assessment.diagnostic_bootstrap import (
     DiagnosticBootstrapResult,
     PrerequisiteDiagnosticService,
 )
+from app.services.auth.canonical_identity import canonical_user_id
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
 from app.services.learning_goals import LearningGoalService
 from app.services.policy_runtime import (
@@ -101,6 +104,7 @@ class BookLearningApplication:
         self._plan_repo = LearningPlanRepository(db)
         self._learner_repo = LearnerModelRepository(db)
         self._readiness = BookLearningReadinessQuery(db)
+        self._diagnostic_items = DiagnosticAssessmentItemQuery(db)
         self._retrieval = PublishedKnowledgeRAGService(db)
         self._teaching = teaching_facade or LearningOrchestrationFacade()
         self._policy_runtime = policy_runtime_resolver or ActivePolicyRuntimeResolver(db)
@@ -141,11 +145,24 @@ class BookLearningApplication:
         if mapping is None:
             raise BookLearningApplicationError("GOAL_KNOWLEDGE_MAPPING_NOT_FOUND")
         need = await self._need_repo.latest_for_mapping(
-            mapping_id=mapping.mapping_id, user_id=UUID(user.id)
+            mapping_id=mapping.mapping_id, user_id=canonical_user_id(user.id)
         )
         if need is None:
             raise BookLearningApplicationError("DIAGNOSTIC_NEED_NOT_FOUND")
-        return self._operation("GetCurrentDiagnosticState", correlation_id, need=need)
+        values: dict[str, Any] = {"need": need}
+        if need.status == "active":
+            if need.assessment_item_ref is None:
+                raise BookLearningApplicationError("DIAGNOSTIC_ITEM_UNAVAILABLE")
+            learner_item = await self._diagnostic_items.get_learner_visible(
+                item_id=UUID(need.assessment_item_ref.entity_id),
+                version=str(need.assessment_item_ref.version),
+                need_id=need.need_id,
+                need_version=need.version,
+            )
+            if learner_item is None:
+                raise BookLearningApplicationError("DIAGNOSTIC_ITEM_UNAVAILABLE")
+            values["learner_item"] = learner_item
+        return self._operation("GetCurrentDiagnosticState", correlation_id, **values)
 
     async def get_plan(
         self, *, user: User, goal_id: UUID, correlation_id: UUID
@@ -177,7 +194,9 @@ class BookLearningApplication:
     ) -> BookLearningOperationResponseV1:
         existing = await self._goal_repo.find_goal_by_idempotency(idempotency_key)
         if existing is not None:
-            if existing.user_id != UUID(user.id) or existing.source_document_ids != (document_id,):
+            if existing.user_id != canonical_user_id(user.id) or existing.source_document_ids != (
+                document_id,
+            ):
                 raise BookLearningApplicationError("GOAL_IDEMPOTENCY_SCOPE_CONFLICT")
             return self._operation("CreateGoalCandidate", correlation_id, goal=existing)
         readiness = await self.readiness(
@@ -338,7 +357,7 @@ class BookLearningApplication:
         if existing is not None:
             expected_plan_ref = f"learning_plan:{plan.plan_id}:v{plan.version}"
             if (
-                existing.context.user_id != UUID(user.id)
+                existing.context.user_id != canonical_user_id(user.id)
                 or existing.context.goal_id != goal.goal_id
                 or existing.aggregate_id != str(activity.activity_id)
                 or existing.payload.get("plan_ref") != expected_plan_ref
@@ -531,7 +550,7 @@ class BookLearningApplication:
             causation_id=teaching_action.decision_id,
             actor=EventActor(actor_type="system", actor_id="SYS08"),
             context=EventContext(
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 session_id=session_id,
                 goal_id=goal.goal_id,
                 knowledge_unit_ids=list(activity.knowledge_unit_ids),
@@ -553,7 +572,9 @@ class BookLearningApplication:
         )
 
     async def _require_goal(self, user: User, goal_id: UUID) -> LearningGoalV1:
-        goal = await self._goal_repo.latest_goal(goal_id=goal_id, user_id=UUID(user.id))
+        goal = await self._goal_repo.latest_goal(
+            goal_id=goal_id, user_id=canonical_user_id(user.id)
+        )
         if goal is None:
             raise BookLearningApplicationError("LEARNING_GOAL_NOT_FOUND")
         return goal
@@ -625,9 +646,10 @@ class BookLearningApplication:
         if existing is not None:
             return TeachingContextV03.model_validate(existing.payload)
         estimates = await self._learner_repo.list_latest_mastery(
-            user_id=UUID(user.id), knowledge_unit_ids=tuple(activity.knowledge_unit_ids)
+            user_id=canonical_user_id(user.id),
+            knowledge_unit_ids=tuple(activity.knowledge_unit_ids),
         )
-        state = await self._learner_repo.latest_learner_state(UUID(user.id))
+        state = await self._learner_repo.latest_learner_state(canonical_user_id(user.id))
         refs = [
             VersionedRef(
                 entity_type="LearningGoal", entity_id=str(goal.goal_id), version=goal.version
@@ -770,7 +792,17 @@ class BookLearningApplication:
                 for item in value:
                     append_value(item)
                 return
-            if isinstance(value, LearningGoalV1):
+            if isinstance(value, LearnerVisibleDiagnosticItemV1):
+                refs.append(
+                    cls._owner_ref(
+                        "SYS04",
+                        "AssessmentItem",
+                        UUID(value.item_ref.entity_id),
+                        value.item_ref.version,
+                        "learner_visible",
+                    )
+                )
+            elif isinstance(value, LearningGoalV1):
                 refs.append(
                     cls._owner_ref(
                         "SYS06", "LearningGoal", value.goal_id, value.version, value.status
@@ -890,7 +922,7 @@ class BookLearningApplication:
             correlation_id=correlation_id,
             actor=EventActor(actor_type="learner", actor_id=user.id),
             context=EventContext(
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 goal_id=goal.goal_id,
                 knowledge_unit_ids=activity.knowledge_unit_ids,
                 content_revision_ids=[],

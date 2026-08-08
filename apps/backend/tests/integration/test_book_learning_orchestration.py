@@ -20,6 +20,7 @@ from app.models.assessment import AssessmentItem
 from app.models.document import ModerationStatus, ProcessingStatus
 from app.models.ledger import LearningEventRecord
 from app.models.user import User, UserRole, UserStatus
+from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.document_service import DocumentService
 from app.services.policy_runtime import default_policy_activation, default_policy_bundle
 from app.services.storage.local_storage import LocalFileStorage
@@ -38,9 +39,9 @@ async def book_learning_db(tmp_path):
     await engine.dispose()
 
 
-async def _processed_book(db, tmp_path: Path, suffix: str):
+async def _processed_book(db, tmp_path: Path, suffix: str, *, user_id: str | None = None):
     user = User(
-        id=str(uuid4()),
+        id=user_id or str(uuid4()),
         pseudonym_id=f"exec023-{suffix}",
         role=UserRole.USER,
         status=UserStatus.ACTIVE,
@@ -69,6 +70,33 @@ async def _processed_book(db, tmp_path: Path, suffix: str):
         if item["status"] == "published"
     }
     return user, document, units
+
+
+@pytest.mark.asyncio
+async def test_exec025_legacy_local_user_id_uses_stable_canonical_owner(
+    book_learning_db,
+) -> None:
+    db, tmp_path = book_learning_db
+    user, document, _units = await _processed_book(
+        db, tmp_path, "legacy-user", user_id="test-user-001"
+    )
+    application = BookLearningApplication(db)
+
+    readiness = await application.readiness(
+        user=user, document_id=UUID(document.id), correlation_id="legacy-user"
+    )
+    assert readiness.state == "READY_FOR_GOAL"
+
+    created = await application.create_goal_candidate(
+        user=user,
+        document_id=UUID(document.id),
+        intent="能够解释这份资料中的核心概念",
+        idempotency_key="legacy-user:goal:create",
+        correlation_id=uuid4(),
+    )
+
+    assert UUID(created.payload["goal"]["user_id"]) == canonical_user_id("test-user-001")
+    assert user.id == "test-user-001"
 
 
 def _independent() -> AssistanceSnapshot:
@@ -202,6 +230,19 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         correlation_id=uuid4(),
         now=NOW,
     )
+    diagnostic_view = await app.get_diagnostic(
+        user=user,
+        goal_id=goal_id,
+        correlation_id=uuid4(),
+    )
+    learner_item = diagnostic_view.payload["learner_item"]
+    assert learner_item["prompt"] == "Type fractions"
+    assert learner_item["item_type"] == "exact"
+    assert not {"answer_key", "correct_answer", "rubric", "explanation"} & learner_item.keys()
+    assert any(
+        item.owner_system == "SYS04" and item.ref.entity_type == "AssessmentItem"
+        for item in diagnostic_view.owner_refs
+    )
     assert (
         await app.readiness(user=user, document_id=UUID(document.id), correlation_id="diagnosing")
     ).state == "DIAGNOSING"
@@ -263,9 +304,14 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         now=NOW,
     )
     assert duplicate_selected.payload["activity"] == activity
-    assert (
-        await app.readiness(user=user, document_id=UUID(document.id), correlation_id="ready")
-    ).state == "READY_TO_LEARN"
+    ready = await app.readiness(user=user, document_id=UUID(document.id), correlation_id="ready")
+    assert ready.state == "READY_TO_LEARN"
+    assert any(
+        item.ref.entity_type == "LearningActivity"
+        and item.ref.entity_id == str(activity["activity_id"])
+        and item.status == "selected"
+        for item in ready.owner_refs
+    )
 
     teaching_session_id = uuid4()
     teaching = await app.start_teaching_round(
@@ -366,6 +412,8 @@ async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
                 json=body,
                 headers=headers,
             )
+            goal_id = created.json()["payload"]["goal"]["goal_id"]
+            goal_view = await client.get(f"/api/v1/book-learning/goals/{goal_id}", headers=headers)
             del fastapi_app.dependency_overrides[get_current_user]
             unauthenticated = await client.get(f"/api/v1/book-learning/{document.id}/readiness")
         assert readiness.status_code == 200, readiness.text
@@ -373,6 +421,8 @@ async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
         assert readiness.json()["correlation_id"] == str(correlation_id)
         assert created.status_code == 200, created.text
         assert duplicate.status_code == 200, duplicate.text
+        assert goal_view.status_code == 200, goal_view.text
+        assert goal_view.headers["cache-control"] == "private, no-store"
         assert created.json()["payload"]["goal"] == duplicate.json()["payload"]["goal"]
         assert created.json()["correlation_id"] == str(correlation_id)
         assert unauthenticated.status_code == 401

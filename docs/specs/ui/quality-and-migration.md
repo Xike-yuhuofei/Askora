@@ -80,6 +80,19 @@ UI-02A: /library + durable document processing + scoped knowledge map + SourceSp
 
 该拆分不改变 UI-MIG-011 最终总范围；UI-02A 不得以 deferred Goals/Path/Evidence 数据伪造 UI-02 umbrella DONE。
 
+### UI-MIG-015 — Approved UI-02B1 Launch Slice
+
+用户于 2026-08-08 授权在 UI-02A 与完整 UI-02B 之间增加独立 bounded Slice：
+
+```text
+UI-02A DONE
+→ UI-02B1: single-document material-to-learning launch
+→ UI-02B1 DONE
+→ UI-02B: /goals + /path + /evidence
+```
+
+UI-02B1 只复用 Book-to-Learning façade 闭合 Goal/diagnostic/plan/teaching launch，不改变 UI-MIG-011 的完整 UI-02B 范围，也不冻结 durable activity/session link。
+
 ### UI-MIG-012 — UI-03 Focus and Adaptive Presentation Polish
 
 范围：

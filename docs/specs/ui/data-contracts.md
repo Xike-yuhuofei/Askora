@@ -67,9 +67,9 @@ observed_at: datetime|null
 
 这些 endpoint MUST 由 application/query layer 调用 owner query ports；API handler 只做 auth、validation、serialization 与 error mapping。
 
-### UI-DATA-012 — Commands Remain Out of Scope
+### UI-DATA-012 — Commands Remain Out of Scope Except Frozen Additive Slices
 
-本 Spec Set 不新增：
+本基础 Spec Set 不新增：
 
 ```text
 Create/Confirm/Pause/Resume LearningGoal
@@ -80,7 +80,7 @@ SetTeachingAction / SetHintLevel
 StartLearningActivity canonical command
 ```
 
-现有 dialog/document/auth commands 可继续使用。未来新增 goal/activity command 时必须单独冻结公共 schema、idempotency、version conflict 与 ownership contract。
+现有 dialog/document/auth commands 可继续使用。UI-02B1 通过独立冻结 Slice 复用 SPEC-D06 已实现的单资料 Goal/diagnostic/plan/activity/teaching commands，并冻结 learner-visible diagnostic payload；这不授权完整 Goal/Plan 编辑或 durable activity/session link。未来其他 goal/activity command 仍必须单独冻结公共 schema、idempotency、version conflict 与 ownership contract。
 
 ## 3. Common Response Envelope
 

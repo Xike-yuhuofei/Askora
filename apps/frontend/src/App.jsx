@@ -7,6 +7,7 @@ import Today from './pages/Today'
 import TutorWorkspace from './pages/TutorWorkspace'
 import History from './pages/History'
 import Library from './pages/Library'
+import BookLearningLaunch from './pages/BookLearningLaunch'
 import Settings from './pages/Settings'
 import Unavailable from './pages/Unavailable'
 import { Navigate, useLocation } from './router'
@@ -63,6 +64,14 @@ export function resolveRoute(pathname) {
       shell: 'workspace',
     }
   }
+  const bookLearningMatch = pathname.match(/^\/book-learning\/([^/]+)$/)
+  if (bookLearningMatch) {
+    return {
+      type: 'book-learning',
+      documentId: decodeRouteParam(bookLearningMatch[1]),
+      shell: 'standard',
+    }
+  }
   return { type: 'not-found', shell: 'standard' }
 }
 
@@ -76,6 +85,7 @@ function AppRoutes() {
   let content
   if (route.type === 'page') content = <route.Page />
   else if (route.type === 'workspace') content = <TutorWorkspace sessionId={route.sessionId} />
+  else if (route.type === 'book-learning') content = <BookLearningLaunch documentId={route.documentId} />
   else if (route.type === 'activity-unavailable') {
     content = <Unavailable kind="activity" resourceId={route.activityId} />
   } else if (route.type === 'unavailable') content = <Unavailable kind={route.kind} />

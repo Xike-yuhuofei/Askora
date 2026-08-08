@@ -47,6 +47,7 @@ from app.services.assessment.canonical_service import (
     CanonicalAssessmentService,
     ScoredAssessmentRecord,
 )
+from app.services.auth.canonical_identity import canonical_user_id
 
 
 @dataclass(frozen=True)
@@ -122,13 +123,13 @@ class PrerequisiteDiagnosticService:
         )
         knowledge_ids = self._knowledge_ids(subgraph)
         state, estimates = await self._learner.current_state(
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             knowledge_unit_ids=knowledge_ids,
             created_at=created_at,
         )
         mastery = {item.knowledge_unit_id: item for item in estimates}
         need = self._diagnostic_planner.build_need(
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             goal_mapping_ref=VersionedRef(
                 entity_type="goal_knowledge_mapping",
                 entity_id=str(mapping.mapping_id),
@@ -151,10 +152,12 @@ class PrerequisiteDiagnosticService:
             version=1,
             created_at=created_at,
         )
-        prior_need = await self._need_repo.latest(need_id=need.need_id, user_id=UUID(user.id))
+        prior_need = await self._need_repo.latest(
+            need_id=need.need_id, user_id=canonical_user_id(user.id)
+        )
         if prior_need is not None:
             need = self._diagnostic_planner.build_need(
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 goal_mapping_ref=need.goal_mapping_ref,
                 goal_subgraph_ref=need.goal_subgraph_ref,
                 target_knowledge_unit_id=target_knowledge_unit_id,
@@ -207,7 +210,7 @@ class PrerequisiteDiagnosticService:
         correlation_id: UUID,
         submitted_at: datetime,
     ) -> DiagnosticBootstrapResult:
-        prior = await self._need_repo.latest(need_id=need_id, user_id=UUID(user.id))
+        prior = await self._need_repo.latest(need_id=need_id, user_id=canonical_user_id(user.id))
         if prior is None:
             raise ValueError("DIAGNOSTIC_NEED_NOT_FOUND")
         existing = await self._need_repo.find_by_idempotency(f"response:{idempotency_key}")
@@ -228,7 +231,7 @@ class PrerequisiteDiagnosticService:
         if item is None:
             return await self._stop_without_learner_evidence(
                 prior=prior,
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 reason="NO_VALID_ASSESSMENT_ITEM",
                 reason_code="DIAGNOSTIC_ITEM_INVALID",
                 idempotency_key=f"response:{idempotency_key}",
@@ -237,7 +240,7 @@ class PrerequisiteDiagnosticService:
             )
 
         _before_state, before_estimates = await self._learner.current_state(
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             knowledge_unit_ids=tuple(
                 sorted(
                     set(prior.prerequisite_knowledge_unit_ids) | {prior.target_knowledge_unit_id},
@@ -249,7 +252,7 @@ class PrerequisiteDiagnosticService:
         try:
             scored = await self._assessment.score_submission_with_attempt(
                 item=item,
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 response=response,
                 assistance=assistance,
                 idempotency_key=idempotency_key,
@@ -258,7 +261,7 @@ class PrerequisiteDiagnosticService:
         except ScoringUnavailableError:
             return await self._stop_without_learner_evidence(
                 prior=prior,
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 reason="SYSTEM_BLOCKED",
                 reason_code="ASSESSMENT_SYSTEM_FAILURE",
                 idempotency_key=f"response:{idempotency_key}",
@@ -268,7 +271,7 @@ class PrerequisiteDiagnosticService:
         except ValueError:
             return await self._stop_without_learner_evidence(
                 prior=prior,
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 reason="NO_VALID_ASSESSMENT_ITEM",
                 reason_code="DIAGNOSTIC_ITEM_INVALID",
                 idempotency_key=f"response:{idempotency_key}",
@@ -331,7 +334,7 @@ class PrerequisiteDiagnosticService:
             del mapping, goal
             mastery = {item.knowledge_unit_id: item for item in after_estimates}
             next_need = self._diagnostic_planner.build_need(
-                user_id=UUID(user.id),
+                user_id=canonical_user_id(user.id),
                 goal_mapping_ref=prior.goal_mapping_ref,
                 goal_subgraph_ref=prior.goal_subgraph_ref,
                 target_knowledge_unit_id=prior.target_knowledge_unit_id,
@@ -396,12 +399,12 @@ class PrerequisiteDiagnosticService:
         need = await self._need_repo.get(
             need_id=need_id,
             version=version,
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
         )
         if need is None:
             raise ValueError("DIAGNOSTIC_NEED_NOT_FOUND")
         state = await self._learner.get_state(
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             version=need.created_from_learner_state_version,
         )
         if state is None:
@@ -417,7 +420,7 @@ class PrerequisiteDiagnosticService:
         created_at: datetime,
     ) -> DiagnosticBootstrapResult:
         """Ask the existing SYS06 planner to materialize or replay the current plan."""
-        need = await self._need_repo.latest(need_id=need_id, user_id=UUID(user.id))
+        need = await self._need_repo.latest(need_id=need_id, user_id=canonical_user_id(user.id))
         if need is None:
             raise ValueError("DIAGNOSTIC_NEED_NOT_FOUND")
         if need.status not in {"resolved", "stopped"} or need.stop_reason not in {
@@ -430,7 +433,7 @@ class PrerequisiteDiagnosticService:
         mapping, subgraph, goal, edges = await self._reload_need_inputs(user=user, need=need)
         knowledge_ids = self._knowledge_ids(subgraph)
         state, estimates = await self._learner.current_state(
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             knowledge_unit_ids=knowledge_ids,
             created_at=created_at,
         )
@@ -499,7 +502,7 @@ class PrerequisiteDiagnosticService:
         goal = await self._goal_repo.get_goal_version(
             goal_id=mapping.goal_id,
             version=mapping.goal_version,
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
         )
         if goal is None:
             raise ValueError("LEARNING_GOAL_NOT_FOUND")
@@ -541,7 +544,7 @@ class PrerequisiteDiagnosticService:
         goal = await self._goal_repo.get_goal_version(
             goal_id=mapping.goal_id,
             version=mapping.goal_version,
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
         )
         if goal is None:
             raise ValueError("LEARNING_GOAL_NOT_FOUND")
