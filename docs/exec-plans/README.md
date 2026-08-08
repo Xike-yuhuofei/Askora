@@ -1,6 +1,7 @@
 # Askora Execution Plans
 
-> 状态：当前无 active EXEC
+> 状态：Book-to-Learning Bootstrap Active
+> Active：EXEC-017～EXEC-024
 > 已完成：EXEC-001～EXEC-016
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -18,7 +19,7 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | 空 | 新任务必须先具备冻结 Spec/Vertical Slice 与明确授权 |
+| `active/` | EXEC-017～024 READY | 必须按依赖 gate 执行；后序 READY 不代表可跳过前序 |
 | [`completed/`](completed/README.md) | EXEC-001～016 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
@@ -32,6 +33,7 @@ Accepted ADR / Canonical Design
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
+| Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | READY / NOT IMPLEMENTED |
 
 v0.3 最终状态：
 
@@ -43,7 +45,51 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 
 这表示实现与 policy correctness 达到当次冻结要求，不表示 Adaptive Teaching Loop 已被证明改善真人学习效果。
 
-## 3. 新 EXEC 要求
+## 3. Active Book-to-Learning EXEC
+
+| EXEC | Contract | Depends on | Status |
+|---|---|---|---|
+| EXEC-017 | [Structure-Preserving EPUB Ingestion & Source Replay](active/EXEC-017-structure-preserving-epub-ingestion.md) | EXEC-016 DONE | READY |
+| EXEC-018 | [Multi-Granularity Content Model & Rebuildable Projections](active/EXEC-018-multi-granularity-content-projections.md) | EXEC-017 DONE | READY |
+| EXEC-019 | [Canonical Knowledge Verification & Publication](active/EXEC-019-knowledge-verification-publication.md) | EXEC-018 DONE | READY |
+| EXEC-020 | [Published Knowledge → Retrieval Projection & SYS02 Binding](active/EXEC-020-retrieval-projection-sys02-binding.md) | EXEC-019 DONE | READY |
+| EXEC-021 | [LearningGoal Formation & Goal-to-Knowledge Mapping](active/EXEC-021-learning-goal-knowledge-mapping.md) | EXEC-019 DONE | READY |
+| EXEC-022 | [Prerequisite Diagnostic Bootstrap & LearningPlan Handoff](active/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md) | EXEC-021 DONE | READY |
+| EXEC-023 | [Book-to-Adaptive Orchestration, Readiness & Additive API](active/EXEC-023-book-learning-orchestration-api.md) | EXEC-020 + EXEC-022 DONE | READY |
+| EXEC-024 | [Book-to-Learning E2E, Replay, Security & Release Gate](active/EXEC-024-book-to-learning-e2e-release-gate.md) | EXEC-023 DONE | READY |
+
+Dependency graph：
+
+```text
+EXEC-016 DONE
+    ↓
+EXEC-017
+    ↓
+EXEC-018
+    ↓
+EXEC-019
+   ├────────→ EXEC-020 ────────┐
+   └────────→ EXEC-021 → EXEC-022
+                               │
+EXEC-020 ──────────────────────┤
+                               ↓
+                           EXEC-023
+                               ↓
+                           EXEC-024
+```
+
+EXEC-020 与 EXEC-021 只有在 EXEC-019 DONE 后才可并行；其余默认按 dependency gate 串行。Codex MUST NOT 因所有文件都位于 `active/` 就跳过依赖。
+
+## 4. Active Queue Contract
+
+- 当前最大 completed 编号为 EXEC-016，因此本轮从 EXEC-017 连续编号，符合 SPEC-D06 编号治理。
+- EXEC-017～024 只实现 SPEC-D01～D06；不得重新设计 v0.3 Adaptive Teaching Loop。
+- 每个 EXEC 完成后必须先满足自身 Acceptance Criteria / Required Tests / DoD，再归档到 `completed/`。
+- 后序 EXEC 在依赖未 DONE 时应报告 `BLOCKED_BY_DEPENDENCY`，不得越序实现。
+- 遇到公共语义、owner、schema、生产依赖等未冻结选择，按 `AGENTS.md` 报告 `BLOCKED_BY_SPEC_GAP`。
+- Active EXEC 的文档生命周期由本索引治理；归档后进入 `completed/README.md` 与 release evidence 历史清单。
+
+## 5. 新 EXEC 要求
 
 每份新 EXEC 必须包含：Objective、Dependencies、Required Specs、Current Reality、Allowed Files、Forbidden Changes、Implementation Tasks、Acceptance Criteria、Required Tests 和 Completion Report Format。
 

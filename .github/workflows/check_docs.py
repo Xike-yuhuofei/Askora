@@ -87,6 +87,40 @@ def check_links(files: list[Path]) -> list[str]:
     return errors
 
 
+def active_exec_files() -> list[Path]:
+    active = ROOT / "docs/exec-plans/active"
+    if not active.exists():
+        return []
+    return sorted(path for path in active.glob("EXEC-*.md") if path.is_file())
+
+
+def check_active_exec_index() -> list[str]:
+    active_files = active_exec_files()
+    if not active_files:
+        return []
+
+    index = ROOT / "docs/exec-plans/README.md"
+    content = index.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    for path in active_files:
+        relative_target = f"active/{path.name}"
+        if relative_target not in content:
+            errors.append(
+                f"docs/exec-plans/active: {path.name} is active but missing from docs/exec-plans/README.md"
+            )
+
+    exec_numbers = []
+    for path in active_files:
+        match = re.match(r"EXEC-(\d+)-", path.name)
+        if match:
+            exec_numbers.append(int(match.group(1)))
+    if len(exec_numbers) != len(set(exec_numbers)):
+        errors.append("docs/exec-plans/active: duplicate EXEC number detected")
+
+    return errors
+
+
 def check_stale_claims() -> list[str]:
     errors: list[str] = []
     for name, patterns in STALE_PATTERNS.items():
@@ -95,10 +129,7 @@ def check_stale_claims() -> list[str]:
         for pattern in patterns:
             if pattern in content:
                 errors.append(f"{name}: stale project-state claim remains: {pattern}")
-
-    active = ROOT / "docs/exec-plans/active"
-    if active.exists() and any(active.glob("*.md")):
-        errors.append("docs/exec-plans/active: active EXEC files require index review")
+    errors.extend(check_active_exec_index())
     return errors
 
 
@@ -106,9 +137,20 @@ def check_inventory(files: list[Path]) -> list[str]:
     inventory = ROOT / "docs/document-inventory.md"
     listed = set(INVENTORY_ROW.findall(inventory.read_text(encoding="utf-8")))
     actual = {str(path.relative_to(ROOT)) for path in files}
+
+    # Active EXEC contracts are transient execution-state documents. Their lifecycle
+    # is governed by docs/exec-plans/README.md while active, then each file becomes
+    # explicitly inventoried when archived under completed/.
+    exec_index = (ROOT / "docs/exec-plans/README.md").read_text(encoding="utf-8")
+    active_indexed = {
+        str(path.relative_to(ROOT))
+        for path in active_exec_files()
+        if f"active/{path.name}" in exec_index
+    }
+
     return [
         f"docs/document-inventory.md: missing disposition for {name}"
-        for name in sorted(actual - listed)
+        for name in sorted(actual - listed - active_indexed)
     ]
 
 
