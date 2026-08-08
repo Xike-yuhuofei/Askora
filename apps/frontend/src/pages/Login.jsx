@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '../router'
-import { BookOpen, UserPlus, ShieldCheck } from 'lucide-react'
+import { BookOpen, User, UserPlus, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import './Login.css'
 
@@ -40,7 +40,7 @@ export default function Login() {
     try {
       if (mode === 'login') {
         await login(normalizedPhone, password)
-        navigate('/')
+        navigate('/today')
       } else {
         if (password !== confirmPassword) {
           setError('两次输入的密码不一致')
@@ -84,8 +84,11 @@ export default function Login() {
           <p>AI 个性化学习伙伴 · 让思考成为一种习惯</p>
         </div>
 
-        <div className="login-tabs">
+        <div className="login-tabs" role="tablist" aria-label="账号操作">
           <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'login'}
             className={mode === 'login' ? 'tab active' : 'tab'}
             onClick={() => switchMode('login')}
           >
@@ -93,6 +96,9 @@ export default function Login() {
             登录
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'register'}
             className={mode === 'register' ? 'tab active' : 'tab'}
             onClick={() => switchMode('register')}
           >

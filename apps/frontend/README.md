@@ -24,15 +24,24 @@ npm run dev
 
 默认页面是 `http://127.0.0.1:5173`，默认 API 是 `http://127.0.0.1:8000/api/v1`。
 
+UI-01 当前 canonical routes：
+
+- `/today`：Today Workspace 只读聚合与兼容快速学习入口；
+- `/quick/:sessionId`：明确标记的兼容导师工作台；
+- `/learn/:activityId`：在 canonical activity/session link 缺失时保持不可启动；
+- `/history`、`/settings`：历史与本地运行/退出边界；
+- `/goals`、`/path`、`/library`、`/evidence`：UI-02 前的诚实不可用页面。
+
 ## 验证
 
 ```bash
 npm ci
+npm test -- --run
 npm run build
 npm audit --audit-level=high
 ```
 
-项目当前没有独立的前端 lint/test script；不能把 `npm run build` 描述为完整的前端行为测试。
+Vitest 覆盖路由、认证边界、Today 状态、兼容工作台、History、Settings 与 responsive drawer 键盘焦点；`npm run build` 仍只表示生产构建通过，不能替代行为与真实页面验收。
 
 ## Electron 开发与打包
 
@@ -54,5 +63,7 @@ npm run electron:build:mac:with-backend
 
 - 登录、刷新和登出使用 `/api/v1/auth`；
 - 对话通过 `/api/v1/dialog` 和 WebSocket transport 进入后端 canonical facade；
+- Today 通过 `/api/v1/workspace/today` 聚合 owner-published 只读状态；
 - 前端展示的 mastery/progress 必须使用后端返回的来源标记，不得自行推导 canonical learner state；
+- compatibility session 不等于 LearningActivity，不得混用 session/activity identity；
 - 演示或开发认证只能在后端明确授权的本地开发配置下使用，不能把前端 fallback 当成认证成功。

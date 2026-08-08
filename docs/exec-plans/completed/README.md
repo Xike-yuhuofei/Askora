@@ -3,7 +3,8 @@
 > v0.2 收口日期：2026-08-07
 > v0.3 收口日期：2026-08-07
 > v0.3.1 收口日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 FROZEN BASELINES
+> UI-01 收口日期：2026-08-08
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 FROZEN BASELINES
 
 ## Completion Matrix
 
@@ -23,6 +24,7 @@
 | EXEC-012 — Outcome / Experiment / OPVE Foundation | DONE | `71d05a2` |
 | EXEC-013 — v0.3 E2E / Release Gate | DONE | `530322e` |
 | EXEC-014 — Rich Response Rendering | DONE | local implementation (not committed) |
+| EXEC-015 — UI-01 Learning Shell and Compatibility Tutor Workspace | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 
@@ -71,6 +73,16 @@ result: success
 ```
 
 详细 DoD/AC、测试、迁移、恢复、安全、OPVE 和 evidence boundary 见：`docs/releases/v0.3-adaptive-teaching-loop.md`。
+
+## UI-01 Release Gates
+
+```text
+Engineering Gate: PASS
+Policy Correctness / Ownership Regression Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+UI-01 交付 learning-loop-first Shell、Today Workspace Query、明确标记的兼容导师工作台、History 与 Settings；未实现或伪造 canonical Goal/Plan/Activity link。详细证据见 `docs/releases/ui-01-learning-shell-workspace.md`。
 
 ## Historical Contract Rule
 

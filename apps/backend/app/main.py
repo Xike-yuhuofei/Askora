@@ -23,6 +23,7 @@ from app.api.v1 import (
     documents_router,
     orchestrator_router,
     users_router,
+    workspace_router,
     ws_router,
 )
 from app.core.config import settings
@@ -260,6 +261,7 @@ app.include_router(dialog_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
+app.include_router(workspace_router, prefix="/api/v1")
 
 # Orchestrator TEI v1 调试端点
 if settings.enable_orchestrator_debug_api:

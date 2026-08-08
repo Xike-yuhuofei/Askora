@@ -41,6 +41,7 @@
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
 | `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
+| `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
 
 ## 3. Canonical Design 与 Research
 
@@ -108,12 +109,19 @@
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN | v0.2 frozen baseline；已补充生命周期 |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CURRENT-UPDATED | 冻结合同；已更新 EXEC 完成状态 |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN | v0.3.1 additive presentation slice |
+| `docs/specs/ui/README.md` | CANONICAL-RETAIN | 已批准冻结的 UI 重设计合同入口 |
+| `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN | 导航、路由与页面层级合同 |
+| `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN | 页面状态与交互合同 |
+| `docs/specs/ui/data-contracts.md` | CANONICAL-RETAIN | 只读查询接口与来源语义合同 |
+| `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN | 视觉系统与无障碍合同 |
+| `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN | 三阶段执行、质量门禁与迁移合同 |
+| `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | 删除失实 active 状态 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | 当前无 active EXEC；EXEC-001～015 已完成 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵和 EXEC-013 commit 校准 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -129,6 +137,7 @@
 | `docs/exec-plans/completed/EXEC-012-outcome-experiment-opve-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-013-v0.3-e2e-release-gate.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-014-rich-response-rendering.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-015-ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 不可变任务合同 |
 
 ## 6. 后续维护规则
 

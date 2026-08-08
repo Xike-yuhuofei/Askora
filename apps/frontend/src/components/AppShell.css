@@ -1,0 +1,22 @@
+.app-shell {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+.app-main {
+  min-height: 100vh;
+  margin-left: var(--nav-width);
+  padding: 32px clamp(24px, 4vw, 56px);
+}
+
+.app-main--workspace {
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .app-main,
+  .app-main--workspace {
+    margin-left: 0;
+    padding: 72px 16px 20px;
+  }
+}

@@ -88,6 +88,15 @@ from app.contracts.v03_migration import (
     MigrationProjection,
     upcast_v03_compatibility,
 )
+from app.contracts.workspace import (
+    CompatibilityQuickStartV1,
+    CompatibilitySessionSummaryV1,
+    ReviewDueCandidateViewV1,
+    TodayWorkspaceDataV1,
+    TodayWorkspaceResponseV1,
+    WorkspaceSourceStatusV1,
+    WorkspaceSourceSystem,
+)
 
 __all__ = [
     "ActionModifier",
@@ -169,4 +178,11 @@ __all__ = [
     "VersionedRef",
     "markdown_render_payload",
     "upcast_v03_compatibility",
+    "CompatibilityQuickStartV1",
+    "CompatibilitySessionSummaryV1",
+    "ReviewDueCandidateViewV1",
+    "TodayWorkspaceDataV1",
+    "TodayWorkspaceResponseV1",
+    "WorkspaceSourceStatusV1",
+    "WorkspaceSourceSystem",
 ]

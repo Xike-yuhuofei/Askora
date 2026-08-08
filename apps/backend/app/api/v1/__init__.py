@@ -7,6 +7,7 @@ from app.api.v1.dialog import router as dialog_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.users import router as users_router
+from app.api.v1.workspace import router as workspace_router
 from app.api.v1.ws import router as ws_router
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "orchestrator_router",
     "documents_router",
     "ws_router",
+    "workspace_router",
 ]

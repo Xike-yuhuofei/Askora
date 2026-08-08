@@ -1,0 +1,66 @@
+.history-page {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.history-surface {
+  padding-bottom: 8px;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-list li {
+  border-top: 1px solid var(--border);
+}
+
+.history-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.history-list button:hover {
+  color: var(--brand-primary);
+}
+
+.history-list__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-list__main strong,
+.history-list__main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-list__main small {
+  color: var(--text-muted);
+}
+
+.history-list__end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .history-list__end .status-pill {
+    display: none;
+  }
+}

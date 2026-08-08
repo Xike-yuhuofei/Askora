@@ -64,9 +64,19 @@ Research Synthesis
 
 ### Vertical Slices
 
+- [UI-01 Learning Shell and Compatibility Tutor Workspace](vertical-slices/ui-01-learning-shell-workspace.md) — frozen UI implementation slice；EXEC-015 已完成
 - [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
 - [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
+
+### UI Experience（Frozen）
+
+- [UI Redesign Spec Index](ui/README.md) — 学习闭环优先的 UI 重设计 Canonical Contract
+- [Information Architecture](ui/information-architecture.md) — 导航、路由、页面层级与响应式信息架构
+- [Screen Contracts](ui/screen-contracts.md) — 页面状态、内容优先级、交互边界与验收条件
+- [Data Contracts](ui/data-contracts.md) — 只读 Query/API、来源标记与系统所有权边界
+- [Visual System](ui/visual-system.md) — macOS-first 视觉语言、tokens、组件与无障碍约束
+- [Quality and Migration](ui/quality-and-migration.md) — 三阶段执行、测试门禁、迁移与延后决策登记
 
 ## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
 

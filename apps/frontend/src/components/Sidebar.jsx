@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from '../router'
+import { NavLink } from '../router'
 import {
-  MessageSquare,
+  CalendarDays,
+  ChartNoAxesCombined,
   BookOpen,
-  User,
+  FolderOpen,
+  History,
+  Route,
+  Settings,
   Shield,
-  LogOut,
-  GraduationCap,
+  Target,
   Menu,
   X,
 } from 'lucide-react'
@@ -14,40 +17,56 @@ import { useAuth } from '../hooks/useAuth'
 import './Sidebar.css'
 
 const navItems = [
-  { path: '/', label: '对话学习', icon: MessageSquare },
-  { path: '/knowledge', label: '知识点', icon: BookOpen },
-  { path: '/profile', label: '学习画像', icon: GraduationCap },
-  { path: '/account', label: '账号管理', icon: User },
+  { path: '/today', label: '今天', icon: CalendarDays },
+  { path: '/goals', label: '学习目标', icon: Target },
+  { path: '/path', label: '学习路径', icon: Route },
+  { path: '/library', label: '资料库', icon: FolderOpen },
+  { path: '/evidence', label: '学习证据', icon: ChartNoAxesCombined },
+  { path: '/history', label: '历史记录', icon: History },
+  { path: '/settings', label: '设置', icon: Settings },
 ]
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const menuButtonRef = useRef(null)
+  const sidebarRef = useRef(null)
   const firstLinkRef = useRef(null)
 
   useEffect(() => {
     if (!open) return undefined
 
     const focusTimer = window.setTimeout(() => firstLinkRef.current?.focus(), 50)
-    const closeOnEscape = (event) => {
+    const handleDrawerKeys = (event) => {
       if (event.key === 'Escape') {
         setOpen(false)
         menuButtonRef.current?.focus()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const drawerFocusables = Array.from(
+        sidebarRef.current?.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') || [],
+      )
+      const focusables = [menuButtonRef.current, ...drawerFocusables].filter(Boolean)
+      if (!focusables.length) return
+
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
       }
     }
-    document.addEventListener('keydown', closeOnEscape)
+    document.addEventListener('keydown', handleDrawerKeys)
     return () => {
       window.clearTimeout(focusTimer)
-      document.removeEventListener('keydown', closeOnEscape)
+      document.removeEventListener('keydown', handleDrawerKeys)
     }
   }, [open])
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
 
   return (
     <>
@@ -70,7 +89,14 @@ export default function Sidebar() {
           onClick={() => setOpen(false)}
         />
       )}
-      <aside id="primary-sidebar" className={`sidebar ${open ? 'open' : ''}`}>
+      <aside
+        id="primary-sidebar"
+        ref={sidebarRef}
+        className={`sidebar ${open ? 'open' : ''}`}
+        role={open ? 'dialog' : undefined}
+        aria-modal={open ? 'true' : undefined}
+        aria-label={open ? '主导航' : undefined}
+      >
       <div className="sidebar-logo">
         <div className="logo-icon">
           <BookOpen size={24} />
@@ -110,11 +136,6 @@ export default function Sidebar() {
             </div>
           </div>
         )}
-        <button className="logout-btn" onClick={handleLogout}>
-          <LogOut size={16} />
-          <span>退出登录</span>
-        </button>
-
         <div className="compliance-badge">
           <Shield size={12} />
           <span>私人本地应用</span>
