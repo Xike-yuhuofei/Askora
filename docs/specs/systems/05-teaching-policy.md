@@ -4,7 +4,7 @@
 > 对应设计：4.5 教学策略选择  
 > 状态：Canonical Implementation Contract  
 > 版本：v0.3  
-> ADR：ADR-0001、ADR-0002（Accepted）
+> ADR：ADR-0001、ADR-0002、ADR-0003（Accepted）
 
 ## 1. Responsibility
 
@@ -352,6 +352,24 @@ Publish MUST immutable；activation MUST atomic；每个 TeachingAction MUST pin
 
 禁止 PolicyBundle 承载 executable DSL、embedded Python、free-form runtime policy code、LLM-generated rules。
 
+### SYS05-304 — Production Profile Artifact
+
+生产 `PolicyRuntimeProfile` MUST 来自仓库管理的 immutable、versioned artifact；测试 fixture MUST NOT 成为 production config source。首个 production profile 采用 `ADR-0003` 批准的既有 EXEC-009 行为参数，但参数仍是 versioned policy heuristic，不是学习科学常数。
+
+Profile `content_digest` MUST 按以下唯一算法计算：移除顶层 `content_digest` 后，对完整 JSON 对象使用 UTF-8、key 升序、compact separators 的 canonical JSON，再计算 SHA-256 并编码为 `sha256:<lowercase hex>`。artifact 自带 digest、运行时重算 digest 与 exact PolicyBundle digest MUST 全部一致。
+
+### SYS05-305 — Active Runtime Resolution
+
+新 TeachingAction 的 production resolver MUST 从最新 atomic `PolicyBundleActivation` 解析 exact PolicyBundle，再解析与 manifest 各 component version 和 digest 完全匹配的 profile。activation 稳定顺序为 `activated_at DESC, activation_id DESC`。
+
+缺失 activation、bundle、profile artifact，或 digest/component version 不匹配时 MUST 作为 unsupported configuration fail closed；MUST NOT 回退到测试 fixture、代码常量、任意“最新”文件或 LLM 推断。
+
+### SYS05-306 — Bootstrap and Replay
+
+首个 production bundle/activation MUST 通过确定性、幂等 migration bootstrap。已有已发布 bundle/profile 不得原地修改；配置变化必须发布新 artifact、新 digest、新 bundle 并原子激活。
+
+历史 replay MUST 使用 TeachingAction/DecisionTrace 已 pin 的 exact bundle/profile；当前 active activation 只影响新 TeachingAction，MUST NOT 重解释历史 action。
+
 ## 13. DecisionTrace & Probability
 
 ### SYS05-310
@@ -430,7 +448,7 @@ Replay MUST 使用历史 exact refs；缺失 owner version、PolicyBundle 或 co
 
 ### SYS05-360
 
-测试 MUST 覆盖：six StrategyFamily only；InteractionMove/Modifier 分层；Productive Failure 不可选；Socratic 仅 bounded move；TeachingContext exact-version replay/missing semantics；hard rule 不被 score/LLM/experiment 覆盖；UNKNOWN diagnosis 保守；orthogonal support envelope；assisted/answer-exposed validation obligation；independent success fade；repeated failure exit/escalation；low-confidence conservatism；Material Evidence Gate、Sticky Continuity、Minimum Dwell、Hysteresis、Transition Priority；no illegal oscillation/no infinite loop；normalization versioning；deterministic tie-break；same context+bundle+assignment → same semantic action；`action_propensity=null`；legacy Socratic cannot own action；historical partial replay。
+测试 MUST 覆盖：six StrategyFamily only；InteractionMove/Modifier 分层；Productive Failure 不可选；Socratic 仅 bounded move；TeachingContext exact-version replay/missing semantics；hard rule 不被 score/LLM/experiment 覆盖；UNKNOWN diagnosis 保守；orthogonal support envelope；assisted/answer-exposed validation obligation；independent success fade；repeated failure exit/escalation；low-confidence conservatism；Material Evidence Gate、Sticky Continuity、Minimum Dwell、Hysteresis、Transition Priority；no illegal oscillation/no infinite loop；normalization versioning；deterministic tie-break；same context+bundle+assignment → same semantic action；`action_propensity=null`；production profile canonical digest；active activation exact resolution/fail-closed；bootstrap migration/replay pinning；legacy Socratic cannot own action；historical partial replay。
 
 ## 19. Acceptance Criteria
 
@@ -444,6 +462,8 @@ Replay MUST 使用历史 exact refs；缺失 owner version、PolicyBundle 或 co
 - `SYS05-AC-208`：B3 trace 固定 `behavior_policy_type=DETERMINISTIC`、`action_propensity=null`。
 - `SYS05-AC-209`：LLM、SYS08、legacy Socratic 均无法扩大 action envelope 或取得 final ownership。
 - `SYS05-AC-210`：所有 configurable thresholds/weights 可版本化、可 trace，不以伪科学常数写死。
+- `SYS05-AC-211`：production profile 来自 immutable artifact，digest 可重算且与 exact active PolicyBundle 完全一致。
+- `SYS05-AC-212`：缺失或不一致的 active runtime fail closed；历史 action 不被当前 activation 重解释。
 
 ## 20. Superseded v0.2 Requirement Register
 

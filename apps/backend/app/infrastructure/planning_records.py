@@ -273,6 +273,20 @@ class DiagnosticNeedRepository:
         )
         return DiagnosticNeedV1.model_validate(record.payload) if record else None
 
+    async def latest_for_mapping(
+        self, *, mapping_id: UUID, user_id: UUID
+    ) -> DiagnosticNeedV1 | None:
+        record = await self._session.scalar(
+            select(DiagnosticNeedRecord)
+            .where(
+                DiagnosticNeedRecord.goal_mapping_id == str(mapping_id),
+                DiagnosticNeedRecord.user_id == str(user_id),
+            )
+            .order_by(DiagnosticNeedRecord.version.desc())
+            .limit(1)
+        )
+        return DiagnosticNeedV1.model_validate(record.payload) if record else None
+
     async def get(self, *, need_id: UUID, version: int, user_id: UUID) -> DiagnosticNeedV1 | None:
         record = await self._session.scalar(
             select(DiagnosticNeedRecord).where(

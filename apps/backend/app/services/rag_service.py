@@ -6,6 +6,7 @@ v0.3 path and delegates all ranking/selection to the existing hybrid SYS02 owner
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -30,6 +31,15 @@ _ALLOWED_USES = {"learner_visible", "grader_only", "internal_only"}
 AllowedUseV03 = Literal["learner_visible", "grader_only", "internal_only"]
 
 
+@dataclass(frozen=True)
+class PublishedAdaptiveRetrievalInput:
+    """Exact SYS01 projection input prepared for the canonical SYS02 selector."""
+
+    candidates: tuple[AdaptiveRetrievalCandidate, ...]
+    source_scope: dict[str, object]
+    index_versions: dict[str, str]
+
+
 class PublishedKnowledgeRAGService:
     """Load validated current projections and ask SYS02 to build the bundle."""
 
@@ -51,6 +61,31 @@ class PublishedKnowledgeRAGService:
         source_scope: dict[str, object] | None = None,
         max_chunks: int = 5,
     ) -> AdaptiveEvidenceBuildResult:
+        prepared = await self.load_adaptive_input(
+            pseudonym_id=pseudonym_id,
+            source_scope=source_scope,
+        )
+        return self.retriever.build(
+            request_id=request_id or uuid4(),
+            teaching_action=teaching_action,
+            query=query,
+            candidates=prepared.candidates,
+            source_scope=prepared.source_scope,
+            index_versions=prepared.index_versions,
+            max_items=max_chunks,
+        )
+
+    async def load_adaptive_input(
+        self,
+        *,
+        pseudonym_id: str,
+        source_scope: dict[str, object] | None = None,
+    ) -> PublishedAdaptiveRetrievalInput:
+        """Load only current-user, approved, current-revision candidates.
+
+        Ranking and answer-exposure tightening remain owned by the existing
+        ``AdaptiveEvidenceRetriever`` invoked by the canonical facade.
+        """
         documents = await self._available_documents(pseudonym_id)
         requested_scope = dict(source_scope or {})
         requested_scope["pseudonym_id"] = pseudonym_id
@@ -62,14 +97,10 @@ class PublishedKnowledgeRAGService:
         document_ids = [item.id for item in documents]
         requested_scope["document_ids"] = document_ids
         if not document_ids:
-            return self.retriever.build(
-                request_id=request_id or uuid4(),
-                teaching_action=teaching_action,
-                query=query,
+            return PublishedAdaptiveRetrievalInput(
                 candidates=(),
                 source_scope=requested_scope,
                 index_versions={},
-                max_items=max_chunks,
             )
 
         rows = (
@@ -95,14 +126,10 @@ class PublishedKnowledgeRAGService:
 
         if "revision_ids" not in requested_scope:
             requested_scope["revision_ids"] = current_revision_ids
-        return self.retriever.build(
-            request_id=request_id or uuid4(),
-            teaching_action=teaching_action,
-            query=query,
+        return PublishedAdaptiveRetrievalInput(
             candidates=tuple(candidates),
             source_scope=requested_scope,
             index_versions=index_versions,
-            max_items=max_chunks,
         )
 
     async def _available_documents(self, pseudonym_id: str) -> list[UserDocument]:

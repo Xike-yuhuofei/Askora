@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1 import (
     auth_router,
+    book_learning_router,
     dialog_router,
     documents_router,
     orchestrator_router,
@@ -260,6 +261,7 @@ async def config_health_check():
 
 # v1 API
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(book_learning_router, prefix="/api/v1")
 app.include_router(dialog_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")

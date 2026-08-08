@@ -59,10 +59,11 @@ Codex 可以指出需要 ADR 的 `SPEC GAP`，但不得自行创建“accepted�
 |---|---|---|---|
 | `ADR-0001` | Teaching Strategy Ontology | accepted | 2026-08-07 |
 | `ADR-0002` | Constrained Deterministic Teaching Policy Architecture | accepted | 2026-08-07 |
+| `ADR-0003` | Policy Runtime Profile Source and Activation Resolution | accepted | 2026-08-08 |
 
 ### v0.3 ADR-C Resolution
 
-`TeachingEpisode`、`LearningTrajectory`、`OutcomeObservation`、`ExperimentAssignment` 当前仍是 additive Design / Spec Delta，不改变八系统事实所有权，也没有形成新的核心 aggregate/service owner，因此 **不创建 ADR-0003**。若未来 ownership 或 durable service boundary 发生变化，再单独评估 ADR。
+`TeachingEpisode`、`LearningTrajectory`、`OutcomeObservation`、`ExperimentAssignment` 当前仍是 additive Design / Spec Delta，不改变八系统事实所有权，也没有形成新的核心 aggregate/service owner，因此该议题当时**不需要新增 ADR**。`ADR-0003` 后续用于独立的 Policy Runtime Profile 来源与激活解析决策。
 
 ## 6. v0.3 ADR Breaking Change Register
 

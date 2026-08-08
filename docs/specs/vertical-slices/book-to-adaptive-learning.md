@@ -186,6 +186,8 @@ LearningActivity
 
 MUST NOT 新建 `book_tutor` / `epub_tutor` 自由 LLM 主链绕过 SYS05。
 
+Book bootstrap 的 production handoff MUST 按 `ADR-0003` / `SYS05-304～306` 从 atomic active activation 解析 exact PolicyBundle 与 immutable runtime profile。缺失或不一致时必须停在 SYS05 unsupported-configuration boundary，MUST NOT 使用测试 fixture 或临时默认参数绕过。
+
 ## 9. Content-to-Plan Integrity
 
 ### D06-040

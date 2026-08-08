@@ -408,6 +408,73 @@ class PrerequisiteDiagnosticService:
             raise ValueError("LEARNER_STATE_STALE")
         return need
 
+    async def generate_plan(
+        self,
+        *,
+        user: User,
+        need_id: UUID,
+        idempotency_key: str,
+        created_at: datetime,
+    ) -> DiagnosticBootstrapResult:
+        """Ask the existing SYS06 planner to materialize or replay the current plan."""
+        need = await self._need_repo.latest(need_id=need_id, user_id=UUID(user.id))
+        if need is None:
+            raise ValueError("DIAGNOSTIC_NEED_NOT_FOUND")
+        if need.status not in {"resolved", "stopped"} or need.stop_reason not in {
+            "ALL_DECISION_RELEVANT_PREREQUISITES_RESOLVED",
+            "TARGET_READY",
+            "REMEDIATION_REQUIRED",
+            "DIAGNOSTIC_BUDGET_EXHAUSTED",
+        }:
+            raise ValueError("DIAGNOSTIC_NEED_NOT_PLAN_ELIGIBLE")
+        mapping, subgraph, goal, edges = await self._reload_need_inputs(user=user, need=need)
+        knowledge_ids = self._knowledge_ids(subgraph)
+        state, estimates = await self._learner.current_state(
+            user_id=UUID(user.id),
+            knowledge_unit_ids=knowledge_ids,
+            created_at=created_at,
+        )
+        mastery = {item.knowledge_unit_id: item for item in estimates}
+        active_plans = [
+            item
+            for item in await self._plan_repo.list_versions(goal.goal_id)
+            if item.status == "active"
+        ]
+        current = active_plans[-1] if active_plans else None
+        expected_graph_version = ",".join(mapping.knowledge_graph_versions)
+        if (
+            current is not None
+            and current.created_from_learner_state_version == state.version
+            and current.knowledge_graph_version == expected_graph_version
+        ):
+            activities = tuple(
+                await self._plan_repo.activities(
+                    plan_id=current.plan_id, plan_version=current.version
+                )
+            )
+            return DiagnosticBootstrapResult(
+                need=need,
+                learner_state=state,
+                plan=current,
+                activities=activities,
+            )
+        plan, activities = await self._generate_plan(
+            goal=goal,
+            mapping=mapping,
+            edges=edges,
+            mastery=mastery,
+            learner_state_version=state.version,
+            created_at=created_at,
+            idempotency_key=idempotency_key,
+            reason_codes=["PLAN_GENERATED_FROM_TERMINAL_DIAGNOSTIC_STATE"],
+        )
+        return DiagnosticBootstrapResult(
+            need=need,
+            learner_state=state,
+            plan=plan,
+            activities=activities,
+        )
+
     async def _load_inputs(
         self,
         *,

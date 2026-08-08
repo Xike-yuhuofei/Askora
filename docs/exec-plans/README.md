@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
 > 状态：Book-to-Learning Bootstrap Active
-> Active：EXEC-023～EXEC-024
-> 已完成：EXEC-001～EXEC-022
+> Active：EXEC-024
+> 已完成：EXEC-001～EXEC-023
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | EXEC-023～024 READY | 必须按依赖 gate 执行；后序 READY 不代表可跳过前序 |
-| [`completed/`](completed/README.md) | EXEC-001～022 | 保留执行任务合同及其显式决策记录 |
+| `active/` | EXEC-024 READY | 必须按依赖 gate 执行；后序 READY 不代表可跳过前序 |
+| [`completed/`](completed/README.md) | EXEC-001～023 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -33,7 +33,7 @@ Accepted ADR / Canonical Design
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
-| Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | IN PROGRESS（EXEC-017～022 DONE） |
+| Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | IN PROGRESS（EXEC-017～023 DONE） |
 
 v0.3 最终状态：
 
@@ -55,7 +55,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 | EXEC-020 | [Published Knowledge → Retrieval Projection & SYS02 Binding](completed/EXEC-020-retrieval-projection-sys02-binding.md) | EXEC-019 DONE | DONE |
 | EXEC-021 | [LearningGoal Formation & Goal-to-Knowledge Mapping](completed/EXEC-021-learning-goal-knowledge-mapping.md) | EXEC-019 DONE | DONE |
 | EXEC-022 | [Prerequisite Diagnostic Bootstrap & LearningPlan Handoff](completed/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md) | EXEC-021 DONE | DONE |
-| EXEC-023 | [Book-to-Adaptive Orchestration, Readiness & Additive API](active/EXEC-023-book-learning-orchestration-api.md) | EXEC-020 + EXEC-022 DONE | READY |
+| EXEC-023 | [Book-to-Adaptive Orchestration, Readiness & Additive API](completed/EXEC-023-book-learning-orchestration-api.md) | EXEC-020 + EXEC-022 DONE | DONE |
 | EXEC-024 | [Book-to-Learning E2E, Replay, Security & Release Gate](active/EXEC-024-book-to-learning-e2e-release-gate.md) | EXEC-023 DONE | READY |
 
 Dependency graph：

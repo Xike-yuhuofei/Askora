@@ -37,6 +37,7 @@
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
+| `docs/adr/ADR-0003-policy-runtime-profile-source-and-activation.md` | CANONICAL-RETAIN | Accepted production profile source / activation resolution decision |
 | `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
@@ -129,8 +130,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～022 已完成，EXEC-023～024 待执行 |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～022 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～023 已完成，EXEC-024 待执行 |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～023 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -153,6 +154,7 @@
 | `docs/exec-plans/completed/EXEC-020-retrieval-projection-sys02-binding.md` | HISTORICAL-RETAIN | Book-to-Learning 发布知识到 SYS02 检索投影绑定不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-021-learning-goal-knowledge-mapping.md` | HISTORICAL-RETAIN | Book-to-Learning 自然语言 Goal 到 published KnowledgeUnit 映射不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md` | HISTORICAL-RETAIN | Book-to-Learning prerequisite diagnostic 与现有 Planner handoff 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN | Book-to-Learning readiness/additive API 与现有 canonical teaching handoff 不可变任务合同 |
 
 ## 6. 后续维护规则
 

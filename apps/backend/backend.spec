@@ -15,6 +15,7 @@ a = Analysis(
         ('alembic.ini', '.'),
         ('app/core', 'app/core'),
         ('app/api', 'app/api'),
+        ('app/config', 'app/config'),
         ('app/services', 'app/services'),
         ('app/engines', 'app/engines'),
         ('app/gateway', 'app/gateway'),
