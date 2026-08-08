@@ -71,6 +71,26 @@ const processingOptions = [
   ['quarantined', '已隔离'],
 ]
 
+const knowledgeBlockedStatuses = new Set(['failed', 'rejected', 'quarantined'])
+
+const safetyReasonLabels = {
+  CONTENT_FILE_SIZE_EXCEEDED: '文件超过安全大小限制',
+  CONTENT_TYPE_MISMATCH: '文件内容与扩展名不一致',
+  CONTENT_UNSUPPORTED_EXTENSION: '文件格式不受支持',
+  EPUB_ARCHIVE_INVALID: '电子书压缩结构损坏',
+  EPUB_MIMETYPE_INVALID: '电子书格式标识无效',
+  EPUB_CONTAINER_INVALID: '电子书目录结构无效',
+  EPUB_ENTRY_PATH_UNSAFE: '电子书包包含不安全的文件路径',
+  EPUB_ENTRY_SYMLINK: '电子书包包含不安全的符号链接',
+  EPUB_ENTRY_ENCRYPTED: '电子书包含无法安全检查的加密内容',
+  EPUB_ENTRY_COUNT_EXCEEDED: '电子书包含过多文件',
+  EPUB_ENTRY_SIZE_EXCEEDED: '电子书中的单个文件过大',
+  EPUB_TOTAL_UNCOMPRESSED_SIZE_EXCEEDED: '电子书解压后的总体积过大',
+  EPUB_COMPRESSION_RATIO_EXCEEDED: '电子书压缩比超过安全限制',
+  EPUB_NESTED_ARCHIVE_BLOCKED: '电子书包含不允许的嵌套压缩包',
+  EPUB_EXTERNAL_ENTITY_BLOCKED: '电子书包含不安全的外部实体',
+}
+
 function formatBytes(value) {
   if (!Number.isFinite(value)) return '大小未知'
   if (value < 1024) return `${value} B`
@@ -92,7 +112,15 @@ function responseMessage(error, fallback) {
   if (error?.response?.status === 401) return '登录状态已失效，请重新登录。'
   if (error?.response?.status === 413) return '文件超过 50 MB 上限。'
   const detail = error?.response?.data?.detail
+  const structuredMessage = error?.response?.data?.error?.message
+  if (typeof structuredMessage === 'string' && structuredMessage.length <= 120) return structuredMessage
   return typeof detail === 'string' && detail.length <= 120 ? detail : fallback
+}
+
+function safetyReason(document) {
+  return document?.reason_codes
+    ?.map((code) => safetyReasonLabels[code])
+    .find(Boolean) || ''
 }
 
 function documentStateHint(document) {
@@ -100,8 +128,20 @@ function documentStateHint(document) {
   if (document.processing_status === 'pending') return '文件已安全保存，等待后台处理。'
   if (document.processing_status === 'processing') return '正在解析资料并生成可审计的知识候选。'
   if (document.processing_status === 'failed') return '处理没有完成。请删除后重新上传，原失败信息不会展示到页面。'
-  if (document.processing_status === 'quarantined') return '资料触发安全隔离，不会进入检索或知识地图。'
-  if (document.processing_status === 'rejected') return '资料未通过内容审核，不会进入知识地图。'
+  if (document.processing_status === 'quarantined') {
+    if (document.reason_codes?.includes('CONTENT_REINSPECTION_PENDING')) {
+      return '正在使用新版安全策略重新检查；完成前资料继续保持隔离。'
+    }
+    if (document.reason_codes?.includes('CONTENT_REINSPECTION_FAILED')) {
+      return '重新检查任务没有完成，资料继续保持隔离；请重新上传原文件。'
+    }
+    const reason = safetyReason(document)
+    return `${reason ? `${reason}，` : ''}资料已隔离；知识建模未启动，也不会进入检索或知识地图。`
+  }
+  if (document.processing_status === 'rejected') {
+    const reason = safetyReason(document)
+    return `${reason ? `${reason}，` : ''}资料未通过文件校验；知识建模未启动。`
+  }
   if (document.knowledge_status === 'LEGACY_COMPATIBILITY') return '旧版资料正在通过持久任务升级，暂不展示过期知识结果。'
   if (document.knowledge_status === 'NOT_MODELED') return '资料已处理，但尚未形成可引用的知识候选。'
   return ''
@@ -127,6 +167,7 @@ export default function Library() {
   const [actionError, setActionError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [reinspectingDocumentId, setReinspectingDocumentId] = useState(null)
   const [mapReloadKey, setMapReloadKey] = useState(0)
 
   const loadLibrary = useCallback(async ({
@@ -177,7 +218,8 @@ export default function Library() {
   )
   const hasActiveProcessing = documents.some((document) =>
     ['pending', 'processing'].includes(document.processing_status)
-    || document.knowledge_status === 'LEGACY_COMPATIBILITY')
+    || document.knowledge_status === 'LEGACY_COMPATIBILITY'
+    || document.reason_codes?.includes('CONTENT_REINSPECTION_PENDING'))
 
   useEffect(() => {
     if (library.status !== 'ready' || !hasActiveProcessing) return undefined
@@ -285,6 +327,22 @@ export default function Library() {
       setActionError(responseMessage(error, '删除失败，请稍后重试。'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const requestReinspection = async (document) => {
+    if (!document || reinspectingDocumentId) return
+    setReinspectingDocumentId(document.document_id)
+    setActionError('')
+    setActionMessage('')
+    try {
+      const result = await documentApi.reinspectDocument(document.document_id)
+      setActionMessage(result.message || '已提交新版安全策略重新检查。')
+      await loadLibrary({ quiet: true })
+    } catch (error) {
+      setActionError(responseMessage(error, '重新检查无法提交，请重新上传资料。'))
+    } finally {
+      setReinspectingDocumentId(null)
     }
   }
 
@@ -423,9 +481,11 @@ export default function Library() {
                       <span className={`status-pill status-pill--document-${document.processing_status}`}>
                         {processingLabels[document.processing_status] || document.processing_status}
                       </span>
-                      <span className="status-pill status-pill--neutral">
-                        {knowledgeLabels[document.knowledge_status] || document.knowledge_status}
-                      </span>
+                      {!knowledgeBlockedStatuses.has(document.processing_status) && (
+                        <span className="status-pill status-pill--neutral">
+                          {knowledgeLabels[document.knowledge_status] || document.knowledge_status}
+                        </span>
+                      )}
                     </span>
                     <small>{formatDate(document.updated_at)}</small>
                   </button>
@@ -524,6 +584,19 @@ export default function Library() {
               <Network size={24} />
               <strong>暂无可展示的知识候选</strong>
               <p>{documentStateHint(selectedDocument) || '当前资料没有带原文依据的知识节点。'}</p>
+              {selectedDocument.reason_codes?.includes('CONTENT_REINSPECTION_AVAILABLE') && (
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  onClick={() => requestReinspection(selectedDocument)}
+                  disabled={reinspectingDocumentId === selectedDocument.document_id}
+                >
+                  <RefreshCw size={16} />
+                  {reinspectingDocumentId === selectedDocument.document_id
+                    ? '正在提交…'
+                    : '使用新版策略重新检查'}
+                </button>
+              )}
             </div>
           )}
         </section>

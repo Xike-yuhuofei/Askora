@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.exceptions import AppError
 from app.core.logging import get_logger
 from app.domains.content_knowledge import CONTENT_RECORD_KEY, EXTRACTION_VERSION
 from app.infrastructure.outbox import (
@@ -22,6 +23,8 @@ from app.models.document import ProcessingStatus, UserDocument
 from app.services.documents.document_service import (
     DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
     DOCUMENT_PROCESS_TASK_TYPE,
+    DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION,
+    DOCUMENT_REINSPECTION_TASK_TYPE,
     DocumentService,
     document_processing_idempotency_key,
 )
@@ -77,7 +80,7 @@ class DocumentProcessingWorker:
         async with self._session_factory() as session:
             async with session.begin():
                 task = await OutboxRepository(session).claim_next(
-                    task_types={DOCUMENT_PROCESS_TASK_TYPE},
+                    task_types={DOCUMENT_PROCESS_TASK_TYPE, DOCUMENT_REINSPECTION_TASK_TYPE},
                     now=current,
                 )
         if task is None:
@@ -108,9 +111,23 @@ class DocumentProcessingWorker:
                         next_attempt_at=current + timedelta(seconds=delay),
                         now=current,
                     )
+                    if task.type == DOCUMENT_REINSPECTION_TASK_TYPE and (permanent or exhausted):
+                        document_id = task.payload.get("document_id")
+                        target_version = task.payload.get("target_scanner_version")
+                        if isinstance(document_id, str) and isinstance(target_version, str):
+                            await DocumentService(session).record_reinspection_task_failure(
+                                document_id=document_id,
+                                target_scanner_version=target_version,
+                                failure_code="CONTENT_REINSPECTION_UNAVAILABLE",
+                            )
         return True
 
     async def _handle(self, task: OutboxTask) -> None:
+        if task.type == DOCUMENT_REINSPECTION_TASK_TYPE:
+            await self._handle_reinspection(task)
+            return
+        if task.type != DOCUMENT_PROCESS_TASK_TYPE:
+            raise PermanentTaskError("DOCUMENT_TASK_TYPE_UNSUPPORTED")
         if task.schema_version != DOCUMENT_PROCESS_TASK_SCHEMA_VERSION:
             raise PermanentTaskError("DOCUMENT_PROCESS_SCHEMA_UNSUPPORTED")
         document_id = task.payload.get("document_id")
@@ -121,6 +138,37 @@ class DocumentProcessingWorker:
                 await DocumentService(session).process_document(document_id)
         except ValueError as exc:
             raise PermanentTaskError(str(exc)) from exc
+
+    async def _handle_reinspection(self, task: OutboxTask) -> None:
+        if task.schema_version != DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION:
+            raise PermanentTaskError("DOCUMENT_REINSPECTION_SCHEMA_UNSUPPORTED")
+        document_id = task.payload.get("document_id")
+        pseudonym_id = task.payload.get("pseudonym_id")
+        previous_version = task.payload.get("previous_scanner_version")
+        target_version = task.payload.get("target_scanner_version")
+        if not all(
+            isinstance(value, str) and value
+            for value in (document_id, pseudonym_id, previous_version, target_version)
+        ):
+            raise PermanentTaskError("DOCUMENT_REINSPECTION_PAYLOAD_INVALID")
+        assert isinstance(document_id, str)
+        assert isinstance(pseudonym_id, str)
+        assert isinstance(previous_version, str)
+        assert isinstance(target_version, str)
+        expected_checksum = task.payload.get("expected_checksum")
+        if expected_checksum is not None and not isinstance(expected_checksum, str):
+            raise PermanentTaskError("DOCUMENT_REINSPECTION_CHECKSUM_INVALID")
+        try:
+            async with self._session_factory() as session:
+                await DocumentService(session).reinspect_document(
+                    document_id=document_id,
+                    pseudonym_id=pseudonym_id,
+                    previous_scanner_version=previous_version,
+                    target_scanner_version=target_version,
+                    expected_checksum=expected_checksum,
+                )
+        except AppError as exc:
+            raise PermanentTaskError(exc.error_code) from exc
 
     @staticmethod
     def _needs_processing(document: UserDocument) -> bool:

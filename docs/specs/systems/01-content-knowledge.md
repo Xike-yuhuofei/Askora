@@ -107,6 +107,7 @@ IndexProjection
 
 ```text
 ImportContent
+ReinspectQuarantinedContent
 ParseMaterialRevision
 ExtractKnowledgeCandidates
 ReviewKnowledgeCandidate
@@ -116,6 +117,15 @@ ReportKnowledgeConflict
 ```
 
 每个 command MUST 支持幂等语义或明确不可重复范围。
+
+### SYS01-025 — Quarantine Reinspection Command
+
+`ReinspectQuarantinedContent` 由 SYS01 独占执行，必须验证 owner、当前 `quarantined` 状态、
+原始资产 checksum 与更新的 scanner/policy version。幂等键至少包含 `document_id + target_scanner_version`。
+同一版本重复提交返回已有任务，不创建第二个 SafetyScanRun。
+
+复检任务必须 durable；但安全拒绝本身 `retryable=false`，不得把同一策略下的业务拒绝包装为
+自动 retry。只有存储/数据库等 transient failure 可 bounded retry。
 
 ## 8. Events
 
@@ -196,6 +206,9 @@ Published KnowledgeUnit/Relation 不能原地静默覆盖。
 
 - unsupported/corrupted file → reject；
 - security risk → quarantine；
+- explicit newer-policy reinspection allow/review → imported + normal processing；
+- same-policy reinspection → business reject，状态保持 quarantined；
+- reinspection transient/internal failure → 状态保持 quarantined；
 - partial parser failure → partial + review_required；
 - anchor failure → 不得发布受影响事实；
 - low-confidence relation → candidate/review；
@@ -222,6 +235,7 @@ Published KnowledgeUnit/Relation 不能原地静默覆盖。
 - anchor replay failures；
 - processing latency；
 - quarantine count；
+- SafetyScanRun/scanner version/reinspection outcome；
 - relation cycle/duplicate count；
 - index freshness。
 

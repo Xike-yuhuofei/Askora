@@ -14,20 +14,32 @@ import asyncio
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID, uuid5
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import (
+    ContentReinspectionChecksumMismatchError,
+    ContentReinspectionNotAllowedError,
+    ContentReinspectionPolicyUnchangedError,
+    ContentReinspectionUnavailableError,
+    ResourceNotFoundError,
+)
 from app.core.logging import get_logger
 from app.domains.content_knowledge import (
     CONTENT_RECORD_KEY,
     EXTRACTION_VERSION,
+    RAW_ASSET_CHECKSUM_KEY,
+    SAFETY_REINSPECTION_KEY,
+    SAFETY_SCAN_CURRENT_KEY,
+    SAFETY_SCAN_RUNS_KEY,
+    SAFETY_SCANNER_VERSION,
     SEGMENTATION_VERSION,
     build_content_revision,
 )
-from app.infrastructure.outbox import OutboxProducer
+from app.infrastructure.outbox import OutboxProducer, OutboxStatus
 from app.models.document import (
     DocumentChunk,
     ModerationStatus,
@@ -38,17 +50,27 @@ from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
 )
-from app.services.documents.security_scanner import get_security_scanner
+from app.services.documents.security_scanner import ScanResult, get_security_scanner
 from app.services.storage.local_storage import LocalFileStorage, get_local_storage
 
 logger = get_logger(__name__)
 
 DOCUMENT_PROCESS_TASK_TYPE = "sys01.process_document"
 DOCUMENT_PROCESS_TASK_SCHEMA_VERSION = "1.0"
+DOCUMENT_REINSPECTION_TASK_TYPE = "sys01.reinspect_document"
+DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION = "1.0"
 
 
 def document_processing_idempotency_key(document_id: str) -> str:
-    return f"document:{document_id}:process:{EXTRACTION_VERSION}"
+    return f"document:{document_id}:process:{EXTRACTION_VERSION}:{SAFETY_SCANNER_VERSION}"
+
+
+def document_reinspection_idempotency_key(document_id: str) -> str:
+    return f"document:{document_id}:reinspect:{SAFETY_SCANNER_VERSION}"
+
+
+def document_post_reinspection_processing_idempotency_key(document_id: str) -> str:
+    return f"document:{document_id}:process-after-reinspect:{SAFETY_SCANNER_VERSION}"
 
 
 class DocumentService:
@@ -96,6 +118,9 @@ class DocumentService:
             moderation_status=ModerationStatus.PENDING,
             subject=subject,
             knowledge_point_id=knowledge_point_id,
+            moderation_details={
+                RAW_ASSET_CHECKSUM_KEY: hashlib.sha256(file_content).hexdigest(),
+            },
         )
 
         self.db.add(document)
@@ -119,6 +144,227 @@ class DocumentService:
 
         return document
 
+    async def request_reinspection(
+        self,
+        *,
+        document_id: str,
+        pseudonym_id: str,
+    ) -> tuple[UserDocument, Literal["accepted", "already_pending"]]:
+        """Durably enqueue the explicit owner command without lifting quarantine."""
+        document = await self.db.scalar(
+            select(UserDocument).where(
+                UserDocument.id == document_id,
+                UserDocument.pseudonym_id == pseudonym_id,
+                UserDocument.is_deleted.is_(False),
+            )
+        )
+        if document is None:
+            raise ResourceNotFoundError("文档")
+        if document.processing_status != ProcessingStatus.QUARANTINED:
+            raise ContentReinspectionNotAllowedError()
+
+        details = dict(document.moderation_details or {})
+        control = details.get(SAFETY_REINSPECTION_KEY, {})
+        if (
+            isinstance(control, dict)
+            and control.get("target_scanner_version") == SAFETY_SCANNER_VERSION
+            and control.get("status") in {"pending", "processing"}
+        ):
+            await OutboxProducer(self.db).enqueue(
+                task_type=DOCUMENT_REINSPECTION_TASK_TYPE,
+                schema_version=DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION,
+                payload={
+                    "document_id": document.id,
+                    "pseudonym_id": pseudonym_id,
+                    "previous_scanner_version": control.get("previous_scanner_version"),
+                    "target_scanner_version": SAFETY_SCANNER_VERSION,
+                    "expected_checksum": details.get(RAW_ASSET_CHECKSUM_KEY),
+                },
+                idempotency_key=document_reinspection_idempotency_key(document.id),
+            )
+            await self.db.commit()
+            return document, "already_pending"
+        if (
+            isinstance(control, dict)
+            and control.get("target_scanner_version") == SAFETY_SCANNER_VERSION
+            and control.get("status") == "failed"
+        ):
+            raise ContentReinspectionUnavailableError()
+
+        previous_version = self._last_scanner_version(details) or "legacy-unversioned"
+        if previous_version == SAFETY_SCANNER_VERSION:
+            raise ContentReinspectionPolicyUnchangedError()
+
+        task = await OutboxProducer(self.db).enqueue(
+            task_type=DOCUMENT_REINSPECTION_TASK_TYPE,
+            schema_version=DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION,
+            payload={
+                "document_id": document.id,
+                "pseudonym_id": pseudonym_id,
+                "previous_scanner_version": previous_version,
+                "target_scanner_version": SAFETY_SCANNER_VERSION,
+                "expected_checksum": details.get(RAW_ASSET_CHECKSUM_KEY),
+            },
+            idempotency_key=document_reinspection_idempotency_key(document.id),
+        )
+        if task.status in {OutboxStatus.COMPLETED, OutboxStatus.DEAD_LETTER}:
+            raise ContentReinspectionUnavailableError()
+
+        details[SAFETY_REINSPECTION_KEY] = {
+            "request_id": task.id,
+            "status": "pending",
+            "previous_scanner_version": previous_version,
+            "target_scanner_version": SAFETY_SCANNER_VERSION,
+            "requested_at": datetime.now(timezone.utc).isoformat(),
+        }
+        document.moderation_details = details
+        await self.db.commit()
+        await self.db.refresh(document)
+        return document, "accepted"
+
+    async def reinspect_document(
+        self,
+        *,
+        document_id: str,
+        pseudonym_id: str,
+        previous_scanner_version: str,
+        target_scanner_version: str,
+        expected_checksum: str | None,
+    ) -> UserDocument:
+        """Execute an explicit reinspection while quarantine remains fail-closed."""
+        document = await self.db.scalar(
+            select(UserDocument).where(
+                UserDocument.id == document_id,
+                UserDocument.pseudonym_id == pseudonym_id,
+                UserDocument.is_deleted.is_(False),
+            )
+        )
+        if document is None:
+            raise ResourceNotFoundError("文档")
+        if target_scanner_version != SAFETY_SCANNER_VERSION:
+            raise ContentReinspectionUnavailableError()
+
+        details = dict(document.moderation_details or {})
+        control = dict(details.get(SAFETY_REINSPECTION_KEY, {}))
+        if (
+            control.get("status") == "completed"
+            and control.get("previous_scanner_version") == previous_scanner_version
+            and control.get("target_scanner_version") == target_scanner_version
+        ):
+            return document
+        if document.processing_status != ProcessingStatus.QUARANTINED:
+            raise ContentReinspectionNotAllowedError()
+        current_version = self._last_scanner_version(details) or "legacy-unversioned"
+        if current_version != previous_scanner_version:
+            raise ContentReinspectionPolicyUnchangedError()
+        control.update(
+            {
+                "status": "processing",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        details[SAFETY_REINSPECTION_KEY] = control
+        document.moderation_details = details
+        await self.db.commit()
+
+        file_content = await asyncio.to_thread(self.storage.read_file, document.storage_path)
+        checksum = hashlib.sha256(file_content).hexdigest()
+        baseline_checksum = expected_checksum or details.get(RAW_ASSET_CHECKSUM_KEY)
+        legacy_baseline = baseline_checksum is None
+        if baseline_checksum is not None and checksum != baseline_checksum:
+            raise ContentReinspectionChecksumMismatchError()
+        if legacy_baseline and len(file_content) != document.file_size_bytes:
+            raise ContentReinspectionChecksumMismatchError()
+
+        scan_result = self.scanner.scan(
+            file_content,
+            document.file_extension,
+            document.original_filename,
+        )
+        extra_reasons = (
+            ("LEGACY_RAW_ASSET_CHECKSUM_BASELINE_ESTABLISHED",) if legacy_baseline else ()
+        )
+        updated_details = self._with_scan_record(
+            document,
+            scan_result,
+            checksum,
+            extra_reason_codes=extra_reasons,
+        )
+        control = dict(updated_details.get(SAFETY_REINSPECTION_KEY, {}))
+        control.update(
+            {
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "outcome": scan_result.verdict,
+            }
+        )
+        updated_details[SAFETY_REINSPECTION_KEY] = control
+
+        if scan_result.should_block:
+            document.processing_status = (
+                ProcessingStatus.QUARANTINED
+                if scan_result.should_quarantine
+                else ProcessingStatus.REJECTED
+            )
+            document.moderation_status = ModerationStatus.REJECTED
+            updated_details["reason"] = (
+                "security_scan_failed"
+                if scan_result.should_quarantine
+                else "content_validation_failed"
+            )
+            updated_details["threats"] = scan_result.threats
+            document.moderation_details = updated_details
+            document.processing_completed_at = datetime.now(timezone.utc)
+            await self.db.commit()
+            await self.db.refresh(document)
+            return document
+
+        document.processing_status = ProcessingStatus.PENDING
+        document.processing_error = None
+        document.moderation_status = (
+            ModerationStatus.REQUIRES_REVIEW
+            if scan_result.requires_review
+            else ModerationStatus.APPROVED
+        )
+        document.moderation_details = updated_details
+        await OutboxProducer(self.db).enqueue(
+            task_type=DOCUMENT_PROCESS_TASK_TYPE,
+            schema_version=DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
+            payload={"document_id": document.id},
+            idempotency_key=document_post_reinspection_processing_idempotency_key(document.id),
+        )
+        await self.db.commit()
+        await self.db.refresh(document)
+        return document
+
+    async def record_reinspection_task_failure(
+        self,
+        *,
+        document_id: str,
+        target_scanner_version: str,
+        failure_code: str,
+    ) -> None:
+        """Project a terminal task failure without lifting the security boundary."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            return
+        details = dict(document.moderation_details or {})
+        control = dict(details.get(SAFETY_REINSPECTION_KEY, {}))
+        if control.get("target_scanner_version") != target_scanner_version:
+            return
+        control.update(
+            {
+                "status": "failed",
+                "failure_code": failure_code,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        details[SAFETY_REINSPECTION_KEY] = control
+        document.moderation_details = details
+        document.processing_status = ProcessingStatus.QUARANTINED
+        document.moderation_status = ModerationStatus.REJECTED
+        await self.db.flush()
+
     async def process_document(self, document_id: str) -> UserDocument:
         """
         处理文档（解析 + 安全扫描 + 分块）
@@ -137,7 +383,15 @@ class DocumentService:
                 document.storage_path,
             )
             checksum = hashlib.sha256(file_content).hexdigest()
-            canonical = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+            existing_details = dict(document.moderation_details or {})
+            expected_checksum = existing_details.get(RAW_ASSET_CHECKSUM_KEY)
+            if (
+                expected_checksum is not None
+                and checksum != expected_checksum
+                and document.processing_status != ProcessingStatus.COMPLETED
+            ):
+                raise ValueError("raw asset checksum mismatch")
+            canonical = existing_details.get(CONTENT_RECORD_KEY, {})
             current = self._current_revision(canonical)
             if (
                 document.processing_status == ProcessingStatus.COMPLETED
@@ -164,21 +418,31 @@ class DocumentService:
             scan_result = self.scanner.scan(
                 file_content, document.file_extension, document.original_filename
             )
+            scan_details = self._with_scan_record(document, scan_result, checksum)
 
             if scan_result.should_block:
-                document.processing_status = ProcessingStatus.QUARANTINED
+                document.processing_status = (
+                    ProcessingStatus.QUARANTINED
+                    if scan_result.should_quarantine
+                    else ProcessingStatus.REJECTED
+                )
                 document.moderation_status = ModerationStatus.REJECTED
                 document.moderation_details = {
-                    **(document.moderation_details or {}),
-                    "reason": "security_scan_failed",
+                    **scan_details,
+                    "reason": (
+                        "security_scan_failed"
+                        if scan_result.should_quarantine
+                        else "content_validation_failed"
+                    ),
                     "threats": scan_result.threats,
                 }
                 document.processing_completed_at = datetime.now(timezone.utc)
                 await self.db.commit()
 
                 logger.warning(
-                    "document_rejected_by_security_scan",
+                    "document_blocked_by_safety_scan",
                     document_id=document_id,
+                    verdict=scan_result.verdict,
                     threats=scan_result.threats,
                 )
                 return document
@@ -199,12 +463,8 @@ class DocumentService:
                 knowledge_point_id=document.knowledge_point_id,
             )
             document.moderation_details = {
-                **(document.moderation_details or {}),
+                **scan_details,
                 CONTENT_RECORD_KEY: content_record,
-                "security_scan": {
-                    "severity": scan_result.severity,
-                    "threats": scan_result.threats,
-                },
             }
             document.moderation_status = (
                 ModerationStatus.REQUIRES_REVIEW
@@ -349,6 +609,93 @@ class DocumentService:
             ),
             None,
         )
+
+    def _with_scan_record(
+        self,
+        document: UserDocument,
+        scan_result: ScanResult,
+        checksum: str,
+        *,
+        extra_reason_codes: tuple[str, ...] = (),
+    ) -> dict:
+        """Append one immutable scan run and retain a current-record projection."""
+        details = dict(document.moderation_details or {})
+        runs = self._existing_scan_runs(document, details)
+        run_id = str(
+            uuid5(
+                UUID(document.id),
+                f"safety-scan:{checksum}:{SAFETY_SCANNER_VERSION}",
+            )
+        )
+        existing = next((item for item in runs if item.get("run_id") == run_id), None)
+        if existing is None:
+            record = {
+                **scan_result.to_record(),
+                "run_id": run_id,
+                "checksum": checksum,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            record["reason_codes"] = list(
+                dict.fromkeys([*record.get("reason_codes", []), *extra_reason_codes])
+            )
+            runs.append(record)
+        else:
+            record = existing
+        details[RAW_ASSET_CHECKSUM_KEY] = checksum
+        details[SAFETY_SCAN_CURRENT_KEY] = record
+        details[SAFETY_SCAN_RUNS_KEY] = runs
+        return details
+
+    @staticmethod
+    def _existing_scan_runs(document: UserDocument, details: dict) -> list[dict]:
+        runs = [
+            dict(item) for item in details.get(SAFETY_SCAN_RUNS_KEY, []) if isinstance(item, dict)
+        ]
+        if runs:
+            return runs
+        current = details.get(SAFETY_SCAN_CURRENT_KEY)
+        completed_at = (
+            document.processing_completed_at.isoformat()
+            if document.processing_completed_at is not None
+            else None
+        )
+        if isinstance(current, dict) and current:
+            legacy = dict(current)
+            legacy.setdefault(
+                "run_id",
+                str(uuid5(UUID(document.id), "legacy-current-safety-scan")),
+            )
+            legacy.setdefault("scanner_version", "legacy-unversioned")
+            legacy.setdefault("completed_at", completed_at)
+            runs.append(legacy)
+        elif details.get("reason") == "security_scan_failed":
+            runs.append(
+                {
+                    "run_id": str(uuid5(UUID(document.id), "legacy-quarantine-safety-scan")),
+                    "scanner_version": "legacy-unversioned",
+                    "verdict": "quarantine",
+                    "severity": "high",
+                    "reason_codes": ["CONTENT_QUARANTINED"],
+                    "threats": list(details.get("threats", [])),
+                    "checksum": None,
+                    "completed_at": completed_at,
+                }
+            )
+        return runs
+
+    @staticmethod
+    def _last_scanner_version(details: dict) -> str | None:
+        current = details.get(SAFETY_SCAN_CURRENT_KEY)
+        if isinstance(current, dict) and isinstance(current.get("scanner_version"), str):
+            return current["scanner_version"]
+        runs = details.get(SAFETY_SCAN_RUNS_KEY, [])
+        if isinstance(runs, list):
+            for item in reversed(runs):
+                if isinstance(item, dict) and isinstance(item.get("scanner_version"), str):
+                    return item["scanner_version"]
+        if details.get("reason") == "security_scan_failed":
+            return "legacy-unversioned"
+        return None
 
     @staticmethod
     def _classify_projection_visibility(content: str) -> tuple[str, int, str]:

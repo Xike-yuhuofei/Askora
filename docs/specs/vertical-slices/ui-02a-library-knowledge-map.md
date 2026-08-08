@@ -142,3 +142,18 @@ OUT：
 ## 10. Gate
 
 只有 `UI02A-VSLICE-AC-001..012` 全部满足时 UI-02A 为 DONE。若实现必须新增人工 publish/review、collection/tag/note、自动关系推断或其他未冻结写命令，必须 `BLOCKED_BY_SPEC_GAP`，不得用 frontend-only state 绕过。
+
+## 11. R1 Frozen Amendment — Explicit Quarantine Reinspection
+
+> 冻结日期：2026-08-08
+>
+> 用户决策：确认 `quarantined → imported` 显式新版策略复检；禁止自动解封。
+
+资料库 MUST 在后端声明 `CONTENT_REINSPECTION_AVAILABLE` 时提供“使用新版策略重新检查”；
+提交后展示 `CONTENT_REINSPECTION_PENDING` 并持续轮询。same-policy、checksum mismatch、任务耗尽必须
+显示可理解错误。UI 不得自行改变文档状态，也不得把普通删除重传伪装成历史连续复检。
+
+- `UI02A-R1-AC-001`：owner-only 显式复检 durable、幂等，旧 SafetyScanRun append-only。
+- `UI02A-R1-AC-002`：复检等待/失败/仍隔离时无 chunk、map 或 learner-visible 内容。
+- `UI02A-R1-AC-003`：新版策略通过后进入 imported/正常建模；真实历史 revision/run 可审计。
+- `UI02A-R1-AC-004`：UI 仅在 AVAILABLE 时显示按钮，PENDING 时防重复并自动刷新。

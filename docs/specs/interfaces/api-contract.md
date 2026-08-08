@@ -48,6 +48,18 @@ client_schema_version
 
 用户自然语言“我会了”“改成已掌握”只能映射 feedback/command 候选，不能通过 API 直接 PATCH mastery truth。
 
+### API-022 — Explicit Content Reinspection
+
+`POST /api/v1/documents/{document_id}/reinspect` 映射 SYS01
+`ReinspectQuarantinedContent`，MUST：
+
+- 使用 current-user scope 查询，未授权与不存在保持不可枚举；
+- 只接受 `quarantined` 文档；
+- 目标为当前部署的更新版 scanner/policy，不接受客户端指定任意策略；
+- durable enqueue，并以 `document_id + target_scanner_version` 幂等；
+- 返回 accepted/already-pending 与 target scanner version，不返回内部正则、路径或 exploit detail；
+- MUST NOT 在 API adapter 中直接解除隔离或执行解析/知识建模。
+
 ## 5. Streaming
 
 ### API-030
@@ -110,6 +122,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - schema unsupported；
 - legacy endpoint adapter equivalence；
 - grader-only/private fields 不泄漏。
+- quarantined reinspection ownership、idempotency、same-policy conflict 与 durable recovery；
 
 ## 11. Acceptance Criteria
 
@@ -118,6 +131,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - `API-AC-003`：重复 idempotency key 不产生第二份领域事实。
 - `API-AC-004`：WS/stream reconnect 不重复学习事件。
 - `API-AC-005`：legacy dialog endpoint 如保留，只是 canonical facade adapter。
+- `API-AC-006`：复检 API 只 enqueue 显式 SYS01 command；重复请求不产生第二个 run/task。
 
 ## 12. Forbidden Implementations
 

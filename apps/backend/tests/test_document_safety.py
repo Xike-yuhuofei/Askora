@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import os
 import stat
+import zipfile
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
@@ -13,8 +14,56 @@ from fastapi import HTTPException, UploadFile
 
 from app.api.v1.documents import DocumentResponse, _read_upload_limited
 from app.services.documents.parsers import get_parser
-from app.services.documents.security_scanner import SecurityScanner
+from app.services.documents.security_scanner import (
+    SCANNER_VERSION,
+    ScanReasonCode,
+    SecurityScanner,
+)
 from app.services.storage.local_storage import LocalFileStorage
+
+
+def _epub_bytes(
+    chapter: str = "<h1>示例章节</h1><p>正文。</p>",
+    *,
+    extras: dict[str, bytes] | None = None,
+) -> bytes:
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        mimetype = zipfile.ZipInfo("mimetype")
+        mimetype.compress_type = zipfile.ZIP_STORED
+        archive.writestr(mimetype, b"application/epub+zip")
+        archive.writestr(
+            "META-INF/container.xml",
+            """<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+  <rootfiles><rootfile full-path="OEBPS/content.opf"
+    media-type="application/oebps-package+xml"/></rootfiles>
+</container>""",
+            compress_type=zipfile.ZIP_DEFLATED,
+        )
+        archive.writestr(
+            "OEBPS/content.opf",
+            """<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">test-book</dc:identifier>
+    <dc:title>安全扫描测试</dc:title><dc:language>zh</dc:language>
+  </metadata>
+  <manifest><item id="chapter" href="chapter.xhtml"
+    media-type="application/xhtml+xml"/></manifest>
+  <spine><itemref idref="chapter"/></spine>
+</package>""",
+            compress_type=zipfile.ZIP_DEFLATED,
+        )
+        archive.writestr(
+            "OEBPS/chapter.xhtml",
+            f"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><body>{chapter}</body></html>""",
+            compress_type=zipfile.ZIP_DEFLATED,
+        )
+        for name, content in (extras or {}).items():
+            archive.writestr(name, content, compress_type=zipfile.ZIP_DEFLATED)
+    return stream.getvalue()
 
 
 @pytest.mark.asyncio
@@ -63,6 +112,112 @@ def test_security_scanner_blocks_high_risk_content_and_oversized_files(monkeypat
     assert oversized.safe is False
     assert oversized.should_block is True
     assert oversized.severity == "high"
+
+
+def test_epub_scanner_does_not_treat_book_text_or_compressed_bytes_as_sql_injection():
+    scanner = SecurityScanner()
+    epub = _epub_bytes("<h1>SQL 示例</h1><p>文本可以讨论 ' OR SELECT，但不会被执行。</p>")
+
+    result = scanner.scan(epub, ".epub", "sql-textbook.epub")
+
+    assert result.safe is True
+    assert result.should_block is False
+    assert result.reason_codes == []
+    assert result.to_record() == {
+        "scanner_version": SCANNER_VERSION,
+        "verdict": "allow",
+        "severity": "low",
+        "reason_codes": [],
+        "threats": [],
+        "checks": {
+            "extension": "pass",
+            "file_size": "pass",
+            "media_type": "pass",
+            "epub_structure": "pass",
+            "archive_limits": "pass",
+            "archive_paths": "pass",
+            "active_content": "pass",
+            "external_resources": "pass",
+        },
+        "file_size_bytes": len(epub),
+        "declared_ext": ".epub",
+        "limits": {
+            "max_file_size_bytes": scanner.MAX_FILE_SIZE,
+            "archive_max_entries": scanner.MAX_ARCHIVE_ENTRIES,
+            "archive_max_entry_size_bytes": scanner.MAX_ARCHIVE_ENTRY_SIZE,
+            "archive_max_uncompressed_size_bytes": scanner.MAX_ARCHIVE_UNCOMPRESSED_SIZE,
+            "archive_max_compression_ratio": scanner.MAX_ARCHIVE_COMPRESSION_RATIO,
+        },
+    }
+
+
+def test_epub_scanner_blocks_unsafe_archive_paths():
+    result = SecurityScanner().scan(
+        _epub_bytes(extras={"../outside.txt": b"escape"}),
+        ".epub",
+        "unsafe.epub",
+    )
+
+    assert result.should_block is True
+    assert ScanReasonCode.EPUB_ENTRY_PATH_UNSAFE in result.reason_codes
+    assert result.to_record()["checks"]["archive_paths"] == "high"
+
+
+def test_epub_scanner_blocks_abnormal_compression_ratio(monkeypatch):
+    scanner = SecurityScanner()
+    monkeypatch.setattr(scanner, "COMPRESSION_RATIO_MIN_SIZE", 1)
+    monkeypatch.setattr(scanner, "MAX_ARCHIVE_COMPRESSION_RATIO", 10)
+
+    result = scanner.scan(
+        _epub_bytes(extras={"OEBPS/payload.bin": b"A" * 50_000}),
+        ".epub",
+        "compressed.epub",
+    )
+
+    assert result.should_block is True
+    assert ScanReasonCode.EPUB_COMPRESSION_RATIO_EXCEEDED in result.reason_codes
+
+
+def test_epub_scanner_applies_entry_limit_before_decompressing(monkeypatch):
+    scanner = SecurityScanner()
+    monkeypatch.setattr(scanner, "MAX_ARCHIVE_ENTRIES", 2)
+    read_calls = 0
+    original_read = zipfile.ZipFile.read
+
+    def tracked_read(archive, *args, **kwargs):
+        nonlocal read_calls
+        read_calls += 1
+        return original_read(archive, *args, **kwargs)
+
+    monkeypatch.setattr(zipfile.ZipFile, "read", tracked_read)
+    result = scanner.scan(_epub_bytes(), ".epub", "too-many-entries.epub")
+
+    assert result.should_quarantine is True
+    assert ScanReasonCode.EPUB_ENTRY_COUNT_EXCEEDED in result.reason_codes
+    assert read_calls == 0
+
+
+def test_epub_scanner_records_active_content_without_executing_it():
+    epub = _epub_bytes("<script>alert('never execute')</script><p onclick=\"noop()\">正文</p>")
+    result = SecurityScanner().scan(epub, ".epub", "active-content.epub")
+
+    assert result.should_block is False
+    assert result.requires_review is True
+    assert ScanReasonCode.EPUB_ACTIVE_CONTENT in result.reason_codes
+    assert result.to_record()["verdict"] == "review"
+    parsed = get_parser("epub").parse(epub, ".epub")
+    assert "never execute" not in parsed.full_text
+    assert "正文" in parsed.full_text
+
+
+def test_corrupted_epub_is_rejected_instead_of_security_quarantined():
+    result = SecurityScanner().scan(b"PK\x03\x04not-a-valid-archive", ".epub", "broken.epub")
+
+    assert result.should_block is True
+    assert result.should_reject is True
+    assert result.should_quarantine is False
+    assert result.to_record()["verdict"] == "reject"
+    assert ScanReasonCode.EPUB_ARCHIVE_INVALID in result.reason_codes
 
 
 def test_declared_document_parsers_have_runtime_dependencies():

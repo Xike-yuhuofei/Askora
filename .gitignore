@@ -42,6 +42,7 @@ apps/frontend/resources/backend/askora-backend
 *.db-*
 *.sqlite
 *.sqlite3
+apps/backend/data/
 
 # IDE and temporary files
 .idea/

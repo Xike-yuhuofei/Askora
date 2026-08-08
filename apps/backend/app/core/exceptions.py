@@ -275,3 +275,47 @@ class SessionNotActiveError(BusinessError):
             error_code="BIZ-0003",
             status_code=status.HTTP_409_CONFLICT,
         )
+
+
+class ContentReinspectionNotAllowedError(BusinessError):
+    """Only quarantined content may enter explicit reinspection."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="只有已隔离资料可以重新检查",
+            error_code="CONTENT_REINSPECTION_NOT_ALLOWED",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class ContentReinspectionPolicyUnchangedError(BusinessError):
+    """A security rejection is not retryable under the same policy."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="当前安全检查策略没有更新，不能重复检查",
+            error_code="CONTENT_REINSPECTION_POLICY_UNCHANGED",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class ContentReinspectionChecksumMismatchError(BusinessError):
+    """The stored raw asset no longer matches its immutable baseline."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="原始资料已发生变化，请重新上传",
+            error_code="CONTENT_REINSPECTION_CHECKSUM_MISMATCH",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class ContentReinspectionUnavailableError(BusinessError):
+    """The durable reinspection task cannot be reused or recovered."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="重新检查任务无法继续，请重新上传资料",
+            error_code="CONTENT_REINSPECTION_UNAVAILABLE",
+            status_code=status.HTTP_409_CONFLICT,
+        )

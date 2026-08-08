@@ -109,6 +109,10 @@ class Settings(BaseSettings):
     local_storage_max_total_size_gb: int = 2
     local_storage_chunk_min_tokens: int = 200
     local_storage_chunk_max_tokens: int = 800
+    local_storage_archive_max_entries: int = 5000
+    local_storage_archive_max_entry_size_mb: int = 50
+    local_storage_archive_max_uncompressed_size_mb: int = 250
+    local_storage_archive_max_compression_ratio: float = 100.0
 
     # Embedding 向量服务
     embedding_api_key: str = ""
@@ -138,6 +142,14 @@ class Settings(BaseSettings):
                 "LOCAL_STORAGE_CHUNK_MIN_TOKENS must be smaller than "
                 "LOCAL_STORAGE_CHUNK_MAX_TOKENS"
             )
+        if self.local_storage_archive_max_entries < 1:
+            raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_ENTRIES must be positive")
+        if self.local_storage_archive_max_entry_size_mb < 1:
+            raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_ENTRY_SIZE_MB must be positive")
+        if self.local_storage_archive_max_uncompressed_size_mb < 1:
+            raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_UNCOMPRESSED_SIZE_MB must be positive")
+        if self.local_storage_archive_max_compression_ratio <= 1:
+            raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_COMPRESSION_RATIO must be greater than 1")
         return self
 
     @property

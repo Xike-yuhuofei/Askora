@@ -10,3 +10,7 @@ export const uploadDocument = (file, subject = '') => {
 export const deleteDocument = (documentId) =>
   api.delete(`/documents/${encodeURIComponent(documentId)}`)
     .then((response) => response.data)
+
+export const reinspectDocument = (documentId) =>
+  api.post(`/documents/${encodeURIComponent(documentId)}/reinspect`)
+    .then((response) => response.data)

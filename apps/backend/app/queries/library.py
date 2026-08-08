@@ -25,7 +25,13 @@ from app.contracts.workspace import (
     WorkspaceSourceSystem,
 )
 from app.core.exceptions import ResourceNotFoundError, ValidationInputError
-from app.domains.content_knowledge import CONTENT_RECORD_KEY, EXTRACTION_VERSION
+from app.domains.content_knowledge import (
+    CONTENT_RECORD_KEY,
+    EXTRACTION_VERSION,
+    SAFETY_REINSPECTION_KEY,
+    SAFETY_SCAN_CURRENT_KEY,
+    SAFETY_SCANNER_VERSION,
+)
 from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
 from app.models.user import User
 
@@ -97,7 +103,7 @@ class WorkspaceLibraryQueryService:
             view_state = "EMPTY"
         elif any(
             item.knowledge_status == "LEGACY_COMPATIBILITY"
-            or item.processing_status in {"failed", "quarantined"}
+            or item.processing_status in {"failed", "rejected", "quarantined"}
             for item in items
         ):
             view_state = "PARTIAL"
@@ -156,7 +162,11 @@ class WorkspaceLibraryQueryService:
         )
         if blocked:
             availability = AvailabilityStatus.MISSING
-            reason_codes.append("CONTENT_QUARANTINED")
+            reason_codes.append(
+                "CONTENT_QUARANTINED"
+                if document.processing_status == ProcessingStatus.QUARANTINED
+                else "CONTENT_REJECTED"
+            )
         elif document.processing_status in {ProcessingStatus.PENDING, ProcessingStatus.PROCESSING}:
             availability = AvailabilityStatus.MISSING
             reason_codes.append("DOCUMENT_PROCESSING_INCOMPLETE")
@@ -236,8 +246,38 @@ class WorkspaceLibraryQueryService:
             reasons.append("DOCUMENT_PROCESSING_ACTIVE")
         elif processing_status == "failed":
             reasons.append("DOCUMENT_PROCESSING_FAILED")
-        elif processing_status == "quarantined":
-            reasons.append("CONTENT_QUARANTINED")
+        elif processing_status in {"rejected", "quarantined"}:
+            reasons.append(
+                "CONTENT_QUARANTINED" if processing_status == "quarantined" else "CONTENT_REJECTED"
+            )
+            details = document.moderation_details or {}
+            scan_record = details.get(SAFETY_SCAN_CURRENT_KEY, {})
+            safe_scan_reasons = {
+                reason
+                for reason in scan_record.get("reason_codes", [])
+                if isinstance(reason, str)
+                and (reason.startswith("CONTENT_") or reason.startswith("EPUB_"))
+            }
+            reasons.extend(sorted(safe_scan_reasons))
+            if processing_status == "quarantined":
+                reinspection = details.get(SAFETY_REINSPECTION_KEY, {})
+                if (
+                    isinstance(reinspection, dict)
+                    and reinspection.get("target_scanner_version") == SAFETY_SCANNER_VERSION
+                    and reinspection.get("status") in {"pending", "processing"}
+                ):
+                    reasons.append("CONTENT_REINSPECTION_PENDING")
+                elif (
+                    isinstance(reinspection, dict)
+                    and reinspection.get("target_scanner_version") == SAFETY_SCANNER_VERSION
+                    and reinspection.get("status") == "failed"
+                ):
+                    reasons.append("CONTENT_REINSPECTION_FAILED")
+                elif (
+                    not isinstance(scan_record, dict)
+                    or scan_record.get("scanner_version") != SAFETY_SCANNER_VERSION
+                ):
+                    reasons.append("CONTENT_REINSPECTION_AVAILABLE")
 
         return LibraryDocumentViewV1(
             document_ref=self._document_ref(document, revision),

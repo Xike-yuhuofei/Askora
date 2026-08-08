@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, ConfigDict
@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
+from app.domains.content_knowledge import SAFETY_SCANNER_VERSION
 from app.models.document import ProcessingStatus
 from app.models.user import User
 from app.services.auth.dependencies import get_current_user
@@ -89,6 +90,15 @@ class UploadResponse(BaseModel):
 
     document_id: str
     status: str
+    message: str
+
+
+class ReinspectionResponse(BaseModel):
+    """Accepted explicit SYS01 reinspection command."""
+
+    document_id: str
+    status: Literal["accepted", "already_pending"]
+    scanner_version: str
     message: str
 
 
@@ -222,6 +232,33 @@ async def get_document(
     return DocumentResponse.model_validate(document)
 
 
+@router.post(
+    "/{document_id}/reinspect",
+    response_model=ReinspectionResponse,
+    status_code=202,
+)
+async def reinspect_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enqueue owner-scoped newer-policy reinspection without lifting quarantine."""
+    document, command_status = await get_document_service(db).request_reinspection(
+        document_id=document_id,
+        pseudonym_id=current_user.pseudonym_id,
+    )
+    return ReinspectionResponse(
+        document_id=document.id,
+        status=command_status,
+        scanner_version=SAFETY_SCANNER_VERSION,
+        message=(
+            "重新检查任务已在处理中"
+            if command_status == "already_pending"
+            else "已提交新版安全策略重新检查"
+        ),
+    )
+
+
 @router.get("/{document_id}/status", response_model=DocumentStatusResponse)
 async def get_document_status(
     document_id: str,
@@ -332,6 +369,6 @@ async def _read_upload_limited(file: UploadFile) -> bytes:
         if len(content) > max_size:
             raise HTTPException(
                 status_code=413,
-                detail=("文件大小超过限制（最大 " f"{settings.local_storage_max_file_size_mb}MB）"),
+                detail=(f"文件大小超过限制（最大 {settings.local_storage_max_file_size_mb}MB）"),
             )
     return bytes(content)

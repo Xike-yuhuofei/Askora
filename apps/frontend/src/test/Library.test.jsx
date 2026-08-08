@@ -5,7 +5,11 @@ import * as documentApi from '../api/documents'
 import * as workspaceApi from '../api/workspace'
 import Library from '../pages/Library'
 
-vi.mock('../api/documents', () => ({ uploadDocument: vi.fn(), deleteDocument: vi.fn() }))
+vi.mock('../api/documents', () => ({
+  uploadDocument: vi.fn(),
+  deleteDocument: vi.fn(),
+  reinspectDocument: vi.fn(),
+}))
 vi.mock('../api/workspace', () => ({
   getLibraryWorkspace: vi.fn(),
   getKnowledgeMap: vi.fn(),
@@ -94,6 +98,7 @@ describe('UI02A 资料库', () => {
     workspaceApi.getKnowledgeMap.mockReset()
     documentApi.uploadDocument.mockReset()
     documentApi.deleteDocument.mockReset()
+    documentApi.reinspectDocument.mockReset()
     workspaceApi.getLibraryWorkspace.mockResolvedValue(libraryPayload)
     workspaceApi.getKnowledgeMap.mockResolvedValue(mapPayload)
   })
@@ -156,6 +161,107 @@ describe('UI02A 资料库', () => {
       { timeout: 4000 },
     )
     expect(workspaceApi.getKnowledgeMap.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('隔离资料只展示主状态并说明建模没有启动', async () => {
+    const quarantinedDocument = {
+      ...documentView,
+      title: 'unsafe.epub',
+      processing_status: 'quarantined',
+      moderation_status: 'rejected',
+      current_revision_ref: null,
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+      reason_codes: [
+        'CONTENT_REVISION_MISSING',
+        'CONTENT_QUARANTINED',
+        'EPUB_ENTRY_PATH_UNSAFE',
+        'CONTENT_REINSPECTION_AVAILABLE',
+      ],
+    }
+    workspaceApi.getLibraryWorkspace.mockResolvedValue({
+      ...libraryPayload,
+      data: { ...libraryPayload.data, view_state: 'PARTIAL', documents: [quarantinedDocument] },
+    })
+    workspaceApi.getKnowledgeMap.mockResolvedValue({
+      ...mapPayload,
+      data: { ...mapPayload.data, nodes: [], edges: [], source_spans: [] },
+    })
+
+    render(<Library />)
+
+    expect(await screen.findByText('unsafe.epub')).toBeInTheDocument()
+    expect(screen.getByRole('button', { pressed: true })).toHaveTextContent('已隔离')
+    expect(screen.queryByText('尚未建模')).not.toBeInTheDocument()
+    expect(
+      await screen.findByText('电子书包包含不安全的文件路径，资料已隔离；知识建模未启动，也不会进入检索或知识地图。'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '使用新版策略重新检查' })).toBeInTheDocument()
+  })
+
+  it('显式提交新版策略复检并防止重复提交', async () => {
+    const quarantinedDocument = {
+      ...documentView,
+      title: 'legacy.epub',
+      processing_status: 'quarantined',
+      moderation_status: 'rejected',
+      current_revision_ref: null,
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+      reason_codes: ['CONTENT_QUARANTINED', 'CONTENT_REINSPECTION_AVAILABLE'],
+    }
+    workspaceApi.getLibraryWorkspace.mockResolvedValue({
+      ...libraryPayload,
+      data: { ...libraryPayload.data, view_state: 'PARTIAL', documents: [quarantinedDocument] },
+    })
+    workspaceApi.getKnowledgeMap.mockResolvedValue({
+      ...mapPayload,
+      data: { ...mapPayload.data, nodes: [], edges: [], source_spans: [] },
+    })
+    documentApi.reinspectDocument.mockResolvedValue({
+      document_id: quarantinedDocument.document_id,
+      status: 'accepted',
+      scanner_version: 'document-safety-v2',
+      message: '已提交新版安全策略重新检查',
+    })
+    render(<Library />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '使用新版策略重新检查' }))
+
+    await waitFor(() => expect(documentApi.reinspectDocument).toHaveBeenCalledTimes(1))
+    expect(documentApi.reinspectDocument).toHaveBeenCalledWith(quarantinedDocument.document_id)
+    expect(await screen.findByText('已提交新版安全策略重新检查')).toBeInTheDocument()
+  })
+
+  it('复检任务等待期间保持隔离并自动刷新', async () => {
+    const pendingReinspection = {
+      ...documentView,
+      title: 'pending.epub',
+      processing_status: 'quarantined',
+      moderation_status: 'rejected',
+      current_revision_ref: null,
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+      reason_codes: ['CONTENT_QUARANTINED', 'CONTENT_REINSPECTION_PENDING'],
+    }
+    workspaceApi.getLibraryWorkspace.mockResolvedValue({
+      ...libraryPayload,
+      data: { ...libraryPayload.data, view_state: 'PARTIAL', documents: [pendingReinspection] },
+    })
+    workspaceApi.getKnowledgeMap.mockResolvedValue({
+      ...mapPayload,
+      data: { ...mapPayload.data, nodes: [], edges: [], source_spans: [] },
+    })
+    render(<Library />)
+
+    expect(
+      await screen.findByText('正在使用新版安全策略重新检查；完成前资料继续保持隔离。'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '使用新版策略重新检查' })).not.toBeInTheDocument()
+    await waitFor(
+      () => expect(workspaceApi.getLibraryWorkspace.mock.calls.length).toBeGreaterThan(1),
+      { timeout: 4000 },
+    )
   })
 
   it('要求二次确认后才删除资料', async () => {

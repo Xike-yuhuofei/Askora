@@ -278,6 +278,13 @@ class EPubParser(DocumentParser):
         chapters = []
         for item in book.get_items_of_type(9):  # 9 = DOCUMENT
             content = item.get_content().decode("utf-8", errors="ignore")
+            # 主动内容只作为扫描证据，不得进入知识建模文本。
+            content = re.sub(
+                r"<(?:script|style)\b[^>]*>.*?</(?:script|style)\s*>",
+                " ",
+                content,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
             # 简单提取文本（去除 HTML 标签）
             text = re.sub(r"<[^>]+>", " ", content)
             text = re.sub(r"\s+", " ", text).strip()

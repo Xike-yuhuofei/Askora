@@ -35,6 +35,9 @@ imported/parsed/modeled
 
 任意预发布状态
   → quarantined           # 安全风险
+
+quarantined
+  → imported              # 所有者显式使用更新版安全策略复检通过
 ```
 
 ### LIFE-010
@@ -44,6 +47,30 @@ imported/parsed/modeled
 ### LIFE-011
 
 `quarantined` 内容不得进入检索索引或 LLM learner-visible context。
+
+### LIFE-012 — Explicit Quarantine Reinspection
+
+`quarantined → imported` 不是 retry。只有资源所有者显式提交
+`ReinspectQuarantinedContent`，且目标 safety scanner/policy version 与上次执行版本不同，
+才 MAY 产生该转换。应用升级、worker reconciliation 或普通 processing retry MUST NOT 自动解除隔离。
+
+每次复检 MUST 保存 append-only `SafetyScanRun`，至少包含 run id、原始资产 checksum、
+scanner/policy version、阈值、verdict、reason codes 与时间。旧 run MUST NOT 被覆盖；
+复检通过后仍须重新走正常 parse/model/publish 流程。
+
+复检任务等待或执行期间对象仍按 `quarantined` 处理，不得进入 chunk projection、检索、
+知识地图或 learner-visible context。复检结论为：
+
+```text
+allow/review → imported
+security risk → quarantined
+unsupported/corrupt → rejected processing outcome（不伪装为 security risk）
+transient/internal failure → quarantined（任务可按基础设施策略 bounded retry）
+```
+
+历史隔离记录若没有 checksum，MAY 仅在本地 owner-bound 私有存储路径、持久化文件大小一致且
+新版 scanner 对当前字节执行完整扫描时建立一次兼容 checksum baseline；必须记录
+`LEGACY_RAW_ASSET_CHECKSUM_BASELINE_ESTABLISHED`，不得声称已证明历史字节从未变化。
 
 ## 3. KnowledgeUnit / Relation
 
@@ -330,6 +357,8 @@ FeedbackSignal
 ## 18. Acceptance Criteria
 
 - `LIFE-AC-001`：quarantined SourceDocument 无法进入 learner-visible retrieval。
+- `LIFE-AC-008`：没有显式 owner command 或 scanner/policy version 未变化时，quarantined SourceDocument 无法出站。
+- `LIFE-AC-009`：复检保留旧 SafetyScanRun；失败或仍有风险时内容继续不可见。
 - `LIFE-AC-002`：模型生成 AssessmentItem 未 review/validate 前不能 active。
 - `LIFE-AC-003`：replan 后旧 LearningPlan 可查询且标记 superseded。
 - `LIFE-AC-004`：AssessmentResult 重评产生新版本而非覆盖。
