@@ -9,14 +9,194 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.learning import LearningActivity, LearningPlan, ReviewSchedule
-from app.contracts.planning import ReviewObservation
+from app.contracts.planning import (
+    GoalFormationInferenceV1,
+    GoalKnowledgeMappingV1,
+    GoalSpecificKnowledgeSubgraphV1,
+    LearningGoalV1,
+    ReviewObservation,
+)
 from app.domains.learning_planner import PlannerDecision
 from app.models.planning import (
+    GoalFormationInferenceRecord,
+    GoalKnowledgeMappingRecord,
+    GoalKnowledgeSubgraphRecord,
     LearningActivityRecord,
+    LearningGoalRecord,
     LearningPlanRecord,
     ReviewObservationRecord,
     ReviewScheduleRecord,
 )
+
+
+class GoalPlanningRepository:
+    """SYS06 immutable Goal/Mapping/Subgraph/Inference repository."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def find_goal_by_idempotency(self, key: str) -> LearningGoalV1 | None:
+        record = await self._session.scalar(
+            select(LearningGoalRecord).where(LearningGoalRecord.idempotency_key == key)
+        )
+        return LearningGoalV1.model_validate(record.payload) if record else None
+
+    async def save_goal(self, goal: LearningGoalV1, *, idempotency_key: str) -> LearningGoalV1:
+        existing = await self.find_goal_by_idempotency(idempotency_key)
+        if existing is not None:
+            return existing
+        record_id = f"{goal.goal_id}:{goal.version}"
+        version_record = await self._session.get(LearningGoalRecord, record_id)
+        if version_record is not None:
+            return LearningGoalV1.model_validate(version_record.payload)
+        self._session.add(
+            LearningGoalRecord(
+                id=record_id,
+                goal_id=str(goal.goal_id),
+                user_id=str(goal.user_id),
+                version=goal.version,
+                status=goal.status,
+                idempotency_key=idempotency_key,
+                payload=goal.model_dump(mode="json"),
+            )
+        )
+        await self._session.flush()
+        return goal
+
+    async def latest_goal(self, *, goal_id: UUID, user_id: UUID) -> LearningGoalV1 | None:
+        record = await self._session.scalar(
+            select(LearningGoalRecord)
+            .where(
+                LearningGoalRecord.goal_id == str(goal_id),
+                LearningGoalRecord.user_id == str(user_id),
+            )
+            .order_by(LearningGoalRecord.version.desc())
+            .limit(1)
+        )
+        return LearningGoalV1.model_validate(record.payload) if record else None
+
+    async def get_goal_version(
+        self, *, goal_id: UUID, version: int, user_id: UUID
+    ) -> LearningGoalV1 | None:
+        record = await self._session.scalar(
+            select(LearningGoalRecord).where(
+                LearningGoalRecord.goal_id == str(goal_id),
+                LearningGoalRecord.version == version,
+                LearningGoalRecord.user_id == str(user_id),
+            )
+        )
+        return LearningGoalV1.model_validate(record.payload) if record else None
+
+    async def next_goal_version(self, goal_id: UUID) -> int:
+        latest = await self._session.scalar(
+            select(func.max(LearningGoalRecord.version)).where(
+                LearningGoalRecord.goal_id == str(goal_id)
+            )
+        )
+        return int(latest or 0) + 1
+
+    async def find_mapping_by_idempotency(self, key: str) -> GoalKnowledgeMappingV1 | None:
+        record = await self._session.scalar(
+            select(GoalKnowledgeMappingRecord).where(
+                GoalKnowledgeMappingRecord.idempotency_key == key
+            )
+        )
+        return GoalKnowledgeMappingV1.model_validate(record.payload) if record else None
+
+    async def next_mapping_version(self, goal_id: UUID) -> int:
+        latest = await self._session.scalar(
+            select(func.max(GoalKnowledgeMappingRecord.mapping_version)).where(
+                GoalKnowledgeMappingRecord.goal_id == str(goal_id)
+            )
+        )
+        return int(latest or 0) + 1
+
+    async def save_mapping(
+        self,
+        mapping: GoalKnowledgeMappingV1,
+        *,
+        idempotency_key: str,
+    ) -> GoalKnowledgeMappingV1:
+        existing = await self.find_mapping_by_idempotency(idempotency_key)
+        if existing is not None:
+            return existing
+        record_id = f"{mapping.mapping_id}:{mapping.mapping_version}"
+        version_record = await self._session.get(GoalKnowledgeMappingRecord, record_id)
+        if version_record is not None:
+            return GoalKnowledgeMappingV1.model_validate(version_record.payload)
+        self._session.add(
+            GoalKnowledgeMappingRecord(
+                id=record_id,
+                mapping_id=str(mapping.mapping_id),
+                goal_id=str(mapping.goal_id),
+                goal_version=mapping.goal_version,
+                mapping_version=mapping.mapping_version,
+                mapper_version=mapping.mapper_version,
+                status=mapping.status,
+                idempotency_key=idempotency_key,
+                payload=mapping.model_dump(mode="json"),
+            )
+        )
+        await self._session.flush()
+        return mapping
+
+    async def latest_mapping(self, goal_id: UUID) -> GoalKnowledgeMappingV1 | None:
+        record = await self._session.scalar(
+            select(GoalKnowledgeMappingRecord)
+            .where(GoalKnowledgeMappingRecord.goal_id == str(goal_id))
+            .order_by(GoalKnowledgeMappingRecord.mapping_version.desc())
+            .limit(1)
+        )
+        return GoalKnowledgeMappingV1.model_validate(record.payload) if record else None
+
+    async def save_subgraph(
+        self, subgraph: GoalSpecificKnowledgeSubgraphV1
+    ) -> GoalSpecificKnowledgeSubgraphV1:
+        record_id = f"{subgraph.subgraph_id}:{subgraph.version}"
+        existing = await self._session.get(GoalKnowledgeSubgraphRecord, record_id)
+        if existing is not None:
+            return GoalSpecificKnowledgeSubgraphV1.model_validate(existing.payload)
+        self._session.add(
+            GoalKnowledgeSubgraphRecord(
+                id=record_id,
+                subgraph_id=str(subgraph.subgraph_id),
+                mapping_id=subgraph.goal_mapping_ref.entity_id,
+                version=subgraph.version,
+                payload=subgraph.model_dump(mode="json"),
+            )
+        )
+        await self._session.flush()
+        return subgraph
+
+    async def get_subgraph(
+        self, *, subgraph_id: UUID, version: int
+    ) -> GoalSpecificKnowledgeSubgraphV1 | None:
+        record = await self._session.get(GoalKnowledgeSubgraphRecord, f"{subgraph_id}:{version}")
+        return GoalSpecificKnowledgeSubgraphV1.model_validate(record.payload) if record else None
+
+    async def save_inference(self, inference: GoalFormationInferenceV1) -> GoalFormationInferenceV1:
+        existing = await self._session.get(
+            GoalFormationInferenceRecord, str(inference.inference_id)
+        )
+        if existing is not None:
+            return GoalFormationInferenceV1.model_validate(existing.payload)
+        self._session.add(
+            GoalFormationInferenceRecord(
+                inference_id=str(inference.inference_id),
+                goal_id=str(inference.goal_id),
+                input_digest=inference.input_digest,
+                provider=inference.provider,
+                model_name=inference.model_name,
+                status=inference.status,
+                payload=inference.model_dump(mode="json"),
+            )
+        )
+        await self._session.flush()
+        return inference
+
+    async def get_inference(self, inference_id: UUID) -> GoalFormationInferenceV1 | None:
+        record = await self._session.get(GoalFormationInferenceRecord, str(inference_id))
+        return GoalFormationInferenceV1.model_validate(record.payload) if record else None
 
 
 class ReviewScheduleRepository:
@@ -58,16 +238,12 @@ class ReviewScheduleRepository:
                     ReviewObservationRecord.knowledge_unit_id == str(knowledge_unit_id),
                     ReviewObservationRecord.invalidated_at.is_(None),
                 )
-                .order_by(
-                    ReviewObservationRecord.actual_reviewed_at, ReviewObservationRecord.id
-                )
+                .order_by(ReviewObservationRecord.actual_reviewed_at, ReviewObservationRecord.id)
             )
         ).all()
         return [ReviewObservation.model_validate(record.payload) for record in records]
 
-    async def latest(
-        self, *, user_id: UUID, knowledge_unit_id: UUID
-    ) -> ReviewSchedule | None:
+    async def latest(self, *, user_id: UUID, knowledge_unit_id: UUID) -> ReviewSchedule | None:
         record = await self._session.scalar(
             select(ReviewScheduleRecord)
             .where(
@@ -103,7 +279,9 @@ class ReviewScheduleRepository:
             await self._session.scalars(
                 select(ReviewScheduleRecord)
                 .where(ReviewScheduleRecord.user_id == str(user_id))
-                .order_by(ReviewScheduleRecord.knowledge_unit_id, ReviewScheduleRecord.version.desc())
+                .order_by(
+                    ReviewScheduleRecord.knowledge_unit_id, ReviewScheduleRecord.version.desc()
+                )
             )
         ).all()
         latest: dict[str, ReviewScheduleRecord] = {}
@@ -118,9 +296,7 @@ class LearningPlanRepository:
 
     async def find_by_idempotency(self, idempotency_key: str) -> LearningPlan | None:
         record = await self._session.scalar(
-            select(LearningPlanRecord).where(
-                LearningPlanRecord.idempotency_key == idempotency_key
-            )
+            select(LearningPlanRecord).where(LearningPlanRecord.idempotency_key == idempotency_key)
         )
         return self._to_plan(record) if record else None
 

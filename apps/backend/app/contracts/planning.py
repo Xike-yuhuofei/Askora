@@ -6,8 +6,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
+from app.contracts.adaptive import VersionedRef
 from app.contracts.base import ContractModel
 
 
@@ -44,3 +45,118 @@ class ConfirmedLearningGoal(ContractModel):
     objective_id: UUID
     target_knowledge_unit_ids: list[UUID]
     confirmed_at: datetime
+
+
+class LearningGoalV1(ContractModel):
+    """DOMAIN-010/011 SYS06-owned immutable goal version."""
+
+    goal_id: UUID
+    goal_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    version: int = Field(ge=1)
+    user_id: UUID
+    title: str = Field(min_length=1, max_length=200)
+    topic: str = Field(min_length=1, max_length=200)
+    target_capabilities: tuple[str, ...] = Field(min_length=1)
+    application_context: str | None = Field(default=None, max_length=500)
+    success_criteria: tuple[str, ...] = Field(min_length=1)
+    source_document_ids: tuple[UUID, ...]
+    deadline_at: datetime | None = None
+    weekly_time_budget_minutes: int | None = Field(default=None, ge=1)
+    status: Literal["candidate", "confirmed", "active", "achieved", "paused", "archived"]
+    confirmed_by_user: bool
+    created_at: datetime
+    confirmed_at: datetime | None = None
+    supersedes_version: int | None = Field(default=None, ge=1)
+    model_inference_refs: tuple[UUID, ...] = ()
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def enforce_confirmation_owner(self) -> LearningGoalV1:
+        if self.status in {"confirmed", "active"} and (
+            not self.confirmed_by_user or self.confirmed_at is None
+        ):
+            raise ValueError("confirmed/active goal requires explicit user confirmation")
+        if self.status == "candidate" and self.confirmed_by_user:
+            raise ValueError("candidate goal cannot be user-confirmed")
+        return self
+
+
+class GoalFormationInferenceV1(ContractModel):
+    """Persisted bounded model candidate; never a goal or mapping decision."""
+
+    inference_id: UUID
+    inference_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    goal_id: UUID
+    input_digest: str = Field(min_length=64, max_length=64)
+    provider: str | None = None
+    model_name: str | None = None
+    model_snapshot: str | None = None
+    prompt_version: str
+    output_schema_version: str
+    structured_result: dict[str, object] | None = None
+    status: Literal["succeeded", "unavailable", "invalid"]
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    created_at: datetime
+
+
+class GoalTargetEvidenceV1(ContractModel):
+    """Exact selected/excluded KU evidence used by a mapping decision."""
+
+    knowledge_unit_id: UUID
+    knowledge_unit_ref: str = Field(min_length=1)
+    source_document_id: UUID
+    material_revision_id: UUID
+    source_span_ids: tuple[UUID, ...] = Field(min_length=1)
+    rank_positions: dict[str, int]
+    fusion_score: float = Field(ge=0.0)
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+
+class GoalKnowledgeMappingV1(ContractModel):
+    """SPEC-D04 SYS06 decision record; not a SYS01 knowledge fact."""
+
+    mapping_id: UUID
+    mapping_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    mapping_version: int = Field(ge=1)
+    goal_id: UUID
+    goal_version: int = Field(ge=1)
+    source_document_ids: tuple[UUID, ...]
+    knowledge_graph_versions: tuple[str, ...]
+    candidate_target_ids: tuple[UUID, ...]
+    selected_target_ids: tuple[UUID, ...]
+    excluded_target_ids: tuple[UUID, ...]
+    target_evidence: tuple[GoalTargetEvidenceV1, ...]
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    mapper_version: str
+    model_inference_refs: tuple[UUID, ...] = ()
+    status: Literal["candidate", "confirmed", "blocked", "superseded"]
+    clarification_question: str | None = None
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def enforce_executable_mapping(self) -> GoalKnowledgeMappingV1:
+        evidence_ids = {item.knowledge_unit_id for item in self.target_evidence}
+        if not set(self.selected_target_ids).issubset(evidence_ids):
+            raise ValueError("selected targets require exact target evidence")
+        if self.status == "confirmed" and not self.selected_target_ids:
+            raise ValueError("confirmed mapping requires selected targets")
+        if self.status == "blocked" and not self.clarification_question:
+            raise ValueError("blocked mapping requires bounded clarification")
+        return self
+
+
+class GoalSpecificKnowledgeSubgraphV1(ContractModel):
+    """SYS06 read-only planning projection over exact SYS01 relation refs."""
+
+    subgraph_id: UUID
+    subgraph_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    version: int = Field(ge=1)
+    goal_mapping_ref: VersionedRef
+    target_knowledge_unit_ids: tuple[UUID, ...]
+    included_prerequisite_ids: tuple[UUID, ...]
+    relation_refs: tuple[VersionedRef, ...]
+    knowledge_graph_versions: tuple[str, ...]
+    closure_policy_version: str
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    created_at: datetime

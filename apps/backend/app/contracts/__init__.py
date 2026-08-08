@@ -86,7 +86,16 @@ from app.contracts.learning import (
     ReviewSchedule,
     TeachingAction,
 )
-from app.contracts.planning import ConfirmedLearningGoal, ReviewDueCandidate, ReviewObservation
+from app.contracts.planning import (
+    ConfirmedLearningGoal,
+    GoalFormationInferenceV1,
+    GoalKnowledgeMappingV1,
+    GoalSpecificKnowledgeSubgraphV1,
+    GoalTargetEvidenceV1,
+    LearningGoalV1,
+    ReviewDueCandidate,
+    ReviewObservation,
+)
 from app.contracts.rendering import (
     CardBlockV1,
     CitationBlockV1,
@@ -142,6 +151,10 @@ __all__ = [
     "CitationItemV1",
     "ContaminationStatus",
     "ConfirmedLearningGoal",
+    "GoalFormationInferenceV1",
+    "GoalKnowledgeMappingV1",
+    "GoalSpecificKnowledgeSubgraphV1",
+    "GoalTargetEvidenceV1",
     "DecisionAlgorithm",
     "DecisionExperiment",
     "DecisionFeatureV03",
@@ -166,6 +179,7 @@ __all__ = [
     "InteractionMove",
     "LearnerEvidence",
     "LearningActivity",
+    "LearningGoalV1",
     "LearningEventEnvelope",
     "LearningEventEnvelopeV03",
     "LearningPlan",

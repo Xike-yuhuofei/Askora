@@ -31,7 +31,11 @@ from app.models.ledger import (
     OutboxTaskRecord,
 )
 from app.models.planning import (
+    GoalFormationInferenceRecord,
+    GoalKnowledgeMappingRecord,
+    GoalKnowledgeSubgraphRecord,
     LearningActivityRecord,
+    LearningGoalRecord,
     LearningPlanRecord,
     ReviewObservationRecord,
     ReviewScheduleRecord,
@@ -64,6 +68,10 @@ __all__ = [
     "LearnerEvidenceRecord",
     "MasteryEstimateRecord",
     "LearningActivityRecord",
+    "LearningGoalRecord",
+    "GoalKnowledgeMappingRecord",
+    "GoalKnowledgeSubgraphRecord",
+    "GoalFormationInferenceRecord",
     "LearningPlanRecord",
     "ReviewObservationRecord",
     "ReviewScheduleRecord",
