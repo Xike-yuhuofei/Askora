@@ -4,9 +4,10 @@
 > 当前状态：v0.3 Adaptive Teaching Loop 设计冻结基线  
 > 适用范围：私人自用、单用户优先的桌面与本地学习平台  
 > 版本：v0.3  
-> 日期：2026-08-07
+> 设计冻结日期：2026-08-07
+> 生命周期校准：2026-08-08
 
-> 说明：本文件定义产品与总体系统语义。`docs/specs/**` 当前仍是既有实现合同，只有在后续 Spec Delta 完成后才会吸收本次 v0.3 设计变化。若本文件中的 v0.3 Canonical Design 与历史 v0.2 示例冲突，以本文件的 v0.3 语义为准，但不得据此直接修改代码或绕过 Spec。
+> 说明：本文件定义产品与总体系统语义。v0.3 Design Delta 已由 ADR-0001、ADR-0002 和 `docs/specs/**` 吸收并通过 EXEC-007～013 实现；实现仍以最新 Spec 为直接合同。若本文件与 Spec 冲突，按项目权威顺序处理，不得用设计稿绕过 Spec。
 
 ## 1. 文档摘要
 
@@ -1023,39 +1024,43 @@ Correct Experimental Data Foundation
 
 ---
 
-## 14. v0.3 实施路线图（设计层）
+## 14. v0.3 实施路线图（已完成）
 
 ### 阶段 A：Canonical Design
 
-本文件与《AI学习系统算法与教学内核设计》冻结 Adaptive Teaching Loop 的产品、系统和算法语义。
+本文件与《AI学习系统算法与教学内核设计》已冻结 Adaptive Teaching Loop 的产品、系统和算法语义。
 
 ### 阶段 B：ADR Resolution
 
-仅对重大 breaking domain/architecture decision 建 ADR，重点包括 Strategy ontology 与 deterministic policy architecture。
+ADR-0001、ADR-0002 已接受并固定 Strategy ontology 与 deterministic policy architecture。
 
 ### 阶段 C：Spec Delta
 
-把本设计转化为 Domain、SYS03、SYS04、SYS05、Decision Contract、Testing、Observability 与 Vertical Slice 的可实现合同。
+相关 Domain、SYS03、SYS04、SYS05、Decision、Testing、Observability 与 Vertical Slice 合同已完成 v0.3 对齐。
 
 ### 阶段 D：v0.3 Vertical Slice
 
-验证同一 LearningActivity 在不同 TeachingContext 下产生不同但可解释的 TeachingAction，并覆盖支架增加/撤除、独立验证、延迟与迁移结果。
+EXEC-007～013 已完成实现与 release gate。Engineering、Policy Correctness 已通过；真人 Learning Evidence 仍不足。
 
 本文件不直接生成 EXEC，也不授权代码修改。
 
 ---
 
-## 15. 近期优先级
+## 15. 当前阶段
 
-进入实现前依次完成：
+v0.3 的形成与实施链已经闭合：
 
-1. v0.3 Canonical Design 冻结；
-2. 必须 ADR 的决策收口；
-3. Spec Delta；
-4. v0.3 Vertical Slice；
-5. 再形成 EXEC。
+```text
+Canonical Design
+→ ADR-0001 / ADR-0002
+→ v0.3 Specs / Vertical Slice
+→ EXEC-007～013
+→ Engineering Gate PASS
+→ Policy Correctness Gate PASS
+→ Learning Evidence Gate LEARNING_EVIDENCE_INSUFFICIENT
+```
 
-不要在 Spec Delta 前直接让实现层迁移 strategy enum、TeachingAction schema 或 DecisionTrace schema。
+后续工作必须从新的 Research/Design/ADR/Spec 决策开始，不能直接在实现层改变 strategy enum、TeachingAction 或 DecisionTrace 公共语义。
 
 ---
 
@@ -1114,11 +1119,11 @@ Evidence-grounded learner state
 
 ---
 
-## 19. 与 v0.2 Implementation Contract 的关系
+## 19. 与 v0.2/v0.3 Implementation Contract 的关系
 
 v0.2 已冻结并实现/执行过的事件、评估、状态所有权、RAG、持久化、恢复、安全、可访问性和 Orchestrator 主链原则仍然有效，除非它们与本次 v0.3 Design Delta 明确冲突。
 
-本阶段不修改 `docs/specs/**`。已识别的冲突必须在后续 Spec Delta 中显式迁移，主要包括：
+v0.3 Specs 已显式迁移当时识别的冲突，主要包括：
 
 - 9 个 top-level TeachingStrategy → 6 Strategy Families + Action/Move/Modifier；
 - 旧 error enum → v0.3 7 + UNKNOWN；
@@ -1128,4 +1133,4 @@ v0.2 已冻结并实现/执行过的事件、评估、状态所有权、RAG、�
 - DecisionTrace probability/transition/replayability 语义；
 - OutcomeObservation 与三层 release gate。
 
-在 Spec Delta 完成前，代码实现不得根据本文件自行猜测新 schema。
+这些语义的直接实现合同现在位于 `docs/specs/**`。后续变更仍不得根据本文件自行猜测新 schema。

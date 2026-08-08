@@ -108,6 +108,10 @@ Secrets 只从受控配置读取，不提交仓库、不输出日志、不发送
 
 新增生产依赖需要目的/维护/安全评估；执行代理 MUST NOT 自行加入大型 autonomous-agent/security framework 解决局部问题。
 
+### SEC-081 — Rich Response Renderer
+
+模型/检索/工具产生的 Markdown、公式和结构化 block 一律 untrusted。前端 MUST 使用 typed component allowlist；MUST NOT 执行 raw HTML、MDX、script、模型指定组件、代码块或 arbitrary card command。链接协议只允许 `http`/`https`；v1.0 remote image/file/data URL MUST blocked。公式 renderer MUST 禁止 trusted external-resource commands，并限制 expansion/size。
+
 ## 12. Policy Override Protection
 
 ### SEC-210

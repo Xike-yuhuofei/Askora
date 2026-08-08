@@ -11,6 +11,19 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    name: Documentation links and lifecycle state
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 检查文档链接与过时状态
+        run: python .github/workflows/check_docs.py
+
   backend-tests:
     name: Backend tests / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
@@ -140,8 +153,10 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
-      - name: 生产构建
-        run: npm run build
+      - name: 组件测试与生产构建
+        run: |
+          npm test -- --run
+          npm run build
 
   frontend-dependency-audit:
     name: Frontend dependency audit

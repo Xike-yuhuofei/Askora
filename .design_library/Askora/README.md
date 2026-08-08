@@ -1,5 +1,7 @@
 # Askora Design System
 
+> 项目定位：支持性 UI 设计资产，不是 Askora Canonical Design、Implementation Spec 或当前功能清单。组件与交互能力必须以实际前端代码和测试为准。
+
 A design system for **Askora** — an AI chat and knowledge base platform with a three-column workspace layout inspired by Trae Work's interaction pattern and Apple's visual language. The system is purpose-built for conversational AI interfaces where clarity, focus, and information density must coexist.
 
 ## What this design system covers

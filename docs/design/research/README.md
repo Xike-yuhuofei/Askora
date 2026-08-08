@@ -1,6 +1,8 @@
 # Askora 设计研究资产索引
 
 > 本目录保存“为什么这样设计”的研究依据与综合推导，不作为第二套正式规范。Askora 的 Canonical Design 由按职责边界划分的正式设计文档共同组成：产品与整体架构以 [`../个人AI辅助学习平台设计方案.md`](../个人AI辅助学习平台设计方案.md) 为基线；学习科学、教学算法与八类技术系统以 [`../AI学习系统算法与教学内核设计.md`](../AI学习系统算法与教学内核设计.md) 为基线。
+>
+> 生命周期说明：v0.3 Research Delta 已完成并被 Canonical Design、ADR 和 Specs 吸收。候选范围、研究议程和早期现状诊断均为历史研究输入，不代表当前实现状态。
 
 ## 1. 目录分层
 
@@ -31,11 +33,11 @@ research/
 
 公共研究资产：
 
-- `八类技术系统-现状诊断.md`
+- `八类技术系统-现状诊断.md`：pre-v0.2 历史诊断快照；
 - `八类技术系统-公共架构冻结稿.md`
 - `八类技术系统-系统设计研究综合与溯源.md`
-- `v0.3-候选范围分析.md`：基于冻结的 v0.2 选择下一阶段主线，不重新研究八类系统；
-- `v0.3-深度研究议程.md`：限定 v0.3 Deep Research 的 Research Delta、证据标准、输出结构与停止条件。
+- `v0.3-候选范围分析.md`：已完成的 v0.3 scope decision 历史输入；
+- `v0.3-深度研究议程.md`：已执行完毕的 v0.3 Research Delta 议程。
 
 八类技术系统原始 Deep Research 设计已从四个执行批次无改写拆分为：
 
@@ -116,7 +118,7 @@ Deep Research 原始结果
 
 ## 6. v0.3 Research Delta 状态
 
-v0.2 First Vertical Learning Loop 冻结后，v0.3 不再从零研究八类技术系统。当前候选主线为 `Adaptive Teaching Loop`，进入 Canonical Design 前先完成 4 个专项 Research Delta：
+v0.3 的 4 个专项 Research Delta 已完成，并已综合进入 Adaptive Teaching Loop Canonical Design：
 
 ```text
 DR-03-01 教学策略与支架转换
@@ -130,4 +132,4 @@ DR-03-04 学习效果验证与产品实验
 - `synthesis/v0.3-候选范围分析.md`
 - `synthesis/v0.3-深度研究议程.md`
 
-研究完成前不得直接生成 v0.3 EXEC，也不得由 Codex 从现有实现自行扩展教学策略语义。
+上述文件现在作为历史研究输入保留。新的教学策略语义仍必须重新经过 Research/Design/ADR/Spec 流程，不得由 Codex 从现有实现自行扩展。

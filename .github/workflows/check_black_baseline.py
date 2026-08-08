@@ -30,17 +30,11 @@ LEGACY_UNFORMATTED: dict[str, str] = {
         "f71e978e48418b033fc556c6623a750445513b2f054a80c98a46132db709490d"
     ),
     "app/models/planning.py": ("994cc0929b46520f548c2e8afb8fa692a1f1c74c85f5f0c189cdc4c1906eaaa3"),
-    "app/services/dialog/dialog_service.py": (
-        "8f68780d7816655154bfe31f41fe39acbbdca47e35d5ea6a7b5a58a773148200"
-    ),
     "app/services/documents/document_service.py": (
         "d1acc613e9e9ac07e30fa0abc6d78fc47f57bfda10872fbeb29454b116873186"
     ),
     "tests/test_assessment_mastery_replay.py": (
         "1e2641e7631ba093d0b3be40d109174bfaf5792e3d59b8ecccf0faf3db0f9c23"
-    ),
-    "tests/test_dialog_canonical_entry.py": (
-        "b53fcc34cb1b5ecd0b4e474a3cf0562b2e80dfdabe84958864235cfc9ebb2c5d"
     ),
     "tests/test_learning_planner.py": (
         "5c8485134a2edebe1e5e327a2fdaada889f4df68e31a6bce76f8338b0fde2671"

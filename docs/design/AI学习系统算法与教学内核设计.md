@@ -1,11 +1,12 @@
 # Askora AI 学习系统：算法与教学内核设计
 
 > 状态：v0.3 Canonical Design — Adaptive Teaching Loop 冻结  
-> 更新时间：2026-08-07  
+> 设计冻结日期：2026-08-07
+> 生命周期校准：2026-08-08
 > 目标：定义 Askora 的学习科学、领域语义、八系统边界、Teaching Policy 与学习效果验证的唯一设计基线。  
 > 上游唯一研究综合：`docs/design/research/synthesis/v0.3-Research-Synthesis-Adaptive-Teaching-Loop.md`
 
-> 重要边界：本文件是 Design，不是 Spec。`docs/specs/**`、`docs/adr/**`、`docs/exec-plans/**` 与代码不因本次设计冻结自动变化。所有已识别 implementation contract 变化统一登记到本文件的 **Spec Delta Input**，必须经过后续阶段显式处理。
+> 重要边界：本文件是 Design，不是 Spec。v0.3 变化已经由 ADR-0001、ADR-0002、`docs/specs/**` 和 EXEC-007～013 显式处理；实现仍以最新 Spec 为直接合同，不能用本设计稿覆盖 Spec。
 
 ## 1. 核心定位
 
@@ -495,7 +496,7 @@ LearningEvent 继续采用不可变、append-only、幂等消费、版本化 sch
 
 ### 4.5.2 DecisionTrace v0.3 Design Delta
 
-本阶段不修改 `docs/specs/domain/decision-contract.md`，但 Design 冻结下一版至少需要支持：
+v0.3 `docs/specs/domain/decision-contract.md` 已将以下 Design Delta 转换为实现合同：
 
 ```text
 TeachingContext refs/version
@@ -1405,7 +1406,7 @@ PolicyBundle ref/hash
 decision_id
 ```
 
-实际 Spec schema 由后续 Spec Delta 冻结，本阶段不直接修改 domain-model。
+实际 schema 已由 v0.3 Domain Model 和相关系统 Spec 冻结；本节只保留设计层语义。
 
 #### 4.8.5.15 Failure Semantics
 
@@ -1927,7 +1928,7 @@ v0.3 不把“未来可能研究”写成产品承诺或实现路线默认下一
 
 ---
 
-## 4.13 v0.3 实施路线（Design Dependency）
+## 4.13 v0.3 实施路线（已完成）
 
 ```text
 Research Synthesis
@@ -1939,7 +1940,7 @@ Research Synthesis
 → Implementation
 ```
 
-当前阶段只冻结 Design。
+该依赖链已经完成；本节保留形成顺序，当前实现状态以 Release Report 和重新运行的验证为准。
 
 v0.3 的 policy baseline 固定为：
 
@@ -2053,7 +2054,7 @@ TeachingContext
 
 ## 4.17 ADR Candidate Register
 
-本阶段只判断，不创建 `docs/adr/**`。
+本表记录设计阶段的 ADR 判断。候选 A、B 已分别成为 ADR-0001、ADR-0002；候选 C 维持“不新增 ADR”的结论。
 
 | ADR Candidate | Decision | Rationale | Breaking? | Required before Spec Delta? |
 |---|---|---|---:|---:|
@@ -2065,9 +2066,9 @@ DecisionTrace 的 `action_propensity=null` 与 assignment probability 分离，�
 
 ---
 
-## 4.18 Spec Delta Input
+## 4.18 Spec Delta Resolution Record
 
-本节仅作为下一阶段输入，**禁止据此认为 Spec 已修改**。
+本表记录当时送入 Spec 的 Design Delta。SD-01～SD-11 已在 v0.3 Specs 中解决；当前实现不得直接引用本表代替对应 Spec。
 
 | ID | Target | Required Change | Design Source | Breaking? | Migration? | ADR Dependency? |
 |---|---|---|---|---:|---:|---|
@@ -2156,9 +2157,9 @@ always-on Socratic tutor
 - `docs/design/research/synthesis/DR-03-02-错误诊断到教学补救研究.md`；
 - `docs/design/research/synthesis/DR-03-03-Teaching-Policy-决策算法与数据契约研究.md`；
 - `docs/design/research/synthesis/DR-03-04-学习效果验证与产品实验研究.md`；
-- `docs/design/research/八类技术系统-参考资料索引.md`。
+- `docs/design/research/evidence/八类技术系统-参考资料索引.md`。
 
-既有教育科学、ITS、BKT/PFA/IRT、RAG、FSRS、NIST、OWASP、CloudEvents、OpenTelemetry 等基础研究仍保留为背景依据；Research Synthesis 已经解决的问题在本阶段不重新投票。
+既有教育科学、ITS、BKT/PFA/IRT、RAG、FSRS、NIST、OWASP、CloudEvents、OpenTelemetry 等基础研究仍保留为背景依据；Research Synthesis 已经解决的问题不因后续实现细节重新投票。
 
 ---
 
@@ -2342,9 +2343,7 @@ Explicit domain ownership
 + Outcome / experiment foundation
 ```
 
-当前阶段完成的是 Canonical Design，不是 Spec 或实现。
-
-由于 **ADR-A Teaching Strategy Ontology** 与 **ADR-B Constrained Deterministic Policy Architecture** 都属于必须先固化的重大设计选择，后续流程必须先进入 ADR Resolution，再进入 Spec Delta。
+该 Canonical Design 已由 ADR-0001、ADR-0002 和 v0.3 Specs 固化，并由 EXEC-007～013 完成首个工程/策略 vertical slice。当前 Learning Evidence 状态仍为 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ---
 
@@ -2352,7 +2351,7 @@ Explicit domain ownership
 
 本文件继续作为 Askora 算法与教学内核的 Canonical Design 主文档，不再建议把 v0.3 Teaching Policy 复制成多份平行设计文档。
 
-后续各阶段职责：
+各层文档职责：
 
 ```text
 Canonical Design → 定义“系统应该是什么”
@@ -2363,4 +2362,4 @@ EXEC             → 给 Codex 的具体实施任务
 Code             → 仅实现已经冻结的 Spec/EXEC
 ```
 
-本次设计冻结没有修改任何 `docs/specs/**`、`docs/adr/**`、`docs/exec-plans/**` 或生产代码。
+v0.3 的下游 ADR、Spec、EXEC 与实现已经完成；本文件继续承担设计基线职责，不承担执行状态或当前测试证据职责。

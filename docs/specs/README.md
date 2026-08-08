@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Vertical Slice Frozen
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline
 
 ## 1. Purpose
 
@@ -25,40 +25,48 @@ Research Synthesis
 
 ### Domain
 
-- `domain/domain-model.md` — canonical objects、ontology、TeachingContext、PolicyBundle、Outcome/Experiment、migration
-- `domain/decision-contract.md` — DecisionTrace v0.3、probability、replay
-- `domain/event-contract.md` — LearningEvent、assistance/outcome/experiment event semantics
-- `domain/lifecycle-state-machines.md` — lifecycle contracts（按需引用）
+- [Domain Model](domain/domain-model.md) — canonical objects、ontology、TeachingContext、PolicyBundle、Outcome/Experiment、migration
+- [Decision Contract](domain/decision-contract.md) — DecisionTrace v0.3、probability、replay
+- [Event Contract](domain/event-contract.md) — LearningEvent、assistance/outcome/experiment event semantics
+- [Lifecycle State Machines](domain/lifecycle-state-machines.md) — lifecycle contracts
 
 ### Architecture
 
-- `architecture/state-ownership.md` — SYS01～SYS08 single-writer ownership
-- `architecture/system-architecture.md`
-- `architecture/dependency-rules.md`
+- [State Ownership](architecture/state-ownership.md) — SYS01～SYS08 single-writer ownership
+- [System Architecture](architecture/system-architecture.md)
+- [Dependency Rules](architecture/dependency-rules.md)
 
 ### Systems
 
-- `systems/01-content-knowledge.md`
-- `systems/02-retrieval.md`
-- `systems/03-learner-model.md`
-- `systems/04-assessment.md`
-- `systems/05-teaching-policy.md`
-- `systems/06-learning-planner.md`
-- `systems/07-review-scheduler.md`
-- `systems/08-ai-orchestration.md`
+- [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
+- [SYS02 Retrieval](systems/02-retrieval.md)
+- [SYS03 Learner Model](systems/03-learner-model.md)
+- [SYS04 Assessment](systems/04-assessment.md)
+- [SYS05 Teaching Policy](systems/05-teaching-policy.md)
+- [SYS06 Learning Planner](systems/06-learning-planner.md)
+- [SYS07 Review Scheduler](systems/07-review-scheduler.md)
+- [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
+
+### Interfaces
+
+- [API Contract](interfaces/api-contract.md)
+- [Error Contract](interfaces/error-contract.md)
+- [Persistence Contract](interfaces/persistence-contract.md)
+- [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
+- [Schema Versioning](interfaces/schema-versioning.md)
 
 ### Quality
 
-- `quality/testing-standard.md` — L0～L6 + OPVE/G0/G1/G2
-- `quality/observability-standard.md` — decision/outcome observability + learning outcome hierarchy
-- `quality/definition-of-done.md` — Engineering/Policy/Learning Evidence release gates
-- `quality/security-standard.md` — hard-rule / answer-exposure / grader-only security boundary
-- other quality/versioning specs remain applicable unless explicitly superseded
+- [Testing Standard](quality/testing-standard.md) — L0～L6 + OPVE/G0/G1/G2
+- [Observability Standard](quality/observability-standard.md) — decision/outcome observability + learning outcome hierarchy
+- [Definition of Done](quality/definition-of-done.md) — Engineering/Policy/Learning Evidence release gates
+- [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only security boundary
 
 ### Vertical Slices
 
-- `vertical-slices/v0.3-adaptive-teaching-loop.md` — **current frozen v0.3 implementation slice**；定义 EXEC-007+ 的范围、阶段、迁移路径与 release gate
-- `vertical-slices/v0.2-learning-loop.md` — historical v0.2 implementation slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede，MUST NOT reintroduce old truth
+- [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
+- [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
+- [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
 
 ## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
 
@@ -176,6 +184,4 @@ Single-writer ownership remains intact
 Engineering / Policy / Learning Evidence claims remain separated
 ```
 
-Current status：**PASS**。
-
-下一阶段：正式生成 `EXEC-007` ～ `EXEC-013`，再交由 Codex 按依赖顺序执行。
+Vertical Slice Gate：**PASS**。EXEC-007～013 已完成并归档；当前实现证据见 [v0.3 Release Report](../releases/v0.3-adaptive-teaching-loop.md)。

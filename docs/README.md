@@ -1,131 +1,61 @@
 # Askora 文档中心
 
-`docs/` 是 Askora 的产品设计、教学内核设计与研究资产入口。
+> 状态：当前文档索引
+> 当前基线：v0.3 Adaptive Teaching Loop
+> 最近校准：2026-08-08
 
-核心原则：**研究依据、正式设计与实际实现必须分层管理；同一职责边界只能有一个正式设计来源。**
+`docs/` 保存 Askora 的实现合同、架构决策、正式设计、研究证据、执行归档和发布证据。同一事实只能有一个权威来源；当前说明、冻结合同和历史记录不得混为一类。
 
-## 1. 快速入口
+## 1. 权威顺序
 
-| 我想了解 | 阅读入口 |
-|---|---|
-| Askora 是什么、整体产品如何设计 | [`design/个人AI辅助学习平台设计方案.md`](design/个人AI辅助学习平台设计方案.md) |
-| AI 教学系统如何工作 | [`design/AI学习系统算法与教学内核设计.md`](design/AI学习系统算法与教学内核设计.md) |
-| 八类技术系统的正式设计 | [`design/AI学习系统算法与教学内核设计.md`](design/AI学习系统算法与教学内核设计.md) 第 4 章 |
-| 为什么采用这些设计 | [`design/research/`](design/research/) |
-| 查看 Deep Research、论文与行业证据 | [`design/research/evidence/`](design/research/evidence/) |
-| 查看架构推导与八类系统详细研究稿 | [`design/research/synthesis/`](design/research/synthesis/) |
-| 查看 Research 的治理与索引规则 | [`design/research/README.md`](design/research/README.md) |
-
-## 2. 文档体系
+发生冲突时按以下顺序处理：
 
 ```text
-docs/
-├── README.md
-└── design/
-    ├── 个人AI辅助学习平台设计方案.md
-    ├── AI学习系统算法与教学内核设计.md
-    └── research/
-        ├── README.md
-        ├── evidence/
-        └── synthesis/
+docs/specs/
+→ docs/adr/
+→ docs/design/ 中的 Canonical Design
+→ 当前代码、配置、迁移与可执行测试
+→ Research / 历史说明
 ```
 
-Askora 的设计知识分为三层：
+代码与 Spec 冲突时默认属于实现偏差，不得反向修改 Spec 迁就代码。Research 解释“为什么这样设计”，不能直接作为实现接口合同。
+
+## 2. 目录与生命周期
+
+| 路径 | 性质 | 当前状态 | 更新规则 |
+|---|---|---|---|
+| [`specs/`](specs/README.md) | Canonical Implementation Contract | v0.3 frozen | 语义变化必须遵循 Spec/ADR 流程 |
+| [`adr/`](adr/README.md) | 已接受架构决策 | ADR-0001/0002 accepted | 作为决策历史保留，不改写当时理由 |
+| [`design/`](design/README.md) | Canonical Design | v0.3 frozen | 保持与已接受 ADR/Spec 的关系说明准确 |
+| [`design/research/`](design/research/README.md) | Evidence / Synthesis | historical and supporting | 保留独立证据价值，明确历史阶段 |
+| [`exec-plans/`](exec-plans/README.md) | 实施任务合同 | 无 active；EXEC-001～013 completed | completed 文件保持历史原貌 |
+| [`releases/`](releases/README.md) | 发布与验收证据 | v0.2/v0.3 historical snapshots | 不把历史测试结果宣称为当前重新验证 |
+| [`document-inventory.md`](document-inventory.md) | 文档处置清单 | current | 每次文档治理后更新 |
+
+## 3. 当前项目状态
+
+截至 v0.3 release baseline：
 
 ```text
-Research
-├── Evidence
-└── Synthesis
-        ↓
-Canonical Design
-        ↓
-Implementation Validation
+Engineering Gate: PASS
+Policy Correctness Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
-这是一条**知识形成与验证链路**，不是简单的文档等级排序。
+EXEC-001～013 已完成并归档，`docs/exec-plans/active/` 当前没有执行计划。上述结果是发布时证据快照；对当前 checkout 作工程判断时仍需重新运行适用检查。
 
-## 3. Canonical Design：正式设计基线
+## 4. 当前说明与历史说明
 
-Canonical Design 不是单一文件，而是一组按职责边界划分的正式设计文档。不同文档负责不同 bounded context，避免出现多份文档同时定义同一设计结论。
+- 根 [`README.md`](../README.md) 和应用级 README 描述当前稳定代码基线；
+- Specs、Canonical Design 和 Accepted ADR 定义系统应满足的语义；
+- completed EXEC、Release Report、候选范围和研究议程记录历史形成过程；
+- 标记为历史的材料即使包含“下一阶段”“当前缺口”等措辞，也不得被解释为当前项目状态；
+- 没有独立证据、设计或审计价值的过时临时说明应删除，而不是长期保留多个“最新版”。
 
-### [`design/个人AI辅助学习平台设计方案.md`](design/个人AI辅助学习平台设计方案.md)
+## 5. 文档质量门禁
 
-Askora 的产品与整体技术架构基线，负责定义：
-
-- 产品目标、范围与用户体验；
-- 系统整体模块及边界；
-- 数据、服务、交互与工程架构；
-- 产品阶段与实现优先级。
-
-涉及“Askora 整体应该做成什么样”，以该文档为正式设计基线。
-
-### [`design/AI学习系统算法与教学内核设计.md`](design/AI学习系统算法与教学内核设计.md)
-
-Askora 的学习科学、算法与教学内核设计基线，负责定义：
-
-- 学习者建模、知识追踪与掌握度判断；
-- 评估、错误诊断与形成性评价；
-- 教学策略、学习路径与复习调度；
-- RAG、知识图谱、LLM、Agent、Bandit/RL 等技术职责；
-- AI 学习工具八类技术系统的职责、状态与决策所有权。
-
-涉及教学内核及八类技术系统，以该文档为正式设计基线。
-
-## 4. Research：研究资产
-
-[`design/research/`](design/research/) 保存“为什么这样设计”的证据、推导与完整研究稿，不作为第二套正式规范。
-
-```text
-research/
-├── evidence/    # Deep Research、论文、行业实践等证据
-└── synthesis/   # 跨证据综合、架构推导、分系统设计研究
+```bash
+python3 .github/workflows/check_docs.py
 ```
 
-### `evidence/`
-
-回答：**设计依据是什么、证据强度如何、有哪些边界条件与反例。**
-
-允许与正式设计存在内容重复，因为其价值是证据与论证过程可追溯。
-
-### `synthesis/`
-
-回答：**这些证据对 Askora 的架构和系统设计意味着什么。**
-
-用于保存跨证据综合、架构推导、现状诊断以及八类技术系统的详细研究设计稿。
-
-详细文件索引、重复内容治理和 Deep Research 生命周期见 [`design/research/README.md`](design/research/README.md)。
-
-## 5. 如何判断哪个来源为准
-
-不同来源回答不同问题：
-
-| 问题 | 权威来源 |
-|---|---|
-| 为什么这样设计？ | `research/evidence/` 与 `research/synthesis/` |
-| 产品与系统应该如何设计？ | 对应职责边界的 Canonical Design |
-| 当前实际上实现了什么？ | 代码、配置、数据库迁移与可执行测试 |
-
-具体规则：
-
-1. Research 用于提供证据与设计推导，不直接成为实现契约；
-2. 被采纳的研究结论必须回写对应 Canonical Design；
-3. Research 与正式设计冲突时，以对应 Canonical Design 为准；
-4. 判断当前实现状态时，以代码、配置、数据库迁移和可执行测试为准；
-5. 若实现与正式设计不一致，应明确这是实现偏差、设计变更还是文档滞后，并随后同步修正。
-
-## 6. 文档治理
-
-新增研究与设计资产统一遵循：
-
-```text
-Deep Research / 外部证据
-→ research/evidence
-→ research/synthesis
-→ 被采纳结论回写 Canonical Design
-→ Implementation
-→ 代码与测试验证
-```
-
-正式资产必须按真实产品、系统或知识边界命名，不长期使用 `批次1`、`阶段2`、`最终版2` 等执行过程命名。
-
-Research 层更详细的命名、拆分、去重、保留与溯源规则，以 [`design/research/README.md`](design/research/README.md) 为准。
+门禁检查受 Git 跟踪的 Markdown/RST 本地链接和已知过时状态措辞。文档中的运行、测试、构建命令还必须在相关变更中实际验证，链接通过不能代替命令验证。

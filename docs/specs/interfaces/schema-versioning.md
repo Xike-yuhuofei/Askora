@@ -15,6 +15,7 @@
 - persisted structured payload；
 - Prompt structured output schema；
 - tool input/output schema。
+- RenderPayload / RenderBlock presentation schema。
 
 ## 2. 版本规则
 
@@ -83,3 +84,4 @@ Tool definition 的参数或副作用语义破坏性变化必须升 major，并�
 - 未版本化修改公共 Pydantic model 并假设所有历史数据自动兼容；
 - LLM 猜测旧事件缺失字段作为 upcaster；
 - tool 参数变化但 workflow version 不变。
+- 同一 RenderPayload major version 静默改变 block 或 card 语义。

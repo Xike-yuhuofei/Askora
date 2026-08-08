@@ -1,0 +1,139 @@
+# Askora 文档处置清单
+
+> 状态：Current  
+> 校准日期：2026-08-08  
+> 基线提交：`530322e`  
+> 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
+
+处置代码：
+
+- `CURRENT-UPDATED`：当前说明，已按稳定代码基线更新；
+- `CANONICAL-RETAIN`：冻结合同或正式设计，保留语义；
+- `HISTORICAL-RETAIN`：保留为历史、研究或发布证据，不作为当前状态；
+- `SUPPORT-RETAIN`：工具、构建或设计辅助资产；
+- `EXCLUDED`：测试夹具，不属于项目说明；
+- `DELETED`：已确认无持续维护价值并删除。
+
+## 1. 根目录与应用说明
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `AGENTS.md` | CANONICAL-RETAIN | Codex 强制执行合同 |
+| `README.md` | CURRENT-UPDATED | 当前产品、实现、运行和验证入口 |
+| `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
+| `apps/frontend/README.md` | CURRENT-UPDATED | 本次新增前端/Electron 当前说明 |
+| `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 后端资源目录说明 |
+| `apps/backend/.trae/documents/seed_data_plan.md` | DELETED | 一次性计划已实现；旧策略分类会误导当前语义 |
+| `apps/backend/tests/fixtures/malicious_document.md` | EXCLUDED | 安全测试输入，不是说明文档 |
+| `.design_library/Askora/README.md` | SUPPORT-RETAIN | UI 设计资产，不是 Canonical Design |
+| `.design_library/Askora/SKILL.md` | SUPPORT-RETAIN | 设计工具指令，不是项目实现合同 |
+
+## 2. 文档索引、ADR 与 Release
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
+| `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
+| `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
+| `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
+| `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
+| `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
+| `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
+| `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
+| `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
+
+## 3. Canonical Design 与 Research
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/design/README.md` | CURRENT-UPDATED | 本次新增 Design 层索引 |
+| `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
+| `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
+| `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-检索与知识架构证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-教学策略与序列决策证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-记忆与复习调度证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-LLM-Agent与可信治理证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
+| `docs/design/research/evidence/八类技术系统-参考资料索引.md` | HISTORICAL-RETAIN | 外部证据索引；本轮未重新验证外部网页存续 |
+| `docs/design/research/synthesis/4.1-内容解析与知识建模-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.2-检索与知识供给-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.3-学习者建模-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.4-评估与错误诊断-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.5-教学策略选择-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.6-学习路径与任务调度-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.7-记忆保持与复习调度-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/4.8-LLM生成Agent编排与可信控制-系统设计研究.md` | HISTORICAL-RETAIN | 分系统研究设计 |
+| `docs/design/research/synthesis/DR-03-01-教学策略与支架转换研究.md` | HISTORICAL-RETAIN | v0.3 Research Delta evidence |
+| `docs/design/research/synthesis/DR-03-02-错误诊断到教学补救研究.md` | HISTORICAL-RETAIN | v0.3 Research Delta evidence |
+| `docs/design/research/synthesis/DR-03-03-Teaching-Policy-决策算法与数据契约研究.md` | HISTORICAL-RETAIN | v0.3 Research Delta evidence |
+| `docs/design/research/synthesis/DR-03-04-学习效果验证与产品实验研究.md` | HISTORICAL-RETAIN | v0.3 Research Delta evidence |
+| `docs/design/research/synthesis/v0.3-Research-Synthesis-Adaptive-Teaching-Loop.md` | HISTORICAL-RETAIN | v0.3 frozen research input |
+| `docs/design/research/synthesis/v0.3-候选范围分析.md` | HISTORICAL-RETAIN | 已标明 completed pre-design input |
+| `docs/design/research/synthesis/v0.3-深度研究议程.md` | HISTORICAL-RETAIN | 已标明 completed research agenda |
+| `docs/design/research/synthesis/八类技术系统-公共架构冻结稿.md` | HISTORICAL-RETAIN | 已由 Canonical Design/Specs 吸收 |
+| `docs/design/research/synthesis/八类技术系统-现状诊断.md` | HISTORICAL-RETAIN | 已标明 pre-v0.2 snapshot |
+| `docs/design/research/synthesis/八类技术系统-系统设计研究综合与溯源.md` | HISTORICAL-RETAIN | 研究拆分与溯源入口 |
+
+## 4. Implementation Specs
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 已实现状态和可点击索引 |
+| `docs/specs/architecture/state-ownership.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/architecture/system-architecture.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/architecture/dependency-rules.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/domain/domain-model.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/domain/decision-contract.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/domain/event-contract.md` | CANONICAL-RETAIN | v0.3 canonical contract |
+| `docs/specs/domain/lifecycle-state-machines.md` | CANONICAL-RETAIN | 仍适用的 lifecycle contract |
+| `docs/specs/interfaces/api-contract.md` | CANONICAL-RETAIN | 仍适用的 API contract |
+| `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
+| `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
+| `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
+| `docs/specs/interfaces/schema-versioning.md` | CANONICAL-RETAIN | 仍适用的 versioning contract |
+| `docs/specs/quality/testing-standard.md` | CANONICAL-RETAIN | v0.3 quality contract |
+| `docs/specs/quality/observability-standard.md` | CANONICAL-RETAIN | v0.3 quality contract |
+| `docs/specs/quality/definition-of-done.md` | CANONICAL-RETAIN | v0.3 release gates |
+| `docs/specs/quality/security-standard.md` | CANONICAL-RETAIN | v0.3 security contract |
+| `docs/specs/systems/01-content-knowledge.md` | CANONICAL-RETAIN | SYS01 contract |
+| `docs/specs/systems/02-retrieval.md` | CANONICAL-RETAIN | SYS02 contract |
+| `docs/specs/systems/03-learner-model.md` | CANONICAL-RETAIN | SYS03 contract |
+| `docs/specs/systems/04-assessment.md` | CANONICAL-RETAIN | SYS04 contract |
+| `docs/specs/systems/05-teaching-policy.md` | CANONICAL-RETAIN | SYS05 contract |
+| `docs/specs/systems/06-learning-planner.md` | CANONICAL-RETAIN | SYS06 contract |
+| `docs/specs/systems/07-review-scheduler.md` | CANONICAL-RETAIN | SYS07 contract |
+| `docs/specs/systems/08-ai-orchestration.md` | CANONICAL-RETAIN | SYS08 contract |
+| `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN | v0.2 frozen baseline；已补充生命周期 |
+| `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CURRENT-UPDATED | 冻结合同；已更新 EXEC 完成状态 |
+| `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN | v0.3.1 additive presentation slice |
+
+## 5. EXEC 历史合同
+
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | 删除失实 active 状态 |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵和 EXEC-013 commit 校准 |
+| `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-004-assessment-learner-projection.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-005-review-planner-integration.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-006-v0.2-e2e-quality-gate.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-007-v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-008-v0.3-contracts-schema-migration.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-009-deterministic-teaching-policy-kernel.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-010-adaptive-transition-anti-oscillation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-011-cross-system-adaptive-execution.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-012-outcome-experiment-opve-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-013-v0.3-e2e-release-gate.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-014-rich-response-rendering.md` | HISTORICAL-RETAIN | 不可变任务合同 |
+
+## 6. 后续维护规则
+
+1. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
+2. Canonical Spec/ADR 的语义变化不能借“文档整理”完成。
+3. 历史文件保留当时语境；上级索引负责说明其生命周期。
+4. 只有完全重复、没有独立证据/设计/审计价值的临时说明才删除。
+5. 删除前记录替代来源；删除后运行文档链接门禁。

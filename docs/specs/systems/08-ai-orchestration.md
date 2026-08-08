@@ -120,6 +120,10 @@ Tools MUST registry/schema/allowlist + least privilege；模型不可创建未�
 
 资料型输出 MUST 与 EvidenceBundle/SourceSpan 对齐；unsupported claim 必须删除、明确降级为非资料性一般知识，或声明无法确认，MUST NOT 冒充用户资料事实。
 
+### SYS08-080 — Versioned Render Artifact
+
+SYS08 MAY 把已验证的 reply/execution output 规范化为 `RenderPayload`，并拥有该 execution/presentation artifact。RenderPayload MUST 遵循 `interfaces/render-content-contract.md`，不得成为新的 learner/policy/assessment/plan/review truth，也不得通过视觉 block 扩大 TeachingAction envelope。
+
 ## 3. v0.3 TeachingAction Execution Envelope
 
 ### SYS08-200 — Tightening-only Rule

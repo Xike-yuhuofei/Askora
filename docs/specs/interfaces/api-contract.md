@@ -69,6 +69,10 @@ run_failed
 
 客户端断线重连不得重复写入 assistant completion、Attempt、LearningEvent 或 side effect。
 
+### API-032 — Rich Response Rendering
+
+Assistant message MAY additive 返回 `render_payload`，其 canonical contract 见 `render-content-contract.md`。`message.content` MUST 继续存在作为可读 fallback。普通响应、历史 query 与 streaming final/replay MUST 返回同一 accepted payload；结构化 block 只能在完整验证后提交，不得流式执行半截 JSON。
+
 ## 6. Error
 
 遵循 `error-contract.md`。HTTP/WS/streaming 必须保留稳定 domain error code。

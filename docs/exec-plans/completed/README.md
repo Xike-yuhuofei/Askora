@@ -2,7 +2,8 @@
 
 > v0.2 收口日期：2026-08-07
 > v0.3 收口日期：2026-08-07
-> 状态：v0.2 + v0.3 FROZEN BASELINES
+> v0.3.1 收口日期：2026-08-08
+> 状态：v0.2 + v0.3 + v0.3.1 FROZEN BASELINES
 
 ## Completion Matrix
 
@@ -20,7 +21,8 @@
 | EXEC-010 — Adaptive Transition + Anti-Oscillation | DONE | `82bb5b1` |
 | EXEC-011 — Cross-System Adaptive Execution | DONE | `d95e0a4` |
 | EXEC-012 — Outcome / Experiment / OPVE Foundation | DONE | `71d05a2` |
-| EXEC-013 — v0.3 E2E / Release Gate | DONE | `feat(EXEC-013): complete v0.3 release gate` |
+| EXEC-013 — v0.3 E2E / Release Gate | DONE | `530322e` |
+| EXEC-014 — Rich Response Rendering | DONE | local implementation (not committed) |
 
 ## Release Gate
 
