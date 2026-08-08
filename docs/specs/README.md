@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Spec Pack Frozen / Not Implemented
 
 ## 1. Purpose
 
@@ -18,6 +18,19 @@ Research Synthesis
 → EXEC-007+
 → Implementation
 ```
+
+Book-to-Learning Bootstrap formation chain：
+
+```text
+Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
+→ Gap Analysis
+→ SPEC-D01～D06
+→ Spec Freeze
+→ future EXEC decomposition
+→ Implementation
+```
+
+当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTATION NOT STARTED**。Spec Freeze 不预占 EXEC 编号。
 
 实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
 
@@ -69,6 +82,15 @@ Research Synthesis
 - [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
 - [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
+
+### Book-to-Learning Bootstrap（Frozen / Not Implemented）
+
+- [SPEC-D01 Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — structure-preserving ingestion、DocumentIR/DocumentNode、source locator/replay
+- [SPEC-D02 Multi-Granularity Content Model](systems/01-content-granularity.md) — EvidenceSpan/SemanticUnit/RetrievalChunk/HierarchyNode 边界
+- [SPEC-D03 Knowledge Candidate Verification & Publish](systems/01-knowledge-publish-pipeline.md) — candidate→verify→publish、hard prerequisite gate
+- [SPEC-D04 LearningGoal → Knowledge Mapping](systems/06-goal-knowledge-mapping.md) — natural-language goal、target KU mapping、goal subgraph
+- [SPEC-D05 Prerequisite Diagnostic Bootstrap](systems/06-prerequisite-diagnostic-bootstrap.md) — SYS06/SYS04/SYS03 diagnostic bootstrap 边界
+- [SPEC-D06 Book-to-Adaptive-Learning Vertical Slice](vertical-slices/book-to-adaptive-learning.md) — EPUB upload → first/next canonical TeachingAction E2E
 
 ### UI Experience（Frozen）
 
@@ -123,7 +145,7 @@ Research Synthesis
 | BC-003 Support / exposure | canonical orthogonal scaffold/hint/exposure/assistance model |
 | BC-004 Policy configuration | immutable/versioned PolicyBundle; no executable/free-form rules |
 | BC-005 DecisionTrace probability / replay | deterministic `action_propensity=null`; assignment probability separated; explicit replayability |
-| BC-006 Legacy Socratic selector | bounded move/provider/adapter only; SYS05 owns final TeachingAction |
+| BC-006 Legacy Socratic selector | bounded InteractionMove provider/legacy adapter only; SYS05 owns final TeachingAction |
 
 All six are **RESOLVED IN SPEC**。Implementation migration MUST follow `vertical-slices/v0.3-adaptive-teaching-loop.md`。
 
@@ -146,6 +168,8 @@ All nine migration candidates have canonical target、compatibility read、ambig
 ## 7. Spec-ID Governance
 
 Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 IDs remain visible in each affected Spec's superseded/legacy register; v0.3 additions use new unused ranges (principally `*-2xx/3xx`)。v0.3 Vertical Slice 使用 `VSLICE-3xx`。
+
+`SPEC-D01～D06` 是 Book-to-Learning additive contract pack；内部要求使用 `D01-*`～`D06-*`，不得复用现有 SYS/DOMAIN/ADR requirement ID 改变原语义。
 
 ## 8. v0.3 Canonical Invariants
 
@@ -170,9 +194,20 @@ SYS08/SYS02 may tighten but may not expand TeachingAction envelope
 LLM/Agent never owns final TeachingAction or canonical learner/assessment/plan/review truth
 ```
 
+Book-to-Learning additionally freezes：
+
+```text
+SourceChunk != KnowledgeUnit
+GoalSpecificKnowledgeSubgraph != KnowledgeGraph truth
+DiagnosticNeed != LearnerState
+Book bootstrap != second Teaching Loop
+```
+
 ## 9. Versioned Parameters
 
 mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST remain versioned/traceable configurable parameters. No Spec may claim arbitrary fixed values are universal learning-science constants.
+
+Book-to-Learning 的 extraction/publication/mapping/diagnostic thresholds 与 budgets 同样 MUST versioned；不得写成普适常数。
 
 ## 10. v0.3 Out of Scope
 
@@ -196,3 +231,31 @@ Engineering / Policy / Learning Evidence claims remain separated
 ```
 
 Vertical Slice Gate：**PASS**。EXEC-007～013 已完成并归档；当前实现证据见 [v0.3 Release Report](../releases/v0.3-adaptive-teaching-loop.md)。
+
+## 12. Book-to-Learning Spec Freeze
+
+| Spec | Status | Primary Boundary |
+|---|---|---|
+| SPEC-D01 | FROZEN | structure-preserving ingestion / source replay |
+| SPEC-D02 | FROZEN | multi-granularity content model |
+| SPEC-D03 | FROZEN | knowledge verification / publication |
+| SPEC-D04 | FROZEN | LearningGoal → Knowledge mapping |
+| SPEC-D05 | FROZEN | prerequisite diagnostic bootstrap |
+| SPEC-D06 | FROZEN | Book-to-Adaptive-Learning E2E slice |
+
+Consistency check：
+
+```text
+Accepted ADR conflict                     PASS
+Canonical Design conflict                 PASS
+UI-02A baseline compatibility             PASS
+v0.3 Teaching Loop compatibility          PASS
+SYS01～SYS08 single-writer ownership       PASS
+Second truth / second Teaching Loop       NONE
+New learning efficacy claim               NONE
+EXEC number pre-allocation                NONE
+```
+
+**Book-to-Learning Spec Freeze Gate：PASS**。
+
+后续只能先生成新的 EXEC Plan，再交给 Codex 实现；Codex 不得从 D01～D06 自行扩大范围或补充未冻结的架构决定。

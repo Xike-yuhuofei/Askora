@@ -2,7 +2,7 @@
 
 > 状态：Current  
 > 校准日期：2026-08-08  
-> 基线提交：`530322e`  
+> 基线提交：`33f938b85a3eba446db30b1598768311a79629fc`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
 处置代码：
@@ -82,7 +82,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 已实现状态和可点击索引 |
+| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 implemented baseline + Book-to-Learning SPEC-D01～D06 freeze index |
 | `docs/specs/architecture/state-ownership.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/system-architecture.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/dependency-rules.md` | CANONICAL-RETAIN | v0.3 canonical contract |
@@ -91,6 +91,7 @@
 | `docs/specs/domain/event-contract.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/domain/lifecycle-state-machines.md` | CANONICAL-RETAIN | 仍适用的 lifecycle contract |
 | `docs/specs/interfaces/api-contract.md` | CANONICAL-RETAIN | 仍适用的 API contract |
+| `docs/specs/interfaces/content-ingestion-contract.md` | CANONICAL-RETAIN | SPEC-D01；结构保真 ingestion / source locator / replay 冻结合同 |
 | `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
 | `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
@@ -100,16 +101,21 @@
 | `docs/specs/quality/definition-of-done.md` | CANONICAL-RETAIN | v0.3 release gates |
 | `docs/specs/quality/security-standard.md` | CANONICAL-RETAIN | v0.3 security contract |
 | `docs/specs/systems/01-content-knowledge.md` | CANONICAL-RETAIN | SYS01 contract |
+| `docs/specs/systems/01-content-granularity.md` | CANONICAL-RETAIN | SPEC-D02；多粒度内容模型冻结合同 |
+| `docs/specs/systems/01-knowledge-publish-pipeline.md` | CANONICAL-RETAIN | SPEC-D03；知识候选验证/发布冻结合同 |
 | `docs/specs/systems/02-retrieval.md` | CANONICAL-RETAIN | SYS02 contract |
 | `docs/specs/systems/03-learner-model.md` | CANONICAL-RETAIN | SYS03 contract |
 | `docs/specs/systems/04-assessment.md` | CANONICAL-RETAIN | SYS04 contract |
 | `docs/specs/systems/05-teaching-policy.md` | CANONICAL-RETAIN | SYS05 contract |
 | `docs/specs/systems/06-learning-planner.md` | CANONICAL-RETAIN | SYS06 contract |
+| `docs/specs/systems/06-goal-knowledge-mapping.md` | CANONICAL-RETAIN | SPEC-D04；LearningGoal→Knowledge mapping 冻结合同 |
+| `docs/specs/systems/06-prerequisite-diagnostic-bootstrap.md` | CANONICAL-RETAIN | SPEC-D05；prerequisite diagnostic bootstrap 冻结合同 |
 | `docs/specs/systems/07-review-scheduler.md` | CANONICAL-RETAIN | SYS07 contract |
 | `docs/specs/systems/08-ai-orchestration.md` | CANONICAL-RETAIN | SYS08 contract |
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN | v0.2 frozen baseline；已补充生命周期 |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CURRENT-UPDATED | 冻结合同；已更新 EXEC 完成状态 |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN | v0.3.1 additive presentation slice |
+| `docs/specs/vertical-slices/book-to-adaptive-learning.md` | CANONICAL-RETAIN | SPEC-D06；Book-to-Adaptive-Learning E2E 冻结合同，尚未实现 |
 | `docs/specs/ui/README.md` | CANONICAL-RETAIN | 已批准冻结的 UI 重设计合同入口 |
 | `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN | 导航、路由与页面层级合同 |
 | `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN | 页面状态与交互合同 |
