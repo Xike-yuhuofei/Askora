@@ -104,10 +104,13 @@ async def lifespan(app: FastAPI):
 
     # 初始化文档服务组件
     try:
+        from app.core.database import get_session_factory
         from app.services.documents import get_tokenizer
+        from app.services.documents.processing_worker import start_document_processing_runtime
 
         get_tokenizer()
-        logger.info("document_services_initialized")
+        reconciled = await start_document_processing_runtime(get_session_factory())
+        logger.info("document_services_initialized", reconciled_tasks=reconciled)
     except Exception as e:
         logger.warning("document_services_init_failed", error_type=type(e).__name__)
 
@@ -130,10 +133,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("websocket_close_failed", error_type=type(e).__name__)
 
-    # 关闭数据库
-    from app.api.v1.documents import drain_document_tasks
+    # 关闭 durable document worker，再释放数据库连接。
+    from app.services.documents.processing_worker import stop_document_processing_runtime
 
-    await drain_document_tasks()
+    await stop_document_processing_runtime()
     logger.info("document_tasks_drained")
 
     # 关闭数据库

@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -148,10 +147,6 @@ async def upload_document(
             knowledge_point_id=knowledge_point_id,
         )
 
-        # 触发异步处理（此处简单调用，实际生产应使用任务队列）
-        # 注意：避免阻塞请求，使用 asyncio.create_task 或任务队列
-        start_document_processing(document.id)
-
         return UploadResponse(
             document_id=document.id,
             status=document.processing_status,
@@ -250,6 +245,7 @@ async def get_document_status(
         ProcessingStatus.COMPLETED: 100,
         ProcessingStatus.FAILED: 100,
         ProcessingStatus.REJECTED: 100,
+        ProcessingStatus.QUARANTINED: 100,
     }
 
     step_map = {
@@ -258,6 +254,7 @@ async def get_document_status(
         ProcessingStatus.COMPLETED: "处理完成",
         ProcessingStatus.FAILED: "处理失败",
         ProcessingStatus.REJECTED: "内容审核未通过",
+        ProcessingStatus.QUARANTINED: "资料已安全隔离",
     }
 
     return DocumentStatusResponse(
@@ -326,11 +323,6 @@ async def query_rag(
     )
 
 
-# ==================== 内部辅助函数 ====================
-
-_document_tasks: set[asyncio.Task] = set()
-
-
 async def _read_upload_limited(file: UploadFile) -> bytes:
     """分块读取上传内容，在超过配置上限时立即停止。"""
     max_size = settings.local_storage_max_file_size_mb * 1024 * 1024
@@ -343,46 +335,3 @@ async def _read_upload_limited(file: UploadFile) -> bytes:
                 detail=("文件大小超过限制（最大 " f"{settings.local_storage_max_file_size_mb}MB）"),
             )
     return bytes(content)
-
-
-def start_document_processing(document_id: str) -> None:
-    """启动并跟踪私人本地进程内的文档处理任务。"""
-    task = asyncio.create_task(_process_document_async(document_id))
-    _document_tasks.add(task)
-    task.add_done_callback(_document_tasks.discard)
-
-
-async def drain_document_tasks(timeout_seconds: float = 15.0) -> None:
-    """关闭时等待在途任务；超时后显式取消，避免使用已关闭的连接。"""
-    if not _document_tasks:
-        return
-    done, pending = await asyncio.wait(_document_tasks, timeout=timeout_seconds)
-    for task in pending:
-        task.cancel()
-    if pending:
-        await asyncio.gather(*pending, return_exceptions=True)
-
-
-async def _process_document_async(document_id: str) -> None:
-    """
-    异步处理文档
-
-    注意：MVP 阶段使用 asyncio.create_task
-    生产环境应使用 Celery/RQ 等任务队列
-    """
-    try:
-        # 每个后台任务使用独立会话，不持有已结束请求的会话。
-        from app.core.database import get_session_factory
-
-        async with get_session_factory()() as session:
-            doc_service = get_document_service(session)
-            await doc_service.process_document(document_id)
-
-        logger.info("document_async_processing_completed", document_id=document_id)
-
-    except Exception as e:
-        logger.error(
-            "document_async_processing_failed",
-            document_id=document_id,
-            error=str(e),
-        )

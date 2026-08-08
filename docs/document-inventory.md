@@ -42,6 +42,7 @@
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
 | `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
 | `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
+| `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A completion evidence snapshot |
 
 ## 3. Canonical Design 与 Research
 
@@ -116,14 +117,13 @@
 | `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN | 视觉系统与无障碍合同 |
 | `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN | 三阶段执行、质量门禁与迁移合同 |
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
-| `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 active |
+| `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 已完成 |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-016 active；EXEC-001～015 已完成 |
-| `docs/exec-plans/active/EXEC-016-ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | UI-02A active execution contract |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | 当前无 active EXEC；EXEC-001～016 已完成 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵和 EXEC-013 commit 校准 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -140,6 +140,7 @@
 | `docs/exec-plans/completed/EXEC-013-v0.3-e2e-release-gate.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-014-rich-response-rendering.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-015-ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-016-ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A 任务合同；保留已解决 CI baseline 授权记录 |
 
 ## 6. 后续维护规则
 

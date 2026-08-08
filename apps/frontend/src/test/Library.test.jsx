@@ -1,0 +1,192 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import * as documentApi from '../api/documents'
+import * as workspaceApi from '../api/workspace'
+import Library from '../pages/Library'
+
+vi.mock('../api/documents', () => ({ uploadDocument: vi.fn(), deleteDocument: vi.fn() }))
+vi.mock('../api/workspace', () => ({
+  getLibraryWorkspace: vi.fn(),
+  getKnowledgeMap: vi.fn(),
+}))
+
+const documentView = {
+  document_ref: 'source_document:document-1:revision:revision-1',
+  document_id: '11111111-1111-4111-8111-111111111111',
+  title: '函数基础.md',
+  media_type: 'text/markdown',
+  file_size_bytes: 2048,
+  subject: '数学',
+  processing_status: 'completed',
+  moderation_status: 'approved',
+  current_revision_ref: 'material_revision:revision-1',
+  knowledge_status: 'CANDIDATES',
+  knowledge_unit_count: 1,
+  relation_count: 0,
+  reason_codes: [],
+  created_at: '2026-08-08T01:00:00Z',
+  updated_at: '2026-08-08T01:01:00Z',
+}
+
+const libraryPayload = {
+  schema_version: '1.0',
+  generated_at: '2026-08-08T01:02:00Z',
+  correlation_id: 'request-library',
+  data: {
+    view_state: 'READY',
+    total: 1,
+    page: 1,
+    page_size: 20,
+    documents: [documentView],
+  },
+  source_status: [
+    { source_system: 'SYS01', availability: 'AVAILABLE', source_ref: null, reason_codes: ['CURRENT_USER_DOCUMENTS'] },
+  ],
+}
+
+const mapPayload = {
+  schema_version: '1.0',
+  generated_at: '2026-08-08T01:02:00Z',
+  correlation_id: 'request-map',
+  data: {
+    scope: {
+      document_refs: [documentView.document_ref],
+      subject: '数学',
+      graph_version: 'material_revision:revision-1',
+    },
+    nodes: [
+      {
+        knowledge_unit_ref: 'knowledge_unit:unit-1:v1',
+        kind: 'concept',
+        canonical_name: '函数的定义',
+        description: '来自 Markdown 标题的确定性候选。',
+        provenance_type: 'source_explicit',
+        confidence: null,
+        status: 'candidate',
+        evidence_span_refs: ['source_span:span-1:revision:revision-1'],
+        learner_evidence_summary: null,
+      },
+    ],
+    edges: [],
+    source_spans: [
+      {
+        source_span_ref: 'source_span:span-1:revision:revision-1',
+        source_span_id: '22222222-2222-4222-8222-222222222222',
+        document_id: documentView.document_id,
+        page: null,
+        chapter: '函数的定义',
+        start_offset: 0,
+        end_offset: 28,
+        excerpt: '# 函数的定义\n函数描述输入和输出之间的关系。',
+      },
+    ],
+  },
+  source_status: [
+    { source_system: 'SYS01', availability: 'AVAILABLE', source_ref: 'material_revision:revision-1', reason_codes: ['NO_VERIFIED_RELATIONS'] },
+    { source_system: 'SYS03', availability: 'NOT_APPLICABLE', source_ref: null, reason_codes: ['EVIDENCE_PROFILE_DEFERRED_TO_UI_02B'] },
+  ],
+}
+
+describe('UI02A 资料库', () => {
+  beforeEach(() => {
+    workspaceApi.getLibraryWorkspace.mockReset()
+    workspaceApi.getKnowledgeMap.mockReset()
+    documentApi.uploadDocument.mockReset()
+    documentApi.deleteDocument.mockReset()
+    workspaceApi.getLibraryWorkspace.mockResolvedValue(libraryPayload)
+    workspaceApi.getKnowledgeMap.mockResolvedValue(mapPayload)
+  })
+
+  it('展示资料、可审计知识候选，并诚实说明不存在已验证关系', async () => {
+    render(<Library />)
+
+    expect(await screen.findByRole('heading', { name: '资料库' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /函数的定义/ })).toBeInTheDocument()
+    expect(screen.getByText('尚无可核验的知识关系。页面不会用装饰性连线冒充先修关系。')).toBeInTheDocument()
+    expect(screen.getByText(/函数描述输入和输出之间的关系/)).toBeInTheDocument()
+    expect(screen.getByText('未知，未伪造分数')).toBeInTheDocument()
+    expect(screen.getByText('资料与知识')).toBeInTheDocument()
+  })
+
+  it('上传真实文件并刷新 Canonical 资料列表', async () => {
+    documentApi.uploadDocument.mockResolvedValue({
+      document_id: '33333333-3333-4333-8333-333333333333',
+      status: 'pending',
+      message: '文档已接收，正在后台处理',
+    })
+    render(<Library />)
+    await screen.findByText('函数基础.md')
+
+    fireEvent.change(screen.getByLabelText('学科（可选）'), { target: { value: '数学' } })
+    const file = new File(['# 极限'], '极限.md', { type: 'text/markdown' })
+    fireEvent.change(screen.getByLabelText('选择要上传的资料'), { target: { files: [file] } })
+
+    await waitFor(() => expect(documentApi.uploadDocument).toHaveBeenCalledWith(file, '数学'))
+    expect(await screen.findByText('资料已安全保存，后台处理会在页面中自动更新。')).toBeInTheDocument()
+    expect(workspaceApi.getLibraryWorkspace.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('后台处理完成后自动刷新知识地图而不是保留首次空投影', async () => {
+    const pendingDocument = {
+      ...documentView,
+      processing_status: 'pending',
+      current_revision_ref: null,
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+    }
+    workspaceApi.getLibraryWorkspace
+      .mockResolvedValueOnce({
+        ...libraryPayload,
+        data: { ...libraryPayload.data, view_state: 'PARTIAL', documents: [pendingDocument] },
+      })
+      .mockResolvedValue(libraryPayload)
+    workspaceApi.getKnowledgeMap
+      .mockResolvedValueOnce({
+        ...mapPayload,
+        data: { ...mapPayload.data, nodes: [], source_spans: [] },
+      })
+      .mockResolvedValue(mapPayload)
+
+    render(<Library />)
+    expect((await screen.findAllByText('等待处理')).length).toBeGreaterThan(1)
+
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /函数的定义/ })).toBeInTheDocument(),
+      { timeout: 4000 },
+    )
+    expect(workspaceApi.getKnowledgeMap.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('要求二次确认后才删除资料', async () => {
+    documentApi.deleteDocument.mockResolvedValue({ success: true })
+    workspaceApi.getLibraryWorkspace
+      .mockResolvedValueOnce(libraryPayload)
+      .mockResolvedValue({ ...libraryPayload, data: { ...libraryPayload.data, total: 0, documents: [] } })
+    render(<Library />)
+    await screen.findByText('函数基础.md')
+
+    const deleteButton = screen.getByRole('button', { name: '删除资料 函数基础.md' })
+    fireEvent.click(deleteButton)
+    expect(documentApi.deleteDocument).not.toHaveBeenCalled()
+    const confirmButton = screen.getByRole('button', { name: '确认删除' })
+    await waitFor(() => expect(confirmButton).toHaveFocus())
+    fireEvent.keyDown(confirmButton, { key: 'Escape' })
+    await waitFor(() => expect(deleteButton).toHaveFocus())
+
+    fireEvent.click(deleteButton)
+    fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
+
+    await waitFor(() => expect(documentApi.deleteDocument).toHaveBeenCalledWith(documentView.document_id))
+    expect(await screen.findByText('已删除“函数基础.md”。')).toBeInTheDocument()
+  })
+
+  it('不把查询失败渲染为一个空资料库', async () => {
+    workspaceApi.getLibraryWorkspace.mockRejectedValueOnce({ response: { status: 503 } })
+    render(<Library />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('资料库暂时无法读取')
+    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument()
+    expect(screen.queryByText('还没有符合条件的资料')).not.toBeInTheDocument()
+  })
+})

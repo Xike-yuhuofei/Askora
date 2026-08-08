@@ -1,4 +1,5 @@
 const sourceLabels = {
+  SYS01: '资料与知识',
   SYS03: '学习证据',
   SYS06: '学习计划',
   SYS07: '复习调度',

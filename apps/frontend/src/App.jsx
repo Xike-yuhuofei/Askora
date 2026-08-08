@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Today from './pages/Today'
 import TutorWorkspace from './pages/TutorWorkspace'
 import History from './pages/History'
+import Library from './pages/Library'
 import Settings from './pages/Settings'
 import Unavailable from './pages/Unavailable'
 import { Navigate, useLocation } from './router'
@@ -19,6 +20,7 @@ const legacyRedirects = {
 
 const standardPages = {
   '/today': Today,
+  '/library': Library,
   '/history': History,
   '/settings': Settings,
 }
@@ -26,7 +28,6 @@ const standardPages = {
 const unavailablePages = {
   '/goals': 'goals',
   '/path': 'path',
-  '/library': 'library',
   '/evidence': 'evidence',
 }
 

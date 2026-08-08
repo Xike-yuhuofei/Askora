@@ -37,6 +37,7 @@ class ProcessingStatus:
     COMPLETED = "completed"  # 处理完成
     FAILED = "failed"  # 处理失败
     REJECTED = "rejected"  # 内容审核拒绝
+    QUARANTINED = "quarantined"  # 安全隔离，禁止进入检索与 learner-visible map
 
 
 class ModerationStatus:

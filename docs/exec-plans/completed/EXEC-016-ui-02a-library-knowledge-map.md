@@ -1,7 +1,7 @@
 # EXEC-016 — UI-02A Canonical Library and Scoped Knowledge Map
 
 > Priority：P1 Product Experience / Content Infrastructure  
-> Status：READY  
+> Status：READY（历史执行入口）；Final Status：DONE
 > Depends on：EXEC-015 DONE  
 > Baseline：backend 255 passed / 1 skipped；frontend 31 passed；lint/type/migration/build/audit PASS
 
@@ -85,6 +85,7 @@ apps/frontend/src/api/workspace.js
 apps/frontend/src/pages/Library.*
 apps/frontend/src/pages/Unavailable.*
 apps/frontend/src/test/**
+.github/workflows/check_black_baseline.py
 ```
 
 ## Forbidden Changes
@@ -173,3 +174,15 @@ Learning Evidence Gate:
 SPEC GAP:
 - none / details
 ```
+
+## Resolved SPEC GAP
+
+`check_black_baseline.py` 是 CI 静态检查的强制门禁。EXEC-016 授权修改的
+`app/services/documents/document_service.py` 与 `tests/test_content_retrieval_v02.py`
+同时是该门禁的 hash-locked legacy entries；本 Slice 按 Spec 修改并 Black 格式化后，
+门禁要求从 `.github/workflows/check_black_baseline.py` 删除这两条 baseline 记录，但该
+CI 文件不在 EXEC-016 Allowed Files。
+
+用户于 2026-08-08 明确授权 EXEC-016 追加
+`.github/workflows/check_black_baseline.py`，仅删除上述两条已格式化文件的 baseline entry。
+该授权不改变业务语义、CI 策略或其他 legacy baseline。

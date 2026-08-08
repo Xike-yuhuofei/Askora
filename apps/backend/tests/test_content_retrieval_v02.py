@@ -123,7 +123,9 @@ def test_sys02_rrf_fixture_is_deterministic_and_deduplicated():
     assert [item.content for item in first.bundle.items] == [
         item.content for item in second.bundle.items
     ]
-    assert [item.chunk_id for item in first.trace.candidates if item.selected] == [str(UUID(int=20))]
+    assert [item.chunk_id for item in first.trace.candidates if item.selected] == [
+        str(UUID(int=20))
+    ]
     duplicate = next(item for item in first.trace.candidates if item.chunk_id == str(UUID(int=21)))
     assert duplicate.reason_codes == ["RETRIEVAL_DUPLICATE"]
 
@@ -161,10 +163,10 @@ async def test_sys01_revision_citation_replay_and_projection_rebuild(content_db)
     await db.commit()
     assert await service.rebuild_chunk_projection(document.id) == document.chunk_count
     rebuilt = (
-        await db.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == document.id)
-        )
-    ).scalars().all()
+        (await db.execute(select(DocumentChunk).where(DocumentChunk.document_id == document.id)))
+        .scalars()
+        .all()
+    )
     assert rebuilt
     assert rebuilt[0].chunk_metadata["source_span_ids"] == [span_v1["span_id"]]
 
@@ -301,7 +303,7 @@ async def test_quarantined_document_never_enters_retrieval(content_db):
     await service.process_document(document.id)
     await db.refresh(document)
 
-    assert document.processing_status == ProcessingStatus.FAILED
+    assert document.processing_status == ProcessingStatus.QUARANTINED
     assert document.moderation_status == ModerationStatus.REJECTED
     count = await db.scalar(
         select(func.count())

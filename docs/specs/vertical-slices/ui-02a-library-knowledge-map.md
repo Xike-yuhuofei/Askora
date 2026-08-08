@@ -1,7 +1,7 @@
 # UI-02A Canonical Library and Scoped Knowledge Map Vertical Slice
 
 > 状态：Frozen  
-> 实现入口：EXEC-016  
+> 实现入口：EXEC-016（DONE）
 > 冻结日期：2026-08-08  
 > 用户决策：采纳“Canonical 学习资料库 MVP + 拆分 UI-02A”  
 > 范围：资料上传与处理恢复、版本化来源、结构化知识候选、范围化知识地图、来源 Inspector

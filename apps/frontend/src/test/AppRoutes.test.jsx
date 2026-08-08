@@ -27,7 +27,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/today').type).toBe('page')
     expect(resolveRoute('/goals')).toMatchObject({ type: 'unavailable', kind: 'goals' })
     expect(resolveRoute('/path')).toMatchObject({ type: 'unavailable', kind: 'path' })
-    expect(resolveRoute('/library')).toMatchObject({ type: 'unavailable', kind: 'library' })
+    expect(resolveRoute('/library').type).toBe('page')
     expect(resolveRoute('/evidence')).toMatchObject({ type: 'unavailable', kind: 'evidence' })
     expect(resolveRoute('/history').type).toBe('page')
     expect(resolveRoute('/settings').type).toBe('page')

@@ -23,9 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.domains.content_knowledge import (
     CONTENT_RECORD_KEY,
+    EXTRACTION_VERSION,
     SEGMENTATION_VERSION,
     build_content_revision,
 )
+from app.infrastructure.outbox import OutboxProducer
 from app.models.document import (
     DocumentChunk,
     ModerationStatus,
@@ -40,6 +42,13 @@ from app.services.documents.security_scanner import get_security_scanner
 from app.services.storage.local_storage import LocalFileStorage, get_local_storage
 
 logger = get_logger(__name__)
+
+DOCUMENT_PROCESS_TASK_TYPE = "sys01.process_document"
+DOCUMENT_PROCESS_TASK_SCHEMA_VERSION = "1.0"
+
+
+def document_processing_idempotency_key(document_id: str) -> str:
+    return f"document:{document_id}:process:{EXTRACTION_VERSION}"
 
 
 class DocumentService:
@@ -90,6 +99,13 @@ class DocumentService:
         )
 
         self.db.add(document)
+        await self.db.flush()
+        await OutboxProducer(self.db).enqueue(
+            task_type=DOCUMENT_PROCESS_TASK_TYPE,
+            schema_version=DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
+            payload={"document_id": document_id},
+            idempotency_key=document_processing_idempotency_key(document_id),
+        )
         await self.db.commit()
         await self.db.refresh(document)
 
@@ -112,6 +128,8 @@ class DocumentService:
 
         if document is None:
             raise ValueError(f"文档不存在: {document_id}")
+        if document.is_deleted:
+            raise ValueError(f"文档已删除: {document_id}")
 
         try:
             file_content = await asyncio.to_thread(
@@ -125,6 +143,7 @@ class DocumentService:
                 document.processing_status == ProcessingStatus.COMPLETED
                 and current
                 and current.get("checksum") == checksum
+                and current.get("extraction_version") == EXTRACTION_VERSION
             ):
                 chunk_count = await self.db.scalar(
                     select(func.count())
@@ -147,7 +166,7 @@ class DocumentService:
             )
 
             if scan_result.should_block:
-                document.processing_status = ProcessingStatus.FAILED
+                document.processing_status = ProcessingStatus.QUARANTINED
                 document.moderation_status = ModerationStatus.REJECTED
                 document.moderation_details = {
                     **(document.moderation_details or {}),
@@ -247,9 +266,10 @@ class DocumentService:
             raise ValueError("canonical content revision missing")
         revision_id = UUID(revision["revision_id"])
         spans = revision.get("source_spans", [])
-        knowledge_unit_ids = [
-            item["knowledge_unit_id"] for item in revision.get("knowledge_units", [])
-        ]
+        knowledge_unit_ids_by_span: dict[str, list[str]] = {}
+        for item in revision.get("knowledge_units", []):
+            for span_id in item.get("evidence_span_ids", []):
+                knowledge_unit_ids_by_span.setdefault(span_id, []).append(item["knowledge_unit_id"])
 
         for idx, content in enumerate(chunks):
             span = spans[idx]
@@ -268,7 +288,7 @@ class DocumentService:
                     "revision_id": str(revision_id),
                     "segmentation_version": SEGMENTATION_VERSION,
                     "source_span_ids": [span["span_id"]],
-                    "knowledge_unit_ids": knowledge_unit_ids,
+                    "knowledge_unit_ids": knowledge_unit_ids_by_span.get(span["span_id"], []),
                     "pedagogical_role": role,
                     "exposure_level": exposure_level,
                     "allowed_use": allowed_use,
@@ -333,7 +353,9 @@ class DocumentService:
     @staticmethod
     def _classify_projection_visibility(content: str) -> tuple[str, int, str]:
         lowered = content.lower()
-        if any(marker in lowered for marker in ("[grader-only]", "参考答案：", "reference answer:")):
+        if any(
+            marker in lowered for marker in ("[grader-only]", "参考答案：", "reference answer:")
+        ):
             return "solution", 4, "grader_only"
         if "例" in content or "example" in lowered:
             return "example", 1, "learner_visible"

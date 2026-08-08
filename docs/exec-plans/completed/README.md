@@ -4,7 +4,8 @@
 > v0.3 收口日期：2026-08-07
 > v0.3.1 收口日期：2026-08-08
 > UI-01 收口日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 FROZEN BASELINES
+> UI-02A 收口日期：2026-08-08
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A FROZEN BASELINES
 
 ## Completion Matrix
 
@@ -25,6 +26,7 @@
 | EXEC-013 — v0.3 E2E / Release Gate | DONE | `530322e` |
 | EXEC-014 — Rich Response Rendering | DONE | local implementation (not committed) |
 | EXEC-015 — UI-01 Learning Shell and Compatibility Tutor Workspace | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-016 — UI-02A Canonical Library and Scoped Knowledge Map | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 
@@ -83,6 +85,16 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 UI-01 交付 learning-loop-first Shell、Today Workspace Query、明确标记的兼容导师工作台、History 与 Settings；未实现或伪造 canonical Goal/Plan/Activity link。详细证据见 `docs/releases/ui-01-learning-shell-workspace.md`。
+
+## UI-02A Release Gates
+
+```text
+Engineering Gate: PASS
+Contract / Ownership / Security Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+UI-02A 交付 current-user Canonical 资料库、durable document processing、source-bound KnowledgeUnit candidates、范围化 Knowledge Map 与 SourceSpan Inspector；无证据时关系保持为空。详细证据见 `docs/releases/ui-02a-library-knowledge-map.md`。
 
 ## Historical Contract Rule
 
