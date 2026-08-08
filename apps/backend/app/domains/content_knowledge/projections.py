@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from typing import Any, Literal
 from uuid import UUID, uuid5
@@ -160,14 +161,48 @@ def build_multi_granularity_projections(
     source_spans: list[dict[str, Any]],
     document_nodes: list[dict[str, Any]],
     knowledge_units: list[dict[str, Any]],
+    relations: list[dict[str, Any]] | None = None,
+    publication_bindings: dict[str, Any] | None = None,
+    knowledge_extractor_version: str | None = None,
+    publication_policy_version: str | None = None,
+    publication_decision_id: str | None = None,
 ) -> dict[str, Any]:
     """Build independent semantic, hierarchy and retrieval projections deterministically."""
     nodes, parents = _node_maps(document_nodes)
     span_by_id = {str(item["span_id"]): item for item in source_spans}
-    knowledge_by_span: dict[str, list[str]] = {}
+    bindings = publication_bindings or {}
+    unit_ref_by_id = {
+        str(item["knowledge_unit_ref"]).split(":")[1]: str(item["knowledge_unit_ref"])
+        for item in bindings.get("knowledge_units", [])
+        if isinstance(item, dict) and item.get("knowledge_unit_ref")
+    }
+    relation_ref_by_id = {
+        str(item["relation_ref"]).split(":")[1]: str(item["relation_ref"])
+        for item in bindings.get("relations", [])
+        if isinstance(item, dict) and item.get("relation_ref")
+    }
+    knowledge_by_span: dict[str, list[tuple[str, str]]] = {}
     for unit in knowledge_units:
+        if unit.get("status") != "published":
+            continue
+        published_unit_id = str(unit["knowledge_unit_id"])
+        unit_ref = unit_ref_by_id.get(
+            published_unit_id,
+            f"knowledge_unit:{published_unit_id}:v{unit.get('revision', 1)}",
+        )
         for span_id in unit.get("evidence_span_ids", []):
-            knowledge_by_span.setdefault(str(span_id), []).append(str(unit["knowledge_unit_id"]))
+            knowledge_by_span.setdefault(str(span_id), []).append((published_unit_id, unit_ref))
+    relations_by_span: dict[str, list[str]] = {}
+    for relation in relations or []:
+        if relation.get("status") != "published":
+            continue
+        relation_id = str(relation["relation_id"])
+        relation_ref = relation_ref_by_id.get(
+            relation_id,
+            f"knowledge_relation:{relation_id}:v{relation.get('revision', 1)}",
+        )
+        for span_id in relation.get("evidence_span_ids", []):
+            relations_by_span.setdefault(str(span_id), []).append(relation_ref)
 
     semantic_units: list[dict[str, Any]] = []
     for span in source_spans:
@@ -264,11 +299,20 @@ def build_multi_granularity_projections(
                 if ref in hierarchy_id_by_document_node
             }
         )
-        knowledge_unit_ids = sorted(
+        knowledge_pairs = sorted(
             {
-                knowledge_id
+                knowledge
                 for span_id in pending_span_ids
-                for knowledge_id in knowledge_by_span.get(span_id, [])
+                for knowledge in knowledge_by_span.get(span_id, [])
+            }
+        )
+        knowledge_unit_ids = [item[0] for item in knowledge_pairs]
+        knowledge_unit_refs = [item[1] for item in knowledge_pairs]
+        relation_refs = sorted(
+            {
+                relation_ref
+                for span_id in pending_span_ids
+                for relation_ref in relations_by_span.get(span_id, [])
             }
         )
         answer_exposure = "COMPLETE" if pending_visibility == "grader_only" else "NONE"
@@ -277,22 +321,49 @@ def build_multi_granularity_projections(
             f"{RETRIEVAL_SEGMENTATION_VERSION}:{len(retrieval_chunks)}:"
             f"{':'.join(pending_span_ids)}:{_digest(text)}",
         )
-        retrieval_chunks.append(
-            {
-                "chunk_id": str(chunk_id),
-                "revision_id": str(revision_id),
-                "segmentation_version": RETRIEVAL_SEGMENTATION_VERSION,
-                "source_span_ids": list(pending_span_ids),
-                "semantic_unit_ids": list(pending_semantic_unit_ids),
-                "knowledge_unit_ids": knowledge_unit_ids,
-                "text": text,
-                "pedagogical_role": _pedagogical_role(text, semantic_roles),
-                "answer_exposure": answer_exposure,
-                "allowed_use": pending_visibility or "learner_visible",
-                "hierarchy_scope_refs": hierarchy_scope_refs,
-                "ordinal": len(retrieval_chunks),
-            }
+        projection_versions = {
+            "material_revision": str(revision_id),
+            "semantic_segmentation": SEMANTIC_SEGMENTATION_VERSION,
+            "retrieval_segmentation": RETRIEVAL_SEGMENTATION_VERSION,
+            "hierarchy_projection": HIERARCHY_PROJECTION_VERSION,
+            "knowledge_extractor": knowledge_extractor_version or "unpublished",
+            "knowledge_publication_policy": publication_policy_version or "unpublished",
+            "knowledge_publication_decision": publication_decision_id or "unpublished",
+        }
+        projection = {
+            "chunk_id": str(chunk_id),
+            "revision_id": str(revision_id),
+            "segmentation_version": RETRIEVAL_SEGMENTATION_VERSION,
+            "source_span_ids": list(pending_span_ids),
+            "semantic_unit_ids": list(pending_semantic_unit_ids),
+            "knowledge_unit_ids": knowledge_unit_ids,
+            "knowledge_unit_refs": knowledge_unit_refs,
+            "relation_refs": relation_refs,
+            "source_span_refs": [
+                f"source_span:{span_id}:revision:{revision_id}" for span_id in pending_span_ids
+            ],
+            "text": text,
+            "pedagogical_role": _pedagogical_role(text, semantic_roles),
+            "answer_exposure": answer_exposure,
+            "allowed_use": pending_visibility or "learner_visible",
+            "hierarchy_scope_refs": hierarchy_scope_refs,
+            "hierarchy_refs": [
+                f"hierarchy_node:{item}:v{HIERARCHY_PROJECTION_VERSION}"
+                for item in hierarchy_scope_refs
+            ],
+            "projection_versions": projection_versions,
+            "canonical_retrieval_eligible": bool(knowledge_unit_refs),
+            "eligibility_reason_codes": (
+                ["PUBLISHED_KNOWLEDGE_BOUND"]
+                if knowledge_unit_refs
+                else ["NO_PUBLISHED_KNOWLEDGE_BINDING"]
+            ),
+            "ordinal": len(retrieval_chunks),
+        }
+        projection["projection_fingerprint"] = _digest(
+            json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         )
+        retrieval_chunks.append(projection)
         pending_span_ids = []
         pending_semantic_unit_ids = []
         pending_text = []

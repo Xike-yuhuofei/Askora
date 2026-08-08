@@ -503,6 +503,26 @@ class DocumentService:
                 current_revision,
                 anchor_status_by_span=anchor_statuses,
             )
+            publication_result = published_revision["knowledge_publication_result"]
+            published_revision.update(
+                build_multi_granularity_projections(
+                    revision_id=UUID(published_revision["revision_id"]),
+                    source_spans=published_revision.get("source_spans", []),
+                    document_nodes=published_revision.get("document_nodes", []),
+                    knowledge_units=published_revision.get("knowledge_units", []),
+                    relations=published_revision.get("relations", []),
+                    publication_bindings=published_revision.get(
+                        "knowledge_publication_bindings", {}
+                    ),
+                    knowledge_extractor_version=published_revision.get(
+                        "knowledge_extractor_version"
+                    ),
+                    publication_policy_version=published_revision.get(
+                        "knowledge_publication_policy_version"
+                    ),
+                    publication_decision_id=publication_result.get("decision_id"),
+                )
+            )
             content_record["revisions"] = [
                 (
                     published_revision
@@ -688,12 +708,22 @@ class DocumentService:
                     "segmentation_version": projection["segmentation_version"],
                     "source_span_ids": projection["source_span_ids"],
                     "knowledge_unit_ids": projection["knowledge_unit_ids"],
+                    "knowledge_unit_refs": projection.get("knowledge_unit_refs", []),
+                    "relation_refs": projection.get("relation_refs", []),
+                    "source_span_refs": projection.get("source_span_refs", []),
                     "semantic_unit_ids": projection.get("semantic_unit_ids", []),
                     "pedagogical_role": projection["pedagogical_role"],
                     "answer_exposure": projection["answer_exposure"],
                     "exposure_level": exposure_level,
                     "allowed_use": projection["allowed_use"],
                     "hierarchy_scope_refs": projection["hierarchy_scope_refs"],
+                    "hierarchy_refs": projection.get("hierarchy_refs", []),
+                    "projection_versions": projection.get("projection_versions", {}),
+                    "projection_fingerprint": projection.get("projection_fingerprint"),
+                    "canonical_retrieval_eligible": projection.get(
+                        "canonical_retrieval_eligible", False
+                    ),
+                    "eligibility_reason_codes": projection.get("eligibility_reason_codes", []),
                     "compatibility_projection": "legacy-exposure-read-v1",
                 },
             )
@@ -749,6 +779,13 @@ class DocumentService:
             source_spans=revision.get("source_spans", []),
             document_nodes=revision.get("document_nodes", []),
             knowledge_units=revision.get("knowledge_units", []),
+            relations=revision.get("relations", []),
+            publication_bindings=revision.get("knowledge_publication_bindings", {}),
+            knowledge_extractor_version=revision.get("knowledge_extractor_version"),
+            publication_policy_version=revision.get("knowledge_publication_policy_version"),
+            publication_decision_id=revision.get("knowledge_publication_result", {}).get(
+                "decision_id"
+            ),
         )
         revision.update(rebuilt)
         document.moderation_details = details

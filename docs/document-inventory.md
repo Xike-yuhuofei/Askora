@@ -129,8 +129,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～019 已完成，EXEC-020～024 待执行 |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～017 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | Book-to-Learning active queue；EXEC-017～020 已完成，EXEC-021～024 待执行 |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～020 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -150,6 +150,7 @@
 | `docs/exec-plans/completed/EXEC-017-structure-preserving-epub-ingestion.md` | HISTORICAL-RETAIN | Book-to-Learning 结构保真 EPUB ingestion 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-018-multi-granularity-content-projections.md` | HISTORICAL-RETAIN | Book-to-Learning 多粒度内容模型与可重建投影不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-019-knowledge-verification-publication.md` | HISTORICAL-RETAIN | Book-to-Learning 知识候选验证与发布流水线不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-020-retrieval-projection-sys02-binding.md` | HISTORICAL-RETAIN | Book-to-Learning 发布知识到 SYS02 检索投影绑定不可变任务合同 |
 
 ## 6. 后续维护规则
 
