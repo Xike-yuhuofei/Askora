@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
+from app.api.v1.dialog import list_messages
 from app.core.database import Base
 from app.models.dialog import DialogMessage, DialogSession, SessionStatus
 from app.models.user import User, UserRole, UserStatus
@@ -104,9 +105,7 @@ async def test_api_ac_001_normal_and_stream_share_canonical_facade(canonical_dia
     )
     chunks = [
         chunk
-        async for chunk in DialogService(
-            canonical_dialog_db, facade=facade
-        ).stream_message(
+        async for chunk in DialogService(canonical_dialog_db, facade=facade).stream_message(
             session_stream,
             user_stream,
             "same teaching input",
@@ -118,6 +117,47 @@ async def test_api_ac_001_normal_and_stream_share_canonical_facade(canonical_dia
     assert {request.text for _kind, request in facade.calls} == {"same teaching input"}
     assert normal["message"]["strategy"] == chunks[-1]["strategy"] == "socratic"
     assert normal["message"]["content"] == chunks[-1]["response"] == "canonical reply"
+    assert normal["message"]["render_payload"] == chunks[-1]["render_payload"]
+    assert normal["message"]["render_payload"] == {
+        "schema_version": "1.0",
+        "blocks": [
+            {
+                "id": "content",
+                "type": "markdown",
+                "source": "canonical reply",
+            }
+        ],
+    }
+
+    persisted = (
+        (
+            await canonical_dialog_db.execute(
+                select(DialogMessage)
+                .where(DialogMessage.session_id == session_normal.id)
+                .order_by(DialogMessage.turn_number, DialogMessage.role)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert (
+        next(message for message in persisted if message.role.value == "user").render_payload
+        is None
+    )
+    assert (
+        next(message for message in persisted if message.role.value == "assistant").render_payload
+        == normal["message"]["render_payload"]
+    )
+
+    history = await list_messages(
+        session_normal.id,
+        limit=50,
+        offset=0,
+        current_user=user_normal,
+        db=canonical_dialog_db,
+    )
+    history_assistant = next(item for item in history["items"] if item["role"] == "assistant")
+    assert history_assistant["render_payload"] == normal["message"]["render_payload"]
 
 
 @pytest.mark.asyncio
@@ -161,12 +201,15 @@ async def test_exec002_ac_005_stream_reconnect_is_idempotent(canonical_dialog_db
     ]
 
     message_count = await canonical_dialog_db.scalar(
-        select(func.count()).select_from(DialogMessage).where(DialogMessage.session_id == session.id)
+        select(func.count())
+        .select_from(DialogMessage)
+        .where(DialogMessage.session_id == session.id)
     )
     assert len(facade.calls) == 1
     assert message_count == 2
     assert first[-1]["message_id"] == second[-1]["message_id"]
     assert second[-1]["idempotent_replay"] is True
+    assert first[-1]["render_payload"] == second[-1]["render_payload"]
 
 
 @pytest.mark.asyncio
@@ -187,7 +230,9 @@ async def test_exec002_ac_006_model_failure_does_not_write_mastery_or_messages(
 
     persisted_session = await canonical_dialog_db.get(DialogSession, session_id)
     message_count = await canonical_dialog_db.scalar(
-        select(func.count()).select_from(DialogMessage).where(DialogMessage.session_id == session_id)
+        select(func.count())
+        .select_from(DialogMessage)
+        .where(DialogMessage.session_id == session_id)
     )
     assert persisted_session is not None
     assert persisted_session.mastery_estimate == 0.37

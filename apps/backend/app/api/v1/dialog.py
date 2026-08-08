@@ -213,6 +213,7 @@ async def list_messages(
                 "id": m.id,
                 "role": m.role.value,
                 "content": m.content,
+                "render_payload": m.render_payload,
                 "turn_number": m.turn_number,
                 "strategy": m.strategy,
                 "hint_level": m.hint_level,

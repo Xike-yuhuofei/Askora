@@ -74,6 +74,15 @@ from app.contracts.learning import (
     TeachingAction,
 )
 from app.contracts.planning import ConfirmedLearningGoal, ReviewDueCandidate, ReviewObservation
+from app.contracts.rendering import (
+    CardBlockV1,
+    CitationBlockV1,
+    CitationItemV1,
+    MarkdownBlockV1,
+    RenderBlockV1,
+    RenderPayloadV1,
+    markdown_render_payload,
+)
 from app.contracts.v03_migration import (
     MigrationCandidate,
     MigrationProjection,
@@ -97,6 +106,9 @@ __all__ = [
     "AttributionScope",
     "AvailabilityStatus",
     "BehaviorPolicyType",
+    "CardBlockV1",
+    "CitationBlockV1",
+    "CitationItemV1",
     "ContaminationStatus",
     "ConfirmedLearningGoal",
     "DecisionAlgorithm",
@@ -130,6 +142,7 @@ __all__ = [
     "LearnerEvidenceV03",
     "KnowledgeUnit",
     "MaterialRevision",
+    "MarkdownBlockV1",
     "MasteryEstimate",
     "MigrationCandidate",
     "MigrationProjection",
@@ -137,6 +150,8 @@ __all__ = [
     "PolicyBundleActivationV03",
     "PolicyBundleV03",
     "ReplayabilityStatus",
+    "RenderBlockV1",
+    "RenderPayloadV1",
     "ReviewSchedule",
     "ReviewDueCandidate",
     "ReviewObservation",
@@ -152,5 +167,6 @@ __all__ = [
     "ValidationObligation",
     "ValueWithAvailability",
     "VersionedRef",
+    "markdown_render_payload",
     "upcast_v03_compatibility",
 ]

@@ -13,6 +13,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.rendering import RenderPayloadV1, markdown_render_payload
 from app.core.exceptions import SessionNotActiveError
 from app.core.logging import get_logger
 from app.core.redis_client import (
@@ -161,9 +162,7 @@ class DialogService:
     ) -> dict:
         """Execute one canonical turn while holding the session write lock."""
         correlation = correlation_id or str(uuid.uuid4())
-        user_message_id, assistant_message_id = self._turn_message_ids(
-            session.id, idempotency_key
-        )
+        user_message_id, assistant_message_id = self._turn_message_ids(session.id, idempotency_key)
         replay = await self._load_idempotent_completion(assistant_message_id)
         if replay is not None:
             return self._build_response_dict_from_message(
@@ -211,6 +210,7 @@ class DialogService:
                 "id": ai_msg.id,
                 "role": ai_msg.role.value,
                 "content": ai_msg.content,
+                "render_payload": ai_msg.render_payload,
                 "turn_number": ai_msg.turn_number,
                 "strategy": ai_msg.strategy,
                 "hint_level": ai_msg.hint_level,
@@ -249,6 +249,7 @@ class DialogService:
                 "id": ai_msg.id,
                 "role": ai_msg.role.value,
                 "content": ai_msg.content,
+                "render_payload": ai_msg.render_payload,
                 "turn_number": ai_msg.turn_number,
                 "strategy": ai_msg.strategy,
                 "hint_level": ai_msg.hint_level,
@@ -273,10 +274,12 @@ class DialogService:
         assistant_message_id: str,
     ) -> dict:
         usage = result.engine_debug
+        render_payload = result.render_payload or markdown_render_payload(result.reply_text)
         ai_msg = await self._add_message(
             session=session,
             role=MessageRole.ASSISTANT,
             content=result.reply_text,
+            render_payload=render_payload,
             message_id=assistant_message_id,
             strategy=result.engine_id,
             hint_level=result.execution_snapshot.get("last_hint_level_used"),
@@ -382,15 +385,14 @@ class DialogService:
     ):
         """Adapt canonical facade events without a direct Socratic streaming path."""
         correlation = correlation_id or str(uuid.uuid4())
-        user_message_id, assistant_message_id = self._turn_message_ids(
-            session.id, idempotency_key
-        )
+        user_message_id, assistant_message_id = self._turn_message_ids(session.id, idempotency_key)
         replay = await self._load_idempotent_completion(assistant_message_id)
         if replay is not None:
             yield {"type": "content", "content": replay.content}
             yield {
                 "type": "final",
                 "response": replay.content,
+                "render_payload": replay.render_payload,
                 "strategy": replay.strategy,
                 "hint_level": replay.hint_level,
                 "message_id": replay.id,
@@ -424,6 +426,7 @@ class DialogService:
             yield {
                 "type": "final",
                 "response": result.reply_text,
+                "render_payload": response["message"]["render_payload"],
                 "strategy": result.engine_id,
                 "hint_level": session.current_hint_level,
                 "message_id": response["message"]["id"],
@@ -439,6 +442,7 @@ class DialogService:
         session: DialogSession,
         role: MessageRole,
         content: str,
+        render_payload: RenderPayloadV1 | None = None,
         message_id: str | None = None,
         strategy: Optional[str] = None,
         hint_level: Optional[int] = None,
@@ -456,6 +460,9 @@ class DialogService:
             user_id=session.user_id,
             role=role,
             content=content,
+            render_payload=(
+                render_payload.model_dump(mode="json") if render_payload is not None else None
+            ),
             turn_number=session.turn_count + 1,
             strategy=strategy,
             hint_level=hint_level,

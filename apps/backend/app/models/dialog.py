@@ -144,6 +144,7 @@ class DialogMessage(Base):
     # 消息基本信息
     role: Mapped[MessageRole] = mapped_column(Enum(MessageRole), index=True)
     content: Mapped[str] = mapped_column(Text)
+    render_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     turn_number: Mapped[int] = mapped_column(Integer)  # 第几轮
 
     # 苏格拉底教学元数据（仅 assistant 消息有）

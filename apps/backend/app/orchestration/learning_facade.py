@@ -20,6 +20,7 @@ from app.contracts.adaptive import (
 from app.contracts.decisions import DecisionTraceV03
 from app.contracts.events import ActualAssistanceRecordedPayloadV03
 from app.contracts.learning import EvidenceBundle, MasteryEstimate, TeachingAction
+from app.contracts.rendering import RenderPayloadV1, markdown_render_payload
 from app.domains.retrieval.adaptive_evidence_service import (
     AdaptiveEvidenceRetriever,
     AdaptiveRetrievalCandidate,
@@ -68,6 +69,7 @@ class CanonicalTurnResult:
     engine_debug: dict[str, Any]
     execution_snapshot: dict[str, Any]
     correlation_id: str
+    render_payload: RenderPayloadV1 | None = None
     teaching_action_v03: TeachingActionV03 | None = None
     decision_trace_v03: DecisionTraceV03 | None = None
     evidence_bundle_v03: EvidenceBundleV03 | None = None
@@ -189,6 +191,7 @@ class LearningOrchestrationFacade:
                 "actual_assistance": execution.actual_assistance.model_dump(mode="json"),
             },
             correlation_id=request.correlation_id,
+            render_payload=markdown_render_payload(execution.text),
             teaching_action_v03=decision.action,
             decision_trace_v03=decision.trace,
             evidence_bundle_v03=evidence.bundle,
@@ -246,6 +249,7 @@ class LearningOrchestrationFacade:
             engine_debug=dict(result.engine_debug),
             execution_snapshot=dict(result.shared_ctx_snapshot),
             correlation_id=request.correlation_id,
+            render_payload=markdown_render_payload(result.reply_text),
         )
 
 

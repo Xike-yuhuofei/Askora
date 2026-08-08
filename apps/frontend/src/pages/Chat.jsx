@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { Send, Plus, Sparkles, Clock, Lightbulb, ChevronRight } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import { useAuth } from '../hooks/useAuth'
 import * as dialogApi from '../api/dialog'
 import './Chat.css'
+
+const RichMessage = lazy(() => import('../components/messages/RichMessage'))
 
 const demoSubjects = [
   { id: 'math', name: '数学', icon: '📐', kps: ['一元二次方程', '函数与导数', '概率统计', '几何证明'] },
@@ -55,7 +57,7 @@ export default function Chat() {
       setMessages([
         {
           role: 'assistant',
-          content: `这是本地演示对话。关于“${kp}”，你觉得它最核心的概念是什么？`,
+          content: `这是本地演示对话。关于"${kp}"，你觉得它最核心的概念是什么？`,
           timestamp: new Date().toISOString(),
         },
       ])
@@ -126,6 +128,7 @@ export default function Chat() {
         {
           role: assistantRole,
           content: assistantContent || '（服务返回为空，请重试）',
+          render_payload: data?.message?.render_payload ?? null,
           timestamp: data?.message?.created_at || new Date().toISOString(),
           moderation: data?.moderation,
         },
@@ -257,7 +260,13 @@ export default function Chat() {
                     {msg.role === 'user' ? '我' : '苏'}
                   </div>
                   <div className="message-bubble">
-                    <p>{msg.content}</p>
+                    {msg.role === 'assistant' ? (
+                      <Suspense fallback={<p>{msg.content}</p>}>
+                        <RichMessage fallbackText={msg.content} payload={msg.render_payload} />
+                      </Suspense>
+                    ) : (
+                      <p>{msg.content}</p>
+                    )}
                   </div>
                 </div>
               ))}
