@@ -28,6 +28,7 @@ from app.services.documents.document_service import (
     DocumentService,
     document_processing_idempotency_key,
 )
+from app.services.documents.parsers import get_parser
 
 logger = get_logger(__name__)
 
@@ -182,7 +183,12 @@ class DocumentProcessingWorker:
             (item for item in record.get("revisions", []) if item.get("revision_id") == current_id),
             None,
         )
-        return revision is None or revision.get("extraction_version") != EXTRACTION_VERSION
+        return (
+            revision is None
+            or revision.get("parser_version")
+            != get_parser(document.file_extension).semantic_version
+            or revision.get("extraction_version") != EXTRACTION_VERSION
+        )
 
 
 class DocumentProcessingRuntime:

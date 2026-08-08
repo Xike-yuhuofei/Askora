@@ -20,6 +20,7 @@ from uuid import UUID, uuid5
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.content import SourceReplayResult
 from app.core.exceptions import (
     ContentReinspectionChecksumMismatchError,
     ContentReinspectionNotAllowedError,
@@ -31,6 +32,7 @@ from app.core.logging import get_logger
 from app.domains.content_knowledge import (
     CONTENT_RECORD_KEY,
     EXTRACTION_VERSION,
+    PARSER_VERSION,
     RAW_ASSET_CHECKSUM_KEY,
     SAFETY_REINSPECTION_KEY,
     SAFETY_SCAN_CURRENT_KEY,
@@ -39,6 +41,7 @@ from app.domains.content_knowledge import (
     SEGMENTATION_VERSION,
     build_content_revision,
 )
+from app.domains.content_knowledge.epub_structure import replay_epub_locator
 from app.infrastructure.outbox import OutboxProducer, OutboxStatus
 from app.models.document import (
     DocumentChunk,
@@ -62,7 +65,10 @@ DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION = "1.0"
 
 
 def document_processing_idempotency_key(document_id: str) -> str:
-    return f"document:{document_id}:process:{EXTRACTION_VERSION}:{SAFETY_SCANNER_VERSION}"
+    return (
+        f"document:{document_id}:process:{PARSER_VERSION}:"
+        f"{EXTRACTION_VERSION}:{SAFETY_SCANNER_VERSION}"
+    )
 
 
 def document_reinspection_idempotency_key(document_id: str) -> str:
@@ -393,10 +399,12 @@ class DocumentService:
                 raise ValueError("raw asset checksum mismatch")
             canonical = existing_details.get(CONTENT_RECORD_KEY, {})
             current = self._current_revision(canonical)
+            parser = get_parser(document.file_extension)
             if (
                 document.processing_status == ProcessingStatus.COMPLETED
                 and current
                 and current.get("checksum") == checksum
+                and current.get("parser_version") == parser.semantic_version
                 and current.get("extraction_version") == EXTRACTION_VERSION
             ):
                 chunk_count = await self.db.scalar(
@@ -448,9 +456,12 @@ class DocumentService:
                 return document
 
             # 2. 解析文档
-            parser = get_parser(document.file_extension)
             parsed: ParsedContent = parser.parse(file_content, document.file_extension)
-            canonical_chunks = self._split_visibility_boundaries(parsed.chunks)
+            canonical_chunks = (
+                parsed.chunks
+                if parsed.document_nodes is not None
+                else self._split_visibility_boundaries(parsed.chunks)
+            )
 
             # 3. 建立不可变 revision、SourceSpan 与最小 KnowledgeUnit truth。
             content_record = build_content_revision(
@@ -461,6 +472,10 @@ class DocumentService:
                 chunks=canonical_chunks,
                 previous_record=canonical,
                 knowledge_point_id=document.knowledge_point_id,
+                parser_version=parser.semantic_version,
+                document_format=self._canonical_document_format(document.file_extension),
+                document_nodes=parsed.document_nodes,
+                root_node_local_id=parsed.root_node_local_id,
             )
             document.moderation_details = {
                 **scan_details,
@@ -596,6 +611,76 @@ class DocumentService:
                         "document_id": document_id,
                         "original_filename": document.original_filename,
                     }
+        return None
+
+    async def replay_source_span(
+        self,
+        document_id: str,
+        span_id: str,
+    ) -> SourceReplayResult | None:
+        """Replay SourceSpan -> DocumentNode -> original EPUB locator (D01-050/051)."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            return None
+        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        for revision in content_record.get("revisions", []):
+            span = next(
+                (
+                    item
+                    for item in revision.get("source_spans", [])
+                    if item.get("span_id") == span_id
+                ),
+                None,
+            )
+            if span is None:
+                continue
+            node_id = span.get("node_id")
+            node = next(
+                (
+                    item
+                    for item in revision.get("document_nodes", [])
+                    if item.get("node_id") == node_id
+                ),
+                None,
+            )
+            if node is None or document.file_extension.casefold() != "epub":
+                return SourceReplayResult(
+                    status="FAILED",
+                    document_id=UUID(document_id),
+                    revision_id=UUID(revision["revision_id"]),
+                    span_id=UUID(span_id),
+                    node_id=UUID(node_id) if node_id else None,
+                    reason_codes=["SOURCE_ANCHOR_FAILED"],
+                )
+            file_content = await asyncio.to_thread(self.storage.read_file, document.storage_path)
+            if hashlib.sha256(file_content).hexdigest() != revision.get("checksum"):
+                return SourceReplayResult(
+                    status="FAILED",
+                    document_id=UUID(document_id),
+                    revision_id=UUID(revision["revision_id"]),
+                    span_id=UUID(span_id),
+                    node_id=UUID(node_id),
+                    reason_codes=["SOURCE_ASSET_CHECKSUM_MISMATCH"],
+                )
+            status, resolved_path = replay_epub_locator(
+                file_content,
+                locator=node["source_locator"],
+                expected_content_hash=node["content_hash"],
+            )
+            reason_codes = {
+                "EXACT": [],
+                "RECOVERED": ["SOURCE_LOCATOR_RECOVERED"],
+                "FAILED": ["SOURCE_ANCHOR_FAILED"],
+            }[status]
+            return SourceReplayResult(
+                status=status,
+                document_id=UUID(document_id),
+                revision_id=UUID(revision["revision_id"]),
+                span_id=UUID(span_id),
+                node_id=UUID(node_id),
+                resolved_node_path=resolved_path,
+                reason_codes=reason_codes,
+            )
         return None
 
     @staticmethod
@@ -846,6 +931,14 @@ class DocumentService:
         if "." in filename:
             return filename.rsplit(".", 1)[-1].lower()
         return ""
+
+    @staticmethod
+    def _canonical_document_format(file_extension: str) -> str:
+        return {
+            "md": "markdown",
+            "markdown": "markdown",
+            "txt": "text",
+        }.get(file_extension.casefold(), file_extension.casefold())
 
     @staticmethod
     def _estimate_tokens(text: str) -> int:

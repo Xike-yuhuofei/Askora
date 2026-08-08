@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
 > 状态：Book-to-Learning Bootstrap Active
-> Active：EXEC-017～EXEC-024
-> 已完成：EXEC-001～EXEC-016
+> Active：EXEC-018～EXEC-024
+> 已完成：EXEC-001～EXEC-017
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | EXEC-017～024 READY | 必须按依赖 gate 执行；后序 READY 不代表可跳过前序 |
-| [`completed/`](completed/README.md) | EXEC-001～016 | 保留执行任务合同及其显式决策记录 |
+| `active/` | EXEC-018～024 READY | 必须按依赖 gate 执行；后序 READY 不代表可跳过前序 |
+| [`completed/`](completed/README.md) | EXEC-001～017 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -33,7 +33,7 @@ Accepted ADR / Canonical Design
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
-| Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | READY / NOT IMPLEMENTED |
+| Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | IN PROGRESS（EXEC-017 DONE） |
 
 v0.3 最终状态：
 
@@ -49,7 +49,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 
 | EXEC | Contract | Depends on | Status |
 |---|---|---|---|
-| EXEC-017 | [Structure-Preserving EPUB Ingestion & Source Replay](active/EXEC-017-structure-preserving-epub-ingestion.md) | EXEC-016 DONE | READY |
+| EXEC-017 | [Structure-Preserving EPUB Ingestion & Source Replay](completed/EXEC-017-structure-preserving-epub-ingestion.md) | EXEC-016 DONE | DONE |
 | EXEC-018 | [Multi-Granularity Content Model & Rebuildable Projections](active/EXEC-018-multi-granularity-content-projections.md) | EXEC-017 DONE | READY |
 | EXEC-019 | [Canonical Knowledge Verification & Publication](active/EXEC-019-knowledge-verification-publication.md) | EXEC-018 DONE | READY |
 | EXEC-020 | [Published Knowledge → Retrieval Projection & SYS02 Binding](active/EXEC-020-retrieval-projection-sys02-binding.md) | EXEC-019 DONE | READY |
