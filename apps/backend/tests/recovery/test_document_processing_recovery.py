@@ -65,7 +65,8 @@ async def test_ui02a_processing_task_recovers_after_restart_and_is_idempotent(
         assert len(record["revisions"]) == 1
         current = record["revisions"][0]
         assert current["extraction_version"] == EXTRACTION_VERSION
-        assert current["knowledge_units"][0]["status"] == "candidate"
+        assert current["knowledge_units"][0]["status"] == "published"
+        assert current["knowledge_publication_result"]["published_knowledge_unit_refs"]
         task = await session.scalar(select(OutboxTaskRecord))
         assert task is not None
         assert task.status == OutboxStatus.COMPLETED.value

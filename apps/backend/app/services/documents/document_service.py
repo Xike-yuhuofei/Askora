@@ -33,6 +33,8 @@ from app.core.logging import get_logger
 from app.domains.content_knowledge import (
     CONTENT_RECORD_KEY,
     EXTRACTION_VERSION,
+    KNOWLEDGE_EXTRACTOR_VERSION,
+    KNOWLEDGE_PUBLICATION_POLICY_VERSION,
     PARSER_VERSION,
     RAW_ASSET_CHECKSUM_KEY,
     SAFETY_REINSPECTION_KEY,
@@ -42,8 +44,12 @@ from app.domains.content_knowledge import (
     SEGMENTATION_VERSION,
     build_content_revision,
     build_multi_granularity_projections,
+    build_publication_decision_trace,
+    build_publication_events,
+    publish_revision_knowledge,
 )
 from app.domains.content_knowledge.epub_structure import replay_epub_locator
+from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepository
 from app.infrastructure.outbox import OutboxProducer, OutboxStatus
 from app.models.document import (
     DocumentChunk,
@@ -51,6 +57,7 @@ from app.models.document import (
     ProcessingStatus,
     UserDocument,
 )
+from app.models.user import User
 from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
@@ -69,7 +76,8 @@ DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION = "1.0"
 def document_processing_idempotency_key(document_id: str) -> str:
     return (
         f"document:{document_id}:process:{PARSER_VERSION}:"
-        f"{EXTRACTION_VERSION}:{SAFETY_SCANNER_VERSION}"
+        f"{EXTRACTION_VERSION}:{KNOWLEDGE_EXTRACTOR_VERSION}:"
+        f"{KNOWLEDGE_PUBLICATION_POLICY_VERSION}:{SAFETY_SCANNER_VERSION}"
     )
 
 
@@ -408,6 +416,9 @@ class DocumentService:
                 and current.get("checksum") == checksum
                 and current.get("parser_version") == parser.semantic_version
                 and current.get("extraction_version") == EXTRACTION_VERSION
+                and current.get("knowledge_extractor_version") == KNOWLEDGE_EXTRACTOR_VERSION
+                and current.get("knowledge_publication_policy_version")
+                == KNOWLEDGE_PUBLICATION_POLICY_VERSION
             ):
                 chunk_count = await self.db.scalar(
                     select(func.count())
@@ -465,7 +476,7 @@ class DocumentService:
                 else self._split_visibility_boundaries(parsed.chunks)
             )
 
-            # 3. 建立不可变 revision、SourceSpan 与最小 KnowledgeUnit truth。
+            # 3. 建立不可变 revision/SourceSpan，并执行 SYS01 候选验证与发布。
             content_record = build_content_revision(
                 document_id=UUID(document.id),
                 original_filename=document.original_filename,
@@ -479,6 +490,27 @@ class DocumentService:
                 document_nodes=parsed.document_nodes,
                 root_node_local_id=parsed.root_node_local_id,
             )
+            current_revision = self._current_revision(content_record)
+            if current_revision is None:
+                raise ValueError("canonical content revision missing")
+            anchor_statuses = self._current_revision_anchor_statuses(
+                current_revision,
+                file_content=file_content,
+                full_text=parsed.full_text,
+                file_extension=document.file_extension,
+            )
+            published_revision = publish_revision_knowledge(
+                current_revision,
+                anchor_status_by_span=anchor_statuses,
+            )
+            content_record["revisions"] = [
+                (
+                    published_revision
+                    if item.get("revision_id") == published_revision["revision_id"]
+                    else item
+                )
+                for item in content_record.get("revisions", [])
+            ]
             document.moderation_details = {
                 **scan_details,
                 CONTENT_RECORD_KEY: content_record,
@@ -503,6 +535,8 @@ class DocumentService:
             document.processing_status = ProcessingStatus.COMPLETED
             document.processing_completed_at = datetime.now(timezone.utc)
 
+            await self._append_knowledge_publication_audit(document, published_revision)
+
             await self.db.commit()
             await self.db.refresh(document)
 
@@ -516,6 +550,10 @@ class DocumentService:
             return document
 
         except Exception as e:
+            await self.db.rollback()
+            document = await self.db.get(UserDocument, document_id)
+            if document is None:
+                raise
             document.processing_status = ProcessingStatus.FAILED
             document.processing_error = str(e)
             document.processing_completed_at = datetime.now(timezone.utc)
@@ -527,6 +565,66 @@ class DocumentService:
                 error=str(e),
             )
             raise
+
+    @staticmethod
+    def _current_revision_anchor_statuses(
+        revision: dict,
+        *,
+        file_content: bytes,
+        full_text: str,
+        file_extension: str,
+    ) -> dict[str, str]:
+        """Verify current-revision evidence without trusting candidate/model assertions."""
+        nodes = {item["node_id"]: item for item in revision.get("document_nodes", [])}
+        statuses: dict[str, str] = {}
+        for span in revision.get("source_spans", []):
+            span_id = span["span_id"]
+            node = nodes.get(span.get("node_id"))
+            if file_extension == "epub" and node is not None:
+                status, _resolved = replay_epub_locator(
+                    file_content,
+                    locator=node["source_locator"],
+                    expected_content_hash=node["content_hash"],
+                )
+                statuses[span_id] = status
+                continue
+            start = span.get("start_offset")
+            end = span.get("end_offset")
+            if (
+                isinstance(start, int)
+                and isinstance(end, int)
+                and full_text[start:end] == span.get("text")
+            ):
+                statuses[span_id] = "EXACT"
+            elif span.get("text") and span["text"] in full_text:
+                statuses[span_id] = "RECOVERED"
+            else:
+                statuses[span_id] = "FAILED"
+        return statuses
+
+    async def _append_knowledge_publication_audit(
+        self,
+        document: UserDocument,
+        revision: dict,
+    ) -> None:
+        """Persist owner decision/events in the same transaction as published truth."""
+        user = await self.db.scalar(select(User).where(User.pseudonym_id == document.pseudonym_id))
+        if user is None:
+            raise ValueError("knowledge publication owner context missing")
+        revision_id = UUID(revision["revision_id"])
+        correlation_id = uuid5(revision_id, "knowledge-publication-correlation")
+        trace = build_publication_decision_trace(
+            revision,
+            correlation_id=correlation_id,
+        )
+        await DecisionTraceRepository(self.db).append(trace)
+        event_repository = LearningEventRepository(self.db)
+        for event in build_publication_events(
+            revision,
+            user_id=UUID(user.id),
+            correlation_id=correlation_id,
+        ):
+            await event_repository.append(event)
 
     async def _create_chunks(
         self,

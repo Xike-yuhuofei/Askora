@@ -184,3 +184,108 @@ class KnowledgeUnit(ContractModel):
     provenance_type: Literal["source_explicit", "system_inferred", "human_curated"]
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     status: Literal["candidate", "verified", "published", "rejected", "superseded"]
+
+
+class PrerequisiteRelation(ContractModel):
+    """DOMAIN-040 canonical SYS01 prerequisite relation revision."""
+
+    relation_id: UUID
+    revision: int = Field(ge=1)
+    prerequisite_id: UUID
+    target_knowledge_unit_id: UUID
+    strength: Literal["hard", "soft", "contextual"]
+    evidence_span_ids: list[UUID]
+    inference_method: Literal["explicit", "rule", "model", "human"]
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    status: Literal["candidate", "published", "rejected", "superseded"]
+
+
+CandidateStatus = Literal[
+    "candidate",
+    "verified",
+    "published",
+    "rejected",
+    "review_required",
+    "superseded",
+]
+CandidateProvenance = Literal["deterministic", "source_explicit", "model_inferred", "human_curated"]
+
+
+class KnowledgeCandidateBase(ContractModel):
+    """D03 internal candidate envelope; never canonical truth by itself."""
+
+    candidate_id: UUID
+    revision_id: UUID
+    source_span_ids: list[UUID]
+    semantic_unit_ids: list[UUID]
+    extraction_run_id: UUID
+    proposed_payload: dict[str, Any]
+    provenance_type: CandidateProvenance
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    status: CandidateStatus = "candidate"
+    reason_codes: list[str] = Field(default_factory=list)
+
+
+class ConceptCandidate(KnowledgeCandidateBase):
+    candidate_type: Literal["concept"] = "concept"
+
+
+class KnowledgeUnitCandidate(KnowledgeCandidateBase):
+    candidate_type: Literal["knowledge_unit"] = "knowledge_unit"
+
+
+class RelationCandidate(KnowledgeCandidateBase):
+    candidate_type: Literal["relation"] = "relation"
+
+
+class PedagogicalAssetCandidate(KnowledgeCandidateBase):
+    candidate_type: Literal["pedagogical_asset"] = "pedagogical_asset"
+
+
+class ExtractionRun(ContractModel):
+    """D03-010 pinned extraction inputs and execution versions."""
+
+    extraction_run_id: UUID
+    input_revision_id: UUID
+    parser_version: str
+    semantic_segmentation_version: str
+    extractor_version: str
+    model_provider: str | None = None
+    model_name: str | None = None
+    model_snapshot: str | None = None
+    prompt_version: str | None = None
+    schema_version: str
+    publication_policy_version: str
+    created_at: datetime
+    execution_mode: Literal["deterministic", "model_assisted"]
+    reason_codes: list[str] = Field(default_factory=list)
+
+
+class KnowledgePublicationPolicy(ContractModel):
+    """D03 immutable policy snapshot; values are product rules, not science constants."""
+
+    policy_version: str
+    auto_publish_knowledge_provenance: tuple[
+        Literal["deterministic", "source_explicit", "human_curated"], ...
+    ]
+    hard_prerequisite_inference_methods: tuple[Literal["explicit", "rule", "human"], ...]
+    allowed_deterministic_rule_ids: tuple[str, ...]
+    require_current_revision_evidence: bool
+    require_reverse_relation_verification: bool
+    model_confidence_is_calibrated: Literal[False] = False
+
+
+class KnowledgePublicationResult(ContractModel):
+    """Persisted SYS01 decision result used by replay without online inference."""
+
+    decision_id: UUID
+    extraction_run_id: UUID
+    revision_id: UUID
+    policy_version: str
+    candidate_ids: list[UUID]
+    published_knowledge_unit_refs: list[str]
+    published_relation_refs: list[str]
+    review_required_candidate_ids: list[UUID]
+    rejected_candidate_ids: list[UUID]
+    reason_codes: list[str]
+    decided_at: datetime

@@ -225,13 +225,8 @@ def _build_spans(
     spans: list[SourceSpan] = []
     cursor = 0
     used_nodes: set[str] = set()
-    for index, text in enumerate(chunks):
-        start = full_text.find(text, cursor)
-        if start < 0:
-            start = full_text.find(text)
-        if start < 0:
-            start = cursor
-        end = start + len(text)
+    for index, candidate_text in enumerate(chunks):
+        text, start, end = _locate_source_text(full_text, candidate_text, cursor)
         cursor = max(cursor, end)
         page_match = re.search(r"\[Page\s+(\d+)\]", text, re.IGNORECASE)
         chapter_match = re.search(r"^#{1,6}\s+(.+)$", text, re.MULTILINE)
@@ -243,7 +238,8 @@ def _build_spans(
             (
                 item
                 for item in structured_nodes
-                if item.get("canonical_text") == text and item.get("local_id") not in used_nodes
+                if item.get("canonical_text") == candidate_text
+                and item.get("local_id") not in used_nodes
             ),
             None,
         )
@@ -267,6 +263,38 @@ def _build_spans(
             )
         )
     return spans
+
+
+def _locate_source_text(full_text: str, candidate_text: str, cursor: int) -> tuple[str, int, int]:
+    """Resolve parser-normalized whitespace back to one exact raw-text slice."""
+    start = full_text.find(candidate_text, cursor)
+    if start < 0:
+        start = full_text.find(candidate_text)
+    if start >= 0:
+        end = start + len(candidate_text)
+        return candidate_text, start, end
+
+    markers = [line.strip() for line in candidate_text.splitlines() if line.strip()]
+    if markers:
+        start = full_text.find(markers[0], cursor)
+        if start < 0:
+            start = full_text.find(markers[0])
+        if start >= 0:
+            marker_start = start
+            resolved = True
+            for marker in markers:
+                marker_start = full_text.find(marker, marker_start)
+                if marker_start < 0:
+                    resolved = False
+                    break
+                marker_start += len(marker)
+            if resolved:
+                end = marker_start
+                return full_text[start:end], start, end
+
+    start = min(cursor, len(full_text))
+    end = min(start + len(candidate_text), len(full_text))
+    return full_text[start:end], start, end
 
 
 def _first_meaningful_line(text: str) -> str:

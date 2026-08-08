@@ -38,7 +38,20 @@ from app.contracts.assessment import (
     AssistanceSnapshot,
     ResponseRevision,
 )
-from app.contracts.content import KnowledgeUnit, MaterialRevision, SourceChunk, SourceSpan
+from app.contracts.content import (
+    ConceptCandidate,
+    ExtractionRun,
+    KnowledgePublicationPolicy,
+    KnowledgePublicationResult,
+    KnowledgeUnit,
+    KnowledgeUnitCandidate,
+    MaterialRevision,
+    PedagogicalAssetCandidate,
+    PrerequisiteRelation,
+    RelationCandidate,
+    SourceChunk,
+    SourceSpan,
+)
 from app.contracts.decisions import (
     BehaviorPolicyType,
     DecisionAlgorithm,
@@ -159,6 +172,14 @@ __all__ = [
     "LearningTrajectoryV03",
     "LearnerEvidenceV03",
     "KnowledgeUnit",
+    "ConceptCandidate",
+    "KnowledgeUnitCandidate",
+    "RelationCandidate",
+    "PedagogicalAssetCandidate",
+    "ExtractionRun",
+    "KnowledgePublicationPolicy",
+    "KnowledgePublicationResult",
+    "PrerequisiteRelation",
     "MaterialRevision",
     "MarkdownBlockV1",
     "MasteryEstimate",
