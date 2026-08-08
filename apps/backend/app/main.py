@@ -268,6 +268,13 @@ if settings.enable_orchestrator_debug_api:
 else:
     logger.info("orchestrator_debug_api_disabled")
 
+# 开发自动登录（仅非生产环境，显式开启时注册）
+if settings.dev_auto_login_enabled:
+    from app.api.v1.dev_auth import router as dev_auth_router
+
+    logger.info("dev_auto_login_enabled")
+    app.include_router(dev_auth_router, prefix="/api/v1")
+
 
 # ========== 启动入口 ==========
 

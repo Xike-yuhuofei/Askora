@@ -25,3 +25,9 @@ export const refreshToken = (refresh_token) =>
     refresh_token,
     device_fingerprint: getOrCreateDeviceFingerprint(),
   }, { skipAuth: true, _skipRefresh: true }).then((r) => r.data)
+
+// 开发自动登录（仅开发/本地调试环境启用，后端关闭时返回 404）
+export const devAutoLogin = () =>
+  api.post('/auth/dev/auto-login', {
+    device_fingerprint: getOrCreateDeviceFingerprint(),
+  }, { skipAuth: true }).then((r) => r.data)

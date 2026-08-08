@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '../router'
-import { BookOpen, User, UserPlus, ShieldCheck } from 'lucide-react'
+import { BookOpen, UserPlus, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import './Login.css'
 
@@ -13,7 +13,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const { login, loginDemo, register } = useAuth()
+  const { login, register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -173,34 +173,6 @@ export default function Login() {
             {loading ? <div className="spinner spinner-sm" /> : (mode === 'login' ? '登录' : '注册')}
           </button>
 
-          {mode === 'login' && (
-            <div className="demo-login-section">
-              <div className="demo-divider"><span>演示账号</span></div>
-              <p className="demo-hint">仅在你主动点击时启用本地演示数据，不会伪装成真实登录</p>
-              <div className="demo-accounts">
-                <button
-                  type="button"
-                  className="demo-account-btn"
-                  onClick={async () => {
-                    setLoading(true)
-                    try {
-                      loginDemo()
-                      navigate('/')
-                    } finally {
-                      setLoading(false)
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  <User size={16} />
-                  <div className="demo-account-info">
-                    <span className="demo-account-name">演示账号</span>
-                    <span className="demo-account-desc">一键体验 Askora</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
         </form>
 
         <div className="compliance-notice">

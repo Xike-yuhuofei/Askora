@@ -5,26 +5,13 @@ import * as usersApi from '../api/users'
 import './Profile.css'
 
 export default function Profile() {
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true'
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (isDemoMode) {
-      setProfile({
-        total_sessions: 0,
-        total_learning_minutes: 0,
-        streak_days: 0,
-        skills_mastered: 0,
-        mastery_summary: {},
-        metacognition: {},
-      })
-      setLoading(false)
-    } else {
-      loadProfile()
-    }
-  }, [isDemoMode])
+    loadProfile()
+  }, [])
 
   const loadProfile = async () => {
     try {
@@ -79,12 +66,6 @@ export default function Profile() {
           <h1 className="page-title">学习画像</h1>
           <p className="page-subtitle">你的学习数据与能力画像</p>
         </div>
-        {isDemoMode && (
-          <div className="card empty-text" role="note">
-            演示模式：以下为本地空白示例，不代表真实学习记录。
-          </div>
-        )}
-
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--accent)' }}>

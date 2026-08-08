@@ -7,7 +7,7 @@ import './Chat.css'
 
 const RichMessage = lazy(() => import('../components/messages/RichMessage'))
 
-const demoSubjects = [
+const subjects = [
   { id: 'math', name: '数学', icon: '📐', kps: ['一元二次方程', '函数与导数', '概率统计', '几何证明'] },
   { id: 'chinese', name: '语文', icon: '📚', kps: ['文言文阅读', '现代文赏析', '写作技巧', '诗词鉴赏'] },
   { id: 'english', name: '英语', icon: '🌍', kps: ['语法时态', '阅读理解', '写作表达', '词汇积累'] },
@@ -36,7 +36,7 @@ export default function Chat() {
   }, [messages])
 
   useEffect(() => {
-    if (localStorage.getItem('demo_mode') !== 'true') loadSessions()
+    loadSessions()
   }, [])
 
   const loadSessions = async () => {
@@ -44,26 +44,11 @@ export default function Chat() {
       const data = await dialogApi.getSessions()
       setSessions(data.items || [])
     } catch {
-      if (localStorage.getItem('demo_mode') !== 'true') {
-        setPageError('历史会话加载失败，请检查后端服务')
-      }
+      setPageError('历史会话加载失败，请检查后端服务')
     }
   }
 
   const startNewSession = async (subject, kp) => {
-    if (localStorage.getItem('demo_mode') === 'true') {
-      setActiveSession({ id: 'demo-' + Date.now(), subject, knowledge_point: kp })
-      setShowSubjectPicker(false)
-      setMessages([
-        {
-          role: 'assistant',
-          content: `这是本地演示对话。关于"${kp}"，你觉得它最核心的概念是什么？`,
-          timestamp: new Date().toISOString(),
-        },
-      ])
-      return
-    }
-
     try {
       const session = await dialogApi.createSession(subject, kp)
       setActiveSession(session)
@@ -72,7 +57,7 @@ export default function Chat() {
       setMessages([])
       setPageError('')
     } catch {
-      setPageError('创建会话失败。演示模式只会在登录页由你主动开启。')
+      setPageError('创建会话失败，请检查后端服务。')
     }
   }
 
@@ -92,26 +77,6 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      if (activeSession?.id?.startsWith('demo-')) {
-        // 演示模式模拟响应
-        setTimeout(() => {
-          const replies = [
-            '这个想法很有意思！你能再说说为什么会这么想吗？',
-            '很好的观察。那你觉得，如果换一个角度来看，会有什么不同？',
-            '你已经接近答案了。让我再问一个问题：你能举一个生活中的例子吗？',
-            '非常棒！那我们来深入一下。假设条件变了，结果会怎么变化呢？',
-            '思考得很深入。现在让我们把这些整理一下，你能总结出核心规律吗？',
-          ]
-          const reply = replies[Math.floor(Math.random() * replies.length)]
-          setMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: reply, timestamp: new Date().toISOString() },
-          ])
-          setLoading(false)
-        }, 1200)
-        return
-      }
-
       const data = await dialogApi.sendMessage(activeSession.id, content)
       // 兼容后端两种返回结构：
       // 1) 新结构：{ message: { content, ... }, session, ... }
@@ -181,7 +146,7 @@ export default function Chat() {
 
             {!selectedSubject ? (
               <div className="subject-grid">
-                {demoSubjects.map((subj) => (
+                {subjects.map((subj) => (
                   <button
                     type="button"
                     key={subj.id}

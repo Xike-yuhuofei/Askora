@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     port: int = 8000
     private_app: bool = True
     enable_orchestrator_debug_api: bool = False
+    # 开发/本地调试：允许免登录直接进入系统（仅非生产环境生效，默认关闭）
+    enable_dev_auto_login: bool = False
     cors_allowed_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173," "http://localhost:4173,http://127.0.0.1:4173"
     )
@@ -153,6 +155,11 @@ class Settings(BaseSettings):
     @property
     def is_test(self) -> bool:
         return self.app_env == AppEnv.TEST
+
+    @property
+    def dev_auto_login_enabled(self) -> bool:
+        """开发自动登录仅在非生产环境且显式开启时可用。"""
+        return self.enable_dev_auto_login and not self.is_production
 
     @property
     def auto_create_tables(self) -> bool:

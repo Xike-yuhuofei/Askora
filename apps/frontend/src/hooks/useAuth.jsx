@@ -1,38 +1,68 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import * as authApi from '../api/auth'
+import { getOrCreateDeviceFingerprint } from '../api/client'
 
 const AuthContext = createContext(null)
+
+// 开发模式免登录直接进入系统（仅在 VITE_ENABLE_DEV_AUTO_LOGIN=true 时启用）
+const DEV_AUTO_LOGIN_ENABLED = import.meta.env.VITE_ENABLE_DEV_AUTO_LOGIN === 'true'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const clearTokens = () => {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
+  }
+
+  const applyDevSession = async () => {
+    const data = await authApi.devAutoLogin()
+    localStorage.setItem('access_token', data.access_token)
+    if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    setUser(data.user)
+  }
 
   useEffect(() => {
     let cancelled = false
     const initialize = async () => {
       const token = localStorage.getItem('access_token')
       const savedUser = localStorage.getItem('user')
-      const demoMode = localStorage.getItem('demo_mode') === 'true'
       if (!token || !savedUser) {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          if (DEV_AUTO_LOGIN_ENABLED) {
+            try {
+              await applyDevSession()
+            } catch {
+              // 自动登录失败时静默回退，交由路由进入登录页
+            }
+          }
+          if (!cancelled) setLoading(false)
+        }
         return
       }
 
       try {
-        if (demoMode && token === 'demo-access-token') {
-          if (!cancelled) setUser(JSON.parse(savedUser))
-        } else {
-          const currentUser = await authApi.getMe()
-          if (!cancelled) {
-            setUser(currentUser)
-            localStorage.setItem('user', JSON.stringify(currentUser))
-          }
+        const currentUser = await authApi.getMe()
+        if (!cancelled) {
+          setUser(currentUser)
+          localStorage.setItem('user', JSON.stringify(currentUser))
         }
       } catch {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('demo_mode')
+        clearTokens()
+        if (!cancelled) {
+          if (DEV_AUTO_LOGIN_ENABLED) {
+            try {
+              await applyDevSession()
+            } catch {
+              if (!cancelled) setLoading(false)
+            }
+          } else {
+            setLoading(false)
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -46,25 +76,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('access_token', data.access_token)
     if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
     localStorage.setItem('user', JSON.stringify(data.user))
-    localStorage.removeItem('demo_mode')
     setUser(data.user)
     return data
-  }
-
-  const loginDemo = () => {
-    const demoUser = {
-      id: 'demo-user-001',
-      role: 'user',
-      status: 'active',
-      is_verified: false,
-      nickname: 'Askora 演示用户',
-    }
-    localStorage.setItem('access_token', 'demo-access-token')
-    localStorage.setItem('refresh_token', 'demo-refresh-token')
-    localStorage.setItem('user', JSON.stringify(demoUser))
-    localStorage.setItem('demo_mode', 'true')
-    setUser(demoUser)
-    return { user: demoUser, demo_mode: true }
   }
 
   const register = async (phone, password, nickname) => {
@@ -84,17 +97,15 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      if (localStorage.getItem('demo_mode') !== 'true') await authApi.logout()
+      await authApi.logout()
     } catch {}
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
-    localStorage.removeItem('demo_mode')
     setUser(null)
   }
 
   const fetchMe = async () => {
-    if (localStorage.getItem('demo_mode') === 'true') return user
     try {
       const data = await authApi.getMe()
       setUser(data)
@@ -106,7 +117,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginDemo, register, logout, fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   )

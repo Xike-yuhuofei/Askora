@@ -123,9 +123,12 @@ async def init_db() -> None:
 
         async with get_engine().begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        database_path = make_url(settings.database_url).database
-        if database_path and database_path != ":memory:":
-            await asyncio.to_thread(_restrict_sqlite_permissions, database_path)
+
+        # 仅在 SQLite 模式下限制数据库文件权限
+        if settings.database_url.startswith("sqlite"):
+            database_path = make_url(settings.database_url).database
+            if database_path and database_path != ":memory:":
+                await asyncio.to_thread(_restrict_sqlite_permissions, database_path)
     else:
         async with get_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))

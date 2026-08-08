@@ -62,11 +62,6 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
-// 只有登录页显式选择演示模式时才会写入这些本地 token。
-const isDemoToken = (token) =>
-  token === 'demo-access-token' ||
-  token === 'demo-refresh-token'
-
 const GLOBAL_NOTICE_CODES = ['SYS-0001']
 
 // 响应拦截器：处理 401 与系统级错误提示。
@@ -81,10 +76,6 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true
       const refreshToken = localStorage.getItem('refresh_token')
-      // 演示模式不访问认证端点，由调用页面使用明确标注的本地数据。
-      if (isDemoToken(localStorage.getItem('access_token')) || isDemoToken(refreshToken)) {
-        return Promise.reject(error)
-      }
       if (refreshToken) {
         try {
           if (!refreshPromise) {
@@ -109,7 +100,6 @@ api.interceptors.response.use(
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('user')
-          localStorage.removeItem('demo_mode')
           window.location.hash = '/login'
         }
       }
