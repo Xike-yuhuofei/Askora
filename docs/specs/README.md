@@ -64,6 +64,7 @@ Research Synthesis
 
 ### Vertical Slices
 
+- [UI-02A Canonical Library and Scoped Knowledge Map](vertical-slices/ui-02a-library-knowledge-map.md) — frozen library slice；EXEC-016 active
 - [UI-01 Learning Shell and Compatibility Tutor Workspace](vertical-slices/ui-01-learning-shell-workspace.md) — frozen UI implementation slice；EXEC-015 已完成
 - [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成

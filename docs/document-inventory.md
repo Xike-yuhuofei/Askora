@@ -116,12 +116,14 @@
 | `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN | 视觉系统与无障碍合同 |
 | `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN | 三阶段执行、质量门禁与迁移合同 |
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
+| `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 active |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | 当前无 active EXEC；EXEC-001～015 已完成 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-016 active；EXEC-001～015 已完成 |
+| `docs/exec-plans/active/EXEC-016-ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | UI-02A active execution contract |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵和 EXEC-013 commit 校准 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |

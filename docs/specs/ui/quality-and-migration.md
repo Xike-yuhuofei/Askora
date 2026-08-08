@@ -68,6 +68,18 @@
 
 退出条件：document/KnowledgeUnit/source distinctions、map scope、canonical evidence/uncertainty/legacy labels、auth ownership 和 empty/partial/stale paths 全部验证。
 
+### UI-MIG-014 — Approved UI-02 Split
+
+用户于 2026-08-08 采纳 Canonical 资料库 MVP，并批准把 `UI-MIG-011` umbrella 串行拆分：
+
+```text
+UI-02A: /library + durable document processing + scoped knowledge map + SourceSpan Inspector
+→ UI-02A DONE
+→ UI-02B: /goals + /path + /evidence and remaining workspace queries
+```
+
+该拆分不改变 UI-MIG-011 最终总范围；UI-02A 不得以 deferred Goals/Path/Evidence 数据伪造 UI-02 umbrella DONE。
+
 ### UI-MIG-012 — UI-03 Focus and Adaptive Presentation Polish
 
 范围：

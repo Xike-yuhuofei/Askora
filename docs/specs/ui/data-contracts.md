@@ -59,10 +59,11 @@ observed_at: datetime|null
 |---|---|---|
 | `GET /api/v1/workspace/today` | UI-01 | REQUIRED |
 | `GET /api/v1/workspace/activities/{activity_id}` | future activity-link slice | DEFERRED_BY_ACTIVITY_LINK_CONTRACT |
-| `GET /api/v1/workspace/goals` | UI-02 | NOT_STARTED |
-| `GET /api/v1/workspace/path` | UI-02 | NOT_STARTED |
-| `GET /api/v1/workspace/knowledge-map` | UI-02 | NOT_STARTED |
-| `GET /api/v1/workspace/evidence` | UI-02 | NOT_STARTED |
+| `GET /api/v1/workspace/library` | UI-02A | REQUIRED |
+| `GET /api/v1/workspace/knowledge-map` | UI-02A | REQUIRED |
+| `GET /api/v1/workspace/goals` | UI-02B | NOT_STARTED |
+| `GET /api/v1/workspace/path` | UI-02B | NOT_STARTED |
+| `GET /api/v1/workspace/evidence` | UI-02B | NOT_STARTED |
 
 这些 endpoint MUST 由 application/query layer 调用 owner query ports；API handler 只做 auth、validation、serialization 与 error mapping。
 
@@ -276,7 +277,35 @@ activity_workspace:
 - UI 不得通过创建 legacy session 自动写回虚构 activity/session link；
 - 兼容入口产生的 session 必须标记来源，且不得改变该 activity 的 `launch_state`。
 
-## 7. KnowledgeMapViewV1
+## 7. LibraryViewV1 / KnowledgeMapViewV1
+
+### UI-DATA-059 — Library Contract
+
+```yaml
+library:
+  view_state: READY|PARTIAL|STALE|EMPTY
+  total: integer
+  page: integer
+  page_size: integer
+  documents:
+    - document_ref: versioned_ref
+      document_id: uuid
+      title: string
+      media_type: string
+      file_size_bytes: integer
+      subject: string|null
+      processing_status: pending|processing|completed|failed|rejected|quarantined
+      moderation_status: pending|approved|requires_review|rejected
+      current_revision_ref: versioned_ref|null
+      knowledge_status: NOT_MODELED|CANDIDATES|PUBLISHED|LEGACY_COMPATIBILITY
+      knowledge_unit_count: integer
+      relation_count: integer
+      reason_codes: [string]
+      created_at: datetime
+      updated_at: datetime
+```
+
+Library response MUST NOT 返回 storage path、raw parser/security details 或完整本地文件内容。
 
 ### UI-DATA-060 — Contract
 
@@ -304,6 +333,15 @@ knowledge_map:
       confidence: float|null
       status: candidate|published|rejected|superseded
       evidence_span_refs: [versioned_ref]
+  source_spans:
+    - source_span_ref: versioned_ref
+      source_span_id: uuid
+      document_id: uuid
+      page: integer|null
+      chapter: string|null
+      start_offset: integer|null
+      end_offset: integer|null
+      excerpt: string
 ```
 
 ### UI-DATA-061 — Query Source
@@ -313,6 +351,8 @@ Node/relation truth 来自 SYS01；learner evidence summary 来自 SYS03，只�
 ### UI-DATA-062 — Pagination / Scope
 
 Knowledge map query MUST 要求明确 scope，并对 node/edge 数量设置上限或分页。前端不得默认加载所有文档和全部图谱到一个 canvas。
+
+UI-02A 首个实现 MUST 使用单一 `document_id` scope，默认上限 nodes 100、edges 200、source spans 300。`minimal-binding-v1` 必须标为 compatibility/pending rebuild；不得以文件名节点伪装 mature published map。无可靠 relation 时返回空 edges 与 reason code，不得从章节顺序推断 prerequisite。
 
 ## 8. EvidenceProfileViewV1
 

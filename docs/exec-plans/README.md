@@ -1,6 +1,6 @@
 # Askora Execution Plans
 
-> 状态：无 active EXEC
+> 状态：EXEC-016 active
 > 已完成：EXEC-001～EXEC-015
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -18,7 +18,7 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | empty | 新任务必须先有冻结 Spec/Vertical Slice |
+| `active/` | EXEC-016 | UI-02A Canonical Library and Scoped Knowledge Map |
 | [`completed/`](completed/README.md) | EXEC-001～015 | 保留执行前任务合同原貌，不回写其 READY 字段 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
@@ -31,6 +31,7 @@ Accepted ADR / Canonical Design
 | v0.3 Adaptive Teaching Loop | EXEC-007～013 | DONE |
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
+| UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | ACTIVE |
 
 v0.3 最终状态：
 

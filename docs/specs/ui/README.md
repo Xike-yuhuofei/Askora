@@ -4,6 +4,7 @@
 > 权威性：Canonical UI Implementation Contract
 > 需求确认：2026-08-08，用户确认“全部按推荐”
 > 冻结批准：2026-08-08，用户明确批准冻结并授权从 UI-01 开始串行实施
+> UI-02 拆分批准：2026-08-08，用户采纳 Canonical 资料库 MVP，先执行 UI-02A Library/Knowledge Map
 
 ## 1. 目的
 
@@ -103,10 +104,12 @@
 FROZEN UI SPEC
 → UI-01 Vertical Slice + EXEC-015
 → UI-01 DONE gate
-→ UI-02 Vertical Slice + independent EXEC
-→ UI-02 DONE gate
+→ UI-02A Library/Knowledge Map + EXEC-016
+→ UI-02A DONE gate
+→ UI-02B Goals/Path/Evidence + independent EXEC
+→ UI-02B DONE gate
 → UI-03 Vertical Slice + independent EXEC
 → UI-03 DONE gate
 ```
 
-UI-01 已获实施授权。UI-02/UI-03 仍受严格串行门禁约束；UI-01 未达到 DONE 时不得进入后续 Slice。
+UI-01 已 DONE；UI-02A 已获实施授权。UI-02B/UI-03 仍受严格串行门禁约束；UI-02A 未达到 DONE 时不得进入 UI-02B。
