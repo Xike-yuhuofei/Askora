@@ -19,6 +19,7 @@ from app.models.assessment import (
     CanonicalAssessmentAttemptRecord,
     CanonicalAssessmentResultRecord,
     LearnerEvidenceRecord,
+    LearnerStateRecord,
     MasteryEstimateRecord,
 )
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
@@ -31,6 +32,7 @@ from app.models.ledger import (
     OutboxTaskRecord,
 )
 from app.models.planning import (
+    DiagnosticNeedRecord,
     GoalFormationInferenceRecord,
     GoalKnowledgeMappingRecord,
     GoalKnowledgeSubgraphRecord,
@@ -66,8 +68,10 @@ __all__ = [
     "CanonicalAssessmentAttemptRecord",
     "CanonicalAssessmentResultRecord",
     "LearnerEvidenceRecord",
+    "LearnerStateRecord",
     "MasteryEstimateRecord",
     "LearningActivityRecord",
+    "DiagnosticNeedRecord",
     "LearningGoalRecord",
     "GoalKnowledgeMappingRecord",
     "GoalKnowledgeSubgraphRecord",

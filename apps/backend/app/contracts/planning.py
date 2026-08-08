@@ -160,3 +160,80 @@ class GoalSpecificKnowledgeSubgraphV1(ContractModel):
     closure_policy_version: str
     reason_codes: tuple[str, ...] = Field(min_length=1)
     created_at: datetime
+
+
+class DiagnosticPrerequisiteEdgeV1(ContractModel):
+    """Exact published SYS01 edge used as a SYS06 decision input reference."""
+
+    prerequisite_id: UUID
+    target_knowledge_unit_id: UUID
+    relation_ref: VersionedRef
+
+
+class DiagnosticNeedV1(ContractModel):
+    """SPEC-D05 SYS06-owned immutable prerequisite diagnostic decision."""
+
+    need_id: UUID
+    diagnostic_need_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    version: int = Field(ge=1)
+    user_id: UUID
+    goal_mapping_ref: VersionedRef
+    goal_subgraph_ref: VersionedRef
+    target_knowledge_unit_id: UUID
+    prerequisite_knowledge_unit_ids: tuple[UUID, ...]
+    prerequisite_edges: tuple[DiagnosticPrerequisiteEdgeV1, ...]
+    unknown_ids: tuple[UUID, ...]
+    unmet_ids: tuple[UUID, ...]
+    sufficient_current_evidence_ids: tuple[UUID, ...]
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    planner_version: str = Field(min_length=1)
+    diagnostic_planner_version: str = Field(min_length=1)
+    budget_policy_version: str = Field(min_length=1)
+    max_attempts: int = Field(ge=1)
+    attempts_used: int = Field(ge=0)
+    created_from_learner_state_version: int = Field(ge=1)
+    knowledge_graph_versions: tuple[str, ...]
+    current_knowledge_unit_id: UUID | None = None
+    assessment_item_ref: VersionedRef | None = None
+    assessment_result_refs: tuple[VersionedRef, ...] = ()
+    status: Literal["active", "resolved", "blocked", "stopped"]
+    stop_reason: (
+        Literal[
+            "ALL_DECISION_RELEVANT_PREREQUISITES_RESOLVED",
+            "TARGET_READY",
+            "REMEDIATION_REQUIRED",
+            "DIAGNOSTIC_BUDGET_EXHAUSTED",
+            "NO_VALID_ASSESSMENT_ITEM",
+            "LOW_CONFIDENCE_REQUIRES_REVIEW",
+            "USER_STOPPED",
+            "SYSTEM_BLOCKED",
+        ]
+        | None
+    ) = None
+    created_at: datetime
+    supersedes_version: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def enforce_diagnostic_partition_and_stop(self) -> DiagnosticNeedV1:
+        prerequisites = set(self.prerequisite_knowledge_unit_ids)
+        partitions = (
+            set(self.unknown_ids),
+            set(self.unmet_ids),
+            set(self.sufficient_current_evidence_ids),
+        )
+        if any(not part.issubset(prerequisites) for part in partitions):
+            raise ValueError("diagnostic classifications must stay inside prerequisite scope")
+        if any(
+            partitions[index] & partitions[other] for index in range(3) for other in range(index)
+        ):
+            raise ValueError("diagnostic prerequisite classifications must be disjoint")
+        if self.attempts_used > self.max_attempts:
+            raise ValueError("diagnostic attempts cannot exceed the versioned budget")
+        if self.status == "active":
+            if self.stop_reason is not None or self.current_knowledge_unit_id is None:
+                raise ValueError("active diagnostic requires a selected knowledge unit and no stop")
+        elif self.stop_reason is None:
+            raise ValueError("terminal diagnostic requires an explicit stop reason")
+        if self.assessment_item_ref is not None and self.current_knowledge_unit_id is None:
+            raise ValueError("assessment item requires a selected diagnostic knowledge unit")
+        return self

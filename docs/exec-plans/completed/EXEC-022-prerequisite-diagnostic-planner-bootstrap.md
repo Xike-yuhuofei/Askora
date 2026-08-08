@@ -1,7 +1,7 @@
 # EXEC-022 — Prerequisite Diagnostic Bootstrap & LearningPlan Handoff
 
 > Priority：P0 Book-to-Learning / SYS06-SYS04-SYS03  
-> Status：READY  
+> Status：DONE
 > Depends on：EXEC-021 DONE  
 > Primary Spec：SPEC-D05  
 > Execution rule：完成并归档本 EXEC 后，EXEC-023 仍需等待 EXEC-020 DONE。

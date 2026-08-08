@@ -80,6 +80,7 @@ from app.contracts.learning import (
     EvidenceBundle,
     EvidenceItem,
     LearnerEvidence,
+    LearnerStateV1,
     LearningActivity,
     LearningPlan,
     MasteryEstimate,
@@ -88,6 +89,8 @@ from app.contracts.learning import (
 )
 from app.contracts.planning import (
     ConfirmedLearningGoal,
+    DiagnosticNeedV1,
+    DiagnosticPrerequisiteEdgeV1,
     GoalFormationInferenceV1,
     GoalKnowledgeMappingV1,
     GoalSpecificKnowledgeSubgraphV1,
@@ -151,6 +154,8 @@ __all__ = [
     "CitationItemV1",
     "ContaminationStatus",
     "ConfirmedLearningGoal",
+    "DiagnosticNeedV1",
+    "DiagnosticPrerequisiteEdgeV1",
     "GoalFormationInferenceV1",
     "GoalKnowledgeMappingV1",
     "GoalSpecificKnowledgeSubgraphV1",
@@ -178,6 +183,7 @@ __all__ = [
     "HintSpecificity",
     "InteractionMove",
     "LearnerEvidence",
+    "LearnerStateV1",
     "LearningActivity",
     "LearningGoalV1",
     "LearningEventEnvelope",

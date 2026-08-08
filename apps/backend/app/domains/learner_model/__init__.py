@@ -10,6 +10,7 @@ from app.domains.learner_model.projector import (
     EvidenceEligibility,
     WeightedBKTProjector,
 )
+from app.domains.learner_model.state_projector import LearnerStateProjector
 
 __all__ = [
     "AdaptiveEvidenceDecision",
@@ -18,4 +19,5 @@ __all__ = [
     "EvidenceDecision",
     "EvidenceEligibility",
     "WeightedBKTProjector",
+    "LearnerStateProjector",
 ]

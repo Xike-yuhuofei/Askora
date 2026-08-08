@@ -1,5 +1,6 @@
 """SYS06 deterministic goal mapping and learning planner."""
 
+from app.domains.learning_planner.diagnostic import PrerequisiteDiagnosticPlanner
 from app.domains.learning_planner.goal_mapping import (
     CLOSURE_POLICY_VERSION,
     MAPPER_VERSION,
@@ -17,4 +18,5 @@ __all__ = [
     "LearningPlanner",
     "PlannerDecision",
     "measurable_success_criterion",
+    "PrerequisiteDiagnosticPlanner",
 ]

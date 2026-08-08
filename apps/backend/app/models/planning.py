@@ -133,3 +133,21 @@ class GoalFormationInferenceRecord(Base):
     status: Mapped[str] = mapped_column(String(20), index=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiagnosticNeedRecord(Base):
+    """SYS06 immutable DiagnosticNeed decision version stream."""
+
+    __tablename__ = "diagnostic_need_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    need_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_mapping_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("need_id", "version", name="uq_diagnostic_need_version"),)
