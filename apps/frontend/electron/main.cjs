@@ -6,6 +6,7 @@ const path = require('path')
 const { spawn } = require('child_process')
 const { createAppMenu } = require('./app-menu.cjs')
 const bootstrapDiagnostics = require('./bootstrap-diagnostics.cjs')
+const { createActiveMigrationGuard } = require('./data-control-migration.cjs')
 const {
   EncryptedModelVault,
   ModelSettingsController,
@@ -41,6 +42,7 @@ let desktopControlToken = null
 let modelSettingsController = null
 let activeLaunchProfile = null
 let windowCreationPromise = null
+let activeMigrationGuard = null
 
 function getBackendBinaryPath() {
   if (isDev) {
@@ -425,6 +427,7 @@ function runDataControlCommand(command, commandArgs = []) {
     'finalize-restore',
     'rollback-restore',
     'recover-interrupted-restore',
+    'migrate-active',
     'finalize-erasure',
     'recover-interrupted-erasure',
   ])
@@ -663,6 +666,38 @@ async function resumePendingErasure() {
   }
 }
 
+function getActiveMigrationGuard() {
+  if (!activeMigrationGuard) {
+    activeMigrationGuard = createActiveMigrationGuard({
+      runCommand: runDataControlCommand,
+      startBackend: startLocalBackend,
+      stopBackend: stopLocalBackend,
+      reportFailure: setBackendFailure,
+      hasActiveDatabase: () => fs.existsSync(path.join(userDataPath, 'askora.db')),
+    })
+  }
+  return activeMigrationGuard
+}
+
+async function prepareDesktopDataAndBackend(profile) {
+  activeLaunchProfile = profile
+  const migration = await getActiveMigrationGuard().run(profile)
+  if (!migration.ok) return false
+  if (!migration.backend_started) {
+    await runScheduledBackupIfDue()
+    await startLocalBackend(profile)
+  }
+  return Boolean(readyBackendURL)
+}
+
+async function retryDesktopStartup() {
+  if (backendStartupState.code !== 'BOOTSTRAP_DATABASE_MIGRATION_REQUIRED') {
+    return retryLocalBackend()
+  }
+  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
+  return prepareDesktopDataAndBackend(activeLaunchProfile)
+}
+
 async function createWindow() {
   if (!modelSettingsController) {
     const vault = new EncryptedModelVault({
@@ -684,8 +719,7 @@ async function createWindow() {
     // An unreadable existing vault must not silently reactivate inherited environment keys.
     launchProfile = { state: 'DISABLED', revision: null, verified_at: null }
   }
-  await runScheduledBackupIfDue()
-  await startLocalBackend(launchProfile)
+  await prepareDesktopDataAndBackend(launchProfile)
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -742,7 +776,7 @@ ipcMain.handle('app:get-platform', () => process.platform)
 ipcMain.handle('app:get-backend-url', () => readyBackendURL)
 ipcMain.handle('app:get-backend-startup-state', () => ({ ...backendStartupState }))
 ipcMain.handle('app:retry-backend-startup', async () => {
-  await retryLocalBackend()
+  await retryDesktopStartup()
   return { ...backendStartupState }
 })
 ipcMain.handle('data-control:get-status', () => runDataControlCommand('status'))

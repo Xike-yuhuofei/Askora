@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.contracts.base import ContractModel
 
@@ -237,6 +237,24 @@ class RecoveryReportV1(ContractModel):
     started_at: datetime
     completed_at: datetime | None = None
     reason_codes: tuple[str, ...] = ()
+
+
+class ActiveMigrationResultV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    required: bool
+    schema_before: str | None = None
+    schema_after: str
+    pre_migration_point: RecoveryPointV1 | None = None
+    recovery_report: RecoveryReportV1 | None = None
+
+    @model_validator(mode="after")
+    def validate_consistency(self) -> Self:
+        has_evidence = self.pre_migration_point is not None and self.recovery_report is not None
+        if self.required != has_evidence:
+            raise ValueError("migration evidence must match required state")
+        if not self.required and self.schema_before != self.schema_after:
+            raise ValueError("no-op migration revisions must match")
+        return self
 
 
 class AutomaticBackupStatusV1(ContractModel):

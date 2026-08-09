@@ -40,21 +40,29 @@ class StagedSchemaMigrator:
             raise SchemaCompatibilityError("multiple migration heads are unsupported")
         return heads[0]
 
-    def prepare(self, database_path: Path) -> tuple[str | None, str]:
-        before = self._revision(database_path)
+    def plan(self, database_path: Path) -> tuple[str | None, str, bool]:
+        before = self.revision(database_path)
         head = self.current_head
         script = ScriptDirectory.from_config(self._config())
         known_path = {revision.revision for revision in script.iterate_revisions(head, "base")}
         if before is None:
             if not self._matches_current_metadata(database_path):
-                raise SchemaCompatibilityError("unversioned database does not match current schema")
-            self._run_alembic(database_path, "stamp", head)
-        elif before not in known_path:
+                raise SchemaCompatibilityError(
+                    "unversioned database does not match current schema"
+                )
+            return before, head, True
+        if before not in known_path:
             raise SchemaCompatibilityError("database revision is future, unknown, or divergent")
-        elif before != head:
+        return before, head, before != head
+
+    def prepare(self, database_path: Path) -> tuple[str | None, str]:
+        before, head, required = self.plan(database_path)
+        if before is None:
+            self._run_alembic(database_path, "stamp", head)
+        elif required:
             self._run_alembic(database_path, "upgrade", head)
 
-        after = self._revision(database_path)
+        after = self.revision(database_path)
         if after != head:
             raise SchemaCompatibilityError("staged migration did not reach the current head")
         return before, after
@@ -81,7 +89,7 @@ class StagedSchemaMigrator:
             settings.database_url = original_url
 
     @staticmethod
-    def _revision(database_path: Path) -> str | None:
+    def revision(database_path: Path) -> str | None:
         uri = f"file:{database_path.as_posix()}?mode=ro"
         with sqlite3.connect(uri, uri=True) as connection:
             exists = connection.execute(
