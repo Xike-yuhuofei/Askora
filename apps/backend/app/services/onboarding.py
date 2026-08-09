@@ -65,9 +65,7 @@ class OnboardingPreferenceService:
         await self._preferences.get_or_create_active(
             user_id=str(user.id), journey_id=JOURNEY_ID, now=now
         )
-        record = await self._preferences.get(
-            user_id=str(user.id), journey_id=JOURNEY_ID
-        )
+        record = await self._preferences.get(user_id=str(user.id), journey_id=JOURNEY_ID)
         if record is None:
             raise _error(
                 "ONBOARDING_PREFERENCE_NOT_FOUND",
@@ -90,23 +88,17 @@ class OnboardingPreferenceService:
                 )
             values["boundary_notice_version_acknowledged"] = BOUNDARY_NOTICE_VERSION
         elif command.action == "DISMISS":
-            values.update(
-                visibility="DISMISSED", dismissed_reason="USER_DEFERRED"
-            )
+            values.update(visibility="DISMISSED", dismissed_reason="USER_DEFERRED")
         elif command.action == "REOPEN":
             values.update(visibility="ACTIVE", dismissed_reason=None)
         elif command.action == "FINISH_AND_DISMISS":
-            current = await self._journey.get_journey(
-                user, correlation_id=correlation_id
-            )
+            current = await self._journey.get_journey(user, correlation_id=correlation_id)
             if current.journey_state != "COMPLETE":
                 raise _error(
                     "ONBOARDING_COMPLETION_PRECONDITION_FAILED",
                     "第一项学习活动尚未完成",
                 )
-            values.update(
-                visibility="DISMISSED", dismissed_reason="COMPLETED_JOURNEY"
-            )
+            values.update(visibility="DISMISSED", dismissed_reason="COMPLETED_JOURNEY")
         else:  # pragma: no cover - strict contract prevents unknown actions
             raise _error("ONBOARDING_SCHEMA_UNSUPPORTED", "不支持的首次引导动作")
 
@@ -124,9 +116,7 @@ class OnboardingPreferenceService:
                 idempotency_key=command.idempotency_key,
             )
             if concurrent_receipt is not None and concurrent_receipt.command_digest == digest:
-                return await self._journey.get_journey(
-                    user, correlation_id=correlation_id
-                )
+                return await self._journey.get_journey(user, correlation_id=correlation_id)
             raise _error(
                 "ONBOARDING_PREFERENCE_VERSION_CONFLICT",
                 "首次引导状态已更新，请刷新后重试",

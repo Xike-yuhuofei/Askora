@@ -34,6 +34,7 @@
 |---|---|---|
 | `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
+| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口、状态与验收标准 |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
@@ -186,7 +187,7 @@
 | `docs/exec-plans/completed/EXEC-031-p1-04a-library-organization.md` | HISTORICAL-RETAIN | P1-04A completed execution contract |
 | `docs/exec-plans/completed/EXEC-032-p1-04b-library-deduplication.md` | HISTORICAL-RETAIN | P1-04B completed execution contract |
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
-| `docs/exec-plans/active/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | CANONICAL-RETAIN | P1-06 preference/readiness active EXEC |
+| `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 
 ## 6. Release Evidence

@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
 > 状态：EXEC-030 DONE；P1-04 已完成；P1-06 按独立冻结队列推进
-> Active：EXEC-1061（P1-06 readiness foundation）；EXEC-1062 等待依赖 gate
-> 已完成：EXEC-001～EXEC-033
+> Active：EXEC-1062（P1-06 product closure）
+> 已完成：EXEC-001～EXEC-033、EXEC-1061
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-1061](active/EXEC-1061-p1-06a-onboarding-readiness-foundation.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06 为 1061→1062；不得越过依赖或已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～033 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06 为 1061→1062；不得越过依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～033、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -43,8 +43,8 @@ Accepted ADR / Canonical Design
 | P1-04A Library Search and Organization | [EXEC-031](completed/EXEC-031-p1-04a-library-organization.md) | DONE |
 | P1-04B Library Deduplication | [EXEC-032](completed/EXEC-032-p1-04b-library-deduplication.md) | DONE |
 | P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
-| P1-06 Onboarding Readiness Foundation | EXEC-1061 | FROZEN / ACTIVE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / BLOCKED_BY_DEPENDENCY_GATE |
+| P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
+| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 
 v0.3 最终状态：
 

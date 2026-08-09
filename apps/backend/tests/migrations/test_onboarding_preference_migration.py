@@ -71,9 +71,7 @@ async def test_existing_user_is_backfilled_dismissed_without_completion_guess(tm
         ).one()
         assert row.visibility == "DISMISSED"
         assert row.dismissed_reason == "LEGACY_EXISTING_USER_BACKFILL"
-        tables = await connection.run_sync(
-            lambda sync: set(inspect(sync).get_table_names())
-        )
+        tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
         assert {
             "onboarding_preferences",
             "onboarding_preference_command_receipts",
@@ -119,9 +117,7 @@ async def test_user_created_after_migration_starts_active_and_survives_restart(
 
 def test_onboarding_schema_compiles_to_postgresql_without_dialect_fallback() -> None:
     preference_sql = str(
-        CreateTable(OnboardingPreferenceRecord.__table__).compile(
-            dialect=postgresql.dialect()
-        )
+        CreateTable(OnboardingPreferenceRecord.__table__).compile(dialect=postgresql.dialect())
     )
     receipt_sql = str(
         CreateTable(OnboardingPreferenceCommandReceiptRecord.__table__).compile(
@@ -159,9 +155,7 @@ async def test_postgres_head_contains_onboarding_constraints() -> None:
     assert POSTGRES_TEST_URL is not None
     engine = create_async_engine(_postgres_async_url(POSTGRES_TEST_URL))
     async with engine.connect() as connection:
-        tables = await connection.run_sync(
-            lambda sync: set(inspect(sync).get_table_names())
-        )
+        tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
         assert {
             "onboarding_preferences",
             "onboarding_preference_command_receipts",
@@ -169,9 +163,7 @@ async def test_postgres_head_contains_onboarding_constraints() -> None:
         unique_constraints = await connection.run_sync(
             lambda sync: {
                 item["name"]
-                for item in inspect(sync).get_unique_constraints(
-                    "onboarding_preferences"
-                )
+                for item in inspect(sync).get_unique_constraints("onboarding_preferences")
             }
         )
         assert "uq_onboarding_preference_user_journey" in unique_constraints

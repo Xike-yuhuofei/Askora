@@ -158,16 +158,16 @@ class WorkspaceLibraryQueryService:
             order_by = (UserDocument.updated_at.desc(), UserDocument.id)
         elif sort == "title_asc":
             order_by = (
-                func.lower(func.coalesce(UserDocument.display_title, UserDocument.original_filename)),
+                func.lower(
+                    func.coalesce(UserDocument.display_title, UserDocument.original_filename)
+                ),
                 UserDocument.id,
             )
         else:
             order_by = (UserDocument.created_at.desc(), UserDocument.id)
         rows = (
             await self._db.execute(
-                query.order_by(*order_by)
-                .offset((page - 1) * page_size)
-                .limit(page_size)
+                query.order_by(*order_by).offset((page - 1) * page_size).limit(page_size)
             )
         ).all()
         documents = [row[0] for row in rows]

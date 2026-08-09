@@ -65,9 +65,7 @@ def test_ui02b_workspace_contracts_are_strict_versioned_and_honest() -> None:
     )
     assert goals.schema_version == "1.0"
     with pytest.raises(ValidationError):
-        GoalListResponseV1.model_validate(
-            {**goals.model_dump(mode="json"), "unexpected": True}
-        )
+        GoalListResponseV1.model_validate({**goals.model_dump(mode="json"), "unexpected": True})
 
     evidence = EvidenceProfileResponseV1(
         generated_at=datetime(2026, 8, 9, tzinfo=timezone.utc),

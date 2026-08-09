@@ -138,9 +138,7 @@ class OnboardingPreferenceRepository:
             journey_id=cast(JourneyId, record.journey_id),
             preference_version=record.preference_version,
             visibility=cast(PreferenceVisibility, record.visibility),
-            boundary_notice_version_acknowledged=(
-                record.boundary_notice_version_acknowledged
-            ),
+            boundary_notice_version_acknowledged=(record.boundary_notice_version_acknowledged),
             dismissed_reason=cast(DismissedReason | None, record.dismissed_reason),
             created_at=_aware(record.created_at),
             updated_at=_aware(record.updated_at),

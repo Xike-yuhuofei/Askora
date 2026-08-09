@@ -77,13 +77,9 @@ async def test_ocr_survives_worker_restart_requires_review_and_publishes_traceab
         await session.commit()
         documents = DocumentService(session)
         documents.storage = storage
-        document = await documents.upload_document(
-            owner.pseudonym_id, "scan.pdf", _scanned_pdf()
-        )
+        document = await documents.upload_document(owner.pseudonym_id, "scan.pdf", _scanned_pdf())
         await documents.process_document(document.id)
-        old_revision_id = document.moderation_details["content_knowledge_v1"][
-            "current_revision_id"
-        ]
+        old_revision_id = document.moderation_details["content_knowledge_v1"]["current_revision_id"]
         process_task = await session.scalar(
             select(OutboxTaskRecord).where(OutboxTaskRecord.type == "sys01.process_document")
         )

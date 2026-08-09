@@ -43,6 +43,7 @@ def test_activity_lifecycle_contract_is_strict_and_versioned() -> None:
             }
         )
 
+
 def test_completion_requires_explicit_transcript_ref() -> None:
     with pytest.raises(ValidationError):
         CompleteLearningActivityV1(

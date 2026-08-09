@@ -320,9 +320,7 @@ class DuplicateSuggestion(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
     primary_document_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_documents.id"))
-    candidate_document_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("user_documents.id")
-    )
+    candidate_document_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_documents.id"))
     kind: Mapped[str] = mapped_column(String(30))
     fingerprint_version: Mapped[str] = mapped_column(String(50))
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)

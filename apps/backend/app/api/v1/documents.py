@@ -334,9 +334,7 @@ async def get_document_ocr_run(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await OcrService(db).get_run(
-        run_id=str(run_id), pseudonym_id=current_user.pseudonym_id
-    )
+    return await OcrService(db).get_run(run_id=str(run_id), pseudonym_id=current_user.pseudonym_id)
 
 
 @router.get("/ocr-runs/{run_id}/pages/{page_number}")

@@ -133,7 +133,9 @@ class DocumentProcessingWorker:
                     if task.type == OCR_TASK_TYPE and (permanent or exhausted):
                         run_id = task.payload.get("run_id")
                         if isinstance(run_id, str):
-                            error_code = failure.split(":")[-1] if failure else "OCR_ENGINE_UNAVAILABLE"
+                            error_code = (
+                                failure.split(":")[-1] if failure else "OCR_ENGINE_UNAVAILABLE"
+                            )
                             await OcrService(session).record_failure(run_id, error_code)
         return True
 

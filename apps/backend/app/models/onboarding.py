@@ -24,12 +24,8 @@ class OnboardingPreferenceRecord(Base):
         String(100), nullable=True
     )
     dismissed_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint("user_id", "journey_id", name="uq_onboarding_preference_user_journey"),
@@ -49,9 +45,7 @@ class OnboardingPreferenceCommandReceiptRecord(Base):
     command_digest: Mapped[str] = mapped_column(String(64))
     action: Mapped[str] = mapped_column(String(40))
     resulting_preference_version: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint(
