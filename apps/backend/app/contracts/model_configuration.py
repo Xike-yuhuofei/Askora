@@ -62,9 +62,7 @@ class ModelConfigErrorCategory(str, Enum):
     INTERNAL = "internal"
 
 
-MODEL_CONFIG_ERROR_SEMANTICS: dict[
-    ModelConfigErrorCode, tuple[ModelConfigErrorCategory, bool]
-] = {
+MODEL_CONFIG_ERROR_SEMANTICS: dict[ModelConfigErrorCode, tuple[ModelConfigErrorCategory, bool]] = {
     ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE: (ModelConfigErrorCategory.SECURITY, False),
     ModelConfigErrorCode.MODEL_CONFIG_STORAGE_UNAVAILABLE: (
         ModelConfigErrorCategory.DEPENDENCY,

@@ -89,7 +89,9 @@ async def test_raw_path_secret_prompt_and_trace_are_not_projected_or_audited(
                 correlation_id="safe-action",
             )
         events = (
-            await session.scalars(select(RecoveryEventRecord).order_by(RecoveryEventRecord.created_at))
+            await session.scalars(
+                select(RecoveryEventRecord).order_by(RecoveryEventRecord.created_at)
+            )
         ).all()
         audit_payload = json.dumps(
             [

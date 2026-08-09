@@ -743,7 +743,7 @@ class DocumentService:
         event_repository = LearningEventRepository(self.db)
         for event in build_publication_events(
             revision,
-                user_id=canonical_user_id(user.id),
+            user_id=canonical_user_id(user.id),
             correlation_id=correlation_id,
         ):
             await event_repository.append(event)

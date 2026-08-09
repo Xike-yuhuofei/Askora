@@ -25,9 +25,7 @@ def test_database_startup_errors_are_typed() -> None:
 
 
 def test_startup_diagnostic_emits_only_allowlisted_fields(capsys) -> None:
-    emit_startup_diagnostic(
-        "BOOTSTRAP_DATABASE_UNAVAILABLE", retryable=True, data_safety="unknown"
-    )
+    emit_startup_diagnostic("BOOTSTRAP_DATABASE_UNAVAILABLE", retryable=True, data_safety="unknown")
     output = capsys.readouterr().err.strip()
     assert output.startswith(STARTUP_DIAGNOSTIC_PREFIX)
     assert json.loads(output.removeprefix(STARTUP_DIAGNOSTIC_PREFIX)) == {

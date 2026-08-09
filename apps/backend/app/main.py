@@ -377,9 +377,7 @@ def _is_high_entropy_desktop_control_token(token: str) -> bool:
     )
 
 
-def _model_config_error_response(
-    *, status_code: int, error: ModelConfigErrorV1
-) -> JSONResponse:
+def _model_config_error_response(*, status_code: int, error: ModelConfigErrorV1) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"error": error.model_dump(mode="json")})
 
 

@@ -38,4 +38,8 @@ def emit_startup_diagnostic(
         "retryable": retryable,
         "data_safety": data_safety,
     }
-    print(f"{STARTUP_DIAGNOSTIC_PREFIX}{json.dumps(payload, separators=(',', ':'))}", file=sys.stderr, flush=True)
+    print(
+        f"{STARTUP_DIAGNOSTIC_PREFIX}{json.dumps(payload, separators=(',', ':'))}",
+        file=sys.stderr,
+        flush=True,
+    )

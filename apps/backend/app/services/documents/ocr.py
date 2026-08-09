@@ -168,9 +168,7 @@ class TesseractLocalAdapter:
         )
 
     @staticmethod
-    def _parse_tsv(
-        content: str, *, page_number: int, image_hash: str
-    ) -> list[RecognizedBlock]:
+    def _parse_tsv(content: str, *, page_number: int, image_hash: str) -> list[RecognizedBlock]:
         grouped: dict[tuple[str, str, str], list[dict[str, str]]] = {}
         for row in csv.DictReader(io.StringIO(content), delimiter="\t"):
             text = (row.get("text") or "").strip()
@@ -188,9 +186,7 @@ class TesseractLocalAdapter:
             right = max(int(row.get("left") or 0) + int(row.get("width") or 0) for row in rows)
             bottom = max(int(row.get("top") or 0) + int(row.get("height") or 0) for row in rows)
             confidences = [
-                float(row["conf"])
-                for row in rows
-                if row.get("conf") not in {None, "", "-1"}
+                float(row["conf"]) for row in rows if row.get("conf") not in {None, "", "-1"}
             ]
             output.append(
                 RecognizedBlock(
@@ -198,7 +194,9 @@ class TesseractLocalAdapter:
                     block_index=block_index,
                     bbox=(float(left), float(top), float(right), float(bottom)),
                     text=text[:20_000],
-                    confidence=(round(sum(confidences) / len(confidences), 3) if confidences else None),
+                    confidence=(
+                        round(sum(confidences) / len(confidences), 3) if confidences else None
+                    ),
                     image_hash=image_hash,
                 )
             )
@@ -290,7 +288,9 @@ class OcrService:
         result = await asyncio.to_thread(self.adapter.recognize, raw, tuple(run.languages))
         if not result.blocks:
             raise OcrOutputInvalidError()
-        await self.db.execute(delete(DocumentOcrCandidate).where(DocumentOcrCandidate.run_id == run.id))
+        await self.db.execute(
+            delete(DocumentOcrCandidate).where(DocumentOcrCandidate.run_id == run.id)
+        )
         for block in result.blocks:
             self.db.add(
                 DocumentOcrCandidate(
@@ -324,9 +324,7 @@ class OcrService:
             raise ResourceNotFoundError("文字识别任务")
         return await self._view(run)
 
-    async def render_page(
-        self, *, run_id: str, pseudonym_id: str, page_number: int
-    ) -> bytes:
+    async def render_page(self, *, run_id: str, pseudonym_id: str, page_number: int) -> bytes:
         run = await self.db.scalar(
             select(DocumentOcrRun).where(
                 DocumentOcrRun.id == run_id,
@@ -347,9 +345,7 @@ class OcrService:
                 with pdfplumber.open(io.BytesIO(raw)) as pdf:
                     if not 1 <= page_number <= min(len(pdf.pages), OCR_MAX_PAGES):
                         raise OcrNotApplicableError()
-                    image = pdf.pages[page_number - 1].to_image(
-                        resolution=OCR_RENDER_DPI
-                    ).original
+                    image = pdf.pages[page_number - 1].to_image(resolution=OCR_RENDER_DPI).original
                     stream = io.BytesIO()
                     image.save(stream, format="PNG")
                     return stream.getvalue()
@@ -440,9 +436,7 @@ class OcrService:
         run.reason_codes = [error_code[:100], "OCR_OLD_REVISION_RETAINED"]
         await self.db.flush()
 
-    async def _publish(
-        self, run: DocumentOcrRun, accepted: list[DocumentOcrCandidate]
-    ) -> None:
+    async def _publish(self, run: DocumentOcrRun, accepted: list[DocumentOcrCandidate]) -> None:
         document = await self._owned_pdf(run.document_id, run.pseudonym_id)
         raw = await asyncio.to_thread(self.storage.read_file, document.storage_path)
         if hashlib.sha256(raw).hexdigest() != run.raw_checksum:
@@ -586,9 +580,7 @@ class OcrService:
                     text=item.text,
                     confidence=item.confidence,
                     image_hash=item.image_hash,
-                    status=cast(
-                        Literal["candidate", "accepted", "rejected"], item.status
-                    ),
+                    status=cast(Literal["candidate", "accepted", "rejected"], item.status),
                     corrected_text=item.corrected_text,
                     version=item.version,
                 )

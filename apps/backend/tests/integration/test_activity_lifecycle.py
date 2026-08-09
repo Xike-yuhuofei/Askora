@@ -220,15 +220,11 @@ async def test_start_complete_and_next_available_are_atomic_and_idempotent(tmp_p
         completed = await service.complete(
             user=user, command=command, correlation_id=uuid4(), now=NOW
         )
-        replay = await service.complete(
-            user=user, command=command, correlation_id=uuid4(), now=NOW
-        )
+        replay = await service.complete(user=user, command=command, correlation_id=uuid4(), now=NOW)
         assert replay == completed
         assert completed.data.state.status == "completed"
         assert completed.next_activity_ref is not None
-        next_state = await ActivityLifecycleRepository(session).latest(
-            activities[1].activity_id
-        )
+        next_state = await ActivityLifecycleRepository(session).latest(activities[1].activity_id)
         assert next_state is not None and next_state.status == "available"
         assert next_state.version == 2
         restored = await service.get(
@@ -503,9 +499,7 @@ async def test_postgres_lifecycle_state_event_and_outbox_are_transactional() -> 
     async with factory() as session:
         transaction = await session.begin()
         try:
-            initial_outbox_count = await session.scalar(
-                select(func.count(OutboxTaskRecord.id))
-            )
+            initial_outbox_count = await session.scalar(select(func.count(OutboxTaskRecord.id)))
             user, _other, goal, _plan, activities = await _seed(
                 session,
                 owner_suffix=suffix,
@@ -530,11 +524,14 @@ async def test_postgres_lifecycle_state_event_and_outbox_are_transactional() -> 
                 now=NOW,
             )
             assert started.data.state.status == "active"
-            assert await session.scalar(
-                select(func.count(LearningEventRecord.event_id)).where(
-                    LearningEventRecord.aggregate_id == str(activities[0].activity_id)
+            assert (
+                await session.scalar(
+                    select(func.count(LearningEventRecord.event_id)).where(
+                        LearningEventRecord.aggregate_id == str(activities[0].activity_id)
+                    )
                 )
-            ) == 2
+                == 2
+            )
             assert await session.scalar(select(func.count(OutboxTaskRecord.id))) == (
                 initial_outbox_count + 2
             )

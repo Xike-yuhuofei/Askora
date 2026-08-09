@@ -518,9 +518,7 @@ class WorkspaceTodayQueryService:
                     error_code="LEGACY_ACTIVITY_STATE_UNMIGRATED",
                     status_code=409,
                 )
-            by_id[activity.activity_id] = activity.model_copy(
-                update={"status": state.status}
-            )
+            by_id[activity.activity_id] = activity.model_copy(update={"status": state.status})
         return tuple(by_id[item] for item in plan.activity_ids if item in by_id)
 
     def _path_view(self, selection: _PathSelection) -> LearningPathViewV1 | None:
@@ -569,9 +567,9 @@ class WorkspaceTodayQueryService:
         )
 
     def _activity_summary(self, activity: LearningActivity) -> ActivitySummaryV1:
-        launch_state: Literal[
-            "ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"
-        ] = self._launch_state(activity.status)
+        launch_state: Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"] = (
+            self._launch_state(activity.status)
+        )
         return ActivitySummaryV1(
             activity_ref=self._activity_ref(activity),
             objective_ref=self._objective_ref(activity.objective_id, activity.plan_version),
@@ -594,9 +592,7 @@ class WorkspaceTodayQueryService:
         return "UNAVAILABLE"
 
     @staticmethod
-    def _current_activity(
-        activities: tuple[LearningActivity, ...]
-    ) -> LearningActivity | None:
+    def _current_activity(activities: tuple[LearningActivity, ...]) -> LearningActivity | None:
         for status in ("active", "available", "planned"):
             match = next((item for item in activities if item.status == status), None)
             if match is not None:

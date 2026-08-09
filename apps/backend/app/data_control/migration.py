@@ -47,9 +47,7 @@ class StagedSchemaMigrator:
         known_path = {revision.revision for revision in script.iterate_revisions(head, "base")}
         if before is None:
             if not self._matches_current_metadata(database_path):
-                raise SchemaCompatibilityError(
-                    "unversioned database does not match current schema"
-                )
+                raise SchemaCompatibilityError("unversioned database does not match current schema")
             return before, head, True
         if before not in known_path:
             raise SchemaCompatibilityError("database revision is future, unknown, or divergent")

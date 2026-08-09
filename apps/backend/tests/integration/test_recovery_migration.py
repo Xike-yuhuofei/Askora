@@ -108,9 +108,7 @@ def test_older_supported_revision_forward_migrates_only_in_staging(
         )
         columns = {
             row[1]: row[2]
-            for row in connection.execute(
-                "PRAGMA table_info(decision_trace_inputs)"
-            ).fetchall()
+            for row in connection.execute("PRAGMA table_info(decision_trace_inputs)").fetchall()
         }
     assert columns["entity_version"] == "VARCHAR(255)"
     assert coordinator.finalize(awaiting.transaction_id).status == "COMPLETED"

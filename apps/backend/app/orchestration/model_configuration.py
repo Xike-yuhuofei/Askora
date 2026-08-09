@@ -164,7 +164,9 @@ def get_runtime_model_config_summary() -> ModelRouteProfileSummaryV1:
         state=state,
         provider=ModelConfigProvider(provider.value) if ready else None,
         model=model if ready else None,
-        source=source if ready or source == ModelConfigSource.DESKTOP_VAULT else ModelConfigSource.NONE,
+        source=(
+            source if ready or source == ModelConfigSource.DESKTOP_VAULT else ModelConfigSource.NONE
+        ),
         verified_at=_parse_verified_at(settings.model_config_verified_at),
         runtime_ready=ready,
         runtime_revision=settings.model_config_revision,

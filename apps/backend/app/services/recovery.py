@@ -108,9 +108,7 @@ class RecoveryActionService:
         await self._session.commit()
 
         try:
-            owner_ref, task_ref, message = await self._dispatch_owner_action(
-                user, issue, command
-            )
+            owner_ref, task_ref, message = await self._dispatch_owner_action(user, issue, command)
         except Exception:
             await self._session.rollback()
             await self._ledger.append(
@@ -278,9 +276,7 @@ class RecoveryIncidentService:
             category=entry.category.value,
             severity="blocking",
             status=(
-                "waiting"
-                if budget_available and retry_after_seconds is not None
-                else "active"
+                "waiting" if budget_available and retry_after_seconds is not None else "active"
             ),
             source_system="SYS08",
             data_safety=entry.data_safety,

@@ -77,9 +77,11 @@ def _raise_application_error(
     status_code = (
         status.HTTP_429_TOO_MANY_REQUESTS
         if code == "AI_PROVIDER_RATE_LIMITED"
-        else status.HTTP_503_SERVICE_UNAVAILABLE
-        if code.startswith(("POLICY_RUNTIME_", "AI_"))
-        else status.HTTP_409_CONFLICT
+        else (
+            status.HTTP_503_SERVICE_UNAVAILABLE
+            if code.startswith(("POLICY_RUNTIME_", "AI_"))
+            else status.HTTP_409_CONFLICT
+        )
     )
     raise BusinessError(
         message=code,

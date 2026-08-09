@@ -86,9 +86,10 @@ async def test_metadata_search_and_batch_are_versioned_idempotent_and_owner_scop
             },
         )
         assert replay == updated
-        assert document.moderation_details["content_knowledge_v1"][
-            "current_revision_id"
-        ] == original_revision
+        assert (
+            document.moderation_details["content_knowledge_v1"]["current_revision_id"]
+            == original_revision
+        )
         with pytest.raises(LibraryMetadataVersionConflictError):
             await management.update_metadata(
                 document_id=document.id,

@@ -127,9 +127,7 @@ class LibraryManagementService:
         normalized = normalize_library_text(clean_name)
         command_type = f"create_{kind}"
         payload = {"name": clean_name}
-        replay = await self._receipt_result(
-            pseudonym_id, command_type, idempotency_key, payload
-        )
+        replay = await self._receipt_result(pseudonym_id, command_type, idempotency_key, payload)
         if replay is not None:
             return replay
 
@@ -156,9 +154,7 @@ class LibraryManagementService:
             "name": existing.name,
             "version": existing.version,
         }
-        await self._store_receipt(
-            pseudonym_id, command_type, idempotency_key, payload, result
-        )
+        await self._store_receipt(pseudonym_id, command_type, idempotency_key, payload, result)
         await self.db.commit()
         return result
 
@@ -502,9 +498,7 @@ class LibraryManagementService:
         await self.db.commit()
         return DuplicateSuggestionViewV1.model_validate(result)
 
-    async def assignment_views(
-        self, document_ids: list[str]
-    ) -> tuple[
+    async def assignment_views(self, document_ids: list[str]) -> tuple[
         dict[str, tuple[LibraryTagViewV1, ...]],
         dict[str, tuple[LibraryCollectionViewV1, ...]],
     ]:
@@ -548,7 +542,10 @@ class LibraryManagementService:
                 )
             )
         return (
-            {key: tuple(sorted(value, key=lambda item: item.name.casefold())) for key, value in tag_map.items()},
+            {
+                key: tuple(sorted(value, key=lambda item: item.name.casefold()))
+                for key, value in tag_map.items()
+            },
             {
                 key: tuple(sorted(value, key=lambda item: item.name.casefold()))
                 for key, value in collection_map.items()

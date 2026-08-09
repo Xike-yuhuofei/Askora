@@ -67,9 +67,7 @@ def test_recovery_contract_is_strict_versioned_and_path_free() -> None:
             {**payload, "opened_at": "2026-08-09T05:00:00", "updated_at": NOW.isoformat()}
         )
     with pytest.raises(ValidationError):
-        RecoveryIssueViewV1.model_validate(
-            {**payload, "category": "dependency"}
-        )
+        RecoveryIssueViewV1.model_validate({**payload, "category": "dependency"})
 
 
 def test_stable_catalog_covers_every_p107_runtime_code() -> None:

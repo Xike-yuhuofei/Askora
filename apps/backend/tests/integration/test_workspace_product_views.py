@@ -184,10 +184,10 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
                 _persist_goal(goal_v2),
                 _persist_goal(private_goal),
                 _persist_plan(plan),
-                    _persist_activity(first),
-                    _persist_activity(second),
-                    _persist_activity_state(first),
-                    _persist_activity_state(second),
+                _persist_activity(first),
+                _persist_activity(second),
+                _persist_activity_state(first),
+                _persist_activity_state(second),
             ]
         )
         session.add_all(
@@ -309,15 +309,15 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
         session.add(user)
         session.add_all([_persist_goal(goal) for goal in goals])
         for plan, first, second in plan_groups:
-                session.add_all(
-                    [
-                        _persist_plan(plan),
-                        _persist_activity(first),
-                        _persist_activity(second),
-                        _persist_activity_state(first),
-                        _persist_activity_state(second),
-                    ]
-                )
+            session.add_all(
+                [
+                    _persist_plan(plan),
+                    _persist_activity(first),
+                    _persist_activity(second),
+                    _persist_activity_state(first),
+                    _persist_activity_state(second),
+                ]
+            )
         await session.commit()
 
         query = WorkspaceTodayQueryService(session, clock=lambda: NOW)

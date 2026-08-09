@@ -80,16 +80,16 @@ class RecoveryQueryService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def list_issues(
-        self, user: User, *, correlation_id: str
-    ) -> RecoveryIssueListResponseV1:
+    async def list_issues(self, user: User, *, correlation_id: str) -> RecoveryIssueListResponseV1:
         issues = [
             *await self._document_issues(user),
             *await self._outbox_issues(user),
             *await self._operational_issues(user),
         ]
         severity_rank = {"blocking": 0, "warning": 1, "info": 2}
-        issues.sort(key=lambda issue: (severity_rank[issue.severity], -issue.updated_at.timestamp()))
+        issues.sort(
+            key=lambda issue: (severity_rank[issue.severity], -issue.updated_at.timestamp())
+        )
         now = utc_now()
         return RecoveryIssueListResponseV1(
             generated_at=now,
@@ -276,10 +276,7 @@ class RecoveryQueryService:
                             label="打开 OCR 复核",
                             kind="navigate",
                             enabled=True,
-                            route=(
-                                f"/library?document={run.document_id}"
-                                f"&ocrRun={run.id}"
-                            ),
+                            route=(f"/library?document={run.document_id}" f"&ocrRun={run.id}"),
                         ),
                     ),
                     opened_at=aware(run.created_at),
@@ -289,16 +286,8 @@ class RecoveryQueryService:
         return issues
 
     async def _outbox_issues(self, user: User) -> list[RecoveryIssueViewV1]:
-        all_records = list(
-            (
-                await self._session.scalars(
-                    select(OutboxTaskRecord)
-                )
-            ).all()
-        )
-        records = [
-            record for record in all_records if record.status in {"retry", "dead_letter"}
-        ]
+        all_records = list((await self._session.scalars(select(OutboxTaskRecord))).all())
+        records = [record for record in all_records if record.status in {"retry", "dead_letter"}]
         recovery_origins = {
             origin
             for record in all_records
@@ -341,9 +330,7 @@ class RecoveryQueryService:
             code = (
                 "OUTBOX_RETRY_WAITING"
                 if waiting
-                else "OUTBOX_RETRY_EXHAUSTED"
-                if retryable_type
-                else "OUTBOX_HANDLER_UNAVAILABLE"
+                else "OUTBOX_RETRY_EXHAUSTED" if retryable_type else "OUTBOX_HANDLER_UNAVAILABLE"
             )
             issues.append(
                 RecoveryIssueViewV1(
@@ -411,9 +398,7 @@ class RecoveryQueryService:
                     title=event.title,
                     summary=event.summary,
                     data_safety=cast(
-                        Literal[
-                            "preserved", "preserved_but_unavailable", "at_risk", "unknown"
-                        ],
+                        Literal["preserved", "preserved_but_unavailable", "at_risk", "unknown"],
                         event.data_safety,
                     ),
                     duplicate_risk=cast(

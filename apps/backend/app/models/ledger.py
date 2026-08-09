@@ -216,7 +216,9 @@ class RecoveryEventRecord(Base):
     correlation_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     retry_budget: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    next_eligible_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_eligible_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     action_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     result_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)

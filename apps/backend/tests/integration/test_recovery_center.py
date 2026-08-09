@@ -108,15 +108,13 @@ async def test_failed_document_retry_is_owner_scoped_idempotent_and_preserves_dl
         assert duplicate == result
         assert (
             await session.scalar(
-                select(func.count()).select_from(OutboxTaskRecord).where(
-                    OutboxTaskRecord.idempotency_key.like("document:%:recovery:%")
-                )
+                select(func.count())
+                .select_from(OutboxTaskRecord)
+                .where(OutboxTaskRecord.idempotency_key.like("document:%:recovery:%"))
             )
             == 1
         )
-        assert (
-            await session.scalar(select(func.count()).select_from(RecoveryEventRecord)) == 2
-        )
+        assert await session.scalar(select(func.count()).select_from(RecoveryEventRecord)) == 2
         assert not any(
             item.issue_ref == f"outbox:{original.id}"
             for item in (
@@ -167,7 +165,9 @@ async def test_missing_file_has_no_server_retry_and_provider_failure_is_not_lear
         provider_issue = next(
             item
             for item in (
-                await RecoveryQueryService(session).list_issues(owner, correlation_id="after-failure")
+                await RecoveryQueryService(session).list_issues(
+                    owner, correlation_id="after-failure"
+                )
             ).issues
             if item.issue_ref == "provider:activity-1"
         )
@@ -228,25 +228,18 @@ async def test_quarantine_action_requires_a_newer_policy(tmp_path, monkeypatch) 
         issue = next(
             item
             for item in (
-                await RecoveryQueryService(session).list_issues(
-                    owner, correlation_id="same-policy"
-                )
+                await RecoveryQueryService(session).list_issues(owner, correlation_id="same-policy")
             ).issues
             if item.issue_ref.endswith(":quarantine")
         )
         assert issue.actions[0].action_code == "reinspect_document"
         assert issue.actions[0].enabled is False
-        assert (
-            issue.actions[0].disabled_reason_code
-            == "CONTENT_REINSPECTION_POLICY_UNCHANGED"
-        )
+        assert issue.actions[0].disabled_reason_code == "CONTENT_REINSPECTION_POLICY_UNCHANGED"
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_ocr_review_issue_uses_owner_run_and_real_review_route(
-    tmp_path, monkeypatch
-) -> None:
+async def test_ocr_review_issue_uses_owner_run_and_real_review_route(tmp_path, monkeypatch) -> None:
     engine, factory, storage = await _factory(tmp_path, monkeypatch)
     async with factory() as session:
         owner = User(id=str(uuid4()), pseudonym_id="ocr-review-owner")
@@ -282,17 +275,13 @@ async def test_ocr_review_issue_uses_owner_run_and_real_review_route(
         issue = next(
             item
             for item in (
-                await RecoveryQueryService(session).list_issues(
-                    owner, correlation_id="ocr-review"
-                )
+                await RecoveryQueryService(session).list_issues(owner, correlation_id="ocr-review")
             ).issues
             if item.code == "CONTENT_OCR_REVIEW_REQUIRED"
         )
         assert issue.resource_ref == f"ocr_run:{run.id}"
         assert [action.action_code for action in issue.actions] == ["open_ocr_review"]
-        assert issue.actions[0].route == (
-            f"/library?document={document.id}&ocrRun={run.id}"
-        )
+        assert issue.actions[0].route == (f"/library?document={document.id}&ocrRun={run.id}")
         assert not any(
             item.code == "CONTENT_OCR_REVIEW_REQUIRED"
             for item in (

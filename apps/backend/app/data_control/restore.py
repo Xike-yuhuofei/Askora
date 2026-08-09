@@ -68,9 +68,7 @@ class RestoreCoordinator:
             )
 
         try:
-            schema_before, schema_after, required = self.migrator.plan(
-                self.manager.database_path
-            )
+            schema_before, schema_after, required = self.migrator.plan(self.manager.database_path)
         except SchemaCompatibilityError as exc:
             raise RecoveryError(
                 DataControlErrorCode.RESTORE_SCHEMA_UNSUPPORTED,

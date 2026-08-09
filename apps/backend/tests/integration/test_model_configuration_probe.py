@@ -119,9 +119,7 @@ async def test_probe_timeout_has_sanitized_retryable_error(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_probe_rejects_empty_or_mock_response(monkeypatch) -> None:
-    provider = _FakeProvider(
-        LLMResponse(content="", provider="zhipu", model="glm-4.7-flash-mock")
-    )
+    provider = _FakeProvider(LLMResponse(content="", provider="zhipu", model="glm-4.7-flash-mock"))
     monkeypatch.setattr(model_configuration, "create_explicit_provider", lambda *a, **k: provider)
 
     with pytest.raises(model_configuration.ModelConfigurationProbeError) as exc_info:

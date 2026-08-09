@@ -94,8 +94,5 @@ async def test_recovery_result_and_replacement_are_restart_durable(tmp_path, mon
         original = await session.get(OutboxTaskRecord, original_id)
         assert original is not None
         assert original.status == OutboxStatus.DEAD_LETTER.value
-        assert (
-            await session.scalar(select(func.count()).select_from(RecoveryEventRecord))
-            == 2
-        )
+        assert await session.scalar(select(func.count()).select_from(RecoveryEventRecord)) == 2
     await second_engine.dispose()
