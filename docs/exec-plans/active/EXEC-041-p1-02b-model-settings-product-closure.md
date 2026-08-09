@@ -32,8 +32,10 @@ docs/releases/README.md
 apps/backend/app/main.py
 apps/backend/tests/contracts/test_model_configuration_contract.py
 apps/frontend/src/api/users.js
+apps/frontend/src/App.jsx
 apps/frontend/src/pages/Settings.jsx
 apps/frontend/src/pages/Settings.css
+apps/frontend/src/test/AppRoutes.test.jsx
 apps/frontend/src/test/Settings.test.jsx
 apps/frontend/src/test/ModelSettingsSecurity.test.jsx
 apps/frontend/electron/main.cjs
@@ -41,6 +43,9 @@ apps/frontend/electron/model-settings.cjs
 apps/frontend/electron/model-settings.test.cjs
 apps/frontend/package.json
 ```
+
+`/settings/models` 已由 P1-07 owner recovery navigation 与 UI screen contract 冻结为模型恢复入口；
+因此本 EXEC 显式允许最小路由注册及其测试，不授权新增第二个 Settings 实现或改变其他路由语义。
 
 ## Tasks
 
