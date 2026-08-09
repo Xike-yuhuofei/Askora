@@ -10,13 +10,20 @@ from starlette.requests import Request
 
 from app import main
 from app.core.config import settings
-from app.main import _desktop_model_probe, app
+from app.main import _desktop_control_ready, _desktop_model_probe, app
 
 CONTROL_TOKEN = "iBES5Q6GuksaCWeXzMV2aaybqxeTeM0OW8QVvJYddvzhhzzvqr15qIEPxKeMdfO9"
 SHORT_CYCLE_TOKEN = base64.urlsafe_b64encode(b"0123456789ABCDEF" * 3).decode().rstrip("=")
 
 
-def _request(payload: dict, token: str, host: str = "127.0.0.1") -> Request:
+def _request(
+    payload: dict,
+    token: str,
+    host: str = "127.0.0.1",
+    *,
+    method: str = "POST",
+    path: str = "/_desktop/model-configuration/probe",
+) -> Request:
     body = json.dumps(payload).encode()
     delivered = False
 
@@ -30,10 +37,10 @@ def _request(payload: dict, token: str, host: str = "127.0.0.1") -> Request:
     scope = {
         "type": "http",
         "http_version": "1.1",
-        "method": "POST",
+        "method": method,
         "scheme": "http",
-        "path": "/_desktop/model-configuration/probe",
-        "raw_path": b"/_desktop/model-configuration/probe",
+        "path": path,
+        "raw_path": path.encode(),
         "query_string": b"",
         "headers": [(b"x-askora-desktop-control", token.encode())],
         "client": (host, 3210),
@@ -41,6 +48,26 @@ def _request(payload: dict, token: str, host: str = "127.0.0.1") -> Request:
         "state": {"request_id": "security-probe"},
     }
     return Request(scope, receive)
+
+
+@pytest.mark.asyncio
+async def test_control_ready_requires_current_token_and_returns_exact_identity(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "desktop_control_token", CONTROL_TOKEN)
+    path = "/_desktop/model-configuration/ready"
+
+    rejected = await _desktop_control_ready(
+        _request({}, "wrong-token", method="GET", path=path)
+    )
+    accepted = await _desktop_control_ready(
+        _request({}, CONTROL_TOKEN, method="GET", path=path)
+    )
+
+    assert rejected.status_code == 404
+    assert b"wrong-token" not in rejected.body
+    assert accepted.status_code == 200
+    assert json.loads(accepted.body) == {"status": "ready"}
 
 
 @pytest.mark.asyncio
@@ -90,9 +117,13 @@ async def test_validation_error_never_echoes_candidate_secret(monkeypatch) -> No
 
 
 def test_desktop_control_route_is_absent_from_openapi_and_test_mode() -> None:
-    assert "/_desktop/model-configuration/probe" not in app.openapi()["paths"]
+    private_paths = {
+        "/_desktop/model-configuration/probe",
+        "/_desktop/model-configuration/ready",
+    }
+    assert private_paths.isdisjoint(app.openapi()["paths"])
     assert all(
-        getattr(route, "path", None) != "/_desktop/model-configuration/probe"
+        getattr(route, "path", None) not in private_paths
         for route in app.routes
     )
 

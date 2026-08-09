@@ -34,7 +34,7 @@
 |---|---|---|
 | `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
-| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-03/P1-04/P1-05/P1-07 DONE，P1-02/P1-06 保持独立门禁 |
+| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-01/P1-02/P1-03/P1-04/P1-05/P1-07 DONE，P1-06 保持独立门禁 |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
@@ -176,7 +176,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～040、EXEC-1031～1034、EXEC-1061 已完成；EXEC-041、EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～041、EXEC-1031～1034、EXEC-1061 已完成；EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -222,7 +222,7 @@
 | `docs/exec-plans/completed/EXEC-1032-p1-03-verified-restore.md` | HISTORICAL-RETAIN | P1-03 verified restore completed EXEC |
 | `docs/exec-plans/completed/EXEC-1033-p1-03-user-data-export.md` | HISTORICAL-RETAIN | P1-03 user export completed EXEC |
 | `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure and release completed EXEC |
-| `docs/exec-plans/active/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | 已冻结并 active；P1-02 Settings 产品闭环 |
+| `docs/exec-plans/completed/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | DONE；Settings 产品体验、真实 App/provider/relaunch 与 P1-02 gap 收口 |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 | `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 canonical erasure integration completed contract |
@@ -240,6 +240,7 @@
 | `docs/releases/ui-02c-canonical-activity-lifecycle.md` | CURRENT-UPDATED | UI-02C Engineering、Ownership、浏览器 lifecycle 与 Learning Evidence 分离报告 |
 | `docs/releases/p1-07-error-recovery-center.md` | CURRENT-UPDATED | P1-07 Engineering、Ownership、Security、真实桌面/浏览器与 Learning Evidence 分离报告 |
 | `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 Engineering、Ownership 与 Learning Evidence 分离报告 |
+| `docs/releases/p1-02-model-settings.md` | CURRENT-UPDATED | P1-02 Engineering、Security/Ownership、真实 provider/relaunch 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

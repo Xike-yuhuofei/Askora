@@ -2,6 +2,8 @@
 
 const crypto = require('crypto')
 const fs = require('fs')
+const http = require('http')
+const net = require('net')
 const path = require('path')
 const { fileURLToPath } = require('url')
 
@@ -14,6 +16,7 @@ const SUPPORTED_MODELS = Object.freeze({
   zhipu: Object.freeze(['glm-4.7-flash']),
 })
 const PROVIDER_ENV_NAMES = Object.freeze(Object.keys(SUPPORTED_MODELS).map((provider) => provider.toUpperCase()))
+const DESKTOP_READY_PATH = '/_desktop/model-configuration/ready'
 const PUBLIC_REASON_CODES = new Set([
   'MODEL_CONFIGURATION_DISABLED',
   'MODEL_CREDENTIAL_MISSING',
@@ -116,6 +119,89 @@ function hasExactKeys(value, expectedKeys) {
   const actual = Object.keys(value).sort()
   const expected = [...expectedKeys].sort()
   return actual.length === expected.length && actual.every((key, index) => key === expected[index])
+}
+
+function reserveAvailableLoopbackPort(port, netModule) {
+  return new Promise((resolve) => {
+    const server = netModule.createServer()
+    let settled = false
+    const finish = (selectedPort) => {
+      if (settled) return
+      settled = true
+      resolve(selectedPort)
+    }
+    server.once('error', () => finish(null))
+    server.listen({ host: '127.0.0.1', port, exclusive: true }, () => {
+      const address = server.address()
+      const selectedPort = address && typeof address === 'object' ? address.port : null
+      server.close(() => finish(selectedPort))
+    })
+  })
+}
+
+async function findAvailableLoopbackPort({ preferredPort = 8765, netModule = net } = {}) {
+  if (!Number.isSafeInteger(preferredPort) || preferredPort < 1 || preferredPort > 65535) {
+    throw new TypeError('preferredPort must be a valid TCP port')
+  }
+  const preferred = await reserveAvailableLoopbackPort(preferredPort, netModule)
+  if (preferred !== null) return preferred
+  const fallback = await reserveAvailableLoopbackPort(0, netModule)
+  if (fallback === null) throw new Error('no loopback port available')
+  return fallback
+}
+
+function probeDesktopBackendReady({ port, token, timeoutMs = 1000, httpModule = http }) {
+  if (
+    !Number.isSafeInteger(port) ||
+    port < 1 ||
+    port > 65535 ||
+    typeof token !== 'string' ||
+    token.length === 0
+  ) {
+    return Promise.resolve(false)
+  }
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ready) => {
+      if (settled) return
+      settled = true
+      resolve(ready)
+    }
+    const request = httpModule.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: DESKTOP_READY_PATH,
+        method: 'GET',
+        headers: { 'x-askora-desktop-control': token },
+      },
+      (response) => {
+        const chunks = []
+        let size = 0
+        response.on('data', (chunk) => {
+          size += chunk.length
+          if (size <= 1024) chunks.push(chunk)
+          else response.destroy()
+        })
+        response.on('end', () => {
+          if (size > 1024 || response.statusCode !== 200) {
+            finish(false)
+            return
+          }
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+            finish(hasExactKeys(payload, ['status']) && payload.status === 'ready')
+          } catch {
+            finish(false)
+          }
+        })
+        response.on('error', () => finish(false))
+      },
+    )
+    request.setTimeout(timeoutMs, () => request.destroy())
+    request.on('error', () => finish(false))
+    request.end()
+  })
 }
 
 function validateExpectedRevision(expectedRevision, currentRevision) {
@@ -338,6 +424,7 @@ function isAllowedModelSettingsSender(event, webContents, options) {
   if (!event.senderFrame || event.senderFrame !== webContents.mainFrame) return false
   try {
     const rendererURL = new URL(event.senderFrame.url)
+    if (rendererURL.search || !['#/settings', '#/settings/models'].includes(rendererURL.hash)) return false
     if (options?.isDev) {
       if (typeof options.devURL !== 'string') return false
       const allowedURL = new URL(options.devURL)
@@ -760,8 +847,10 @@ module.exports = {
   applyModelProfileToEnvironment,
   assertRuntime,
   externalSummaryFromEnv,
+  findAvailableLoopbackPort,
   isAllowedModelSettingsSender,
   publicSummary,
+  probeDesktopBackendReady,
   validateApplyCommand,
   validateClearCommand,
 }

@@ -127,8 +127,9 @@ main process 必须验证 sender、schema、provider/model、输入长度和 exp
 
 Electron main 通过仅本地启用的 desktop control adapter 调用当前后端。该 adapter：
 
-- 只监听当前 `127.0.0.1` 后端；
+- 只监听当前 App process 选择并在 restart 间复用的独立 `127.0.0.1` port；
 - 要求每次后端启动生成的高熵 control token；
+- 以该 token 的私有 readiness handshake 证明当前 child identity；公共 `/ready`、其他 listener 或其他 Askora 实例不能满足；
 - 不进入 OpenAPI；
 - 使用 candidate provider/model/Key 构造一次独立 provider instance；
 - 发送固定合成 Prompt，不包含用户文档、聊天、学习状态或 grader data；
@@ -144,7 +145,7 @@ validate candidate
 → probe passed: encrypt candidate
 → atomic replace encrypted revision
 → graceful backend restart
-→ /ready + active revision health check
+→ authenticated private readiness + active revision health check
 → success: return VERIFIED_ACTIVE
 → failure: restore prior ciphertext/tombstone
 → restart prior configuration

@@ -2,6 +2,8 @@
 
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const http = require('node:http')
+const net = require('node:net')
 const os = require('node:os')
 const path = require('node:path')
 const vm = require('node:vm')
@@ -14,20 +16,87 @@ const {
   applyModelProfileToEnvironment,
   assertRuntime,
   externalSummaryFromEnv,
+  findAvailableLoopbackPort,
   isAllowedModelSettingsSender,
   publicSummary,
+  probeDesktopBackendReady,
   validateApplyCommand,
   validateClearCommand,
 } = require('./model-settings.cjs')
 
 const temporaryDirectories = []
+const temporaryServers = []
 
 afterEach(async () => {
+  await Promise.all(
+    temporaryServers.splice(0).map(
+      (server) => new Promise((resolve) => server.close(resolve)),
+    ),
+  )
   await Promise.all(
     temporaryDirectories.splice(0).map((directory) =>
       fs.promises.rm(directory, { recursive: true, force: true }),
     ),
   )
+})
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      server.off('error', reject)
+      temporaryServers.push(server)
+      resolve(server.address().port)
+    })
+  })
+}
+
+describe('desktop backend instance isolation', () => {
+  test('selects a different loopback port when the preferred port belongs to another process', async () => {
+    const occupied = net.createServer()
+    const occupiedPort = await listen(occupied)
+
+    const selectedPort = await findAvailableLoopbackPort({ preferredPort: occupiedPort })
+
+    assert.notEqual(selectedPort, occupiedPort)
+    assert.equal(Number.isSafeInteger(selectedPort), true)
+    assert.equal(selectedPort > 0 && selectedPort <= 65535, true)
+  })
+
+  test('does not accept another Askora public ready endpoint as child identity', async () => {
+    const token = 'current-backend-start-token'
+    let privateRequestSeen = false
+    const impostor = http.createServer((request, response) => {
+      if (request.url === '/ready') {
+        response.writeHead(200, { 'content-type': 'application/json' })
+        response.end('{"status":"ready"}')
+        return
+      }
+      privateRequestSeen = request.url === '/_desktop/model-configuration/ready'
+      response.writeHead(404, { 'content-type': 'application/json' })
+      response.end('{"detail":"not found"}')
+    })
+    const port = await listen(impostor)
+
+    assert.equal(await probeDesktopBackendReady({ port, token }), false)
+    assert.equal(privateRequestSeen, true)
+  })
+
+  test('accepts only the exact private readiness response authenticated by current token', async () => {
+    const token = 'current-backend-start-token'
+    const child = http.createServer((request, response) => {
+      const authorized = request.headers['x-askora-desktop-control'] === token
+      const correctPath = request.url === '/_desktop/model-configuration/ready'
+      response.writeHead(authorized && correctPath ? 200 : 404, {
+        'content-type': 'application/json',
+      })
+      response.end(authorized && correctPath ? '{"status":"ready"}' : '{"detail":"not found"}')
+    })
+    const port = await listen(child)
+
+    assert.equal(await probeDesktopBackendReady({ port, token }), true)
+    assert.equal(await probeDesktopBackendReady({ port, token: 'stale-token' }), false)
+  })
 })
 
 async function makeVault(options = {}) {
@@ -690,7 +759,7 @@ describe('backend launch environment projection', () => {
 
 describe('IPC and preload isolation', () => {
   test('sender validation accepts only the exact top-level renderer origin and path', () => {
-    const mainFrame = { url: 'http://localhost:5173/' }
+    const mainFrame = { url: 'http://localhost:5173/#/settings' }
     const webContents = { mainFrame }
     const allowed = { sender: webContents, senderFrame: mainFrame }
     assert.equal(
@@ -717,10 +786,12 @@ describe('IPC and preload isolation', () => {
       }),
       false,
     )
+    const wrongRouteFrame = { url: 'http://localhost:5173/#/today' }
+    const wrongRouteContents = { mainFrame: wrongRouteFrame }
     assert.equal(
       isAllowedModelSettingsSender(
-        { sender: webContents, senderFrame: { url: 'http://localhost:5173/settings' } },
-        webContents,
+        { sender: wrongRouteContents, senderFrame: wrongRouteFrame },
+        wrongRouteContents,
         { isDev: true, devURL: 'http://localhost:5173/' },
       ),
       false,
@@ -747,7 +818,7 @@ describe('IPC and preload isolation', () => {
 
   test('packaged sender validation allows only the configured file URL, not arbitrary file pages', () => {
     const allowedPath = '/Applications/Askora.app/Contents/Resources/app.asar/dist/index.html'
-    const mainFrame = { url: `file://${allowedPath}` }
+    const mainFrame = { url: `file://${allowedPath}#/settings` }
     const webContents = { mainFrame }
     assert.equal(
       isAllowedModelSettingsSender({ sender: webContents, senderFrame: mainFrame }, webContents, {
@@ -764,6 +835,16 @@ describe('IPC and preload isolation', () => {
         allowedFilePath: allowedPath,
       }),
       true,
+    )
+    const wrongRoute = { url: `file://${allowedPath}#/today` }
+    const wrongRouteContents = { mainFrame: wrongRoute }
+    assert.equal(
+      isAllowedModelSettingsSender(
+        { sender: wrongRouteContents, senderFrame: wrongRoute },
+        wrongRouteContents,
+        { isDev: false, allowedFilePath: allowedPath },
+      ),
+      false,
     )
     const otherFrame = { url: 'file:///tmp/untrusted.html' }
     const otherContents = { mainFrame: otherFrame }

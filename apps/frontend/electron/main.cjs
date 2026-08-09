@@ -13,7 +13,9 @@ const {
   ModelSettingsError,
   applyModelProfileToEnvironment,
   externalSummaryFromEnv,
+  findAvailableLoopbackPort,
   isAllowedModelSettingsSender,
+  probeDesktopBackendReady,
 } = require('./model-settings.cjs')
 
 const isDev = !app.isPackaged
@@ -26,7 +28,7 @@ if (process.platform !== 'win32') fs.chmodSync(userDataPath, 0o700)
 app.setPath('userData', userDataPath)
 app.setPath('sessionData', path.join(userDataPath, 'Session'))
 
-const BACKEND_PORT = 8765
+const PREFERRED_BACKEND_PORT = 8765
 // PyInstaller one-file 首次解压在较慢磁盘上可能超过 20 秒。
 const BACKEND_STARTUP_TIMEOUT = 60000
 const MAINTENANCE_TIMEOUT = 15 * 60 * 1000
@@ -34,6 +36,7 @@ const MAX_MAINTENANCE_OUTPUT_BYTES = 2 * 1024 * 1024
 
 let mainWindow
 let backendProcess = null
+let backendPort = null
 let readyBackendURL = null
 let backendStartPromise = null
 let backendDiagnosticBuffer = ''
@@ -100,27 +103,22 @@ function loadOrCreateRecoveryKey() {
   return recoveryKey
 }
 
-function waitForBackend(url, timeoutMs) {
+function waitForBackend(port, token, timeoutMs) {
   const deadline = Date.now() + timeoutMs
   return new Promise((resolve) => {
-    const check = () => {
+    const check = async () => {
       if (!backendProcess || backendProcess.exitCode !== null || Date.now() >= deadline) {
         resolve(false)
         return
       }
 
-      const request = http.get(`${url}/ready`, (response) => {
-        response.resume()
-        if (response.statusCode === 200) {
-          resolve(true)
-        } else {
-          setTimeout(check, 250)
-        }
-      })
-      request.setTimeout(1000, () => request.destroy())
-      request.on('error', () => setTimeout(check, 250))
+      if (await probeDesktopBackendReady({ port, token })) {
+        resolve(true)
+        return
+      }
+      setTimeout(check, 250)
     }
-    check()
+    void check()
   })
 }
 
@@ -145,7 +143,7 @@ function consumeBackendDiagnostics(data) {
   }
 }
 
-function buildBackendEnvironment(profile, localSecrets, databasePath, controlToken) {
+function buildBackendEnvironment(profile, localSecrets, databasePath, controlToken, port) {
   const baseEnvironment = {
     ...process.env,
     APP_ENV: 'local',
@@ -153,7 +151,7 @@ function buildBackendEnvironment(profile, localSecrets, databasePath, controlTok
     APP_NAME: 'askora-local',
     APP_VERSION: '0.1.0',
     HOST: '127.0.0.1',
-    PORT: String(BACKEND_PORT),
+    PORT: String(port),
     DATABASE_URL: `sqlite+aiosqlite:///${databasePath}`,
     LOCAL_STORAGE_BASE_PATH: path.join(userDataPath, 'documents'),
     PRIVACY_RESTORE_BARRIER_PATH: path.join(userDataPath, 'privacy', 'restore-barriers.json'),
@@ -177,11 +175,26 @@ async function startLocalBackendAttempt(profile = activeLaunchProfile) {
     return null
   }
 
+  if (backendPort === null) {
+    try {
+      backendPort = await findAvailableLoopbackPort({ preferredPort: PREFERRED_BACKEND_PORT })
+    } catch {
+      console.error('[Askora] No isolated loopback port is available for the local backend')
+      return null
+    }
+  }
+
   const localSecrets = loadOrCreateLocalSecrets()
   const databasePath = path.join(userDataPath, 'askora.db')
-  const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
+  const backendURL = `http://127.0.0.1:${backendPort}`
   desktopControlToken = crypto.randomBytes(48).toString('base64url')
-  const env = buildBackendEnvironment(profile, localSecrets, databasePath, desktopControlToken)
+  const env = buildBackendEnvironment(
+    profile,
+    localSecrets,
+    databasePath,
+    desktopControlToken,
+    backendPort,
+  )
   const spawnedProcess = spawn(backendInfo.command, backendInfo.args, {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -211,7 +224,7 @@ async function startLocalBackendAttempt(profile = activeLaunchProfile) {
     desktopControlToken = null
   })
 
-  const ready = await waitForBackend(backendURL, BACKEND_STARTUP_TIMEOUT)
+  const ready = await waitForBackend(backendPort, desktopControlToken, BACKEND_STARTUP_TIMEOUT)
   if (!ready) {
     console.error('[Askora] Local backend did not become ready before the timeout')
     if (backendStartupState.status === 'starting') {
@@ -284,12 +297,13 @@ function stopLocalBackend() {
 }
 
 function requestBackendJSON({ method = 'GET', pathname, body = null, token = null, timeoutMs = 15000 }) {
+  if (backendPort === null) return Promise.reject(new Error('backend port unavailable'))
   return new Promise((resolve, reject) => {
     const encoded = body === null ? null : Buffer.from(JSON.stringify(body), 'utf8')
     const request = http.request(
       {
         hostname: '127.0.0.1',
-        port: BACKEND_PORT,
+        port: backendPort,
         path: pathname,
         method,
         headers: {

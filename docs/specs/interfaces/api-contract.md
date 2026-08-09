@@ -107,9 +107,9 @@ Assistant message MAY additive 返回 `render_payload`，其 canonical contract 
 
 ### API-041 — Local Desktop Model Control Adapter
 
-桌面模型配置控制面不是公共服务 API，也不得进入 OpenAPI。它只可在 private/local desktop mode 注册于 loopback，要求 Electron main 每进程随机生成的高熵 control token，并只接受固定版本 schema。probe 请求中的 credential 只用于当前内存中的单次 provider 调用；不得持久化、记录、返回或进入普通业务 request。
+桌面模型配置控制面不是公共服务 API，也不得进入 OpenAPI。它只可在 private/local desktop mode 注册于 loopback，要求 Electron main 为每次 backend start 随机生成的高熵 control token，并只接受固定版本 schema。该 token 同时保护固定私有 readiness endpoint 与 probe；公共 `/ready` 不构成 desktop child identity 证明。probe 请求中的 credential 只用于当前内存中的单次 provider 调用；不得持久化、记录、返回或进入普通业务 request。
 
-控制面 response 只返回 sanitized provider/model、probe outcome、稳定 error code 与 runtime configuration revision；MUST NOT 返回 credential、ciphertext、control token、原始 provider body 或完整 request。非 loopback、token 错误、schema 不支持与非 desktop mode 均 fail closed。
+控制面 response 只返回 sanitized provider/model、probe outcome、稳定 error code 与 runtime configuration revision；MUST NOT 返回 credential、ciphertext、control token、原始 provider body 或完整 request。非 loopback、token 错误、schema 不支持与非 desktop mode 均 fail closed。Electron 每个 App process 选择并复用自己的未占用 loopback port；不得因默认 port 已被占用而附着到另一 Askora backend。
 
 ## 7. Versioning
 
