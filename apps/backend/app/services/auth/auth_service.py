@@ -1,356 +1,630 @@
-"""
-认证服务 - 简化版
-处理登录、登出、Token 刷新、并发会话限制
-移除了审计日志依赖，适合个人用户场景
-"""
+"""Identity application service backed by durable database sessions."""
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.identity import (
+    AuthSessionV1,
+    ChangePasswordResultV1,
+    ChangePasswordV1,
+    SessionCommandResultV1,
+    SessionListV1,
+    TokenPairV1,
+)
 from app.core.config import settings
 from app.core.encryption import decrypt_pii, encrypt_pii
 from app.core.exceptions import (
+    AuthSessionNotFoundError,
+    AuthSessionRequiredError,
+    AuthSessionRevokedError,
+    CurrentPasswordInvalidError,
     DeviceMismatchError,
+    IdentityCommandConflictError,
     InvalidTokenError,
+    PasswordPolicyRejectedError,
+    RefreshReplayDetectedError,
     TooManySessionsError,
 )
 from app.core.logging import get_logger
-from app.core.redis_client import get_redis_client, is_redis_available, mark_redis_unavailable
+from app.infrastructure.identity import IdentityRepository
+from app.models.identity import AuthSessionRecord, IdentityCommandReceiptRecord
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.token_service import (
     TokenService,
     hash_password,
+    validate_new_password,
+    verify_and_update_password,
     verify_password,
 )
 
 logger = get_logger(__name__)
-
-# 并发会话限制（简化版）
 MAX_SESSIONS = 5
 
 
 class AuthService:
-    """认证服务（简化版）"""
+    """Only application writer for credentials and durable AuthSession state."""
 
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.repo = IdentityRepository(db)
 
     async def login_with_phone(
         self,
         phone: str,
         password: str,
-        device_fingerprint: Optional[str] = None,
+        device_fingerprint: str | None = None,
     ) -> tuple[str, str, datetime, User]:
-        """
-        手机号密码登录
-
-        Returns:
-            (access_token, refresh_token, expires_at, user)
-        """
-        # 查找用户
         phone = phone.strip()
         phone_hash = self._phone_lookup_hash(phone)
         result = await self.db.execute(select(User).where(User.phone_hash == phone_hash))
-        user: Optional[User] = result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
 
-        # 兼容迁移前没有 phone_hash 的旧账号；成功登录后自动回填。
         if user is None:
-            result = await self.db.execute(
-                select(User).where(
-                    User.phone_hash.is_(None),
-                    User.phone_encrypted.isnot(None),
-                )
-            )
-            for candidate in result.scalars().all():
-                try:
-                    if (
-                        candidate.phone_encrypted
-                        and decrypt_pii(candidate.phone_encrypted) == phone
-                    ):
-                        user = candidate
-                        user.phone_hash = phone_hash
-                        break
-                except Exception:
-                    logger.warning("legacy_phone_decrypt_failed", user_id=candidate.id)
-
+            user = await self._find_legacy_user(phone, phone_hash)
         if not user or not user.password_hash:
             raise InvalidTokenError("手机号或密码错误")
 
-        # 验证密码
-        if not verify_password(password, user.password_hash):
+        verified, replacement_hash = verify_and_update_password(password, user.password_hash)
+        if not verified:
             raise InvalidTokenError("手机号或密码错误")
-
-        # 检查状态
         if user.status != UserStatus.ACTIVE:
-            raise InvalidTokenError(f"账号状态异常：{user.status.value}")
+            raise InvalidTokenError("账号不可登录")
 
-        # 检查并发会话数
-        await self._check_session_limit(user)
+        now = datetime.now(timezone.utc)
+        if await self.repo.active_session_count(user.id, now) >= MAX_SESSIONS:
+            raise TooManySessionsError(MAX_SESSIONS)
 
-        # 生成 Token
-        device_fp_hash = (
-            self._hash_device_fingerprint(device_fingerprint) if device_fingerprint else None
-        )
-        access_token, access_jti, expires_at = TokenService.create_access_token(
+        session_id = str(uuid.uuid4())
+        family_id = str(uuid.uuid4())
+        credential_version = user.credential_version
+        client_digest = self._hash_device_fingerprint(device_fingerprint) if device_fingerprint else None
+        access_token, _, access_expires_at = TokenService.create_access_token(
             user_id=user.id,
             role=user.role.value,
             pseudonym_id=user.pseudonym_id,
-            device_fingerprint=device_fp_hash,
+            device_fingerprint=client_digest,
+            session_id=session_id,
+            token_family_id=family_id,
+            credential_version=credential_version,
+            session_version=1,
         )
-        refresh_token, _, _ = TokenService.create_refresh_token(
+        refresh_token, refresh_jti, refresh_expires_at = TokenService.create_refresh_token(
             user_id=user.id,
             role=user.role.value,
             pseudonym_id=user.pseudonym_id,
-            device_fingerprint=device_fp_hash,
+            device_fingerprint=client_digest,
+            session_id=session_id,
+            token_family_id=family_id,
+            credential_version=credential_version,
+            session_version=1,
         )
-
-        # 更新最后登录时间
-        user.last_login_at = datetime.now(timezone.utc)
+        await self.repo.add_session(
+            AuthSessionRecord(
+                session_id=session_id,
+                user_id=user.id,
+                version=1,
+                token_family_id=family_id,
+                current_refresh_jti_digest=self._digest_secret(refresh_jti),
+                client_instance_digest=client_digest,
+                client_label=self._client_label(client_digest),
+                credential_version=credential_version,
+                created_at=now,
+                last_seen_at=now,
+                refresh_expires_at=refresh_expires_at,
+            )
+        )
+        if replacement_hash:
+            user.password_hash = replacement_hash
+            user.password_changed_at = now
+        user.last_login_at = now
         await self.db.commit()
 
-        # 记录会话
-        await self._register_session(user.id, access_jti, device_fp_hash)
+        logger.info("user_login_success", user_id=user.id, session_id=session_id[:8])
+        return access_token, refresh_token, access_expires_at, user
 
-        logger.info("user_login_success", user_id=user.id)
-        return access_token, refresh_token, expires_at, user
-
-    async def logout(self, user_id: str, token_jti: str) -> None:
-        """用户登出"""
-        expires_in = settings.access_token_expire_minutes * 60
-        await TokenService.revoke_token(token_jti, expires_in)
-        await self._unregister_session(user_id, token_jti)
-        logger.info("user_logout", user_id=user_id)
+    async def logout(self, user_id: str, session_id: str) -> None:
+        await self.repo.revoke_session(
+            session_id=session_id,
+            user_id=user_id,
+            now=datetime.now(timezone.utc),
+            reason="logout",
+        )
+        await self.db.commit()
+        logger.info("user_logout", user_id=user_id, session_id=session_id[:8])
 
     async def validate_token_and_get_user(
         self,
         token: str,
-        device_fingerprint: Optional[str] = None,
-    ) -> tuple[User, dict]:
-        """验证 Token 并返回用户和 Token 载荷"""
+        device_fingerprint: str | None = None,
+    ) -> tuple[User, dict[str, Any]]:
         payload = TokenService.decode_token(token, token_type="access")
+        user_id, session_id, family_id, credential_version, session_version = (
+            self._required_session_claims(payload)
+        )
+        self._verify_device_binding(payload, device_fingerprint)
 
-        user_id = payload.get("sub")
-        jti = payload.get("jti")
-
-        if not user_id or not jti:
-            raise InvalidTokenError()
-
-        if await TokenService.is_token_revoked(jti):
-            raise InvalidTokenError("Token 已失效")
-
-        expected_device_fp = payload.get("dfp")
-        if expected_device_fp:
-            if not device_fingerprint:
-                raise DeviceMismatchError()
-            actual_device_fp = self._hash_device_fingerprint(device_fingerprint)
-            if not hmac.compare_digest(expected_device_fp, actual_device_fp):
-                raise DeviceMismatchError()
+        now = datetime.now(timezone.utc)
+        session = await self.repo.get_exact_active_session(
+            session_id=session_id,
+            user_id=user_id,
+            family_id=family_id,
+            credential_version=credential_version,
+            session_version=session_version,
+            now=now,
+        )
+        if session is None:
+            raise AuthSessionRevokedError()
 
         user = await self.db.get(User, user_id)
-        if not user or user.status != UserStatus.ACTIVE:
-            raise InvalidTokenError("用户不存在或已停用")
-
+        if (
+            not user
+            or user.status != UserStatus.ACTIVE
+            or user.credential_version != credential_version
+        ):
+            raise AuthSessionRevokedError()
         return user, payload
-
-    async def _check_session_limit(self, user: User) -> None:
-        """检查并发会话数限制"""
-        if is_redis_available() is False and settings.auto_create_tables:
-            return
-        try:
-            redis = get_redis_client()
-            key = f"session:active:{user.id}"
-            now = int(datetime.now(timezone.utc).timestamp())
-            await redis.zremrangebyscore(key, "-inf", now)
-            current_count = await redis.zcard(key)
-
-            if current_count >= MAX_SESSIONS:
-                raise TooManySessionsError(MAX_SESSIONS)
-        except TooManySessionsError:
-            raise
-        except Exception as e:
-            mark_redis_unavailable()
-            logger.warning(
-                "redis_session_check_failed",
-                user_id=user.id,
-                error_type=type(e).__name__,
-            )
-            if not settings.auto_create_tables:
-                from app.core.exceptions import AuthenticationStateUnavailableError
-
-                raise AuthenticationStateUnavailableError() from e
-
-    async def _register_session(
-        self, user_id: str, session_jti: str, device_fp_hash: Optional[str]
-    ) -> None:
-        """注册活跃会话"""
-        if is_redis_available() is False and settings.auto_create_tables:
-            return
-        try:
-            redis = get_redis_client()
-            key = f"session:active:{user_id}"
-            ttl = settings.access_token_expire_minutes * 60
-            expires_at = int(datetime.now(timezone.utc).timestamp()) + ttl
-
-            await redis.zadd(key, {session_jti: expires_at})
-            await redis.expire(key, ttl)
-
-            if device_fp_hash:
-                device_key = f"session:device:{user_id}:{session_jti}"
-                await redis.setex(device_key, ttl, device_fp_hash)
-        except Exception as e:
-            mark_redis_unavailable()
-            logger.warning(
-                "redis_session_register_failed",
-                user_id=user_id,
-                error_type=type(e).__name__,
-            )
-            if not settings.auto_create_tables:
-                from app.core.exceptions import AuthenticationStateUnavailableError
-
-                raise AuthenticationStateUnavailableError() from e
-
-    async def _unregister_session(self, user_id: str, session_jti: str) -> None:
-        """注销会话"""
-        if is_redis_available() is False and settings.auto_create_tables:
-            return
-        try:
-            redis = get_redis_client()
-            key = f"session:active:{user_id}"
-            await redis.zrem(key, session_jti)
-
-            device_key = f"session:device:{user_id}:{session_jti}"
-            await redis.delete(device_key)
-        except Exception as e:
-            mark_redis_unavailable()
-            logger.warning(
-                "redis_session_unregister_failed",
-                user_id=user_id,
-                error_type=type(e).__name__,
-            )
-            if not settings.auto_create_tables:
-                from app.core.exceptions import AuthenticationStateUnavailableError
-
-                raise AuthenticationStateUnavailableError() from e
-
-    @staticmethod
-    def _hash_device_fingerprint(device_fingerprint: str) -> str:
-        """生成设备指纹哈希"""
-        return hmac.new(
-            settings.kek_master_key.encode(),
-            device_fingerprint.encode(),
-            hashlib.sha256,
-        ).hexdigest()
-
-    @staticmethod
-    def _phone_lookup_hash(phone: str) -> str:
-        """为手机号生成不可逆、可查询的 HMAC 盲索引。"""
-        return hmac.new(
-            settings.kek_master_key.encode(),
-            phone.encode(),
-            hashlib.sha256,
-        ).hexdigest()
 
     async def refresh_tokens(
         self,
         refresh_token: str,
-        device_fingerprint: Optional[str] = None,
+        device_fingerprint: str | None = None,
     ) -> tuple[str, str, datetime]:
-        """轮换 Refresh Token，并从数据库重新读取当前用户身份。"""
         payload = TokenService.decode_token(refresh_token, token_type="refresh")
-        user_id = payload.get("sub")
-        if not user_id:
-            raise InvalidTokenError("Refresh Token 格式无效")
-
-        expected_device_fp = payload.get("dfp")
-        if expected_device_fp:
-            if not device_fingerprint:
-                raise DeviceMismatchError()
-            actual_device_fp = self._hash_device_fingerprint(device_fingerprint)
-            if not hmac.compare_digest(expected_device_fp, actual_device_fp):
-                raise DeviceMismatchError()
+        user_id, session_id, family_id, credential_version, session_version = (
+            self._required_session_claims(payload)
+        )
+        self._verify_device_binding(payload, device_fingerprint)
+        jti = payload.get("jti")
+        if not isinstance(jti, str) or not jti:
+            raise AuthSessionRequiredError()
 
         user = await self.db.get(User, user_id)
-        if not user or user.status != UserStatus.ACTIVE:
-            raise InvalidTokenError("用户不存在或已停用")
+        if (
+            not user
+            or user.status != UserStatus.ACTIVE
+            or user.credential_version != credential_version
+        ):
+            raise AuthSessionRevokedError()
 
-        await TokenService.consume_refresh_token(payload)
-        access_token, _, expires_at = TokenService.create_access_token(
+        session = await self.repo.get_session(session_id)
+        now = datetime.now(timezone.utc)
+        if (
+            session is None
+            or session.user_id != user_id
+            or session.token_family_id != family_id
+            or session.credential_version != credential_version
+        ):
+            raise AuthSessionRevokedError()
+        if session.revoked_at is not None or self._as_utc(session.refresh_expires_at) <= now:
+            raise AuthSessionRevokedError()
+
+        expected_digest = self._digest_secret(jti)
+        if not hmac.compare_digest(session.current_refresh_jti_digest, expected_digest):
+            await self.repo.revoke_session(
+                session_id=session_id,
+                user_id=user_id,
+                now=now,
+                reason="refresh_replay",
+            )
+            await self.db.commit()
+            raise RefreshReplayDetectedError()
+
+        next_version = session_version + 1
+        access_token, _, access_expires_at = TokenService.create_access_token(
             user_id=user.id,
             role=user.role.value,
             pseudonym_id=user.pseudonym_id,
-            device_fingerprint=expected_device_fp,
+            device_fingerprint=session.client_instance_digest,
+            session_id=session_id,
+            token_family_id=family_id,
+            credential_version=credential_version,
+            session_version=next_version,
         )
-        new_refresh_token, _, _ = TokenService.create_refresh_token(
+        next_refresh, next_jti, next_refresh_expires_at = TokenService.create_refresh_token(
             user_id=user.id,
             role=user.role.value,
             pseudonym_id=user.pseudonym_id,
-            device_fingerprint=expected_device_fp,
+            device_fingerprint=session.client_instance_digest,
+            session_id=session_id,
+            token_family_id=family_id,
+            credential_version=credential_version,
+            session_version=next_version,
         )
-        return access_token, new_refresh_token, expires_at
+        rotated = await self.repo.rotate_refresh_compare_and_swap(
+            session_id=session_id,
+            user_id=user_id,
+            family_id=family_id,
+            credential_version=credential_version,
+            expected_version=session_version,
+            expected_jti_digest=expected_digest,
+            next_jti_digest=self._digest_secret(next_jti),
+            next_refresh_expires_at=next_refresh_expires_at,
+            now=now,
+        )
+        if not rotated:
+            await self.db.rollback()
+            await self.repo.revoke_session(
+                session_id=session_id,
+                user_id=user_id,
+                now=now,
+                reason="refresh_replay",
+            )
+            await self.db.commit()
+            raise RefreshReplayDetectedError()
+        await self.db.commit()
+        return access_token, next_refresh, access_expires_at
+
+    async def list_sessions(self, *, user_id: str, current_session_id: str) -> SessionListV1:
+        rows = await self.repo.list_sessions(user_id)
+        return SessionListV1(
+            sessions=tuple(
+                AuthSessionV1(
+                    session_id=row.session_id,
+                    version=row.version,
+                    client_label=row.client_label,
+                    current=row.session_id == current_session_id,
+                    created_at=self._as_utc(row.created_at),
+                    last_seen_at=self._as_utc(row.last_seen_at),
+                    refresh_expires_at=self._as_utc(row.refresh_expires_at),
+                    revoked=row.revoked_at is not None,
+                )
+                for row in rows
+            )
+        )
+
+    async def revoke_session(
+        self,
+        *,
+        user_id: str,
+        target_session_id: str,
+        idempotency_key: str,
+    ) -> SessionCommandResultV1:
+        request = {"target_session_id": target_session_id}
+        receipt = await self._matching_receipt(
+            user_id=user_id,
+            command_type="revoke_session_v1",
+            idempotency_key=idempotency_key,
+            request=request,
+        )
+        if receipt:
+            return SessionCommandResultV1.model_validate(
+                {**receipt.result_payload, "replayed": True}
+            )
+
+        session = await self.repo.get_session(target_session_id)
+        if session is None or session.user_id != user_id:
+            raise AuthSessionNotFoundError()
+        count = await self.repo.revoke_session(
+            session_id=target_session_id,
+            user_id=user_id,
+            now=datetime.now(timezone.utc),
+            reason="user_revoked",
+        )
+        payload = {"success": True, "replayed": False, "revoked_sessions": count}
+        await self._store_receipt(
+            user_id=user_id,
+            command_type="revoke_session_v1",
+            idempotency_key=idempotency_key,
+            request=request,
+            result_payload=payload,
+        )
+        await self.db.commit()
+        return SessionCommandResultV1.model_validate(payload)
+
+    async def revoke_other_sessions(
+        self,
+        *,
+        user_id: str,
+        current_session_id: str,
+        idempotency_key: str,
+    ) -> SessionCommandResultV1:
+        request = {"current_session_id": current_session_id}
+        receipt = await self._matching_receipt(
+            user_id=user_id,
+            command_type="revoke_other_sessions_v1",
+            idempotency_key=idempotency_key,
+            request=request,
+        )
+        if receipt:
+            return SessionCommandResultV1.model_validate(
+                {**receipt.result_payload, "replayed": True}
+            )
+        count = await self.repo.revoke_other_sessions(
+            user_id=user_id,
+            current_session_id=current_session_id,
+            now=datetime.now(timezone.utc),
+            reason="user_revoked_others",
+        )
+        payload = {"success": True, "replayed": False, "revoked_sessions": count}
+        await self._store_receipt(
+            user_id=user_id,
+            command_type="revoke_other_sessions_v1",
+            idempotency_key=idempotency_key,
+            request=request,
+            result_payload=payload,
+        )
+        await self.db.commit()
+        return SessionCommandResultV1.model_validate(payload)
+
+    async def change_password(
+        self,
+        *,
+        user: User,
+        payload: dict[str, Any],
+        command: ChangePasswordV1,
+    ) -> ChangePasswordResultV1:
+        _, session_id, family_id, credential_version, session_version = (
+            self._required_session_claims(payload)
+        )
+        if command.current_session_version != session_version:
+            raise IdentityCommandConflictError()
+
+        request = {
+            "session_id": session_id,
+            "session_version": session_version,
+            "current_password_digest": self._digest_secret(command.current_password),
+            "new_password_digest": self._digest_secret(command.new_password),
+        }
+        receipt = await self._matching_receipt(
+            user_id=user.id,
+            command_type="change_password_v1",
+            idempotency_key=command.idempotency_key,
+            request=request,
+        )
+        if receipt:
+            return ChangePasswordResultV1.model_validate(
+                {
+                    **receipt.result_payload,
+                    "replayed": True,
+                    "tokens": None,
+                    "recovery_action": "密码已修改；若令牌响应丢失，请使用新密码重新登录",
+                }
+            )
+
+        if not user.password_hash or not verify_password(command.current_password, user.password_hash):
+            raise CurrentPasswordInvalidError()
+        try:
+            validate_new_password(command.new_password, current_password=command.current_password)
+        except ValueError as exc:
+            raise PasswordPolicyRejectedError(str(exc))
+
+        session = await self.repo.get_session(session_id)
+        if (
+            session is None
+            or session.user_id != user.id
+            or session.token_family_id != family_id
+            or session.version != session_version
+            or session.credential_version != credential_version
+            or session.revoked_at is not None
+        ):
+            raise AuthSessionRevokedError()
+
+        now = datetime.now(timezone.utc)
+        next_credential_version = user.credential_version + 1
+        next_session_version = session.version + 1
+        next_family_id = str(uuid.uuid4())
+        access_token, _, access_expires_at = TokenService.create_access_token(
+            user_id=user.id,
+            role=user.role.value,
+            pseudonym_id=user.pseudonym_id,
+            device_fingerprint=session.client_instance_digest,
+            session_id=session.session_id,
+            token_family_id=next_family_id,
+            credential_version=next_credential_version,
+            session_version=next_session_version,
+        )
+        refresh_token, refresh_jti, refresh_expires_at = TokenService.create_refresh_token(
+            user_id=user.id,
+            role=user.role.value,
+            pseudonym_id=user.pseudonym_id,
+            device_fingerprint=session.client_instance_digest,
+            session_id=session.session_id,
+            token_family_id=next_family_id,
+            credential_version=next_credential_version,
+            session_version=next_session_version,
+        )
+
+        revoked_others = await self.repo.revoke_other_sessions(
+            user_id=user.id,
+            current_session_id=session.session_id,
+            now=now,
+            reason="credential_changed",
+        )
+        user.password_hash = hash_password(command.new_password)
+        user.credential_version = next_credential_version
+        user.password_changed_at = now
+        session.version = next_session_version
+        session.token_family_id = next_family_id
+        session.current_refresh_jti_digest = self._digest_secret(refresh_jti)
+        session.credential_version = next_credential_version
+        session.last_seen_at = now
+        session.refresh_expires_at = refresh_expires_at
+
+        stored_payload = {
+            "schema_version": "1.0",
+            "changed": True,
+            "replayed": False,
+            "session_id": session.session_id,
+            "session_version": next_session_version,
+            "revoked_other_sessions": revoked_others,
+            "tokens": None,
+            "recovery_action": None,
+        }
+        await self._store_receipt(
+            user_id=user.id,
+            command_type="change_password_v1",
+            idempotency_key=command.idempotency_key,
+            request=request,
+            result_payload=stored_payload,
+        )
+        await self.db.commit()
+
+        expires_in = int(access_expires_at.timestamp() - now.timestamp())
+        return ChangePasswordResultV1.model_validate(
+            {
+                **stored_payload,
+                "tokens": TokenPairV1(
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    expires_in=max(0, expires_in),
+                ),
+            }
+        )
 
     async def register_user(
         self,
         phone: str,
         password: str,
-        nickname: Optional[str] = None,
+        nickname: str | None = None,
     ) -> User:
-        """用户注册"""
-        # 检查手机号是否已注册
+        try:
+            validate_new_password(password)
+        except ValueError as exc:
+            raise PasswordPolicyRejectedError(str(exc))
         phone = phone.strip()
         phone_hash = self._phone_lookup_hash(phone)
         result = await self.db.execute(select(User).where(User.phone_hash == phone_hash))
         if result.scalar_one_or_none() is not None:
             raise ValueError("该手机号已注册")
-
-        result = await self.db.execute(
-            select(User).where(
-                User.phone_hash.is_(None),
-                User.phone_encrypted.isnot(None),
-            )
-        )
-        existing_users = result.scalars().all()
-
-        for u in existing_users:
-            try:
-                if u.phone_encrypted and decrypt_pii(u.phone_encrypted) == phone:
-                    raise ValueError("该手机号已注册")
-            except ValueError:
-                raise
-            except Exception:
-                logger.warning("legacy_phone_decrypt_failed", user_id=u.id)
-                continue
-
-        # 创建新用户
-        user_id = str(uuid.uuid4())
-        pseudonym_id = uuid.uuid4().hex
+        if await self._find_legacy_user(phone, phone_hash) is not None:
+            raise ValueError("该手机号已注册")
 
         user = User(
-            id=user_id,
+            id=str(uuid.uuid4()),
             role=UserRole.USER,
             status=UserStatus.ACTIVE,
             phone_encrypted=encrypt_pii(phone),
             phone_hash=phone_hash,
             password_hash=hash_password(password),
+            credential_version=1,
+            password_changed_at=datetime.now(timezone.utc),
             nickname=nickname.strip() if nickname and nickname.strip() else None,
-            pseudonym_id=pseudonym_id,
+            pseudonym_id=uuid.uuid4().hex,
         )
-
         self.db.add(user)
         try:
             await self.db.commit()
-        except IntegrityError as e:
+        except IntegrityError as exc:
             await self.db.rollback()
-            raise ValueError("该手机号已注册") from e
+            raise ValueError("该手机号已注册") from exc
         await self.db.refresh(user)
-
         logger.info("user_registered", user_id=user.id)
         return user
+
+    async def _find_legacy_user(self, phone: str, phone_hash: str) -> User | None:
+        result = await self.db.execute(
+            select(User).where(User.phone_hash.is_(None), User.phone_encrypted.isnot(None))
+        )
+        for candidate in result.scalars().all():
+            try:
+                if candidate.phone_encrypted and decrypt_pii(candidate.phone_encrypted) == phone:
+                    candidate.phone_hash = phone_hash
+                    return candidate
+            except Exception:
+                logger.warning("legacy_phone_decrypt_failed", user_id=candidate.id)
+        return None
+
+    def _required_session_claims(
+        self, payload: dict[str, Any]
+    ) -> tuple[str, str, str, int, int]:
+        user_id = payload.get("sub")
+        session_id = payload.get("sid")
+        family_id = payload.get("fam")
+        credential_version = payload.get("cv")
+        session_version = payload.get("sv")
+        if (
+            not isinstance(user_id, str)
+            or not isinstance(session_id, str)
+            or not isinstance(family_id, str)
+            or not isinstance(credential_version, int)
+            or not isinstance(session_version, int)
+        ):
+            raise AuthSessionRequiredError()
+        return user_id, session_id, family_id, credential_version, session_version
+
+    def _verify_device_binding(
+        self, payload: dict[str, Any], device_fingerprint: str | None
+    ) -> None:
+        expected = payload.get("dfp")
+        if not expected:
+            return
+        if not device_fingerprint:
+            raise DeviceMismatchError()
+        actual = self._hash_device_fingerprint(device_fingerprint)
+        if not hmac.compare_digest(expected, actual):
+            raise DeviceMismatchError()
+
+    async def _matching_receipt(
+        self,
+        *,
+        user_id: str,
+        command_type: str,
+        idempotency_key: str,
+        request: dict[str, Any],
+    ) -> IdentityCommandReceiptRecord | None:
+        key_digest = self._digest_secret(idempotency_key)
+        receipt = await self.repo.get_receipt(
+            user_id=user_id, command_type=command_type, key_digest=key_digest
+        )
+        if receipt and not hmac.compare_digest(
+            receipt.request_digest, self._request_digest(request)
+        ):
+            raise IdentityCommandConflictError()
+        return receipt
+
+    async def _store_receipt(
+        self,
+        *,
+        user_id: str,
+        command_type: str,
+        idempotency_key: str,
+        request: dict[str, Any],
+        result_payload: dict[str, Any],
+    ) -> None:
+        await self.repo.add_receipt(
+            IdentityCommandReceiptRecord(
+                receipt_id=str(uuid.uuid4()),
+                user_id=user_id,
+                command_type=command_type,
+                idempotency_key_digest=self._digest_secret(idempotency_key),
+                request_digest=self._request_digest(request),
+                result_payload=result_payload,
+            )
+        )
+
+    @staticmethod
+    def _as_utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+    @staticmethod
+    def _client_label(client_digest: str | None) -> str:
+        return f"Askora App 实例 · {client_digest[-6:]}" if client_digest else "Askora App 实例"
+
+    @staticmethod
+    def _hash_device_fingerprint(device_fingerprint: str) -> str:
+        return hmac.new(
+            settings.kek_master_key.encode(), device_fingerprint.encode(), hashlib.sha256
+        ).hexdigest()
+
+    @staticmethod
+    def _phone_lookup_hash(phone: str) -> str:
+        return hmac.new(settings.kek_master_key.encode(), phone.encode(), hashlib.sha256).hexdigest()
+
+    @staticmethod
+    def _digest_secret(value: str) -> str:
+        return hmac.new(settings.kek_master_key.encode(), value.encode(), hashlib.sha256).hexdigest()
+
+    @classmethod
+    def _request_digest(cls, value: dict[str, Any]) -> str:
+        canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return cls._digest_secret(canonical)

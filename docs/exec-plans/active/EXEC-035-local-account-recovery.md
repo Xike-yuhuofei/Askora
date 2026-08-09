@@ -1,7 +1,7 @@
 # EXEC-035 — Local Account Recovery Kit
 
 > Priority：P1-05
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY
+> Status：FROZEN / ACTIVE
 > Depends on：EXEC-034 DONE
 > Governing decision：ADR-0009
 

@@ -19,6 +19,23 @@ export const logout = () => api.post('/auth/logout').then((r) => r.data)
 // 获取当前用户
 export const getMe = () => api.get('/auth/me').then((r) => r.data)
 
+export const changePassword = (command) =>
+  api.post('/auth/password/change', command).then((r) => r.data)
+
+export const listSessions = () => api.get('/auth/sessions').then((r) => r.data)
+
+export const revokeSession = (sessionId, idempotencyKey) =>
+  api.post(`/auth/sessions/${encodeURIComponent(sessionId)}/revoke`, {
+    schema_version: '1.0',
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
+export const revokeOtherSessions = (idempotencyKey) =>
+  api.post('/auth/sessions/revoke-others', {
+    schema_version: '1.0',
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
 // 刷新 token
 export const refreshToken = (refresh_token) =>
   api.post('/auth/refresh', {

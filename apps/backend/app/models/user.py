@@ -11,9 +11,11 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     Index,
+    Integer,
     String,
     Text,
     func,
@@ -70,6 +72,12 @@ class User(Base):
 
     # 密码哈希
     password_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    credential_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="1"
+    )
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # 微信 OpenID
     wechat_openid_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -102,4 +110,7 @@ class User(Base):
     dialog_sessions: Mapped[list["DialogSession"]] = relationship(
         "DialogSession", back_populates="user", cascade="all, delete-orphan"
     )
-    __table_args__ = (Index("idx_users_role_status", "role", "status"),)
+    __table_args__ = (
+        CheckConstraint("credential_version > 0", name="ck_users_credential_version_positive"),
+        Index("idx_users_role_status", "role", "status"),
+    )

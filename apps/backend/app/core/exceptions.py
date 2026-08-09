@@ -103,6 +103,72 @@ class AuthenticationStateUnavailableError(AuthError):
         )
 
 
+class CurrentPasswordInvalidError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_CURRENT_PASSWORD_INVALID",
+            message="当前密码不正确",
+        )
+
+
+class PasswordPolicyRejectedError(AuthError):
+    def __init__(self, message: str = "新密码不符合 password-policy-v2") -> None:
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error_code="AUTH_PASSWORD_POLICY_REJECTED",
+            message=message,
+        )
+
+
+class AuthSessionRequiredError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_SESSION_REQUIRED",
+            message="旧版会话已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class AuthSessionNotFoundError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="AUTH_SESSION_NOT_FOUND",
+            message="会话不存在或无权访问",
+        )
+
+
+class AuthSessionRevokedError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_SESSION_REVOKED",
+            message="会话已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class RefreshReplayDetectedError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_REFRESH_REPLAY_DETECTED",
+            message="检测到刷新令牌重复使用，当前会话已撤销",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class IdentityCommandConflictError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="CONCURRENT_VERSION_CONFLICT",
+            message="请求版本或幂等键与已处理命令冲突，请刷新后重试",
+        )
+
+
 # ========== 合规相关 (COMP-xxxx) ==========
 
 

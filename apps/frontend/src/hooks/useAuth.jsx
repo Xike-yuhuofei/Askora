@@ -116,8 +116,16 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const replaceSessionTokens = (tokens) => {
+    if (!tokens?.access_token || !tokens?.refresh_token) {
+      throw new Error('新的会话令牌缺失，请重新登录')
+    }
+    localStorage.setItem('access_token', tokens.access_token)
+    localStorage.setItem('refresh_token', tokens.refresh_token)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchMe, replaceSessionTokens }}>
       {children}
     </AuthContext.Provider>
   )

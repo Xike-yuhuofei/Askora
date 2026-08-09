@@ -170,7 +170,7 @@
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN | 单份资料到 canonical teaching 启动 UI 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
 | `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
-| `docs/exec-plans/active/EXEC-034-identity-session-foundation.md` | CANONICAL-RETAIN | P1-05 durable session/password active EXEC |
+| `docs/exec-plans/completed/EXEC-034-identity-session-foundation.md` | HISTORICAL-RETAIN | P1-05 durable session/password completed EXEC |
 | `docs/exec-plans/active/EXEC-035-local-account-recovery.md` | CANONICAL-RETAIN | P1-05 local recovery frozen dependency EXEC |
 | `docs/exec-plans/active/EXEC-036-account-deletion-erasure.md` | CANONICAL-RETAIN | P1-05 account deletion/erasure frozen dependency EXEC |
 
@@ -182,6 +182,7 @@
 | `docs/releases/book-to-adaptive-learning.md` | CURRENT-UPDATED | Book-to-Learning Engineering/Contract、Policy/Ownership 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b1-material-learning-launch.md` | CURRENT-UPDATED | UI-02B1 Engineering/UI Contract/Accessibility 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b-goals-path-evidence.md` | CURRENT-UPDATED | UI-02B Goals/Path/Evidence Engineering、Ownership 与 Learning Evidence 分离报告 |
+| `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 rolling Engineering、Ownership 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

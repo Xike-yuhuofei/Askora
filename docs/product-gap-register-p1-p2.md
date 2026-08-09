@@ -96,7 +96,7 @@
 
 [认证客户端](../apps/frontend/src/api/auth.js) 当前覆盖注册、登录、刷新令牌和退出。
 
-治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结，按 EXEC-034 → 035 → 036 串行实施。P1-04 已占用 EXEC-031～033，两队列不得混用文件或提交。
+治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034 已完成并独立提交，当前按 EXEC-035 → 036 串行实施。P1-04 已占用 EXEC-031～033，两队列不得混用文件或提交。
 
 方案边界：
 

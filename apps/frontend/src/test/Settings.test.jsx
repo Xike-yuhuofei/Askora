@@ -2,22 +2,55 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as usersApi from '../api/users'
+import * as authApi from '../api/auth'
 import Settings from '../pages/Settings'
 import { RouterProvider } from '../router'
 
 const logout = vi.fn()
+const replaceSessionTokens = vi.fn()
 
 vi.mock('../api/users', () => ({ getSystemConfig: vi.fn() }))
+vi.mock('../api/auth', () => ({
+  changePassword: vi.fn(),
+  listSessions: vi.fn(),
+  revokeOtherSessions: vi.fn(),
+  revokeSession: vi.fn(),
+}))
 vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({ user: { nickname: '测试用户', status: 'active' }, logout }),
+  useAuth: () => ({ user: { nickname: '测试用户', status: 'active' }, logout, replaceSessionTokens }),
 }))
 
-describe('UI-SCREEN-090 / UI01-VSLICE-AC-008 settings', () => {
+describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
   beforeEach(() => {
     window.location.hash = '#/settings'
     logout.mockReset()
+    replaceSessionTokens.mockReset()
     usersApi.getSystemConfig.mockReset()
     usersApi.getSystemConfig.mockResolvedValue({ mode: 'private', llm_ready: false })
+    authApi.listSessions.mockReset()
+    authApi.changePassword.mockReset()
+    authApi.revokeOtherSessions.mockReset()
+    authApi.revokeSession.mockReset()
+    authApi.listSessions.mockResolvedValue({
+      sessions: [
+        {
+          session_id: 'session-current',
+          version: 1,
+          client_label: 'Askora App 实例 · current',
+          current: true,
+          revoked: false,
+          last_seen_at: '2026-08-09T01:00:00Z',
+        },
+        {
+          session_id: 'session-other',
+          version: 1,
+          client_label: 'Askora App 实例 · other',
+          current: false,
+          revoked: false,
+          last_seen_at: '2026-08-08T01:00:00Z',
+        },
+      ],
+    })
   })
 
   it('states the private runtime boundary without exposing credentials', async () => {
@@ -28,13 +61,43 @@ describe('UI-SCREEN-090 / UI01-VSLICE-AC-008 settings', () => {
     expect(screen.queryByText(/api[_ -]?key/i)).not.toBeInTheDocument()
   })
 
-  it('describes logout as local-session clearing and returns to login', async () => {
+  it('describes logout as server-side session revocation and returns to login', async () => {
     logout.mockResolvedValue(undefined)
     render(<RouterProvider><Settings /></RouterProvider>)
 
-    expect(screen.getByText(/不会删除服务端学习数据/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /退出并清除本地登录信息/ }))
+    expect(await screen.findByText(/不会删除学习数据/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /退出当前会话/ }))
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(window.location.hash).toBe('#/login'))
+  })
+
+  it('changes password, rotates tokens and reports revoked sessions', async () => {
+    authApi.changePassword.mockResolvedValue({
+      changed: true,
+      revoked_other_sessions: 1,
+      tokens: { access_token: 'new-access', refresh_token: 'new-refresh' },
+    })
+    render(<RouterProvider><Settings /></RouterProvider>)
+
+    await screen.findByText('Askora App 实例 · current（当前）')
+    fireEvent.change(screen.getByLabelText('当前密码'), { target: { value: 'correct horse battery staple' } })
+    fireEvent.change(screen.getByLabelText('新密码'), { target: { value: '新的 Askora 密码 足够长 2026' } })
+    fireEvent.change(screen.getByLabelText('确认新密码'), { target: { value: '新的 Askora 密码 足够长 2026' } })
+    fireEvent.click(screen.getByRole('button', { name: '修改密码并轮换会话' }))
+
+    await waitFor(() => expect(authApi.changePassword).toHaveBeenCalledTimes(1))
+    expect(replaceSessionTokens).toHaveBeenCalledWith({ access_token: 'new-access', refresh_token: 'new-refresh' })
+    expect(await screen.findByText(/已撤销 1 个其他会话/)).toBeInTheDocument()
+  })
+
+  it('labels instances as untrusted display data and can revoke another session', async () => {
+    authApi.revokeSession.mockResolvedValue({ success: true, revoked_sessions: 1 })
+    render(<RouterProvider><Settings /></RouterProvider>)
+
+    expect(await screen.findByText(/不代表可信硬件身份/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '撤销' }))
+    await waitFor(() => expect(authApi.revokeSession).toHaveBeenCalledWith(
+      'session-other', expect.stringMatching(/^revoke-session-/),
+    ))
   })
 })

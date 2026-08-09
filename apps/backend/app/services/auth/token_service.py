@@ -7,6 +7,7 @@ Access Token（15分钟）+ Refresh Token（7天，Rotation）
 from __future__ import annotations
 
 import asyncio
+import hmac
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -25,8 +26,8 @@ from app.core.redis_client import (
     mark_redis_unavailable,
 )
 
-# 密码哈希上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# password-policy-v2：新写 Argon2id；bcrypt 仅用于历史读取并在成功认证后迁移。
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated=["bcrypt"])
 logger = get_logger(__name__)
 
 # 私人本地/开发/测试模式在 Redis 暂不可用时使用进程内黑名单。生产环境不降级放行。
@@ -85,6 +86,11 @@ class TokenService:
         role: str,
         pseudonym_id: str,
         device_fingerprint: Optional[str] = None,
+        *,
+        session_id: str | None = None,
+        token_family_id: str | None = None,
+        credential_version: int | None = None,
+        session_version: int | None = None,
     ) -> tuple[str, str, datetime]:
         """
         创建 Access Token
@@ -95,10 +101,24 @@ class TokenService:
         expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
         expires_at = datetime.now(timezone.utc) + expires_delta
 
-        extra_claims = {
+        extra_claims: dict[str, Any] = {
             "role": role,
             "pseudonym_id": pseudonym_id,
         }
+        if (
+            session_id is not None
+            and token_family_id is not None
+            and credential_version is not None
+            and session_version is not None
+        ):
+            extra_claims.update(
+                {
+                    "sid": session_id,
+                    "fam": token_family_id,
+                    "cv": credential_version,
+                    "sv": session_version,
+                }
+            )
         if device_fingerprint:
             extra_claims["dfp"] = device_fingerprint
 
@@ -117,6 +137,11 @@ class TokenService:
         role: str,
         pseudonym_id: str,
         device_fingerprint: Optional[str] = None,
+        *,
+        session_id: str | None = None,
+        token_family_id: str | None = None,
+        credential_version: int | None = None,
+        session_version: int | None = None,
     ) -> tuple[str, str, datetime]:
         """
         创建 Refresh Token（带 Rotation）
@@ -127,10 +152,24 @@ class TokenService:
         expires_delta = timedelta(days=settings.refresh_token_expire_days)
         expires_at = datetime.now(timezone.utc) + expires_delta
 
-        extra_claims = {
+        extra_claims: dict[str, Any] = {
             "role": role,
             "pseudonym_id": pseudonym_id,
         }
+        if (
+            session_id is not None
+            and token_family_id is not None
+            and credential_version is not None
+            and session_version is not None
+        ):
+            extra_claims.update(
+                {
+                    "sid": session_id,
+                    "fam": token_family_id,
+                    "cv": credential_version,
+                    "sv": session_version,
+                }
+            )
         if device_fingerprint:
             extra_claims["dfp"] = device_fingerprint
 
@@ -267,12 +306,36 @@ class TokenService:
 
 # 密码相关工具函数
 def hash_password(password: str) -> str:
-    """哈希密码"""
-    if len(password.encode("utf-8")) > 72:
-        raise ValueError("密码的 UTF-8 编码不能超过 72 字节")
+    """Use Argon2id for all new credential writes without bcrypt truncation."""
+    if len(password) > 128:
+        raise ValueError("密码不能超过 128 个 Unicode 字符")
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except (TypeError, ValueError):
+        return False
+
+
+def verify_and_update_password(
+    plain_password: str, hashed_password: str
+) -> tuple[bool, str | None]:
+    """Verify a credential and return an Argon2id replacement for legacy bcrypt."""
+    try:
+        verified, replacement = pwd_context.verify_and_update(plain_password, hashed_password)
+    except (TypeError, ValueError):
+        return False, None
+    return bool(verified), replacement
+
+
+def validate_new_password(password: str, *, current_password: str | None = None) -> None:
+    """Enforce password-policy-v2 for registration/change/recovery writes."""
+    if not 15 <= len(password) <= 128:
+        raise ValueError("新密码必须为 15～128 个 Unicode 字符")
+    if current_password is not None and hmac.compare_digest(
+        password.encode("utf-8"), current_password.encode("utf-8")
+    ):
+        raise ValueError("新密码不能与当前密码相同")

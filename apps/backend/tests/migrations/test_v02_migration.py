@@ -7,12 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from sqlalchemy import inspect, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy import MetaData, Table, inspect, select
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.models.assessment import AssessmentResult
 from app.models.dialog import DialogSession
-from app.models.user import User
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
@@ -37,34 +36,61 @@ async def test_representative_legacy_database_forward_rollback_and_reconcile(
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'legacy-v02.db'}"
     _alembic(database_url, "upgrade", "c81f6ec4a2d1")
     engine = create_async_engine(database_url)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with factory() as session:
-        user = User(id="legacy-user", pseudonym_id="legacy-pseudonym")
-        dialog = DialogSession(
-            id="legacy-session",
-            user_id=user.id,
-            pseudonym_id=user.pseudonym_id,
-            mastery_estimate=0.88,
-        )
-        legacy_result = AssessmentResult(
-            id="legacy-result",
-            user_id=user.id,
-            pseudonym_id=user.pseudonym_id,
-            assessment_type="formative",
-            subject="science",
-            knowledge_point_ids=["legacy-kp"],
-            grade_level=0,
-            total_items=1,
-            correct_count=1,
-            score=1.0,
-            time_spent_seconds=5,
-            mastery_estimates={"legacy-kp": {"p": 0.99}},
-            detected_misconceptions=[],
-            item_results=[],
-            started_at=datetime.now(timezone.utc),
-        )
-        session.add_all([user, dialog, legacy_result])
-        await session.commit()
+    async with engine.begin() as connection:
+        def insert_historical_fixture(sync_connection) -> None:
+            metadata = MetaData()
+            users = Table("users", metadata, autoload_with=sync_connection)
+            dialogs = Table("dialog_sessions", metadata, autoload_with=sync_connection)
+            results = Table("assessment_results", metadata, autoload_with=sync_connection)
+            sync_connection.execute(
+                users.insert().values(
+                    id="legacy-user",
+                    role="USER",
+                    status="ACTIVE",
+                    is_verified=False,
+                    pseudonym_id="legacy-pseudonym",
+                )
+            )
+            sync_connection.execute(
+                dialogs.insert().values(
+                    id="legacy-session",
+                    user_id="legacy-user",
+                    pseudonym_id="legacy-pseudonym",
+                    subject="science",
+                    status="ACTIVE",
+                    current_hint_level=0,
+                    hint_escalation_count=0,
+                    wrong_streak=0,
+                    mastery_estimate=0.88,
+                    turn_count=0,
+                    total_tokens=0,
+                    duration_seconds=0,
+                    moderation_status="approved",
+                    model_provider="fixture",
+                    model_name="fixture",
+                )
+            )
+            sync_connection.execute(
+                results.insert().values(
+                    id="legacy-result",
+                    user_id="legacy-user",
+                    pseudonym_id="legacy-pseudonym",
+                    assessment_type="formative",
+                    subject="science",
+                    knowledge_point_ids=["legacy-kp"],
+                    grade_level=0,
+                    total_items=1,
+                    correct_count=1,
+                    score=1.0,
+                    time_spent_seconds=5,
+                    mastery_estimates={"legacy-kp": {"p": 0.99}},
+                    detected_misconceptions=[],
+                    item_results=[],
+                    started_at=datetime.now(timezone.utc),
+                )
+            )
+
+        await connection.run_sync(insert_historical_fixture)
     await engine.dispose()
 
     _alembic(database_url, "upgrade", "head")

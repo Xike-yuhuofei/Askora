@@ -24,6 +24,7 @@ from app.models.assessment import (
 )
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
+from app.models.identity import AuthSessionRecord, IdentityCommandReceiptRecord
 from app.models.knowledge import KnowledgePoint, LearningMaterial
 from app.models.ledger import (
     DecisionTraceInputRecord,
@@ -57,6 +58,8 @@ __all__ = [
     "User",
     "UserRole",
     "UserStatus",
+    "AuthSessionRecord",
+    "IdentityCommandReceiptRecord",
     "UserProfile",
     "DialogSession",
     "DialogMessage",

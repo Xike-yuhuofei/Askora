@@ -1,7 +1,7 @@
 # EXEC-034 — Identity Credential and Durable Session Foundation
 
 > Priority：P1-05
-> Status：FROZEN / ACTIVE
+> Status：DONE
 > Depends on：ADR-0009 + IDP Spec frozen
 > Governing decision：ADR-0009
 
@@ -41,6 +41,7 @@ apps/backend/tests/integration/test_identity_sessions.py
 apps/backend/tests/integration/test_identity_session_migration.py
 apps/backend/tests/security/test_identity_security.py
 apps/backend/tests/test_auth_security.py
+apps/backend/tests/migrations/test_v02_migration.py (historical-schema fixture only)
 apps/frontend/src/api/auth.js
 apps/frontend/src/hooks/useAuth.jsx
 apps/frontend/src/pages/Settings.jsx
@@ -66,6 +67,9 @@ apps/frontend/src/test/AuthBoundary.test.jsx
 5. 实现 Settings password/session UI 与 token replacement。
 6. 覆盖 contract/security/SQLite/PostgreSQL migration/concurrency/Redis outage/frontend tests。
 7. full gates、release evidence、归档并独立 commit。
+
+历史 migration fixture MUST 通过反射后的历史表或等价 raw fixture 写入，MUST NOT 用当前
+`User` ORM 假装旧 schema；本项只允许修复 fixture 构造，不得削弱既有 reconciliation 断言。
 
 ## Acceptance Criteria
 
@@ -98,3 +102,13 @@ git diff --check
 ## Completion Report Format
 
 分别报告 Engineering、Policy/Ownership、Learning Evidence；列出 migration、测试、真实 UI、commit、SPEC GAP 与未提交用户改动保护。
+
+## Completion Report — 2026-08-09
+
+- Engineering：PASS（15/15 Identity targeted backend、52/52 frontend、build、ruff、mypy、SQLite upgrade/check、PostgreSQL offline DDL）；全后端 342 passed / 1 skipped / 2 failed，其中本项引入的历史 migration fixture failure 已修复并单独通过，剩余 Book Learning 非 UUID fixture 为本分支既有且在 Allowed Files 外。
+- Policy/Ownership：PASS；数据库 `AuthSession` 是唯一 session truth，Redis 不参与放行、撤销或 session limit；JWT 与 exact `sid/fam/cv/sv` 绑定。
+- Learning Evidence：`LEARNING_EVIDENCE_INSUFFICIENT`；账号工程与安全门禁不证明真人学习效果。
+- Migration：`f34a91b807d1`，SQLite upgrade/downgrade/forward-fix 与 PostgreSQL offline SQL 通过。
+- UI：Settings 已交付密码修改、current family rotation、session list、revoke one/others 与失败恢复；真实浏览器在 P1-05 最终 Slice gate 统一复验。
+- SPEC GAP：无。
+- Implementation commit：包含本归档的独立 EXEC-034 commit。

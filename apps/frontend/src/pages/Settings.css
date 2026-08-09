@@ -75,6 +75,69 @@
   line-height: 1.6;
 }
 
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.settings-form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-container);
+  color: var(--text-primary);
+}
+
+.settings-form .settings-help,
+.settings-form .button {
+  grid-column: 1 / -1;
+}
+
+.settings-help {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.inline-success {
+  color: var(--success, #217a45);
+}
+
+.session-list {
+  display: grid;
+  gap: 10px;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.session-item > div {
+  display: grid;
+  gap: 4px;
+}
+
+.session-item small {
+  color: var(--text-secondary);
+}
+
 .settings-session {
   display: flex;
   align-items: center;
@@ -105,5 +168,9 @@
   .settings-session {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .settings-form {
+    grid-template-columns: 1fr;
   }
 }
