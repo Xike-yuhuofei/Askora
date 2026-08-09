@@ -12,7 +12,9 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-PREVIOUS_HEAD = "f35b91b807d2"
+IDENTITY_HEAD = "f35b91b807d2"
+MAIN_HEAD = "f1061a0b9c01"
+MIGRATION_REVISION = "f36c91b807d3"
 
 
 def _alembic(database_url: str, *arguments: str) -> None:
@@ -31,7 +33,7 @@ def _alembic(database_url: str, *arguments: str) -> None:
 @pytest.mark.asyncio
 async def test_account_deletion_migration_upgrade_rollback_forward_fix(tmp_path: Path) -> None:
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'account-deletion-migration.db'}"
-    _alembic(database_url, "upgrade", PREVIOUS_HEAD)
+    _alembic(database_url, "upgrade", IDENTITY_HEAD)
     _alembic(database_url, "upgrade", "head")
 
     engine = create_async_engine(database_url)
@@ -49,7 +51,7 @@ async def test_account_deletion_migration_upgrade_rollback_forward_fix(tmp_path:
         assert "account_lifecycle" in user_columns
     await engine.dispose()
 
-    _alembic(database_url, "downgrade", PREVIOUS_HEAD)
+    _alembic(database_url, "downgrade", IDENTITY_HEAD)
     rolled_back = create_async_engine(database_url)
     async with rolled_back.connect() as connection:
         tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
@@ -74,7 +76,7 @@ def test_account_deletion_postgresql_offline_ddl_is_portable() -> None:
             "-m",
             "alembic",
             "upgrade",
-            f"{PREVIOUS_HEAD}:head",
+            f"{MAIN_HEAD}:{MIGRATION_REVISION}",
             "--sql",
         ],
         cwd=BACKEND_ROOT,

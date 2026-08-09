@@ -355,4 +355,4 @@ Spec Freeze Gate：**PASS**，条件为：
 - 未引入新的学习效果宣称；
 - 后续实现只能通过新的 EXEC 分解进入 Codex。
 
-任何实现阶段发现必须违反本合同或现有 canonical Spec 的情况，必须 `BLOCKED_BY_SPEC_GAP`，不得由 Codex 自主补设计。
+任何实现阶段发现必须违反本合同或现有 canonical Spec 的情况，必须报告 `SPEC GAP`。未获用户委托架构自治时标记 `BLOCKED_BY_SPEC_GAP`；已获委托时，Codex MUST 先以新的 Accepted ADR、Spec 与冻结 EXEC 显式补齐设计，再修改产品代码。

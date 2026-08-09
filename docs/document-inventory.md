@@ -39,15 +39,21 @@
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0003-policy-runtime-profile-source-and-activation.md` | CANONICAL-RETAIN | Accepted production profile source / activation resolution decision |
+| `docs/adr/ADR-0004-guided-book-learning-and-durable-transcript.md` | CANONICAL-RETAIN | User-delegated guided flow and SYS08 transcript decision |
+| `docs/adr/ADR-0005-policy-bound-real-model-rendering.md` | CANONICAL-RETAIN | User-delegated production real-model rendering and E2E decision |
 | `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN | UI-02B read scope、objective missing semantics 与 owner-safe evidence label 决策 |
 | `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
+| `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN | P1-04 SYS01 metadata/search/dedup/OCR governance |
 | `docs/adr/ADR-0009-local-first-identity-privacy-lifecycle.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、privacy erasure 与 restore barrier 决策 |
+| `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
 | `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
 | `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
 | `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A completion evidence snapshot |
+| `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | UI-02B2 guided learning completion evidence snapshot |
+| `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN | P1-04 search、organization、deduplication 与 local OCR completion evidence |
 
 ## 3. Canonical Design 与 Research
 
@@ -57,6 +63,7 @@
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
 | `docs/design/账号与隐私生命周期设计.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、recovery 与 privacy deletion 设计 |
+| `docs/design/p1-06-fact-driven-first-use-journey.md` | CANONICAL-RETAIN | P1-06 事实驱动、可恢复的首次学习旅程设计 |
 | `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
@@ -100,6 +107,7 @@
 | `docs/specs/interfaces/content-ingestion-contract.md` | CANONICAL-RETAIN | SPEC-D01；结构保真 ingestion / source locator / replay 冻结合同 |
 | `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
 | `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
+| `docs/specs/interfaces/onboarding-contract.md` | CANONICAL-RETAIN | P1-06 presentation preference、readiness、single next action 与 route contract |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
 | `docs/specs/interfaces/schema-versioning.md` | CANONICAL-RETAIN | 仍适用的 versioning contract |
 | `docs/specs/quality/testing-standard.md` | CANONICAL-RETAIN | v0.3 quality contract |
@@ -132,17 +140,24 @@
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
 | `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 已完成 |
 | `docs/specs/vertical-slices/ui-02b1-material-learning-launch.md` | CANONICAL-RETAIN | 冻结 UI-02B1 Vertical Slice；EXEC-025 已完成 |
+| `docs/specs/vertical-slices/ui-02b2-guided-book-learning.md` | CANONICAL-RETAIN | 冻结 UI-02B2 system-guided launch 与 durable transcript Slice |
+| `docs/specs/vertical-slices/ui-02b3-real-model-guided-learning.md` | CANONICAL-RETAIN | 冻结 production real-model guided learning 与真实 E2E Slice |
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结并完成 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 DONE |
-| `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 冻结 UI-02C activity start/resume/complete/next Slice；等待依赖提交 |
+| `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | UI-02C activity start/resume/complete/next Slice；EXEC-030 DONE |
 | `docs/specs/platform/identity-privacy-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 Identity/Privacy 平台合同 |
 | `docs/specs/vertical-slices/p1-05-account-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 完整账号生命周期 Slice |
+| `docs/specs/systems/01-library-management.md` | CANONICAL-RETAIN | P1-04 SYS01 additive implementation contract |
+| `docs/specs/vertical-slices/p1-04a-library-organization.md` | CANONICAL-RETAIN | P1-04A search/metadata/organization Slice |
+| `docs/specs/vertical-slices/p1-04b-library-deduplication.md` | CANONICAL-RETAIN | P1-04B duplicate governance Slice |
+| `docs/specs/vertical-slices/p1-04c-library-ocr-review.md` | CANONICAL-RETAIN | P1-04C OCR candidate/review Slice |
+| `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025、EXEC-029、EXEC-034～036 已完成；EXEC-030 frozen/blocked |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025、EXEC-029 与 EXEC-034～036 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～036 与 EXEC-1061 已完成；EXEC-1062 active |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～036 与 EXEC-1061 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -168,11 +183,19 @@
 | `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN | Book-to-Learning readiness/additive API 与现有 canonical teaching handoff 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN | Book-to-Learning E2E、replay、security 与 release gate 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN | 单份资料到 canonical teaching 启动 UI 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-026-ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | 系统带领 Book Learning 与 durable transcript 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-027-ui-02b3-real-model-e2e.md` | HISTORICAL-RETAIN | production real-model rendering 与真实 E2E 完成合同 |
+| `docs/exec-plans/completed/EXEC-028-zhipu-development-model.md` | HISTORICAL-RETAIN | 智谱开发模型接入、真实模型验证与本机配置边界 |
 | `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
-| `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
+| `docs/exec-plans/completed/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | UI-02C lifecycle 已完成归档 |
+| `docs/exec-plans/completed/EXEC-031-p1-04a-library-organization.md` | HISTORICAL-RETAIN | P1-04A completed execution contract |
+| `docs/exec-plans/completed/EXEC-032-p1-04b-library-deduplication.md` | HISTORICAL-RETAIN | P1-04B completed execution contract |
+| `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
 | `docs/exec-plans/completed/EXEC-034-identity-session-foundation.md` | HISTORICAL-RETAIN | P1-05 durable session/password completed EXEC |
 | `docs/exec-plans/completed/EXEC-035-local-account-recovery.md` | HISTORICAL-RETAIN | P1-05 local recovery completed EXEC |
 | `docs/exec-plans/completed/EXEC-036-account-deletion-erasure.md` | HISTORICAL-RETAIN | P1-05 account deletion/erasure completed EXEC |
+| `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
+| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 
 ## 6. Release Evidence
 
@@ -181,8 +204,11 @@
 | `docs/releases/README.md` | CURRENT-UPDATED | 历史发布与验收证据索引 |
 | `docs/releases/book-to-adaptive-learning.md` | CURRENT-UPDATED | Book-to-Learning Engineering/Contract、Policy/Ownership 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b1-material-learning-launch.md` | CURRENT-UPDATED | UI-02B1 Engineering/UI Contract/Accessibility 与 Learning Evidence 分离报告 |
+| `docs/releases/ui-02b2-guided-book-learning.md` | CURRENT-UPDATED | UI-02B2 Engineering/UI/Contract/Ownership/Security 与 Learning Evidence 分离报告 |
+| `docs/releases/ui-02b3-real-model-guided-learning.md` | CURRENT-UPDATED | UI-02B3 真实浏览器/provider/PostgreSQL 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b-goals-path-evidence.md` | CURRENT-UPDATED | UI-02B Goals/Path/Evidence Engineering、Ownership 与 Learning Evidence 分离报告 |
-| `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 rolling Engineering、Ownership 与 Learning Evidence 分离报告 |
+| `docs/releases/ui-02c-canonical-activity-lifecycle.md` | CURRENT-UPDATED | UI-02C Engineering、Ownership、浏览器 lifecycle 与 Learning Evidence 分离报告 |
+| `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 Engineering、Ownership 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

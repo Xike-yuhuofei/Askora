@@ -1,0 +1,15 @@
+.activity-learning { max-width: 900px; margin: 0 auto; }
+.activity-learning__header { display: grid; gap: 1rem; }
+.activity-learning__header .button { justify-self: start; }
+.activity-learning__ready, .activity-learning__complete, .activity-learning__blocked { display: grid; justify-items: start; gap: .9rem; padding: clamp(1.25rem, 4vw, 2rem); }
+.activity-learning__session { overflow: hidden; }
+.activity-learning__messages { display: grid; gap: 1rem; min-height: 240px; padding: clamp(1rem, 4vw, 2rem); }
+.activity-message { max-width: 78%; padding: .9rem 1rem; border-radius: 16px; background: var(--color-surface-subtle, #f4f2ed); }
+.activity-message--learner { justify-self: end; background: var(--color-accent-soft, #e8f1ec); }
+.activity-message p { margin: .35rem 0 0; white-space: pre-wrap; }
+.activity-learning__empty { align-self: center; justify-self: center; max-width: 520px; text-align: center; }
+.activity-learning__composer { display: grid; grid-template-columns: 1fr auto; gap: .75rem; padding: 1rem; border-top: 1px solid var(--color-border, #dedbd3); }
+.activity-learning__composer textarea { width: 100%; resize: vertical; }
+.activity-learning__finish { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-top: 1px solid var(--color-border, #dedbd3); }
+.activity-learning__finish p { margin: 0; color: var(--color-text-muted, #68645d); }
+@media (max-width: 520px) { .activity-message { max-width: 92%; } .activity-learning__composer { grid-template-columns: 1fr; } .activity-learning__finish { align-items: stretch; flex-direction: column; } }

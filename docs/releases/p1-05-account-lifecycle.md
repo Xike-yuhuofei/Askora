@@ -66,13 +66,13 @@ IDENTITY_FREEZE → SYS08_TASKS → SYS01 → SYS02 → SYS03 → SYS04
 
 ```text
 EXEC-036 targeted backend: 18 passed, 1 PostgreSQL env-gated skipped
-Backend full: 372 passed, 2 skipped
+Backend full: 435 passed, 5 skipped
 ruff app/tests: PASS
-mypy app: PASS (169 source files)
+mypy app: PASS (186 source files)
 SQLite migration upgrade/rollback/forward-fix: PASS
 PostgreSQL full alembic upgrade head + check: PASS
 PostgreSQL representative deletion fixture: 1 passed
-Frontend full: 61 passed
+Frontend full: 68 passed
 Frontend build: PASS
 npm audit --audit-level=high: 0 vulnerabilities
 Real browser console: 0 error / 0 warning
@@ -81,7 +81,7 @@ Redis unavailable startup/deletion journey: PASS
 Old snapshot + retained restore barrier + backend restart: PASS
 ```
 
-普通全量测试中的 2 个 skip 分别是需要显式 real-model 凭据的学习 eval 和需要隔离 PostgreSQL URL 的删除夹具；后者已使用真实临时 PostgreSQL 数据库单独通过。真实模型门控与账号生命周期无关，不能作为本项学习效果证据。
+普通全量测试中的 5 个 skip 包含 1 个需要显式 real-model 凭据的学习 eval，以及 4 个需要隔离 PostgreSQL URL 的迁移、事务和删除夹具；后四者已使用真实临时 PostgreSQL 数据库全部单独通过。真实模型门控与账号生命周期无关，不能作为本项学习效果证据。
 
 ## Policy / Ownership
 
@@ -103,4 +103,4 @@ NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE
 
 - P1-05 范围内未完成项：无。
 - Blocking SPEC GAP：无。
-- 未推送远程；三个 EXEC 均保留独立本地提交边界。
+- `codex/p1-05-account-lifecycle` 已推送远程并建立 PR #5；三个 EXEC 仍保留独立提交边界，另以合并提交吸收当前 `main` 的迁移图与资料库/引导能力。

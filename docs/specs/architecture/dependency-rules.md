@@ -6,7 +6,7 @@
 
 ## 1. Purpose
 
-本规范定义各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移限制。违反本文件的实现必须先通过 Design/ADR/Spec 变更，MUST NOT 由执行代理临场重定义架构。
+本规范定义各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移限制。违反本文件的实现必须先通过 Design/ADR/Spec 变更，MUST NOT 由执行代理在产品代码中临场或隐式重定义架构；用户已委托架构自治时，Codex MAY 先正式接受 ADR、更新 Spec 并冻结 EXEC，再按新合同实现。
 
 ## 2. Existing Dependency Rules Retained
 
@@ -193,3 +193,22 @@ SYS02/SYS08 MUST NOT expand TeachingAction envelope；experiment layer MUST NOT 
 ## 10. Forbidden Implementations
 
 禁止 cross-owner repository writes；SYS08/LLM direct canonical writes；SYS06 private-policy dependency；SYS02 learner-state writer；SYS07 plan writer；chat-text direct state update；SYS02/SYS08 envelope expansion；experiment hard-rule restoration；permanent legacy dual truth。
+
+## 11. P1-06 Onboarding Dependencies
+
+### DEP-300 — Read-only Composition
+
+Onboarding query MAY 读取 Platform Experience Preference、P1-02 public model summary、SYS01 material
+eligibility、SYS06 Goal/Activity projections、P1-03 capability route 与 P1-07 RecoveryAction。它 MUST NOT
+import 或调用这些 owner 的 private repository/write implementation。
+
+### DEP-301 — Command Direction
+
+Onboarding preference command 只能写 presentation preference。模型、资料、Goal、diagnostic、plan、
+activity 和 recovery side effect 必须继续通过对应现有页面/application command；Onboarding 不得提供
+跨 owner generic command router。
+
+### DEP-302 — Completion Source
+
+First activity completion dependency 固定为 SYS06 exact lifecycle state + accepted transcript completion source。
+message/model result/UI state → onboarding completion 的直接依赖 MUST 由 architecture tests 禁止。

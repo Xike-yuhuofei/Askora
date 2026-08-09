@@ -163,3 +163,16 @@ access/refresh token MUST 绑定 durable AuthSession/token family；refresh repl
 ### SEC-303
 
 账号删除必须 cross-user fail closed、manifest scoped、reconciliation zero-residual。tombstone/receipt 不得保存 PII/content/secret；restore barrier 必须在普通认证和后台处理前生效。
+
+## 18. P1-06 Onboarding Security
+
+### SEC-320
+
+Onboarding view/preference/log MUST NOT 包含 Key/fragment、Prompt、grader-only、raw provider body、
+absolute path 或其他用户 ref。Boundary copy 只能引用 P1-02/P1-03 已验证事实，不得承诺完全离线或
+绝对隐私。
+
+### SEC-321
+
+Onboarding MUST NOT 自动 probe provider、加载未经选择的私人文档、创建样例/Goal/Activity 或执行
+recovery command。所有导航后的副作用仍由原 owner command 的 auth/idempotency/security gate 控制。

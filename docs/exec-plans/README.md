@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：EXEC-030 blocked；P1-05 EXEC-034～036 DONE
-> Active：EXEC-030（blocked by dependency）
-> 已完成：EXEC-001～EXEC-025、EXEC-029、EXEC-034～036
+> 状态：EXEC-030 DONE；P1-04 与 P1-05 已完成；P1-06 按独立冻结队列推进
+> Active：EXEC-1062（P1-06 product closure）
+> 已完成：EXEC-001～EXEC-036、EXEC-1061
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md) | EXEC-030 blocked |
-| [`completed/`](completed/README.md) | EXEC-001～025、EXEC-029、EXEC-034～036 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06 为 1061→1062；不得越过依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～036、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -35,11 +35,19 @@ Accepted ADR / Canonical Design
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
 | Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | DONE |
 | UI-02B1 Material-to-Learning Launch | EXEC-025 | DONE |
+| UI-02B2 Guided Book Learning | EXEC-026 | DONE |
+| UI-02B3 Real-model Guided Learning | EXEC-027 | DONE |
+| Zhipu Development Model Integration | EXEC-028 | DONE |
 | UI-02B Goals, Learning Path and Evidence | EXEC-029 | DONE |
-| UI-02C Canonical Activity Lifecycle | EXEC-030 | FROZEN / BLOCKED_BY_DEPENDENCY |
+| UI-02C Canonical Activity Lifecycle | EXEC-030 | DONE |
+| P1-04A Library Search and Organization | [EXEC-031](completed/EXEC-031-p1-04a-library-organization.md) | DONE |
+| P1-04B Library Deduplication | [EXEC-032](completed/EXEC-032-p1-04b-library-deduplication.md) | DONE |
+| P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
 | P1-05 Identity Credential and Durable Sessions | EXEC-034 | DONE |
 | P1-05 Local Account Recovery | EXEC-035 | DONE |
 | P1-05 Account Deletion and Erasure | EXEC-036 | DONE |
+| P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
+| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 
 v0.3 最终状态：
 
@@ -99,6 +107,21 @@ ADR-0009 + IDP Spec
 ```
 
 用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。EXEC-034～036 已在冻结的 Allowed Files/owner 边界内串行完成；P1-05 当前为 DONE，证据见 `docs/releases/p1-05-account-lifecycle.md`。
+
+P1-06 dependency graph：
+
+```text
+ADR-0106 + ONBOARD Spec + UI-02C DONE
+        ↓
+    EXEC-1061
+        ↓
+P1-02/P1-03/P1-07 integration gate
+        ↓
+    EXEC-1062 → P1-06 DONE
+```
+
+用户于 2026-08-09 显式采纳事实驱动 onboarding，并授权真正关闭 P1-06。EXEC-1061 可独立实现
+preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用 placeholder 或 mock 绕过。
 
 ## 4. Queue Contract
 

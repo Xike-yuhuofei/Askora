@@ -6,7 +6,7 @@ Revises: f34a91b807d1
 
 import sqlalchemy as sa
 
-from alembic import op
+from alembic import context, op
 
 revision = "f35b91b807d2"
 down_revision = "f34a91b807d1"
@@ -14,7 +14,47 @@ branch_labels = None
 depends_on = None
 
 
+def _accept_compatible_precreated_schema() -> bool:
+    if context.is_offline_mode():
+        return False
+    inspector = sa.inspect(op.get_bind())
+    expected_tables = {"recovery_credentials", "recovery_throttles"}
+    precreated = expected_tables & set(inspector.get_table_names())
+    if not precreated:
+        return False
+    if precreated != expected_tables:
+        raise RuntimeError(f"partial precreated recovery schema before {revision}: {sorted(precreated)}")
+    required_columns = {
+        "recovery_credentials": {
+            "credential_id",
+            "user_id",
+            "version",
+            "secret_digest",
+            "created_at",
+            "used_at",
+            "revoked_at",
+        },
+        "recovery_throttles": {
+            "subject_digest",
+            "action",
+            "failure_count",
+            "locked_until",
+            "updated_at",
+        },
+    }
+    for table_name, required in required_columns.items():
+        columns = {item["name"] for item in inspector.get_columns(table_name)}
+        if not required.issubset(columns):
+            raise RuntimeError(
+                f"incompatible precreated {table_name} schema for {revision}: "
+                f"missing={sorted(required - columns)}"
+            )
+    return True
+
+
 def upgrade() -> None:
+    if _accept_compatible_precreated_schema():
+        return
     op.create_table(
         "recovery_credentials",
         sa.Column("credential_id", sa.String(length=36), nullable=False),

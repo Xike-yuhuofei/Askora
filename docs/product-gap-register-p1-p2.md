@@ -2,7 +2,7 @@
 
 > 状态：Current Product Gap Register
 > 校准日期：2026-08-09
-> 当前实现基线：UI-02B Goals / Path / Evidence 已完成；UI-02C Activity Lifecycle 已冻结但被依赖阻塞
+> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-04、P1-05 已关闭
 > 用途：记录产品完整性审计中仍未关闭的 P1、P2 问题
 > 权威边界：本文件是产品优先级与验收清单，不是 Spec、ADR 或 EXEC；实现前仍须按 `AGENTS.md` 完成治理闭环
 
@@ -10,10 +10,10 @@
 
 | 优先级 | 总数 | 完全未修复 | 部分改善 | 已关闭 |
 |---|---:|---:|---:|---:|
-| P1 — 可靠的私人产品 | 7 | 5 | 2 | 0 |
+| P1 — 可靠的私人产品 | 7 | 4 | 1 | 2 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
-本清单不包含仍在推进的 P0。当前 P0 仍包括：提交 durable activity transcript / policy-bound Book Learning 依赖，并实施 [EXEC-030](exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md)，闭合“开始 → 恢复 → 完成 → 下一项”。
+本清单不包含已经通过发布门禁并归档的 P0；UI-02C“开始 → 恢复 → 完成 → 下一项”闭环已完成。
 
 状态词：
 
@@ -27,15 +27,13 @@
 
 **状态：PARTIAL**
 
-当前已有只读 Goals、Path 与 Evidence 页面，但目标写入仍主要绑定单份资料启动流程。[Goals 页面](../apps/frontend/src/pages/Goals.jsx) 不提供编辑动作。
+P1-01A 已进入实现门禁：跨资料草稿、可测成功标准候选、显式 target 卡片、版本化预览、活动边界切换和 Focus 合同已经冻结并实现；P1-01B 生命周期与证据门禁达成仍待完成。
 
 仍缺：
 
-- 跨多份资料创建一个目标；
-- 多个 target 的用户明确选择；
 - 暂停、恢复和归档目标；
-- 修改时间预算、截止时间和成功标准；
-- 显式 replan、版本冲突与变更影响说明。
+- criterion-specific 测量、accepted evidence 与用户最终达成确认；
+- 归档后复制为新目标，以及暂停恢复时的输入过期 replan。
 
 完成标准：用户可在不理解内部 ID 的前提下管理完整目标生命周期；所有写入由 SYS06 owner command 完成，版本、幂等、replan 和 rollback/forward-fix 语义明确。
 
@@ -75,20 +73,13 @@
 
 ### P1-04 资料管理
 
-**状态：PARTIAL**
+**状态：DONE（2026-08-09）**
 
-[Library 页面](../apps/frontend/src/pages/Library.jsx) 已支持上传、处理状态、精确学科筛选、删除、知识地图和 SourceSpan 检查。
+[Library 页面](../apps/frontend/src/pages/Library.jsx) 已完成 current-user 标题/正文搜索、标签、集合、元数据编辑、显式批量整理、可恢复归档、versioned 重复建议，以及本地扫描 PDF OCR 人工复核与新 revision 发布。重复建议不会自动合并 canonical knowledge；未接受 OCR 候选不会进入普通搜索、检索或知识地图；原文件和旧 revision 均保留。
 
-仍缺：
+关闭证据：EXEC-031～033 已完成并归档；PostgreSQL migration、rollback/forward-fix、幂等/owner/security/recovery 测试、真实 Tesseract 扫描 PDF、隔离数据库真实浏览器闭环、前端全量测试与构建均通过。完整证据见 [P1-04 Library Management Completion Report](releases/p1-04-library-management.md)。
 
-- 标题与正文搜索；
-- 标签、集合和自定义分类；
-- 重命名与元数据编辑；
-- 重复资料识别与安全合并建议；
-- 批量操作；
-- 扫描 PDF / OCR 产品能力及其低置信度复核流程。
-
-完成标准：资料规模增大后仍可快速找到、整理、纠正和去重；OCR 或模型结果只形成带证据和置信度的候选，不静默覆盖原文事实。
+Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Browser + Local OCR PASS`；`Learning Evidence LEARNING_EVIDENCE_INSUFFICIENT`（本项不声称改善真人学习效果）。
 
 ### P1-05 账号生命周期
 
@@ -96,7 +87,7 @@
 
 [认证客户端](../apps/frontend/src/api/auth.js) 当前覆盖注册、登录、刷新令牌和退出。
 
-治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034～036 已串行完成并保留独立提交，完整工程、所有权、迁移、恢复与真实浏览器证据见 [P1-05 Release Evidence](releases/p1-05-account-lifecycle.md)。P1-04 的 EXEC-031～033 未被混入本项文件或提交。
+治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034～036 已串行完成并保留独立提交，完整工程、所有权、迁移、恢复与真实浏览器证据见 [P1-05 Release Evidence](releases/p1-05-account-lifecycle.md)。P1-04 已通过 EXEC-031～033 完成并冻结，P1-05 未改写其 owner、migration 或公共合同。
 
 方案边界：
 
@@ -181,7 +172,12 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 
 本项不扩展到：多资料 Goal、完整 Goal 编辑、Planner 重排、mastery 判断、Focus、笔记、备份实现或账号删除；这些仍分别属于 P1-01、P1-03、P1-05、P2-01 和 P2-03。
 
-当前存在 `SPEC GAP`：onboarding preference 的 owner/持久化、readiness 聚合 Query、首次完成判定投影、首次路由/deep-link 规则，以及可选样例资料的来源与删除合同尚未冻结。实施前必须完成 additive Design/ADR、UI/API/Error/Persistence Spec、Vertical Slice 与独立 EXEC；不得先用前端状态实现后再补文档。
+治理状态（2026-08-09）：上述实现前 `SPEC GAP` 已由 Canonical Design、ADR-0106、`ONBOARD-*`、
+UI/API/Error/Persistence additive Spec、P1-06 Vertical Slice 与 EXEC-1061→1062 闭合。Preference owner
+固定为 presentation-only Platform Experience Preference；首次完成固定为 SYS06 accepted-transcript
+completion projection；deep-link 规则已冻结；v1 明确不提供样例资料。当前阻塞从 SPEC GAP 转为
+真实依赖/实现 gate：P1-02、P1-03、P1-07 尚须完成并集成，P1-06 仍保持 `OPEN`，不得把治理完成
+写成产品已交付。
 
 #### 验收标准
 

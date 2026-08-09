@@ -36,7 +36,9 @@ Timeout、invalid input、dependency failure、retry exhausted 等适用失败�
 
 ### DOD-008 — Documentation / SPEC GAP
 
-若实现需要改变已冻结公共行为，执行代理 MUST 停止并报告 SPEC GAP；MUST NOT 先改代码后补文档。
+若实现需要改变已冻结公共行为，执行代理 MUST 先报告 SPEC GAP。已获用户架构自治委托时，
+MUST 先创建/接受所需 ADR、更新 Spec 并冻结 EXEC，再继续修改代码；未获委托时 MUST 停止
+并等待决定。任何情况下都 MUST NOT 先改代码后补文档。
 
 ### DOD-020 — PARTIAL / BLOCKED
 
@@ -198,8 +200,22 @@ RELEASE_ELIGIBLE
 
 ## 11. Forbidden Completion / Release Claims
 
-禁止把以下称为 DONE/learning efficacy：关键 TODO/pass/NotImplemented；只有 Mock 却声称真实模型可用；测试未运行却说通过；删除失败测试；发现 Spec conflict 后执行代理自行选方案；新旧 truth 双写无 reconciliation/retirement；仅 UI 正常但事件/证据/状态链未接通；Engineering Correct → 学习有效；Policy Correct → retention/transfer 已提升；synthetic learner → 真人效果；process metrics → primary reward；ambiguous propensity → causal experiment data；隐藏 `LEARNING_EVIDENCE_INSUFFICIENT`。
+禁止把以下称为 DONE/learning efficacy：关键 TODO/pass/NotImplemented；只有 Mock 却声称真实模型可用；测试未运行却说通过；删除失败测试；发现 Spec conflict 后未完成授权与 ADR/Spec/EXEC 治理就隐式选方案；新旧 truth 双写无 reconciliation/retirement；仅 UI 正常但事件/证据/状态链未接通；Engineering Correct → 学习有效；Policy Correct → retention/transfer 已提升；synthetic learner → 真人效果；process metrics → primary reward；ambiguous propensity → causal experiment data；隐藏 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ## 12. Final v0.3 Gate
 
 当且仅当 Engineering Gate、Policy Correctness Gate 满足，release 所需学习证据状态被诚实标记、实验数据基础正确、无 blocking SPEC GAP 时，implementation MAY 进入相应 release/experimental stage。学习证据不足时 MAY 工程迭代，但 MUST 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。
+
+## 13. P1-06 Completion Gate
+
+### DOD-300
+
+P1-06 只有在 P1-02/P1-03/P1-07 真实依赖、EXEC-1061/1062 独立 commits、全量自动门禁、真实
+provider/App restart、deep-link/recovery/accessibility 与无内部知识首次用户验收全部有当前证据后才可
+标 DONE。样例资料保持关闭不构成缺项。
+
+### DOD-301
+
+Engineering、Security/Privacy、Product Usability 与 Learning Evidence 必须分开。Onboarding 完成、
+activity completion 或真实模型可用均不得把 Learning Evidence 从
+`LEARNING_EVIDENCE_INSUFFICIENT` 改为有效。

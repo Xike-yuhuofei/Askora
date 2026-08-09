@@ -126,4 +126,4 @@ P1-05 Acceptance Criteria: P105-AC-001..008 PASS
 Blocking SPEC GAP: NONE
 ```
 
-当前候选验证：backend 372 passed / 2 skipped；EXEC-036 targeted 18 passed / 1 env-gated skipped；真实 PostgreSQL migration/check 与 representative fixture PASS；frontend 61 passed、build PASS、npm high vulnerabilities 0；ruff、mypy、docs 与 diff gate PASS。完整证据见 `docs/releases/p1-05-account-lifecycle.md`。
+当前候选验证：backend 435 passed / 5 env-gated skipped；EXEC-036 targeted 18 passed / 1 env-gated skipped；真实 PostgreSQL migration/check 与 4 个专属夹具 PASS；frontend 68 passed、build PASS、npm high vulnerabilities 0；ruff、mypy、docs 与 diff gate PASS。完整证据见 `docs/releases/p1-05-account-lifecycle.md`。

@@ -11,12 +11,27 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.library_management import (
+    BatchOrganizeDocumentsRequestV1,
+    BatchOrganizeDocumentsResponseV1,
+    CreateLibraryLabelRequestV1,
+    DocumentMetadataResultV1,
+    DuplicateSuggestionViewV1,
+    LibraryCollectionViewV1,
+    LibraryTagViewV1,
+    OcrRunViewV1,
+    RequestOcrRunV1,
+    ResolveDuplicateSuggestionRequestV1,
+    ReviewOcrRunRequestV1,
+    UpdateDocumentMetadataRequestV1,
+)
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
@@ -25,6 +40,8 @@ from app.models.document import ProcessingStatus
 from app.models.user import User
 from app.services.auth.dependencies import get_current_user
 from app.services.documents import get_document_service, get_rag_service
+from app.services.documents.library_management import LibraryManagementService
+from app.services.documents.ocr import OcrService
 
 logger = get_logger(__name__)
 
@@ -210,6 +227,177 @@ async def get_storage_info(
     doc_service = get_document_service(db)
     info = await doc_service.get_user_storage_info(current_user.pseudonym_id)
     return StorageInfoResponse(**info)
+
+
+@router.post("/library/tags", response_model=LibraryTagViewV1, status_code=201)
+async def create_library_tag(
+    request: CreateLibraryLabelRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await LibraryManagementService(db).create_tag(
+        pseudonym_id=current_user.pseudonym_id,
+        name=request.name,
+        idempotency_key=request.idempotency_key,
+    )
+
+
+@router.post(
+    "/library/collections",
+    response_model=LibraryCollectionViewV1,
+    status_code=201,
+)
+async def create_library_collection(
+    request: CreateLibraryLabelRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await LibraryManagementService(db).create_collection(
+        pseudonym_id=current_user.pseudonym_id,
+        name=request.name,
+        idempotency_key=request.idempotency_key,
+    )
+
+
+@router.post(
+    "/batch/organize",
+    response_model=BatchOrganizeDocumentsResponseV1,
+)
+async def batch_organize_documents(
+    request: BatchOrganizeDocumentsRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await LibraryManagementService(db).batch_organize(
+        pseudonym_id=current_user.pseudonym_id,
+        document_ids=[str(item) for item in request.document_ids],
+        expected_versions=request.expected_versions,
+        idempotency_key=request.idempotency_key,
+        subject_supplied="subject" in request.model_fields_set,
+        subject=request.subject,
+        add_tag_ids=[str(item) for item in request.add_tag_ids],
+        remove_tag_ids=[str(item) for item in request.remove_tag_ids],
+        add_collection_ids=[str(item) for item in request.add_collection_ids],
+        remove_collection_ids=[str(item) for item in request.remove_collection_ids],
+        archive=request.archive,
+    )
+
+
+@router.get("/duplicates", response_model=tuple[DuplicateSuggestionViewV1, ...])
+async def list_duplicate_suggestions(
+    status: str = Query("pending", max_length=30),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await LibraryManagementService(db).list_duplicate_suggestions(
+        current_user.pseudonym_id, status=status
+    )
+
+
+@router.post(
+    "/duplicates/{suggestion_id}/resolve",
+    response_model=DuplicateSuggestionViewV1,
+)
+async def resolve_duplicate_suggestion(
+    suggestion_id: UUID,
+    request: ResolveDuplicateSuggestionRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await LibraryManagementService(db).resolve_duplicate(
+        suggestion_id=str(suggestion_id),
+        pseudonym_id=current_user.pseudonym_id,
+        expected_version=request.expected_version,
+        idempotency_key=request.idempotency_key,
+        action=request.action,
+    )
+
+
+@router.post("/{document_id}/ocr-runs", response_model=OcrRunViewV1, status_code=202)
+async def request_document_ocr(
+    document_id: UUID,
+    request: RequestOcrRunV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await OcrService(db).request_run(
+        document_id=str(document_id),
+        pseudonym_id=current_user.pseudonym_id,
+        idempotency_key=request.idempotency_key,
+        languages=request.languages,
+    )
+
+
+@router.get("/ocr-runs/{run_id}", response_model=OcrRunViewV1)
+async def get_document_ocr_run(
+    run_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await OcrService(db).get_run(run_id=str(run_id), pseudonym_id=current_user.pseudonym_id)
+
+
+@router.get("/ocr-runs/{run_id}/pages/{page_number}")
+async def get_document_ocr_page(
+    run_id: UUID,
+    page_number: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    content = await OcrService(db).render_page(
+        run_id=str(run_id),
+        pseudonym_id=current_user.pseudonym_id,
+        page_number=page_number,
+    )
+    return Response(
+        content=content,
+        media_type="image/png",
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
+@router.post("/ocr-runs/{run_id}/review", response_model=OcrRunViewV1)
+async def review_document_ocr_run(
+    run_id: UUID,
+    request: ReviewOcrRunRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await OcrService(db).review_run(
+        run_id=str(run_id),
+        pseudonym_id=current_user.pseudonym_id,
+        idempotency_key=request.idempotency_key,
+        decisions=tuple(
+            {
+                "candidate_id": str(item.candidate_id),
+                "expected_version": item.expected_version,
+                "action": item.action,
+                "corrected_text": item.corrected_text,
+            }
+            for item in request.decisions
+        ),
+        publish=request.publish,
+    )
+
+
+@router.patch("/{document_id}/metadata", response_model=DocumentMetadataResultV1)
+async def update_document_metadata(
+    document_id: UUID,
+    request: UpdateDocumentMetadataRequestV1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    changes = request.model_dump(
+        exclude={"expected_version", "idempotency_key"},
+        exclude_unset=True,
+    )
+    return await LibraryManagementService(db).update_metadata(
+        document_id=str(document_id),
+        pseudonym_id=current_user.pseudonym_id,
+        expected_version=request.expected_version,
+        idempotency_key=request.idempotency_key,
+        changes=changes,
+    )
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)

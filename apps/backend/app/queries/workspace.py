@@ -47,8 +47,9 @@ from app.contracts.workspace import (
     WorkspaceSourceStatusV1,
     WorkspaceSourceSystem,
 )
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import BusinessError, ResourceNotFoundError
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.assessment import MasteryEstimateRecord
 from app.models.dialog import DialogSession, SessionStatus
 from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
@@ -143,9 +144,7 @@ class WorkspaceTodayQueryService:
             view_state: Literal["READY", "PARTIAL", "EMPTY"] = "PARTIAL"
         elif path is None:
             view_state = "EMPTY"
-        elif any(
-            reason == "OBJECTIVE_METADATA_UNAVAILABLE" for reason in selection.reason_codes
-        ):
+        elif any(reason == "OBJECTIVE_METADATA_UNAVAILABLE" for reason in selection.reason_codes):
             view_state = "PARTIAL"
         else:
             view_state = "READY"
@@ -310,7 +309,11 @@ class WorkspaceTodayQueryService:
         evidence_reasons = (
             ("CURRENT_ACTIVITY_MASTERY_AVAILABLE",)
             if current_evidence is not None
-            else (("CURRENT_ACTIVITY_EVIDENCE_MISSING",) if current_activity else ("NO_CURRENT_ACTIVITY",))
+            else (
+                ("CURRENT_ACTIVITY_EVIDENCE_MISSING",)
+                if current_activity
+                else ("NO_CURRENT_ACTIVITY",)
+            )
         )
 
         return TodayWorkspaceResponseV1(
@@ -348,7 +351,11 @@ class WorkspaceTodayQueryService:
                     reason_codes=(
                         selection.reason_codes
                         if selection.reason_codes
-                        else (("CURRENT_PLAN_AVAILABLE",) if has_plan else ("CURRENT_PLAN_NOT_AVAILABLE",))
+                        else (
+                            ("CURRENT_PLAN_AVAILABLE",)
+                            if has_plan
+                            else ("CURRENT_PLAN_NOT_AVAILABLE",)
+                        )
                     ),
                 ),
                 WorkspaceSourceStatusV1(
@@ -386,7 +393,9 @@ class WorkspaceTodayQueryService:
             if str(goal.user_id) != owner_id or str(goal.goal_id) != record.goal_id:
                 raise ValueError("learning goal owner or identity mismatch")
             latest[record.goal_id] = goal
-        return sorted(latest.values(), key=lambda item: (-item.created_at.timestamp(), str(item.goal_id)))
+        return sorted(
+            latest.values(), key=lambda item: (-item.created_at.timestamp(), str(item.goal_id))
+        )
 
     async def _select_path(
         self,
@@ -453,9 +462,7 @@ class WorkspaceTodayQueryService:
             reason_codes=reasons,
         )
 
-    async def _latest_plans(
-        self, goals: list[LearningGoalV1]
-    ) -> dict[UUID, LearningPlan]:
+    async def _latest_plans(self, goals: list[LearningGoalV1]) -> dict[UUID, LearningPlan]:
         goal_ids = [str(goal.goal_id) for goal in goals]
         if not goal_ids:
             return {}
@@ -486,9 +493,7 @@ class WorkspaceTodayQueryService:
             latest[goal_key] = plan
         return latest
 
-    async def _ordered_activities(
-        self, plan: LearningPlan
-    ) -> tuple[LearningActivity, ...]:
+    async def _ordered_activities(self, plan: LearningPlan) -> tuple[LearningActivity, ...]:
         records = (
             await self._db.scalars(
                 select(LearningActivityRecord).where(
@@ -498,11 +503,22 @@ class WorkspaceTodayQueryService:
             )
         ).all()
         by_id: dict[UUID, LearningActivity] = {}
+        states = await ActivityLifecycleRepository(self._db).latest_for_plan(
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+        )
         for record in records:
             activity = LearningActivity.model_validate(record.payload)
             if activity.plan_id != plan.plan_id or activity.plan_version != plan.version:
                 raise ValueError("learning activity plan mismatch")
-            by_id[activity.activity_id] = activity
+            state = states.get(activity.activity_id)
+            if state is None:
+                raise BusinessError(
+                    message="学习活动尚未完成生命周期迁移",
+                    error_code="LEGACY_ACTIVITY_STATE_UNMIGRATED",
+                    status_code=409,
+                )
+            by_id[activity.activity_id] = activity.model_copy(update={"status": state.status})
         return tuple(by_id[item] for item in plan.activity_ids if item in by_id)
 
     def _path_view(self, selection: _PathSelection) -> LearningPathViewV1 | None:
@@ -547,12 +563,13 @@ class WorkspaceTodayQueryService:
             priority=activity.priority,
             reason_codes=tuple(activity.reason_codes),
             status=activity.status,
+            launch_state=self._launch_state(activity.status),
         )
 
     def _activity_summary(self, activity: LearningActivity) -> ActivitySummaryV1:
-        launch_state: Literal[
-            "ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"
-        ] = "UNAVAILABLE" if activity.status == "active" else "REQUIRES_START_COMMAND"
+        launch_state: Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"] = (
+            self._launch_state(activity.status)
+        )
         return ActivitySummaryV1(
             activity_ref=self._activity_ref(activity),
             objective_ref=self._objective_ref(activity.objective_id, activity.plan_version),
@@ -565,18 +582,24 @@ class WorkspaceTodayQueryService:
         )
 
     @staticmethod
-    def _current_activity(
-        activities: tuple[LearningActivity, ...]
-    ) -> LearningActivity | None:
+    def _launch_state(
+        status: str,
+    ) -> Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"]:
+        if status == "active":
+            return "RESUMABLE"
+        if status == "available":
+            return "REQUIRES_START_COMMAND"
+        return "UNAVAILABLE"
+
+    @staticmethod
+    def _current_activity(activities: tuple[LearningActivity, ...]) -> LearningActivity | None:
         for status in ("active", "available", "planned"):
             match = next((item for item in activities if item.status == status), None)
             if match is not None:
                 return match
         return None
 
-    async def _latest_mastery_records(
-        self, current_user: User
-    ) -> list[MasteryEstimateRecord]:
+    async def _latest_mastery_records(self, current_user: User) -> list[MasteryEstimateRecord]:
         owner_id = str(canonical_user_id(current_user.id))
         records = (
             await self._db.scalars(
@@ -615,21 +638,15 @@ class WorkspaceTodayQueryService:
         return CurrentEvidenceSummaryV1(
             knowledge_unit_ref=f"knowledge_unit:{wanted}:version-unavailable",
             confidence=self._optional_float(payload.get("confidence")),
-            independent_success_count=self._optional_int(
-                payload.get("independent_success_count")
-            ),
+            independent_success_count=self._optional_int(payload.get("independent_success_count")),
             delayed_recall_evidence_count=self._optional_int(
                 payload.get("delayed_recall_evidence_count")
             ),
-            transfer_evidence_count=self._optional_int(
-                payload.get("transfer_evidence_count")
-            ),
+            transfer_evidence_count=self._optional_int(payload.get("transfer_evidence_count")),
             validation_obligation="UNKNOWN",
         )
 
-    async def _knowledge_labels(
-        self, current_user: User
-    ) -> dict[str, tuple[str, int]]:
+    async def _knowledge_labels(self, current_user: User) -> dict[str, tuple[str, int]]:
         documents = (
             await self._db.scalars(
                 select(UserDocument).where(

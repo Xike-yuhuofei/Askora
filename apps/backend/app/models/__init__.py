@@ -22,8 +22,23 @@ from app.models.assessment import (
     LearnerStateRecord,
     MasteryEstimateRecord,
 )
+from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
-from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import (
+    DocumentChunk,
+    DocumentCollectionAssignment,
+    DocumentOcrCandidate,
+    DocumentOcrRun,
+    DocumentTagAssignment,
+    DuplicateSuggestion,
+    LibraryCollection,
+    LibraryCommandReceipt,
+    LibrarySearchProjection,
+    LibraryTag,
+    ModerationStatus,
+    ProcessingStatus,
+    UserDocument,
+)
 from app.models.identity import (
     AuthSessionRecord,
     IdentityCommandReceiptRecord,
@@ -37,12 +52,18 @@ from app.models.ledger import (
     LearningEventRecord,
     OutboxTaskRecord,
 )
+from app.models.onboarding import (
+    OnboardingPreferenceCommandReceiptRecord,
+    OnboardingPreferenceRecord,
+)
 from app.models.planning import (
+    ActivityLifecycleCommandReceiptRecord,
     DiagnosticNeedRecord,
     GoalFormationInferenceRecord,
     GoalKnowledgeMappingRecord,
     GoalKnowledgeSubgraphRecord,
     LearningActivityRecord,
+    LearningActivityStateRecord,
     LearningGoalRecord,
     LearningPlanRecord,
     ReviewObservationRecord,
@@ -90,7 +111,11 @@ __all__ = [
     "LearnerEvidenceRecord",
     "LearnerStateRecord",
     "MasteryEstimateRecord",
+    "BookLearningTranscriptTurnRecord",
+    "BookLearningAdvanceRecord",
     "LearningActivityRecord",
+    "LearningActivityStateRecord",
+    "ActivityLifecycleCommandReceiptRecord",
     "DiagnosticNeedRecord",
     "LearningGoalRecord",
     "GoalKnowledgeMappingRecord",
@@ -101,10 +126,21 @@ __all__ = [
     "ReviewScheduleRecord",
     "UserDocument",
     "DocumentChunk",
+    "DocumentCollectionAssignment",
+    "DocumentOcrCandidate",
+    "DocumentOcrRun",
+    "DocumentTagAssignment",
+    "DuplicateSuggestion",
+    "LibraryCollection",
+    "LibraryCommandReceipt",
+    "LibrarySearchProjection",
+    "LibraryTag",
     "ProcessingStatus",
     "ModerationStatus",
     "LearningEventRecord",
     "DecisionTraceRecord",
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
+    "OnboardingPreferenceRecord",
+    "OnboardingPreferenceCommandReceiptRecord",
 ]

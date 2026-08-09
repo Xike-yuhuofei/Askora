@@ -229,4 +229,4 @@ MUST 覆盖：
 
 ## 14. Freeze Decision
 
-`SPEC-D01`：**FROZEN / READY_FOR_EXEC_DECOMPOSITION**。如实现必须改变现有 `SourceSpan` 公共字段含义、引入外部解析服务或新增生产依赖，必须报告 `SPEC GAP`，不得由 Codex 自主决定。
+`SPEC-D01`：**FROZEN / READY_FOR_EXEC_DECOMPOSITION**。如实现必须改变现有 `SourceSpan` 公共字段含义、引入外部解析服务或新增生产依赖，必须报告 `SPEC GAP`，不得在 D01 或产品代码中隐式决定；用户已委托架构自治时，Codex MAY 通过新的 Accepted ADR、Spec 与冻结 EXEC 显式接受变更后再实现。

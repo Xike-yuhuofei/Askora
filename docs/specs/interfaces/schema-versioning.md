@@ -85,3 +85,11 @@ Tool definition 的参数或副作用语义破坏性变化必须升 major，并�
 - LLM 猜测旧事件缺失字段作为 upcaster；
 - tool 参数变化但 workflow version 不变。
 - 同一 RenderPayload major version 静默改变 block 或 card 语义。
+
+## 10. P1-06 Onboarding Schemas
+
+### SCHEMA-100
+
+`OnboardingPreferenceV1`、`OnboardingJourneyViewV1`、`OnboardingNextActionV1` 与 preference command
+均遵循 strict v1。新增 step/action enum 必须保持旧值语义；改变完成判定、路由或 preference 字段含义
+属于破坏性变化，必须新 major 或显式 migration/upcaster。

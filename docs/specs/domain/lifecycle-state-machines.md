@@ -8,7 +8,7 @@
 
 ### LIFE-001
 
-公共领域对象的 `status` MUST 具有显式允许转换；Codex 不得自行增加可改变业务语义的新状态。
+公共领域对象的 `status` MUST 具有显式允许转换；Codex 不得在未更新治理合同的情况下增加可改变业务语义的新状态。用户已委托架构自治时，新增状态仍 MUST 先经 Accepted ADR、Spec 与冻结 EXEC 明确定义。
 
 ### LIFE-002
 

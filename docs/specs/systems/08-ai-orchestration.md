@@ -124,6 +124,25 @@ Tools MUST registry/schema/allowlist + least privilege；模型不可创建未�
 
 SYS08 MAY 把已验证的 reply/execution output 规范化为 `RenderPayload`，并拥有该 execution/presentation artifact。RenderPayload MUST 遵循 `interfaces/render-content-contract.md`，不得成为新的 learner/policy/assessment/plan/review truth，也不得通过视觉 block 扩大 TeachingAction envelope。
 
+### SYS08-081 — Durable Activity Transcript Projection
+
+SYS08 MAY 为 exact LearningActivity 保存 append-only learner-visible transcript projection，包含
+accepted learner/system-start turn、rendered reply、TeachingAction/EvidenceBundle refs 与 citation payload。
+该 projection MUST current-user scoped、idempotent、可跨重启恢复；MUST NOT 作为 mastery、assessment、
+plan progression、activity completion 或 TeachingAction 的第二 truth。`system_start` 不得形成 learner answer evidence。
+
+### SYS08-082 — Production Policy-bound Model Rendering
+
+配置真实 provider 时，Book Learning canonical adaptive execution MUST 使用 production policy-bound model renderer；
+模型只生成 learner-visible text，服务端固定并验证 TeachingAction/strategy/move/modifier 与 assistance/exposure。
+Template renderer 只能作为显式 `local_fallback`，不得满足真实模型 gate。
+
+Prompt MUST versioned、data-minimized，并将 learner-visible EvidenceBundle 内容标为 untrusted data；grader/internal
+evidence、secret 与无关 learner history MUST NOT 发送外部模型。accepted real-model turn MUST 记录最小化
+ModelInference metadata/event，并随 durable transcript 恢复 exact execution metadata。
+
+provider/invalid output/validation/persistence failure MUST fail closed，不得写 learner failure 或 accepted transcript。
+
 ## 3. v0.3 TeachingAction Execution Envelope
 
 ### SYS08-200 — Tightening-only Rule

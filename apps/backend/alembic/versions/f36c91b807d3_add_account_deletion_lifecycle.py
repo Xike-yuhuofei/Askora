@@ -1,35 +1,109 @@
 """Add account deletion lifecycle and privacy governance records.
 
 Revision ID: f36c91b807d3
-Revises: f35b91b807d2
+Revises: f35b91b807d2, f1061a0b9c01
 """
 
 import sqlalchemy as sa
 
-from alembic import op
+from alembic import context, op
 
 revision = "f36c91b807d3"
-down_revision = "f35b91b807d2"
+down_revision = ("f35b91b807d2", "f1061a0b9c01")
 branch_labels = None
 depends_on = None
 
 
+def _precreated_schema_state() -> tuple[bool, bool]:
+    if context.is_offline_mode():
+        return False, False
+    inspector = sa.inspect(op.get_bind())
+    expected_tables = {
+        "account_deletion_previews",
+        "account_deletion_requests",
+        "owner_erasure_step_receipts",
+        "privacy_tombstones",
+    }
+    existing_tables = set(inspector.get_table_names())
+    user_columns = {item["name"] for item in inspector.get_columns("users")}
+    precreated_tables = expected_tables & existing_tables
+    lifecycle_precreated = "account_lifecycle" in user_columns
+    if precreated_tables and precreated_tables != expected_tables:
+        raise RuntimeError(
+            f"partial precreated account deletion schema before {revision}: "
+            f"tables={sorted(precreated_tables)}"
+        )
+    required_columns = {
+        "account_deletion_previews": {
+            "preview_id",
+            "user_id",
+            "subject_digest",
+            "manifest_digest",
+            "data_fingerprint",
+            "preview_payload",
+            "expires_at",
+        },
+        "account_deletion_requests": {
+            "request_id",
+            "user_id",
+            "subject_digest",
+            "lifecycle",
+            "manifest_digest",
+            "purge_due_at",
+            "retry_count",
+            "blocking_issues",
+        },
+        "owner_erasure_step_receipts": {
+            "receipt_id",
+            "request_id",
+            "owner",
+            "attempt",
+            "manifest_digest",
+            "receipt_digest",
+        },
+        "privacy_tombstones": {
+            "request_id",
+            "subject_digest",
+            "manifest_digest",
+            "receipts_digest",
+            "restore_barrier_digest",
+            "final_status",
+        },
+    }
+    if precreated_tables:
+        for table_name, required in required_columns.items():
+            columns = {item["name"] for item in inspector.get_columns(table_name)}
+            if not required.issubset(columns):
+                raise RuntimeError(
+                    f"incompatible precreated {table_name} schema for {revision}: "
+                    f"missing={sorted(required - columns)}"
+                )
+    return lifecycle_precreated, bool(precreated_tables)
+
+
 def upgrade() -> None:
-    with op.batch_alter_table("users") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "account_lifecycle",
-                sa.String(length=32),
-                server_default="active",
-                nullable=False,
+    lifecycle_precreated, tables_precreated = _precreated_schema_state()
+    if not lifecycle_precreated:
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.add_column(
+                sa.Column(
+                    "account_lifecycle",
+                    sa.String(length=32),
+                    server_default="active",
+                    nullable=False,
+                )
             )
-        )
-        batch_op.create_check_constraint(
-            "ck_users_account_lifecycle",
-            "account_lifecycle IN ('active', 'deletion_pending', 'purging', "
-            "'deletion_blocked', 'deleted')",
-        )
-        batch_op.create_index("ix_users_account_lifecycle", ["account_lifecycle"], unique=False)
+            batch_op.create_check_constraint(
+                "ck_users_account_lifecycle",
+                "account_lifecycle IN ('active', 'deletion_pending', 'purging', "
+                "'deletion_blocked', 'deleted')",
+            )
+            batch_op.create_index(
+                "ix_users_account_lifecycle", ["account_lifecycle"], unique=False
+            )
+
+    if tables_precreated:
+        return
 
     op.create_table(
         "account_deletion_previews",

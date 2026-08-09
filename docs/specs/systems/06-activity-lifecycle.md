@@ -130,3 +130,20 @@ completion source refs 必须属于同一 current user/activity；不复制 tran
 - `SYS06-ACT-AC-005`：evaluator-required activity fail closed；provider failure不形成 completion/evidence。
 - `SYS06-ACT-AC-006`：SQLite/PostgreSQL migration、backfill、reconciliation 与 forward-fix 有测试。
 - `SYS06-ACT-AC-007`：cross-user、stale plan、superseded activity 与 source-ref ownership 不泄漏。
+
+## 11. First Activity Completion Projection
+
+### SYS06-ACT-080
+
+SYS06 MUST 提供 current-user scoped `FirstActivityCompletionProjectionV1` 只读 query：只纳入 canonical
+latest `status=completed` 且 completion transition 已验证 accepted transcript source 的 activity；按
+`completed_at ASC, activity_id ASC` 稳定选择首个。
+
+该 projection MUST 返回 exact activity/state/completion source refs，不复制 transcript 正文；不存在时
+返回 MISSING。它不新增 lifecycle writer，也不得以 inference/message/duration/plan ready/Attempt/UI click
+补齐。
+
+### SYS06-ACT-AC-008
+
+相同 owner state 重查必须返回相同 first completion；删除/supersede/unauthorized/stale source 时不得保留
+onboarding 缓存完成状态。

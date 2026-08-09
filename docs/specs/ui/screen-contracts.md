@@ -337,3 +337,26 @@ Login 必须提供“使用恢复套件重设密码”。注册、轮换或成�
 - 未实现 persistence 却显示“已保存”；
 - 隐藏 unknown/stale/low-confidence，只保留看起来完整的数字；
 - 为知识地图或今日推荐编造后端不存在的理由与关系。
+
+## 14. P1-06 First-use Journey
+
+### UI-SCREEN-110
+
+`/welcome` 只显示 MODEL/MATERIAL/GOAL/FIRST_ACTIVITY 四步和一个主动作；boundary notice 在步骤前
+展示。Diagnostic/planner 等内部阶段可作为当前动作说明，不得增加用户必须理解的工程步骤。
+
+### UI-SCREEN-111
+
+页面必须覆盖 LOADING/READY/PARTIAL/STALE/ERROR/UNAUTHORIZED，以及 processing/quarantined/
+provider rate/key/version/activity unsupported。每个 blocked/error 显示 what/data safety/next action，且
+只呈现服务端 `RecoveryActionV1`。
+
+### UI-SCREEN-112
+
+“稍后再说”只 dismiss；“进入今天”只有 current journey COMPLETE 时可 finish+dismiss；Settings 可
+reopen。配置/资料/Goal/activity 事实回退时页面必须撤销旧勾选，不得读取 localStorage 保留完成。
+
+### UI-SCREEN-113
+
+数据/模型说明必须准确引用 P1-02/P1-03 当前边界；不得展示 Key、路径或绝对隐私承诺。v1 不显示
+样例入口。360px/200% zoom/keyboard/focus/live status 下主动作和信任信息均可访问。

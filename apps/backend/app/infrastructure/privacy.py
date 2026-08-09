@@ -152,6 +152,22 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         ),
     ),
     "auth_sessions": _entry("IDENTITY_FINALIZE", _E, "identity", subject=("user_id",)),
+    "book_learning_advance_records": _entry(
+        "SYS08_LEDGER",
+        _E,
+        "workflow_receipt",
+        subject=("user_id",),
+        refs=("document_id",),
+        json=("response_payload",),
+    ),
+    "book_learning_transcript_turns": _entry(
+        "SYS08_LEDGER",
+        _E,
+        "transcript",
+        subject=("user_id",),
+        refs=("goal_id", "plan_id", "activity_id", "session_id"),
+        json=("response_payload",),
+    ),
     "canonical_assessment_attempts": _entry(
         "SYS04", _E, "canonical", subject=("user_id",), json=("payload",), propagate=("id",)
     ),
@@ -213,6 +229,39 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         propagate=("id",),
         within_order=10,
     ),
+    "document_collection_assignments": _entry(
+        "SYS01", _E, "canonical", refs=("document_id", "collection_id"), within_order=0
+    ),
+    "document_duplicate_suggestions": _entry(
+        "SYS01",
+        _E,
+        "candidate",
+        subject=("pseudonym_id",),
+        refs=("primary_document_id", "candidate_document_id"),
+        json=("evidence",),
+        within_order=0,
+    ),
+    "document_ocr_candidates": _entry(
+        "SYS01",
+        _E,
+        "candidate",
+        refs=("run_id",),
+        json=("bbox",),
+        within_order=0,
+    ),
+    "document_ocr_runs": _entry(
+        "SYS01",
+        _E,
+        "canonical",
+        subject=("pseudonym_id",),
+        refs=("document_id", "input_revision_id"),
+        json=("languages", "reason_codes"),
+        propagate=("id",),
+        within_order=5,
+    ),
+    "document_tag_assignments": _entry(
+        "SYS01", _E, "canonical", refs=("document_id", "tag_id"), within_order=0
+    ),
     "document_chunks": _entry(
         "SYS01",
         _E,
@@ -260,6 +309,22 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("payload",),
         propagate=("learner_state_id",),
     ),
+    "learning_activity_state_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        refs=("activity_id", "plan_id"),
+        json=("source_refs",),
+        propagate=("id",),
+    ),
+    "activity_lifecycle_command_receipts": _entry(
+        "SYS06",
+        _E,
+        "command_receipt",
+        subject=("user_id",),
+        refs=("activity_id",),
+        json=("response_payload",),
+    ),
     "learning_activities": _entry(
         "SYS06", _E, "canonical", refs=("plan_id",), json=("payload",), propagate=("id",)
     ),
@@ -274,6 +339,29 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         "SYS06", _E, "canonical", subject=("user_id",), json=("payload",), propagate=("goal_id",)
     ),
     "learning_materials": _entry("SYS01", _G, "global_canonical"),
+    "library_collections": _entry(
+        "SYS01", _E, "canonical", subject=("pseudonym_id",), propagate=("id",), within_order=15
+    ),
+    "library_command_receipts": _entry(
+        "SYS01",
+        _E,
+        "command_receipt",
+        subject=("pseudonym_id",),
+        json=("result_payload",),
+    ),
+    "library_search_projections": _entry(
+        "SYS01",
+        _E,
+        "projection",
+        subject=("pseudonym_id",),
+        refs=("document_id", "revision_id"),
+        json=("source_span_refs",),
+        projection=True,
+        within_order=0,
+    ),
+    "library_tags": _entry(
+        "SYS01", _E, "canonical", subject=("pseudonym_id",), propagate=("id",), within_order=15
+    ),
     "learning_plan_versions": _entry(
         "SYS06",
         _E,
@@ -312,6 +400,12 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("payload",),
         within_order=20,
     ),
+    "onboarding_preference_command_receipts": _entry(
+        "PROJECTIONS", _E, "platform_preference_receipt", subject=("user_id",)
+    ),
+    "onboarding_preferences": _entry(
+        "PROJECTIONS", _E, "platform_preference", subject=("user_id",)
+    ),
     "parent_child_relations": _entry(
         "IDENTITY_FINALIZE", _E, "legacy_identity", subject=("parent_id", "child_id")
     ),
@@ -348,7 +442,7 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         subject=("pseudonym_id",),
         json=("moderation_categories", "moderation_details"),
         propagate=("id",),
-        within_order=10,
+        within_order=20,
     ),
     "user_profiles": _entry(
         "SYS03",
