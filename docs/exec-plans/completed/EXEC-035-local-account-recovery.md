@@ -1,7 +1,7 @@
 # EXEC-035 — Local Account Recovery Kit
 
 > Priority：P1-05
-> Status：FROZEN / ACTIVE
+> Status：DONE
 > Depends on：EXEC-034 DONE
 > Governing decision：ADR-0009
 
@@ -27,10 +27,12 @@ apps/backend/app/models/identity.py
 apps/backend/app/infrastructure/identity.py
 apps/backend/app/services/auth/**
 apps/backend/app/api/v1/auth.py
+apps/backend/app/main.py (AppError response-header passthrough only)
 apps/backend/app/core/exceptions.py
 apps/backend/tests/contracts/test_identity_contract.py
 apps/backend/tests/integration/test_account_recovery.py
 apps/backend/tests/integration/test_account_recovery_migration.py
+apps/backend/tests/integration/test_identity_sessions.py (fixture table registration only)
 apps/backend/tests/security/test_identity_security.py
 apps/frontend/src/api/auth.js
 apps/frontend/src/hooks/useAuth.jsx
@@ -74,3 +76,16 @@ apps/frontend/src/test/Settings.test.jsx
 ## Completion Report Format
 
 分别报告 Engineering、Policy/Ownership、Learning Evidence；列出 secret leakage scan、throttle、migration、UI、commit 与未提交改动保护。
+
+## Completion Report — 2026-08-09
+
+- Engineering：PASS。注册原子签发、设置轮换、离线恢复、credential consume/rotate、全 session 撤销、Argon2id 新密码与重新登录已实现；登录/current-password/recovery 使用 durable 5 次失败/15 分钟冷却，SQLite/PostgreSQL 原子 upsert 防止并发丢计数。
+- Policy/Ownership：PASS。Identity 是 recovery credential、credential version、认证限流与 session 撤销的唯一写入者；未写入 SYS01～SYS08 truth，未引入短信、邮件、第三方身份服务或安全问题。
+- Learning Evidence：`LEARNING_EVIDENCE_INSUFFICIENT`；恢复工程与安全门禁不证明真人学习效果。
+- Secret leakage：数据库只保存 keyed digest；receipt 只保存版本；测试证明注册/轮换/恢复明文不进入 receipt，真实服务日志不含套件，前端不写普通 localStorage/user cache。
+- Throttle / enumeration：known/unknown recovery 使用同 credential lookup、dummy digest、同稳定错误；unknown login 仍执行 Argon2id dummy verify；并发 5 次失败精确计数并返回 durable `Retry-After`。
+- Migration：`f35b91b807d2`；SQLite upgrade/downgrade/forward-fix/check 与 PostgreSQL offline DDL 通过。
+- UI：前端 57/57；真实浏览器完成 registration v1 → settings rotate v2 → old kit invalid → recover v3 → old sessions revoked → new-password login，确认前按钮禁用，console 0 error/warning。
+- Full backend：归档前机器回归仅有 Book Learning legacy 非 UUID fixture 失败；该失败位于 EXEC-035 Allowed Files 外，Identity/recovery 回归全通过。
+- SPEC GAP：无。
+- Implementation commit：包含本归档的独立 EXEC-035 commit。

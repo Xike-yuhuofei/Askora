@@ -169,6 +169,26 @@ class IdentityCommandConflictError(AuthError):
         )
 
 
+class AuthRecoveryInvalidError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_RECOVERY_INVALID",
+            message="恢复信息无效或已使用",
+        )
+
+
+class AuthRecoveryRateLimitedError(AuthError):
+    def __init__(self, retry_after_seconds: int) -> None:
+        super().__init__(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            error_code="AUTH_RECOVERY_RATE_LIMITED",
+            message="尝试次数过多，请稍后再试",
+            detail={"retry_after_seconds": max(1, retry_after_seconds)},
+            headers={"Retry-After": str(max(1, retry_after_seconds))},
+        )
+
+
 # ========== 合规相关 (COMP-xxxx) ==========
 
 

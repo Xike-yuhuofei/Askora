@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import and_, case, func, select, update
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.identity import AuthSessionRecord, IdentityCommandReceiptRecord
+from app.models.identity import (
+    AuthSessionRecord,
+    IdentityCommandReceiptRecord,
+    RecoveryCredentialRecord,
+    RecoveryThrottleRecord,
+)
 
 
 class IdentityRepository:
@@ -166,3 +173,109 @@ class IdentityRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_active_recovery_credential(
+        self, user_id: str
+    ) -> RecoveryCredentialRecord | None:
+        result = await self.db.execute(
+            select(RecoveryCredentialRecord)
+            .where(
+                RecoveryCredentialRecord.user_id == user_id,
+                RecoveryCredentialRecord.used_at.is_(None),
+                RecoveryCredentialRecord.revoked_at.is_(None),
+            )
+            .order_by(RecoveryCredentialRecord.version.desc())
+        )
+        return result.scalars().first()
+
+    async def latest_recovery_version(self, user_id: str) -> int:
+        result = await self.db.execute(
+            select(func.max(RecoveryCredentialRecord.version)).where(
+                RecoveryCredentialRecord.user_id == user_id
+            )
+        )
+        return int(result.scalar_one_or_none() or 0)
+
+    async def add_recovery_credential(self, credential: RecoveryCredentialRecord) -> None:
+        self.db.add(credential)
+        await self.db.flush()
+
+    async def revoke_active_recovery_credentials(
+        self, *, user_id: str, now: datetime
+    ) -> int:
+        result = await self.db.execute(
+            update(RecoveryCredentialRecord)
+            .where(
+                RecoveryCredentialRecord.user_id == user_id,
+                RecoveryCredentialRecord.used_at.is_(None),
+                RecoveryCredentialRecord.revoked_at.is_(None),
+            )
+            .values(revoked_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        return int(getattr(result, "rowcount", 0) or 0)
+
+    async def get_throttle(
+        self, *, subject_digest: str, action: str
+    ) -> RecoveryThrottleRecord | None:
+        return await self.db.get(RecoveryThrottleRecord, (subject_digest, action))
+
+    async def record_throttle_failure(
+        self,
+        *,
+        subject_digest: str,
+        action: str,
+        now: datetime,
+        max_failures: int,
+        locked_until: datetime,
+    ) -> RecoveryThrottleRecord:
+        dialect = self.db.get_bind().dialect.name
+        next_failure_count = RecoveryThrottleRecord.failure_count + 1
+        insert_values = {
+            "subject_digest": subject_digest,
+            "action": action,
+            "failure_count": 1,
+            "locked_until": locked_until if max_failures <= 1 else None,
+            "updated_at": now,
+        }
+        update_values = {
+            "failure_count": next_failure_count,
+            "locked_until": case(
+                (next_failure_count >= max_failures, locked_until),
+                else_=RecoveryThrottleRecord.locked_until,
+            ),
+            "updated_at": now,
+        }
+        if dialect == "postgresql":
+            postgres_statement = postgresql_insert(RecoveryThrottleRecord).values(
+                **insert_values
+            )
+            postgres_statement = postgres_statement.on_conflict_do_update(
+                index_elements=["subject_digest", "action"], set_=update_values
+            )
+            result = await self.db.execute(
+                postgres_statement.returning(RecoveryThrottleRecord).execution_options(
+                    populate_existing=True
+                )
+            )
+            return result.scalar_one()
+        elif dialect == "sqlite":
+            sqlite_statement = sqlite_insert(RecoveryThrottleRecord).values(**insert_values)
+            sqlite_statement = sqlite_statement.on_conflict_do_update(
+                index_elements=["subject_digest", "action"], set_=update_values
+            )
+            result = await self.db.execute(
+                sqlite_statement.returning(RecoveryThrottleRecord).execution_options(
+                    populate_existing=True
+                )
+            )
+            return result.scalar_one()
+        else:
+            raise RuntimeError(f"Unsupported identity throttle dialect: {dialect}")
+
+    async def reset_throttle(self, *, subject_digest: str, action: str) -> None:
+        row = await self.get_throttle(subject_digest=subject_digest, action=action)
+        if row is not None:
+            row.failure_count = 0
+            row.locked_until = None
+            await self.db.flush()

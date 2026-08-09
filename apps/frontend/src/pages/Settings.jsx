@@ -15,12 +15,24 @@ export default function Settings() {
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
   const [passwordState, setPasswordState] = useState({ status: 'idle', message: '' })
   const [sessionAction, setSessionAction] = useState('')
+  const [recovery, setRecovery] = useState({ status: 'loading', data: null, error: '' })
+  const [recoveryPassword, setRecoveryPassword] = useState('')
+  const [recoveryAction, setRecoveryAction] = useState('idle')
+  const [issuedRecovery, setIssuedRecovery] = useState(null)
+  const [recoveryConfirmed, setRecoveryConfirmed] = useState(false)
 
   const loadSessions = () => {
     setSessions((current) => ({ ...current, status: 'loading', error: '' }))
     return authApi.listSessions()
       .then((data) => setSessions({ status: 'ready', data: data.sessions || [], error: '' }))
       .catch(() => setSessions({ status: 'error', data: [], error: '无法读取会话，请稍后重试。' }))
+  }
+
+  const loadRecoveryStatus = () => {
+    setRecovery((current) => ({ ...current, status: 'loading', error: '' }))
+    return authApi.getRecoveryStatus()
+      .then((data) => setRecovery({ status: 'ready', data, error: '' }))
+      .catch(() => setRecovery({ status: 'error', data: null, error: '无法读取恢复套件状态，请稍后重试。' }))
   }
 
   useEffect(() => {
@@ -30,6 +42,7 @@ export default function Settings() {
   }, [])
 
   useEffect(() => { loadSessions() }, [])
+  useEffect(() => { loadRecoveryStatus() }, [])
 
   const createIdempotencyKey = (prefix) => `${prefix}-${crypto.randomUUID()}`
 
@@ -98,6 +111,55 @@ export default function Settings() {
     } finally {
       setSessionAction('')
     }
+  }
+
+  const issueRecovery = async (event) => {
+    event.preventDefault()
+    if (recoveryAction === 'loading') return
+    setRecoveryAction('loading')
+    setRecovery((current) => ({ ...current, error: '' }))
+    try {
+      const result = await authApi.issueRecoveryKit(
+        recoveryPassword,
+        createIdempotencyKey('issue-recovery'),
+      )
+      if (!result.recovery_secret) {
+        setRecovery((current) => ({ ...current, error: '本次请求未返回新套件，请重新发起轮换。' }))
+        return
+      }
+      setIssuedRecovery(result)
+      setRecoveryConfirmed(false)
+      setRecoveryPassword('')
+      setRecovery({
+        status: 'ready',
+        data: {
+          configured: true,
+          credential_version: result.credential_version,
+          created_at: result.created_at,
+        },
+        error: '',
+      })
+    } catch (error) {
+      const code = error.response?.data?.error?.code
+      const messages = {
+        AUTH_CURRENT_PASSWORD_INVALID: '当前密码不正确，请重新输入。',
+        AUTH_RECOVERY_RATE_LIMITED: '尝试次数过多，请稍后再试。',
+      }
+      const message = messages[code] || '恢复套件轮换失败，请稍后重试。'
+      await loadRecoveryStatus()
+      setRecovery((current) => ({
+        ...current,
+        error: message,
+      }))
+    } finally {
+      setRecoveryAction('idle')
+    }
+  }
+
+  const dismissIssuedRecovery = () => {
+    if (!recoveryConfirmed) return
+    setIssuedRecovery(null)
+    setRecoveryConfirmed(false)
   }
 
   const clearLocalSession = async () => {
@@ -203,6 +265,50 @@ export default function Settings() {
               <button type="button" className="button button--secondary" onClick={revokeOthers} disabled={Boolean(sessionAction)}>{sessionAction === 'others' ? '正在撤销…' : '撤销其他所有会话'}</button>
             </div>
           )}
+        </section>
+
+        <section className="surface settings-section settings-section--wide" aria-labelledby="recovery-heading">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <p className="eyebrow">离线恢复</p>
+              <h2 id="recovery-heading">恢复套件</h2>
+              <p className="settings-help">套件可在忘记密码时离线恢复账号；每次轮换都会立即废止旧套件。</p>
+            </div>
+            <KeyRound size={18} />
+          </div>
+          {recovery.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取恢复状态…</div>}
+          {recovery.status === 'ready' && (
+            <p className="recovery-status">
+              {recovery.data?.configured
+                ? `当前套件版本 ${recovery.data.credential_version}`
+                : '尚未创建恢复套件'}
+            </p>
+          )}
+          {!issuedRecovery && (
+            <form className="settings-form settings-form--recovery" onSubmit={issueRecovery}>
+              <label>
+                验证当前密码以轮换恢复套件
+                <input type="password" autoComplete="current-password" value={recoveryPassword} onChange={(event) => setRecoveryPassword(event.target.value)} required />
+              </label>
+              <button type="submit" className="button button--secondary" disabled={recoveryAction === 'loading'}>
+                {recoveryAction === 'loading' ? '正在轮换…' : recovery.data?.configured ? '轮换恢复套件' : '创建恢复套件'}
+              </button>
+            </form>
+          )}
+          {issuedRecovery && (
+            <div className="recovery-kit-panel" role="status">
+              <strong>新的恢复套件只显示这一次</strong>
+              <p>{issuedRecovery.storage_warning}</p>
+              <output className="recovery-kit-output" aria-label="新的离线恢复套件">{issuedRecovery.recovery_secret}</output>
+              <small>版本 {issuedRecovery.credential_version}</small>
+              <label className="recovery-kit-confirm">
+                <input type="checkbox" checked={recoveryConfirmed} onChange={(event) => setRecoveryConfirmed(event.target.checked)} />
+                我已将新套件保存在离线安全位置
+              </label>
+              <button type="button" className="button button--primary" disabled={!recoveryConfirmed} onClick={dismissIssuedRecovery}>确认保存并关闭</button>
+            </div>
+          )}
+          {recovery.error && <p className="inline-error" role="alert">{recovery.error}</p>}
         </section>
 
         <section className="surface settings-section settings-section--wide settings-session">

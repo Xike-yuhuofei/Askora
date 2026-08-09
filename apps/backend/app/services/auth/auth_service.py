@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -17,6 +18,11 @@ from app.contracts.identity import (
     AuthSessionV1,
     ChangePasswordResultV1,
     ChangePasswordV1,
+    IssueRecoveryKitV1,
+    RecoverPasswordResultV1,
+    RecoverPasswordV1,
+    RecoveryKitResultV1,
+    RecoveryStatusV1,
     SessionCommandResultV1,
     SessionListV1,
     TokenPairV1,
@@ -24,6 +30,8 @@ from app.contracts.identity import (
 from app.core.config import settings
 from app.core.encryption import decrypt_pii, encrypt_pii
 from app.core.exceptions import (
+    AuthRecoveryInvalidError,
+    AuthRecoveryRateLimitedError,
     AuthSessionNotFoundError,
     AuthSessionRequiredError,
     AuthSessionRevokedError,
@@ -37,7 +45,11 @@ from app.core.exceptions import (
 )
 from app.core.logging import get_logger
 from app.infrastructure.identity import IdentityRepository
-from app.models.identity import AuthSessionRecord, IdentityCommandReceiptRecord
+from app.models.identity import (
+    AuthSessionRecord,
+    IdentityCommandReceiptRecord,
+    RecoveryCredentialRecord,
+)
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.token_service import (
     TokenService,
@@ -49,6 +61,9 @@ from app.services.auth.token_service import (
 
 logger = get_logger(__name__)
 MAX_SESSIONS = 5
+MAX_AUTH_FAILURES = 5
+AUTH_COOLDOWN = timedelta(minutes=15)
+_DUMMY_PASSWORD_HASH = hash_password("askora-dummy-password-never-valid-v1")
 
 
 class AuthService:
@@ -66,16 +81,16 @@ class AuthService:
     ) -> tuple[str, str, datetime, User]:
         phone = phone.strip()
         phone_hash = self._phone_lookup_hash(phone)
+        await self._assert_not_throttled(subject_digest=phone_hash, action="login")
         result = await self.db.execute(select(User).where(User.phone_hash == phone_hash))
         user = result.scalar_one_or_none()
 
         if user is None:
             user = await self._find_legacy_user(phone, phone_hash)
-        if not user or not user.password_hash:
-            raise InvalidTokenError("手机号或密码错误")
-
-        verified, replacement_hash = verify_and_update_password(password, user.password_hash)
-        if not verified:
+        password_hash = user.password_hash if user and user.password_hash else _DUMMY_PASSWORD_HASH
+        verified, replacement_hash = verify_and_update_password(password, password_hash)
+        if not user or not user.password_hash or not verified:
+            await self._record_auth_failure(subject_digest=phone_hash, action="login")
             raise InvalidTokenError("手机号或密码错误")
         if user.status != UserStatus.ACTIVE:
             raise InvalidTokenError("账号不可登录")
@@ -127,6 +142,7 @@ class AuthService:
             user.password_hash = replacement_hash
             user.password_changed_at = now
         user.last_login_at = now
+        await self.repo.reset_throttle(subject_digest=phone_hash, action="login")
         await self.db.commit()
 
         logger.info("user_login_success", user_id=user.id, session_id=session_id[:8])
@@ -391,7 +407,14 @@ class AuthService:
                 }
             )
 
+        throttle_subject = self._user_throttle_subject(user)
+        await self._assert_not_throttled(
+            subject_digest=throttle_subject, action="current_password"
+        )
         if not user.password_hash or not verify_password(command.current_password, user.password_hash):
+            await self._record_auth_failure(
+                subject_digest=throttle_subject, action="current_password"
+            )
             raise CurrentPasswordInvalidError()
         try:
             validate_new_password(command.new_password, current_password=command.current_password)
@@ -449,6 +472,9 @@ class AuthService:
         session.credential_version = next_credential_version
         session.last_seen_at = now
         session.refresh_expires_at = refresh_expires_at
+        await self.repo.reset_throttle(
+            subject_digest=throttle_subject, action="current_password"
+        )
 
         stored_payload = {
             "schema_version": "1.0",
@@ -486,7 +512,7 @@ class AuthService:
         phone: str,
         password: str,
         nickname: str | None = None,
-    ) -> User:
+    ) -> tuple[User, str, RecoveryCredentialRecord]:
         try:
             validate_new_password(password)
         except ValueError as exc:
@@ -513,13 +539,216 @@ class AuthService:
         )
         self.db.add(user)
         try:
+            await self.db.flush()
+            recovery_secret, recovery = await self._issue_recovery_credential(
+                user_id=user.id,
+                now=datetime.now(timezone.utc),
+            )
             await self.db.commit()
         except IntegrityError as exc:
             await self.db.rollback()
             raise ValueError("该手机号已注册") from exc
         await self.db.refresh(user)
         logger.info("user_registered", user_id=user.id)
-        return user
+        return user, recovery_secret, recovery
+
+    async def recovery_status(self, *, user_id: str) -> RecoveryStatusV1:
+        credential = await self.repo.get_active_recovery_credential(user_id)
+        return RecoveryStatusV1(
+            configured=credential is not None,
+            credential_version=credential.version if credential else None,
+            created_at=self._as_utc(credential.created_at) if credential else None,
+        )
+
+    async def issue_recovery_kit(
+        self,
+        *,
+        user: User,
+        command: IssueRecoveryKitV1,
+    ) -> RecoveryKitResultV1:
+        request = {"current_password_digest": self._digest_secret(command.current_password)}
+        receipt = await self._matching_receipt(
+            user_id=user.id,
+            command_type="issue_recovery_kit_v1",
+            idempotency_key=command.idempotency_key,
+            request=request,
+        )
+        if receipt:
+            created_at = datetime.fromisoformat(str(receipt.result_payload["created_at"]))
+            return RecoveryKitResultV1(
+                issued=True,
+                replayed=True,
+                recovery_secret=None,
+                credential_version=int(receipt.result_payload["credential_version"]),
+                created_at=created_at,
+                storage_warning="恢复套件已生成且不会再次显示；如未保存，请重新轮换",
+            )
+
+        subject = self._user_throttle_subject(user)
+        await self._assert_not_throttled(subject_digest=subject, action="current_password")
+        if not user.password_hash or not verify_password(command.current_password, user.password_hash):
+            await self._record_auth_failure(
+                subject_digest=subject, action="current_password"
+            )
+            raise CurrentPasswordInvalidError()
+
+        now = datetime.now(timezone.utc)
+        secret, credential = await self._issue_recovery_credential(user_id=user.id, now=now)
+        await self.repo.reset_throttle(subject_digest=subject, action="current_password")
+        stored = {
+            "credential_version": credential.version,
+            "created_at": now.isoformat(),
+        }
+        await self._store_receipt(
+            user_id=user.id,
+            command_type="issue_recovery_kit_v1",
+            idempotency_key=command.idempotency_key,
+            request=request,
+            result_payload=stored,
+        )
+        await self.db.commit()
+        return RecoveryKitResultV1(
+            issued=True,
+            replayed=False,
+            recovery_secret=secret,
+            credential_version=credential.version,
+            created_at=now,
+        )
+
+    async def recover_password(self, command: RecoverPasswordV1) -> RecoverPasswordResultV1:
+        try:
+            validate_new_password(command.new_password)
+        except ValueError as exc:
+            raise PasswordPolicyRejectedError(str(exc))
+
+        phone = command.phone.strip()
+        subject = self._phone_lookup_hash(phone)
+        await self._assert_not_throttled(subject_digest=subject, action="recovery")
+        result = await self.db.execute(select(User).where(User.phone_hash == subject))
+        user = result.scalar_one_or_none()
+        if user is None:
+            user = await self._find_legacy_user(phone, subject)
+
+        request = {
+            "recovery_secret_digest": self._digest_secret(command.recovery_secret),
+            "new_password_digest": self._digest_secret(command.new_password),
+            "client_instance_digest": self._hash_device_fingerprint(command.client_instance),
+        }
+        if user is not None:
+            receipt = await self._matching_receipt(
+                user_id=user.id,
+                command_type="recover_password_v1",
+                idempotency_key=command.idempotency_key,
+                request=request,
+            )
+            if receipt:
+                return RecoverPasswordResultV1(
+                    accepted=True,
+                    replayed=True,
+                    recovery_secret=None,
+                    recovery_credential_version=int(
+                        receipt.result_payload["recovery_credential_version"]
+                    ),
+                )
+
+        credential = await self.repo.get_active_recovery_credential(
+            user.id if user is not None else "__unknown_recovery_subject__"
+        )
+        provided_digest = self._digest_secret(command.recovery_secret)
+        expected_digest = (
+            credential.secret_digest if credential is not None else self._dummy_recovery_digest()
+        )
+        valid = hmac.compare_digest(provided_digest, expected_digest)
+        if not valid or user is None or credential is None or user.status != UserStatus.ACTIVE:
+            await self._record_auth_failure(subject_digest=subject, action="recovery")
+            raise AuthRecoveryInvalidError()
+        if user.password_hash and verify_password(command.new_password, user.password_hash):
+            raise PasswordPolicyRejectedError("新密码不能与当前密码相同")
+
+        now = datetime.now(timezone.utc)
+        credential.used_at = now
+        user.password_hash = hash_password(command.new_password)
+        user.credential_version += 1
+        user.password_changed_at = now
+        await self.repo.revoke_all_sessions(
+            user_id=user.id,
+            now=now,
+            reason="account_recovered",
+        )
+        new_secret, new_credential = await self._issue_recovery_credential(
+            user_id=user.id,
+            now=now,
+            revoke_existing=False,
+        )
+        await self.repo.reset_throttle(subject_digest=subject, action="recovery")
+        stored = {"recovery_credential_version": new_credential.version}
+        await self._store_receipt(
+            user_id=user.id,
+            command_type="recover_password_v1",
+            idempotency_key=command.idempotency_key,
+            request=request,
+            result_payload=stored,
+        )
+        await self.db.commit()
+        logger.info("account_recovery_success", user_id=user.id)
+        return RecoverPasswordResultV1(
+            accepted=True,
+            replayed=False,
+            recovery_secret=new_secret,
+            recovery_credential_version=new_credential.version,
+        )
+
+    async def _issue_recovery_credential(
+        self,
+        *,
+        user_id: str,
+        now: datetime,
+        revoke_existing: bool = True,
+    ) -> tuple[str, RecoveryCredentialRecord]:
+        if revoke_existing:
+            await self.repo.revoke_active_recovery_credentials(user_id=user_id, now=now)
+        version = await self.repo.latest_recovery_version(user_id) + 1
+        secret = secrets.token_urlsafe(24)
+        credential = RecoveryCredentialRecord(
+            credential_id=str(uuid.uuid4()),
+            user_id=user_id,
+            version=version,
+            secret_digest=self._digest_secret(secret),
+            created_at=now,
+        )
+        await self.repo.add_recovery_credential(credential)
+        return secret, credential
+
+    async def _assert_not_throttled(self, *, subject_digest: str, action: str) -> None:
+        row = await self.repo.get_throttle(subject_digest=subject_digest, action=action)
+        if row is None or row.locked_until is None:
+            return
+        now = datetime.now(timezone.utc)
+        locked_until = self._as_utc(row.locked_until)
+        if locked_until <= now:
+            await self.repo.reset_throttle(subject_digest=subject_digest, action=action)
+            return
+        raise AuthRecoveryRateLimitedError(int((locked_until - now).total_seconds()))
+
+    async def _record_auth_failure(self, *, subject_digest: str, action: str) -> None:
+        now = datetime.now(timezone.utc)
+        row = await self.repo.record_throttle_failure(
+            subject_digest=subject_digest,
+            action=action,
+            now=now,
+            max_failures=MAX_AUTH_FAILURES,
+            locked_until=now + AUTH_COOLDOWN,
+        )
+        await self.db.commit()
+        if row.failure_count >= MAX_AUTH_FAILURES and row.locked_until is not None:
+            raise AuthRecoveryRateLimitedError(int(AUTH_COOLDOWN.total_seconds()))
+
+    def _user_throttle_subject(self, user: User) -> str:
+        return user.phone_hash or self._digest_secret(f"user:{user.id}")
+
+    @staticmethod
+    def _dummy_recovery_digest() -> str:
+        return AuthService._digest_secret("askora-recovery-dummy-v1")
 
     async def _find_legacy_user(self, phone: str, phone_hash: str) -> User | None:
         result = await self.db.execute(

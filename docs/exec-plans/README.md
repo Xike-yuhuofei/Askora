@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
-> 状态：EXEC-030 blocked；P1-05 EXEC-034 DONE，恢复阶段已解锁
-> Active：EXEC-035（local recovery）；EXEC-036 等待恢复阶段完成
+> 状态：EXEC-030 blocked；P1-05 EXEC-034～035 DONE，删除阶段已解锁
+> Active：EXEC-036（account deletion and erasure）
 > 已完成：EXEC-001～EXEC-025、EXEC-029
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md)、[EXEC-035](active/EXEC-035-local-account-recovery.md)、[EXEC-036](active/EXEC-036-account-deletion-erasure.md) | EXEC-030 blocked；P1-05 EXEC-035 active，036 waiting |
-| [`completed/`](completed/README.md) | EXEC-001～025、EXEC-029 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md)、[EXEC-036](active/EXEC-036-account-deletion-erasure.md) | EXEC-030 blocked；P1-05 EXEC-036 active |
+| [`completed/`](completed/README.md) | EXEC-001～025、EXEC-029、EXEC-034～035 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -38,8 +38,8 @@ Accepted ADR / Canonical Design
 | UI-02B Goals, Learning Path and Evidence | EXEC-029 | DONE |
 | UI-02C Canonical Activity Lifecycle | EXEC-030 | FROZEN / BLOCKED_BY_DEPENDENCY |
 | P1-05 Identity Credential and Durable Sessions | EXEC-034 | DONE |
-| P1-05 Local Account Recovery | EXEC-035 | FROZEN / ACTIVE |
-| P1-05 Account Deletion and Erasure | EXEC-036 | FROZEN / WAITING_FOR_EXEC-035 |
+| P1-05 Local Account Recovery | EXEC-035 | DONE |
+| P1-05 Account Deletion and Erasure | EXEC-036 | FROZEN / ACTIVE |
 
 v0.3 最终状态：
 

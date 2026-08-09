@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from app.contracts.identity import ChangePasswordV1, RevokeSessionV1
+from app.contracts.identity import ChangePasswordV1, RecoverPasswordV1, RevokeSessionV1
 
 
 def test_change_password_contract_is_strict_versioned_and_forbids_extras() -> None:
@@ -39,3 +39,16 @@ def test_session_command_requires_bounded_idempotency_key() -> None:
     with pytest.raises(ValidationError):
         RevokeSessionV1(idempotency_key="short")
     assert RevokeSessionV1(idempotency_key="session-command-001").schema_version == "1.0"
+
+
+def test_recover_password_contract_requires_strict_v1_and_high_entropy_secret_shape() -> None:
+    command = RecoverPasswordV1(
+        phone="13800138000",
+        recovery_secret="recovery-secret-at-least-128-bits",
+        new_password="新的恢复密码必须足够长 2026",
+        client_instance="askora-client-instance",
+        idempotency_key="recover-password-0001",
+    )
+    assert command.schema_version == "1.0"
+    with pytest.raises(ValidationError):
+        RecoverPasswordV1.model_validate({**command.model_dump(), "recovery_secret": "short"})

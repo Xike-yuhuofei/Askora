@@ -36,6 +36,26 @@ export const revokeOtherSessions = (idempotencyKey) =>
     idempotency_key: idempotencyKey,
   }).then((r) => r.data)
 
+export const getRecoveryStatus = () =>
+  api.get('/auth/recovery/status').then((r) => r.data)
+
+export const issueRecoveryKit = (currentPassword, idempotencyKey) =>
+  api.post('/auth/recovery/issue', {
+    schema_version: '1.0',
+    current_password: currentPassword,
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
+export const recoverPassword = (phone, recoverySecret, newPassword, idempotencyKey) =>
+  api.post('/auth/recovery/password', {
+    schema_version: '1.0',
+    phone,
+    recovery_secret: recoverySecret,
+    new_password: newPassword,
+    client_instance: getOrCreateDeviceFingerprint(),
+    idempotency_key: idempotencyKey,
+  }, { skipAuth: true, _skipRefresh: true }).then((r) => r.data)
+
 // 刷新 token
 export const refreshToken = (refresh_token) =>
   api.post('/auth/refresh', {

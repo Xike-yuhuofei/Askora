@@ -14,6 +14,6 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | UI-02B1 Material-to-Learning Launch | [Completion Report](ui-02b1-material-learning-launch.md) | Engineering PASS / UI Contract, Ownership, Accessibility PASS / Learning Evidence Insufficient |
 | UI-02B Goals, Learning Path and Evidence | [Completion Report](ui-02b-goals-path-evidence.md) | Engineering PASS / Policy, Ownership, Security PASS / Learning Evidence Insufficient |
 | Book-to-Adaptive-Learning | [Completion Report](book-to-adaptive-learning.md) | Engineering, Contract PASS / Policy, Ownership PASS / Learning Evidence Insufficient |
-| P1-05 Account Lifecycle | [Rolling Evidence](p1-05-account-lifecycle.md) | EXEC-034 DONE / P1-05 OPEN |
+| P1-05 Account Lifecycle | [Rolling Evidence](p1-05-account-lifecycle.md) | EXEC-034～035 DONE / P1-05 OPEN |
 
 任何新的发布声明都必须基于候选 SHA 的当前测试、迁移、构建和必要外部检查，不能只引用本目录中的历史结果。

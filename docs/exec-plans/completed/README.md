@@ -41,6 +41,7 @@
 | EXEC-025 — UI-02B1 Material-to-Learning Launch | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-034 — Identity Credential and Durable Sessions | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-035 — Local Account Recovery Kit | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 

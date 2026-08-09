@@ -78,3 +78,47 @@ class SessionCommandResultV1(IdentityContract):
     success: bool
     replayed: bool
     revoked_sessions: int
+
+
+class IssueRecoveryKitV1(IdentityContract):
+    schema_version: Literal["1.0"] = "1.0"
+    current_password: str = Field(min_length=1, max_length=128)
+    idempotency_key: str = Field(min_length=16, max_length=128)
+
+
+class RecoverPasswordV1(IdentityContract):
+    schema_version: Literal["1.0"] = "1.0"
+    phone: str = Field(pattern=r"^1[3-9]\d{9}$")
+    recovery_secret: str = Field(min_length=20, max_length=256)
+    new_password: str = Field(min_length=15, max_length=128)
+    client_instance: str = Field(min_length=8, max_length=512)
+    idempotency_key: str = Field(min_length=16, max_length=128)
+
+    _new_password_policy = field_validator("new_password")(_validate_new_password)
+
+
+class RecoveryKitResultV1(IdentityContract):
+    schema_version: Literal["1.0"] = "1.0"
+    issued: bool
+    replayed: bool
+    recovery_secret: str | None
+    credential_version: int
+    created_at: datetime
+    storage_warning: str = "请立即离线保存；此恢复套件不会再次显示"
+
+
+class RecoveryStatusV1(IdentityContract):
+    schema_version: Literal["1.0"] = "1.0"
+    configured: bool
+    credential_version: int | None
+    created_at: datetime | None
+
+
+class RecoverPasswordResultV1(IdentityContract):
+    schema_version: Literal["1.0"] = "1.0"
+    accepted: bool
+    replayed: bool
+    recovery_secret: str | None
+    recovery_credential_version: int | None
+    requires_login: Literal[True] = True
+    message: str = "如恢复信息有效，密码已重设；请使用新密码登录"

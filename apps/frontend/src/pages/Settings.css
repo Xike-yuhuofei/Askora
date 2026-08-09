@@ -114,6 +114,55 @@
   color: var(--success, #217a45);
 }
 
+.recovery-status {
+  margin: 0 0 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.settings-form--recovery {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.settings-form--recovery .button {
+  grid-column: auto;
+  min-height: 42px;
+}
+
+.recovery-kit-panel {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--warning, #b26a00);
+  border-radius: 10px;
+  background: var(--surface-container);
+}
+
+.recovery-kit-panel p,
+.recovery-kit-panel small {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.recovery-kit-output {
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  user-select: all;
+}
+
+.recovery-kit-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
 .session-list {
   display: grid;
   gap: 10px;
@@ -172,5 +221,9 @@
 
   .settings-form {
     grid-template-columns: 1fr;
+  }
+
+  .settings-form--recovery .button {
+    grid-column: 1 / -1;
   }
 }

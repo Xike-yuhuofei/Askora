@@ -15,7 +15,12 @@ from app.core.exceptions import (
     RefreshReplayDetectedError,
     TooManySessionsError,
 )
-from app.models.identity import AuthSessionRecord, IdentityCommandReceiptRecord
+from app.models.identity import (
+    AuthSessionRecord,
+    IdentityCommandReceiptRecord,
+    RecoveryCredentialRecord,
+    RecoveryThrottleRecord,
+)
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.auth_service import MAX_SESSIONS, AuthService
 from app.services.auth.token_service import TokenService, hash_password, verify_password
@@ -30,6 +35,8 @@ async def _database(tmp_path: Path):
         await connection.run_sync(User.__table__.create)
         await connection.run_sync(AuthSessionRecord.__table__.create)
         await connection.run_sync(IdentityCommandReceiptRecord.__table__.create)
+        await connection.run_sync(RecoveryCredentialRecord.__table__.create)
+        await connection.run_sync(RecoveryThrottleRecord.__table__.create)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     return engine, factory
 

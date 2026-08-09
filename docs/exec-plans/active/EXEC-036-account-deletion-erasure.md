@@ -1,7 +1,7 @@
 # EXEC-036 — Account Deletion, Owner Erasure and Restore Barrier
 
 > Priority：P1-05
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY
+> Status：FROZEN / ACTIVE
 > Depends on：EXEC-035 DONE
 > Governing decision：ADR-0009
 

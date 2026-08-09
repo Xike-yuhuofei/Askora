@@ -12,6 +12,8 @@ const replaceSessionTokens = vi.fn()
 vi.mock('../api/users', () => ({ getSystemConfig: vi.fn() }))
 vi.mock('../api/auth', () => ({
   changePassword: vi.fn(),
+  getRecoveryStatus: vi.fn(),
+  issueRecoveryKit: vi.fn(),
   listSessions: vi.fn(),
   revokeOtherSessions: vi.fn(),
   revokeSession: vi.fn(),
@@ -28,6 +30,8 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
     usersApi.getSystemConfig.mockReset()
     usersApi.getSystemConfig.mockResolvedValue({ mode: 'private', llm_ready: false })
     authApi.listSessions.mockReset()
+    authApi.getRecoveryStatus.mockReset()
+    authApi.issueRecoveryKit.mockReset()
     authApi.changePassword.mockReset()
     authApi.revokeOtherSessions.mockReset()
     authApi.revokeSession.mockReset()
@@ -50,6 +54,11 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
           last_seen_at: '2026-08-08T01:00:00Z',
         },
       ],
+    })
+    authApi.getRecoveryStatus.mockResolvedValue({
+      configured: true,
+      credential_version: 1,
+      created_at: '2026-08-09T01:00:00Z',
     })
   })
 
@@ -99,5 +108,49 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
     await waitFor(() => expect(authApi.revokeSession).toHaveBeenCalledWith(
       'session-other', expect.stringMatching(/^revoke-session-/),
     ))
+  })
+
+  it('rotates the offline recovery kit and requires explicit storage confirmation', async () => {
+    authApi.issueRecoveryKit.mockResolvedValue({
+      issued: true,
+      replayed: false,
+      recovery_secret: 'askora-recovery-new-secret-value',
+      credential_version: 2,
+      created_at: '2026-08-09T02:00:00Z',
+      storage_warning: '请立即离线保存；此恢复套件不会再次显示',
+    })
+    render(<RouterProvider><Settings /></RouterProvider>)
+
+    expect(await screen.findByText('当前套件版本 1')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('验证当前密码以轮换恢复套件'), {
+      target: { value: 'correct horse battery staple' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '轮换恢复套件' }))
+
+    expect(await screen.findByLabelText('新的离线恢复套件')).toHaveTextContent(
+      'askora-recovery-new-secret-value',
+    )
+    const dismiss = screen.getByRole('button', { name: '确认保存并关闭' })
+    expect(dismiss).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox', { name: /已将新套件保存在离线安全位置/ }))
+    expect(dismiss).toBeEnabled()
+    fireEvent.click(dismiss)
+    expect(screen.queryByText('askora-recovery-new-secret-value')).not.toBeInTheDocument()
+    expect(window.localStorage.getItem('recovery_secret')).toBeNull()
+  })
+
+  it('keeps a recovery rotation error visible after refreshing status', async () => {
+    authApi.issueRecoveryKit.mockRejectedValue({
+      response: { data: { error: { code: 'AUTH_CURRENT_PASSWORD_INVALID' } } },
+    })
+    render(<RouterProvider><Settings /></RouterProvider>)
+
+    await screen.findByText('当前套件版本 1')
+    fireEvent.change(screen.getByLabelText('验证当前密码以轮换恢复套件'), {
+      target: { value: 'wrong current password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '轮换恢复套件' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('当前密码不正确，请重新输入。')
   })
 })

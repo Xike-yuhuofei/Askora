@@ -12,6 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.contracts.identity import (
     ChangePasswordResultV1,
     ChangePasswordV1,
+    IssueRecoveryKitV1,
+    RecoverPasswordResultV1,
+    RecoverPasswordV1,
+    RecoveryKitResultV1,
+    RecoveryStatusV1,
     RevokeOtherSessionsV1,
     RevokeSessionV1,
     SessionCommandResultV1,
@@ -117,6 +122,7 @@ async def login_with_phone(
 @router.post("/register", summary="用户注册")
 async def register(
     req: RegisterRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -128,11 +134,12 @@ async def register(
     """
     auth_service = AuthService(db)
     try:
-        user = await auth_service.register_user(
+        user, recovery_secret, recovery = await auth_service.register_user(
             phone=req.phone,
             password=req.password,
             nickname=req.nickname,
         )
+        response.headers["Cache-Control"] = "private, no-store"
         return {
             "message": "注册成功",
             "user": {
@@ -141,6 +148,13 @@ async def register(
                 "phone": req.phone,
                 "nickname": user.nickname,
             },
+            "recovery_kit": RecoveryKitResultV1(
+                issued=True,
+                replayed=False,
+                recovery_secret=recovery_secret,
+                credential_version=recovery.version,
+                created_at=auth_service._as_utc(recovery.created_at),
+            ).model_dump(mode="json"),
         }
     except ValueError as e:
         from fastapi import HTTPException
@@ -281,3 +295,46 @@ async def revoke_other_sessions(
         current_session_id=payload["sid"],
         idempotency_key=req.idempotency_key,
     )
+
+
+@router.get(
+    "/recovery/status",
+    response_model=RecoveryStatusV1,
+    summary="读取恢复套件状态",
+)
+async def recovery_status(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await AuthService(db).recovery_status(user_id=current_user.id)
+
+
+@router.post(
+    "/recovery/issue",
+    response_model=RecoveryKitResultV1,
+    summary="创建或轮换离线恢复套件",
+)
+async def issue_recovery_kit(
+    req: IssueRecoveryKitV1,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await AuthService(db).issue_recovery_kit(user=current_user, command=req)
+
+
+@router.post(
+    "/recovery/password",
+    response_model=RecoverPasswordResultV1,
+    summary="使用离线恢复套件重设密码",
+)
+async def recover_password(
+    req: RecoverPasswordV1,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "private, no-store"
+    return await AuthService(db).recover_password(req)
