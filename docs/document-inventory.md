@@ -1,8 +1,8 @@
 # Askora 文档处置清单
 
 > 状态：Current  
-> 校准日期：2026-08-09
-> 基线提交：`33f938b85a3eba446db30b1598768311a79629fc`  
+> 校准日期：2026-08-10
+> 基线提交：`69bb8fe1e2bcd80e40c1b13e7887400efaee352a`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
 处置代码：
@@ -69,9 +69,11 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/design/README.md` | CURRENT-UPDATED | 本次新增 Design 层索引 |
+| `docs/design/README.md` | CURRENT-UPDATED | Design 层索引与 current conformance snapshot 入口 |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN | v0.3 Research Synthesis → Canonical Design 的冻结变更记录；不创建第三份 truth |
+| `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | CURRENT-UPDATED | 指定 main snapshot 对 frozen v0.3 Design/Spec 的实现一致性审计；不是新合同 |
 | `docs/design/账号与隐私生命周期设计.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、recovery 与 privacy deletion 设计 |
 | `docs/design/p1-03-data-control-and-recovery.md` | CURRENT-UPDATED | P1-03 data protection additive Canonical Design |
 | `docs/design/p1-02-model-settings.md` | CANONICAL-RETAIN | P1-02 App 内模型配置产品与安全设计闭环 |
