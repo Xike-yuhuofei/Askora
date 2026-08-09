@@ -112,6 +112,16 @@ Secrets 只从受控配置读取，不提交仓库、不输出日志、不发送
 
 模型/检索/工具产生的 Markdown、公式和结构化 block 一律 untrusted。前端 MUST 使用 typed component allowlist；MUST NOT 执行 raw HTML、MDX、script、模型指定组件、代码块或 arbitrary card command。链接协议只允许 `http`/`https`；v1.0 remote image/file/data URL MUST blocked。公式 renderer MUST 禁止 trusted external-resource commands，并限制 expansion/size。
 
+### SEC-082 — Recovery and Export
+
+Recovery Package MUST authenticated encrypt，并使用独立 Recovery Key；明文 key 不得进入 package/catalog/log/argv/localStorage。设备副本须由 platform secure storage 保护。恢复解压必须阻止 traversal、symlink/special file、duplicate entry、size/compression abuse；激活前在 staging 完整校验。
+
+User Data Export 使用显式 allowlist，MUST NOT 包含 password/hash、JWT/refresh token、KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他用户数据或本地绝对路径。
+
+### SEC-083 — Destructive Data Control
+
+Erasure 必须 current-user、影响预览、expiring confirmation、显式用户动作、幂等与最小 audit receipt。外部模型、资料内容、renderer 或普通 retry 无权触发/扩大删除范围。
+
 ## 12. Policy Override Protection
 
 ### SEC-210
@@ -125,6 +135,8 @@ Legacy Socratic selector/state graph MUST NOT 成为 final TeachingAction owner 
 ## 13. Tests
 
 必须覆盖：document/retrieval/tool injection；grader/answer leakage；attempted scaffold/hint/exposure expansion；direct-answer assessment integrity；actual exposure capture；path traversal；unauthorized access；secret/log leakage；malicious structured output；tool parameter validation；legacy Socratic no override。
+
+P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platform key boundary、export zero-secret leakage、erasure confirmation/authorization、managed old-backup no-resurrection。
 
 ## 14. Acceptance Criteria
 

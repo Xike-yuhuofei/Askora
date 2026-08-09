@@ -308,6 +308,14 @@ UI MUST NOT 使用单一 probability threshold 生成“已掌握/未掌握”�
 eligible time，Key invalid 导航模型设置，quarantine 仅在新策略存在时允许复检，OCR 候选只
 进入人工复核。File missing 不承诺自动找回。Resolved 不得写成学习成功或资料正确。
 
+### UI-SCREEN-095 — Data Control and Recovery
+
+`/settings` 的“数据与恢复”区域必须显示 protection state、最后 VERIFIED recovery point、位置边界、自动备份状态与失败原因，并提供手动备份、验证、恢复、导出和分范围删除。恢复必须解释会停止本地服务、验证后才替换并要求重新登录；同盘备份不得暗示能防整盘丢失。
+
+删除 UI 必须先展示 owner 影响预览，再要求与 scope 匹配的明确确认。DOCUMENT、LEARNING_RECORDS、MODEL_EXECUTION、ALL_PERSONAL_DATA 使用不同名称和后果；PARTIAL/FAILED 不得显示“已删除”。
+
+页面覆盖 `NOT_PROTECTED|READY|IN_PROGRESS|PARTIAL|ERROR` 及通用 LOADING/UNAUTHORIZED；进度/错误使用 live region，Recovery Key 只在用户显式请求时短暂显示，不进入 DOM 日志、URL 或 localStorage。
+
 ## 11. Accessibility
 
 ### UI-SCREEN-100
@@ -336,6 +344,7 @@ eligible time，Key invalid 导航模型设置，quarantine 仅在新策略存�
 - `UI-SCREEN-AC-009`：360px 与 200% zoom 下关键任务、错误、引用和帮助状态可访问。
 - `UI-SCREEN-AC-011`：兼容工作台保留 RichMessage、ownership 与 canonical dialog path，同时不伪造 activity/policy/evidence 数据。
 - `UI-SCREEN-AC-012`：Recovery Center 和 bootstrap shell 满足 UI-SCREEN-005/006/094。
+- `UI-SCREEN-AC-013`：数据控制页清楚区分 backup/export/restore/logout/four erasure scopes，只有 VERIFIED 恢复点可激活。
 
 ## 13. Forbidden Implementations
 

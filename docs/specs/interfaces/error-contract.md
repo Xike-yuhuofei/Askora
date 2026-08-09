@@ -72,11 +72,28 @@ DATABASE_INTEGRITY_FAILED
 OUTBOX_RETRY_WAITING
 OUTBOX_RETRY_EXHAUSTED
 OUTBOX_HANDLER_UNAVAILABLE
+DATA_MODE_UNSUPPORTED
+DATA_MAINTENANCE_BUSY
+DATA_RECOVERY_KEY_REQUIRED
+DATA_RECOVERY_KEY_INVALID
+DATA_BACKUP_NOT_VERIFIED
+DATA_BACKUP_INTEGRITY_FAILED
+DATA_BACKUP_LIMIT_EXCEEDED
+DATA_RESTORE_SCHEMA_UNSUPPORTED
+DATA_RESTORE_RECONCILIATION_FAILED
+DATA_RESTORE_FAILED_ROLLED_BACK
+DATA_EXPORT_SCOPE_INVALID
+DATA_EXPORT_EXPIRED
+DATA_ERASURE_PREVIEW_EXPIRED
+DATA_ERASURE_CONFIRMATION_INVALID
+DATA_ERASURE_PARTIAL
 ```
 
-上述错误的 category、retryability、data safety、retry budget 与允许动作由
+上述 recovery 错误的 category、retryability、data safety、retry budget 与允许动作由
 `recovery-contract.md` 的单一目录冻结。Provider adapter MUST 根据 typed exception/HTTP status
 分类，不得把 provider message 文本作为主分支。
+
+P1-03 data-control errors 的 category/retryability 由 `data-control-contract.md` 冻结：wrong key、unsafe package、future schema 与 invalid confirmation non-retryable；maintenance busy、temporary storage 与未完成 owner step MAY retryable。任何 error details 不得包含 key、内容原文或完整本地路径。
 
 ## 3. Retry
 
