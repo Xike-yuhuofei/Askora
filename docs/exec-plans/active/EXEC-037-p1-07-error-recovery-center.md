@@ -41,6 +41,7 @@ docs/exec-plans/active/EXEC-037-p1-07-error-recovery-center.md
 docs/exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md
 docs/releases/p1-07-error-recovery-center.md
 apps/backend/alembic/versions/<exec037_recovery>.py
+apps/backend/alembic/versions/<exec037_integration_merge>.py
 apps/backend/app/api/v1/recovery.py
 apps/backend/app/api/v1/__init__.py
 apps/backend/app/application/book_learning.py

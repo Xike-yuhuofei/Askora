@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.contracts.recovery import RecoveryCommandV1
 from app.core.database import Base
-from app.domains.content_knowledge import SAFETY_SCAN_CURRENT_KEY
+from app.domains.content_knowledge import SAFETY_SCAN_CURRENT_KEY, SAFETY_SCANNER_VERSION
 from app.infrastructure.outbox import OutboxStatus
 from app.models.document import ProcessingStatus, UserDocument
 from app.models.ledger import LearningEventRecord, OutboxTaskRecord, RecoveryEventRecord
@@ -219,7 +219,7 @@ async def test_quarantine_action_requires_a_newer_policy(tmp_path, monkeypatch) 
         document.moderation_details = {
             **document.moderation_details,
             SAFETY_SCAN_CURRENT_KEY: {
-                "scanner_version": "document-safety-v2",
+                "scanner_version": SAFETY_SCANNER_VERSION,
                 "verdict": "quarantine",
             },
         }
