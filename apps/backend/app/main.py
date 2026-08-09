@@ -313,6 +313,13 @@ if settings.dev_auto_login_enabled:
 
 def main():
     """命令行启动入口"""
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "data-control":
+        from app.data_control.cli import main as data_control_main
+
+        raise SystemExit(data_control_main(sys.argv[2:]))
+
     import uvicorn
 
     target = "app.main:app" if settings.is_development else app
