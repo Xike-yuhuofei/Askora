@@ -66,6 +66,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [API Contract](interfaces/api-contract.md)
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
+- [Data Control and Recovery](interfaces/data-control-contract.md) — P1-03 加密恢复、导出与 owner 协调删除合同
 - [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
 - [Schema Versioning](interfaces/schema-versioning.md)
 
@@ -78,6 +79,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
+- [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
 
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成

@@ -2,7 +2,7 @@
 
 > Spec ID：`PERSIST-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.1 + P1-03 additive recovery contract
 
 ## 1. 基线
 
@@ -135,6 +135,24 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 
 双写仅允许短期迁移，必须在 EXEC Plan 指定 canonical truth、reconciliation 和停止条件。
 
+## 11A. P1-03 Backup / Restore
+
+### PERSIST-100 — Physical Snapshot Boundary
+
+私人桌面 SQLite recovery point MUST 在 maintenance write-stop boundary 创建，并同时覆盖数据库、受管 raw assets、恢复 PII 所需 KEK material、manifest/checksum 与 erasure checkpoint。普通目录复制或只备份数据库不满足本要求。
+
+### PERSIST-101 — Staging Restore
+
+Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite/file/reference/checkpoint validation 与必要 forward migration，再 atomic activate；失败不得改变 active data。详细合同见 `data-control-contract.md`。
+
+### PERSIST-102 — Migration Protection
+
+破坏性 desktop migration MUST 有当前 VERIFIED PRE_MIGRATION recovery point，并在 staging 验证后激活。恢复优先使用 rescue/forward-fix，不把 blind Alembic downgrade 当数据安全保证。
+
+### PERSIST-103 — Erasure Checkpoint
+
+明确删除后，managed recovery catalog 与 projection rebuild MUST 消费单调 erasure checkpoint；无法证明不会复活被删事实的旧恢复点不得激活。
+
 ## 12. Failure Semantics
 
 - transient DB lock/network → bounded retry；
@@ -156,6 +174,8 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - migration upgrade on representative fixture；
 - rollback/forward-fix path；
 - Redis unavailable degradation（相关功能）。
+- encrypted recovery round trip、tamper/wrong-key/path/limit；
+- staging restore、rescue rollback、erasure no-resurrection。
 
 ## 14. Forbidden Implementations
 
@@ -167,3 +187,4 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - 业务状态更新成功但 outbox 靠另一个非原子事务写；
 - SQLite 本地版依赖 Kafka 才能启动；
 - migration 丢弃历史版本/证据而无显式设计批准。
+- 恢复直接覆盖 active path、明文/自包含 key recovery package、删除后继续激活不安全旧恢复点。

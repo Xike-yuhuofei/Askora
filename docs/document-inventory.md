@@ -40,6 +40,7 @@
 | `docs/adr/ADR-0003-policy-runtime-profile-source-and-activation.md` | CANONICAL-RETAIN | Accepted production profile source / activation resolution decision |
 | `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN | UI-02B read scope、objective missing semantics 与 owner-safe evidence label 决策 |
 | `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
+| `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
@@ -54,6 +55,7 @@
 | `docs/design/README.md` | CURRENT-UPDATED | 本次新增 Design 层索引 |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/p1-03-data-control-and-recovery.md` | CURRENT-UPDATED | P1-03 data protection additive Canonical Design |
 | `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
@@ -95,6 +97,7 @@
 | `docs/specs/domain/lifecycle-state-machines.md` | CANONICAL-RETAIN | 仍适用的 lifecycle contract |
 | `docs/specs/interfaces/api-contract.md` | CANONICAL-RETAIN | 仍适用的 API contract |
 | `docs/specs/interfaces/content-ingestion-contract.md` | CANONICAL-RETAIN | SPEC-D01；结构保真 ingestion / source locator / replay 冻结合同 |
+| `docs/specs/interfaces/data-control-contract.md` | CANONICAL-RETAIN | P1-03 recovery/export/erasure frozen contract |
 | `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
 | `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
@@ -131,6 +134,7 @@
 | `docs/specs/vertical-slices/ui-02b1-material-learning-launch.md` | CANONICAL-RETAIN | 冻结 UI-02B1 Vertical Slice；EXEC-025 已完成 |
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结并完成 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 DONE |
 | `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 冻结 UI-02C activity start/resume/complete/next Slice；等待依赖提交 |
+| `docs/specs/vertical-slices/p1-03-data-control-recovery.md` | CANONICAL-RETAIN | 冻结 P1-03 backup/restore/export/erasure Slice |
 
 ## 5. EXEC 历史合同
 
@@ -165,6 +169,10 @@
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN | 单份资料到 canonical teaching 启动 UI 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
 | `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
+| `docs/exec-plans/active/EXEC-1031-p1-03-recovery-foundation.md` | CANONICAL-RETAIN | P1-03 recovery foundation ready |
+| `docs/exec-plans/active/EXEC-1032-p1-03-verified-restore.md` | CANONICAL-RETAIN | P1-03 restore blocked by EXEC-1031 |
+| `docs/exec-plans/active/EXEC-1033-p1-03-user-data-export.md` | CANONICAL-RETAIN | P1-03 export blocked by EXEC-1032 |
+| `docs/exec-plans/active/EXEC-1034-p1-03-erasure-ui-release.md` | CANONICAL-RETAIN | P1-03 erasure/release blocked by EXEC-1033 |
 
 ## 6. Release Evidence
 
