@@ -57,6 +57,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [SYS04 Assessment](systems/04-assessment.md)
 - [SYS05 Teaching Policy](systems/05-teaching-policy.md)
 - [SYS06 Learning Planner](systems/06-learning-planner.md)
+- [SYS06 Activity Lifecycle and Completion](systems/06-activity-lifecycle.md) — versioned start/resume/completion 与 next-activity progression
 - [SYS07 Review Scheduler](systems/07-review-scheduler.md)
 - [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
 
@@ -76,6 +77,8 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only security boundary
 
 ### Vertical Slices
+
+- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
 
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
 

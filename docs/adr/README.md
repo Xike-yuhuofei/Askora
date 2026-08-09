@@ -61,6 +61,7 @@ Codex 可以指出需要 ADR 的 `SPEC GAP`，但不得自行创建“accepted�
 | `ADR-0002` | Constrained Deterministic Teaching Policy Architecture | accepted | 2026-08-07 |
 | `ADR-0003` | Policy Runtime Profile Source and Activation Resolution | accepted | 2026-08-08 |
 | `ADR-0006` | Workspace Read-model Scope and Missing Objective Metadata | accepted | 2026-08-09 |
+| `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
 
 ### v0.3 ADR-C Resolution
 

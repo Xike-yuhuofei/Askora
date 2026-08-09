@@ -82,6 +82,10 @@ StartLearningActivity canonical command
 
 现有 dialog/document/auth commands 可继续使用。UI-02B1 通过独立冻结 Slice 复用 SPEC-D06 已实现的单资料 Goal/diagnostic/plan/activity/teaching commands，并冻结 learner-visible diagnostic payload；这不授权完整 Goal/Plan 编辑或 durable activity/session link。未来其他 goal/activity command 仍必须单独冻结公共 schema、idempotency、version conflict 与 ownership contract。
 
+UI-02C 通过 ADR-0007、`SYS06 Activity Lifecycle and Completion` 与独立 Vertical Slice 单独
+冻结 `StartLearningActivityV1`、`CompleteLearningActivityV1` 和 activity query。该授权仅在
+EXEC-030 dependency gate 满足后生效，不扩大 Goal/Plan/mastery 编辑范围。
+
 ## 3. Common Response Envelope
 
 ### UI-DATA-020

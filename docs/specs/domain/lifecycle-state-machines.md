@@ -145,6 +145,24 @@ planned/available/active → superseded
 
 4.8 可以执行 `active` activity，但不能把另一个 activity 自行设为 active；选择权仍属于 4.6。
 
+### LIFE-041 — Canonical Activity Lifecycle
+
+activity current status 由 SYS06-owned、append-only、单调版本 `LearningActivityStateV1` 决定。
+`LearningActivity` definition payload 中的 status 只表示创建时 initial/legacy snapshot；cutover 后
+不得原地更新，也不得由 transcript、UI local state 或 event recency 推断 current status。
+
+### LIFE-042 — Completion Boundary
+
+`active → completed` 必须经过 versioned、idempotent owner command 与 type-specific completion
+precondition。completed 只表示该计划任务执行结束，MUST NOT 自动写 MasteryEstimate、把
+LearningObjective 设为 satisfied 或把 LearningGoal 设为 achieved。
+
+### LIFE-043 — Atomic Progression
+
+活动完成、`ActivityCompleted` event/outbox 与下一 eligible activity 的 `planned → available`
+必须由 SYS06 原子提交。没有剩余非终态 activity 时 plan MAY completed；goal achievement 仍需
+独立冻结合同。详细合同见 `../systems/06-activity-lifecycle.md`。
+
 ## 7. LearningPlan
 
 Owner：4.6。
