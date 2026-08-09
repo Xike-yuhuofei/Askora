@@ -57,12 +57,8 @@ async def test_control_ready_requires_current_token_and_returns_exact_identity(
     monkeypatch.setattr(settings, "desktop_control_token", CONTROL_TOKEN)
     path = "/_desktop/model-configuration/ready"
 
-    rejected = await _desktop_control_ready(
-        _request({}, "wrong-token", method="GET", path=path)
-    )
-    accepted = await _desktop_control_ready(
-        _request({}, CONTROL_TOKEN, method="GET", path=path)
-    )
+    rejected = await _desktop_control_ready(_request({}, "wrong-token", method="GET", path=path))
+    accepted = await _desktop_control_ready(_request({}, CONTROL_TOKEN, method="GET", path=path))
 
     assert rejected.status_code == 404
     assert b"wrong-token" not in rejected.body
@@ -122,10 +118,7 @@ def test_desktop_control_route_is_absent_from_openapi_and_test_mode() -> None:
         "/_desktop/model-configuration/ready",
     }
     assert private_paths.isdisjoint(app.openapi()["paths"])
-    assert all(
-        getattr(route, "path", None) not in private_paths
-        for route in app.routes
-    )
+    assert all(getattr(route, "path", None) not in private_paths for route in app.routes)
 
 
 def test_desktop_control_token_rejects_low_entropy_and_accepts_electron_format() -> None:
