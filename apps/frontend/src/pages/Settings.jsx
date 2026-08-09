@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CircleAlert, KeyRound, LockKeyhole, LogOut, Server, Shield, User } from 'lucide-react'
+import {
+  AlertTriangle,
+  CircleAlert,
+  Download,
+  KeyRound,
+  LockKeyhole,
+  LogOut,
+  Server,
+  Shield,
+  User,
+} from 'lucide-react'
 import * as usersApi from '../api/users'
+import * as dataControlApi from '../api/dataControl'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from '../router'
 import './Settings.css'
@@ -10,6 +21,14 @@ export default function Settings() {
   const navigate = useNavigate()
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [clearing, setClearing] = useState(false)
+  const [exportScopes, setExportScopes] = useState({
+    PROFILE: true,
+    DOCUMENTS: true,
+    LEARNING_RECORDS: true,
+    MODEL_EXECUTION: true,
+  })
+  const [includeDocumentOriginals, setIncludeDocumentOriginals] = useState(false)
+  const [exportState, setExportState] = useState({ status: 'idle', message: '' })
 
   useEffect(() => {
     usersApi.getSystemConfig()
@@ -22,6 +41,38 @@ export default function Settings() {
     setClearing(true)
     await logout()
     navigate('/login')
+  }
+
+  const toggleExportScope = (scope) => {
+    setExportScopes((current) => ({ ...current, [scope]: !current[scope] }))
+    if (scope === 'DOCUMENTS' && exportScopes.DOCUMENTS) {
+      setIncludeDocumentOriginals(false)
+    }
+  }
+
+  const exportUserData = async () => {
+    if (exportState.status === 'working') return
+    const scopes = Object.entries(exportScopes)
+      .filter(([, enabled]) => enabled)
+      .map(([scope]) => scope)
+    if (scopes.length === 0) {
+      setExportState({ status: 'error', message: '至少选择一个导出范围。' })
+      return
+    }
+    setExportState({ status: 'working', message: '正在生成导出…' })
+    try {
+      const ready = await dataControlApi.createUserExport({
+        scopes,
+        includeDocumentOriginals,
+      })
+      await dataControlApi.downloadUserExport({
+        exportId: ready.export_id,
+        token: ready.download_token,
+      })
+      setExportState({ status: 'success', message: '导出已下载；服务端临时副本已失效。' })
+    } catch {
+      setExportState({ status: 'error', message: '导出失败或已过期，请重新创建。' })
+    }
   }
 
   return (
@@ -71,6 +122,59 @@ export default function Settings() {
                 <dd>{system.data.llm_ready ? '已配置' : '未配置，将使用模拟回复'}</dd>
               </div>
             </dl>
+          )}
+        </section>
+
+        <section className="surface settings-section settings-section--wide">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <h2>导出我的数据</h2>
+              <p>生成一次性、15 分钟有效的可读 ZIP；它不是数据库恢复包。</p>
+            </div>
+            <Download size={18} />
+          </div>
+          <div className="settings-export-scopes">
+            {[
+              ['PROFILE', '账号与画像'],
+              ['DOCUMENTS', '资料元数据'],
+              ['LEARNING_RECORDS', '学习记录'],
+              ['MODEL_EXECUTION', '模型执行记录'],
+            ].map(([scope, label]) => (
+              <label key={scope}>
+                <input
+                  type="checkbox"
+                  checked={exportScopes[scope]}
+                  onChange={() => toggleExportScope(scope)}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+            <label>
+              <input
+                type="checkbox"
+                checked={includeDocumentOriginals}
+                disabled={!exportScopes.DOCUMENTS}
+                onChange={(event) => setIncludeDocumentOriginals(event.target.checked)}
+              />
+              <span>包含资料原件</span>
+            </label>
+          </div>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={exportUserData}
+            disabled={exportState.status === 'working' || !Object.values(exportScopes).some(Boolean)}
+          >
+            <Download size={16} />
+            {exportState.status === 'working' ? '正在生成…' : '创建并下载导出'}
+          </button>
+          {exportState.message && (
+            <p
+              className={exportState.status === 'error' ? 'inline-error' : 'settings-success'}
+              role={exportState.status === 'error' ? 'alert' : 'status'}
+            >
+              {exportState.message}
+            </p>
           )}
         </section>
 
