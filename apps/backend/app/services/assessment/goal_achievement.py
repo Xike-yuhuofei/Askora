@@ -166,7 +166,9 @@ class GoalAchievementAssessmentService:
         now: datetime,
     ) -> AssessmentResult:
         normalized = attempt.normalized_response
-        matched = [term for term in expected_terms if " ".join(term.split()).casefold() in normalized]
+        matched = [
+            term for term in expected_terms if " ".join(term.split()).casefold() in normalized
+        ]
         score = len(matched) / len(expected_terms) if expected_terms else 0.0
         passed = bool(expected_terms) and score >= policy.minimum_score
         return AssessmentResult(
@@ -247,9 +249,7 @@ class GoalAchievementAssessmentService:
             independence="independent",
             assessment_confidence=minimum_confidence,
             evaluator_versions=[GOAL_OPEN_GRADER_PROMPT_VERSION, GOAL_OPEN_REVIEWER_PROMPT_VERSION],
-            reason_codes=[
-                "GOAL_OPEN_DOUBLE_GRADED" if accepted else "GOAL_OPEN_REVIEW_REQUIRED"
-            ],
+            reason_codes=["GOAL_OPEN_DOUBLE_GRADED" if accepted else "GOAL_OPEN_REVIEW_REQUIRED"],
             reviewer_result="accepted" if accepted else "needs_review",
             created_at=now,
         )
@@ -258,9 +258,7 @@ class GoalAchievementAssessmentService:
             attempt=attempt,
             result=result,
             status="accepted" if accepted else "needs_review",
-            reason_codes=(
-                "GOAL_OPEN_DOUBLE_GRADED" if accepted else "GOAL_OPEN_REVIEW_REQUIRED",
-            ),
+            reason_codes=("GOAL_OPEN_DOUBLE_GRADED" if accepted else "GOAL_OPEN_REVIEW_REQUIRED",),
         )
 
     async def _call_grader(

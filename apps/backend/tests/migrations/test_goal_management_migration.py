@@ -100,14 +100,10 @@ async def test_goal_migration_backfills_definition_state_and_candidate_draft(tmp
             )
         ).scalar_one()
         draft_status = (
-            await connection.exec_driver_sql(
-                "SELECT status FROM learning_goal_draft_versions"
-            )
+            await connection.exec_driver_sql("SELECT status FROM learning_goal_draft_versions")
         ).scalar_one()
         state_status = (
-            await connection.exec_driver_sql(
-                "SELECT status FROM learning_goal_state_versions"
-            )
+            await connection.exec_driver_sql("SELECT status FROM learning_goal_state_versions")
         ).scalar_one()
         assert definition_count == 2
         assert draft_status == "draft"
@@ -128,7 +124,9 @@ async def test_goal_migration_backfills_definition_state_and_candidate_draft(tmp
 
 
 @pytest.mark.asyncio
-async def test_goal_achievement_migration_rolls_back_without_touching_goal_history(tmp_path) -> None:
+async def test_goal_achievement_migration_rolls_back_without_touching_goal_history(
+    tmp_path,
+) -> None:
     url = f"sqlite+aiosqlite:///{tmp_path / 'goal-achievement-migration.db'}"
     _alembic(url, "upgrade", GOAL_HEAD)
     engine = create_async_engine(url)
