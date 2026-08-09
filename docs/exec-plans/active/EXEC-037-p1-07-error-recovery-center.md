@@ -39,7 +39,9 @@ docs/specs/** (P1-07 additive updates only)
 docs/exec-plans/README.md
 docs/exec-plans/active/EXEC-037-p1-07-error-recovery-center.md
 docs/exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md
+docs/exec-plans/completed/README.md
 docs/releases/p1-07-error-recovery-center.md
+docs/releases/README.md
 apps/backend/alembic/versions/<exec037_recovery>.py
 apps/backend/alembic/versions/<exec037_integration_merge>.py
 apps/backend/app/api/v1/recovery.py
