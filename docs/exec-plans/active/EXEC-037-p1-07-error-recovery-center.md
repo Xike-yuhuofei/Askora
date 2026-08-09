@@ -69,6 +69,9 @@ apps/backend/tests/**/test_*startup*.py
 apps/backend/tests/integration/test_v03_adaptive_execution_loop.py
 apps/backend/tests/integration/test_library_workspace_query.py
 apps/frontend/electron/main.cjs
+apps/frontend/electron/app-menu.cjs
+apps/frontend/electron/app-menu-template.cjs
+apps/frontend/electron/app-menu-template.test.cjs
 apps/frontend/electron/preload.cjs
 apps/frontend/electron/bootstrap-diagnostics.cjs
 apps/frontend/index.html
@@ -93,6 +96,10 @@ apps/frontend/src/test/Library.test.jsx
 apps/frontend/src/test/Csp.test.js
 apps/frontend/src/test/client.test.js
 ```
+
+`P107-AC-008` 的真实 Electron 200% zoom gate 要求自定义应用菜单保留标准
+`resetZoom/zoomIn/zoomOut` 角色；因此允许纯菜单模板、最小接线及 Node 测试，不授权改变
+外部链接、系统权限或产品导航语义。
 
 ## Forbidden changes
 
