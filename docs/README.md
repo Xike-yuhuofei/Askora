@@ -47,6 +47,7 @@ EXEC-001～013 已完成并归档，`docs/exec-plans/active/` 当前没有执行
 ## 4. 当前说明与历史说明
 
 - 根 [`README.md`](../README.md) 和应用级 README 描述当前稳定代码基线；
+- [`P1 / P2 产品缺口清单`](product-gap-register-p1-p2.md) 记录当前产品完整性优先级与关闭标准，不替代 Spec/ADR/EXEC；
 - Specs、Canonical Design 和 Accepted ADR 定义系统应满足的语义；
 - completed EXEC、Release Report、候选范围和研究议程记录历史形成过程；
 - 标记为历史的材料即使包含“下一阶段”“当前缺口”等措辞，也不得被解释为当前项目状态；

@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
-> 状态：EXEC-030 DONE；P1-04 已完成；P1-06 按独立冻结队列推进
-> Active：EXEC-1062 等待自身依赖 gate
+> 状态：EXEC-030 DONE；P1-04 已完成；P1-05 与 P1-06 按独立冻结队列推进
+> Active：EXEC-034（P1-05 credential/session）；其余按各自依赖串行等待
 > 已完成：EXEC-001～EXEC-033、EXEC-037～038
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-01 的 037→038 已完成；P1-06 为 1061→1062；不得越过依赖或已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～033、EXEC-037～038 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-034](active/EXEC-034-identity-session-foundation.md)、[EXEC-035](active/EXEC-035-local-account-recovery.md)、[EXEC-036](active/EXEC-036-account-deletion-erasure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-01 的 037→038 已完成；P1-05 为 034→036；P1-06 为 1061→1062；各队列不得越过自身依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～033 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -45,6 +45,9 @@ Accepted ADR / Canonical Design
 | P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
 | P1-01A Goal Definition, Draft and Safe Replan | [EXEC-037](completed/EXEC-037-p1-01a-goal-definition-draft-replan.md) | DONE |
 | P1-01B Goal Lifecycle and Evidence-gated Achievement | [EXEC-038](completed/EXEC-038-p1-01b-goal-lifecycle-achievement.md) | DONE |
+| P1-05 Identity Credential and Durable Sessions | EXEC-034 | FROZEN / ACTIVE |
+| P1-05 Local Account Recovery | EXEC-035 | FROZEN / WAITING_FOR_EXEC-034 |
+| P1-05 Account Deletion and Erasure | EXEC-036 | FROZEN / WAITING_FOR_EXEC-035 |
 | P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
 | P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / BLOCKED_BY_DEPENDENCY_GATE |
 
@@ -93,6 +96,20 @@ EXEC-020 ──────────────────────┤
 
 EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有 active Book-to-Learning EXEC。
 
+P1-05 dependency graph：
+
+```text
+ADR-0009 + IDP Spec
+        ↓
+    EXEC-034
+        ↓
+    EXEC-035
+        ↓
+    EXEC-036 → P1-05 DONE
+```
+
+用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。P1-05 与 P1-04 只可在各自冻结的 Allowed Files/owner 边界内推进；发生文件或语义重叠时必须停下对应后序 EXEC 做 reconciliation，不得覆盖现有 P1-04/P0 改动。
+
 P1-06 dependency graph：
 
 ```text
@@ -114,13 +131,16 @@ preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用
 - EXEC-017～024 只实现 SPEC-D01～D06；不得重新设计 v0.3 Adaptive Teaching Loop。
 - 每个 EXEC 完成后必须先满足自身 Acceptance Criteria / Required Tests / DoD，再归档到 `completed/`。
 - 后序 EXEC 在依赖未 DONE 时应报告 `BLOCKED_BY_DEPENDENCY`，不得越序实现。
-- 遇到公共语义、owner、schema、生产依赖等未冻结选择，按 `AGENTS.md` 报告 `BLOCKED_BY_SPEC_GAP`。
+- 遇到公共语义、owner、schema、生产依赖等未冻结选择，按 `AGENTS.md` 报告 `SPEC GAP`；已获用户委托架构自治时，先通过 ADR/Spec/EXEC 完成治理闭环再实现，未获委托时标记 `BLOCKED_BY_SPEC_GAP`。
 - Active EXEC 的文档生命周期由本索引治理；归档后进入 `completed/README.md` 与 release evidence 历史清单。
 
 ## 5. 新 EXEC 要求
 
 每份新 EXEC 必须包含：Objective、Dependencies、Required Specs、Current Reality、Allowed Files、Forbidden Changes、Implementation Tasks、Acceptance Criteria、Required Tests 和 Completion Report Format。
 
-执行前必须读取根 `AGENTS.md`、本 EXEC 引用的全部 Spec，并核对当前代码和 Git 状态。遇到无法在现有 Spec 内无歧义实现的公共语义，必须报告 `BLOCKED_BY_SPEC_GAP`；不得由执行代理自行重设计。
+执行前必须读取根 `AGENTS.md`、本 EXEC 引用的全部 Spec，并核对当前代码和 Git 状态。
+遇到无法在现有 Spec 内无歧义实现的公共语义，必须先报告 `SPEC GAP`。若用户已按
+`AGENTS.md` 第 4 节委托架构自治，Codex 应先显式创建/接受所需 ADR、更新 Spec、冻结新的
+EXEC，再继续修改产品代码；未获委托时才标记 `BLOCKED_BY_SPEC_GAP` 并等待决定。
 
 只有满足前一任务的 DONE gate 才能进入后续依赖任务。完成后按 [Definition of Done](../specs/quality/definition-of-done.md) 返回状态，并将任务移入 `completed/`。

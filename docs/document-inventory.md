@@ -44,6 +44,7 @@
 | `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN | UI-02B read scope、objective missing semantics 与 owner-safe evidence label 决策 |
 | `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
 | `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN | P1-04 SYS01 metadata/search/dedup/OCR governance |
+| `docs/adr/ADR-0009-local-first-identity-privacy-lifecycle.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、privacy erasure 与 restore barrier 决策 |
 | `docs/adr/ADR-0010-goal-definition-state-draft-and-replan.md` | CANONICAL-RETAIN | P1-01A Definition/State/Draft/Replan 决策 |
 | `docs/adr/ADR-0011-goal-achievement-measurement-and-evidence-gate.md` | CANONICAL-RETAIN | P1-01B evidence-gated achievement 决策 |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
@@ -65,6 +66,7 @@
 | `docs/design/README.md` | CURRENT-UPDATED | 本次新增 Design 层索引 |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/账号与隐私生命周期设计.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、recovery 与 privacy deletion 设计 |
 | `docs/design/p1-06-fact-driven-first-use-journey.md` | CANONICAL-RETAIN | P1-06 事实驱动、可恢复的首次学习旅程设计 |
 | `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
@@ -151,6 +153,8 @@
 | `docs/specs/vertical-slices/p1-04a-library-organization.md` | CANONICAL-RETAIN | P1-04A search/metadata/organization Slice |
 | `docs/specs/vertical-slices/p1-04b-library-deduplication.md` | CANONICAL-RETAIN | P1-04B duplicate governance Slice |
 | `docs/specs/vertical-slices/p1-04c-library-ocr-review.md` | CANONICAL-RETAIN | P1-04C OCR candidate/review Slice |
+| `docs/specs/platform/identity-privacy-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 Identity/Privacy 平台合同 |
+| `docs/specs/vertical-slices/p1-05-account-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 完整账号生命周期 Slice |
 | `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
 | `docs/specs/vertical-slices/p1-01a-goal-definition-draft-replan.md` | CANONICAL-RETAIN | 冻结 P1-01A Definition/Draft/Replan Slice；EXEC-037 |
 | `docs/specs/vertical-slices/p1-01b-goal-lifecycle-achievement.md` | CANONICAL-RETAIN | 冻结 P1-01B Lifecycle/Achievement Slice；EXEC-038 |
@@ -159,8 +163,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033、EXEC-037～038 已完成；P1-06 active queue |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-037～038 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033、EXEC-037～038 已完成；P1-05/P1-06 active queues |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-037 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -196,6 +200,9 @@
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
 | `docs/exec-plans/completed/EXEC-037-p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A completed execution contract |
 | `docs/exec-plans/completed/EXEC-038-p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B completed execution contract |
+| `docs/exec-plans/active/EXEC-034-identity-session-foundation.md` | CANONICAL-RETAIN | P1-05 durable session/password active EXEC |
+| `docs/exec-plans/active/EXEC-035-local-account-recovery.md` | CANONICAL-RETAIN | P1-05 local recovery frozen dependency EXEC |
+| `docs/exec-plans/active/EXEC-036-account-deletion-erasure.md` | CANONICAL-RETAIN | P1-05 account deletion/erasure frozen dependency EXEC |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | CANONICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 
