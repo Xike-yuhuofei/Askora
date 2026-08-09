@@ -13,6 +13,7 @@ from weakref import WeakValueDictionary
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.activity_lifecycle import StartLearningActivityV1
 from app.contracts.adaptive import (
     AvailabilityStatus,
     TeachingActionV03,
@@ -626,6 +627,9 @@ class BookLearningApplication:
             plan_id=plan_id,
             plan_version=plan_version,
             activity_id=activity_id,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            now=now,
         )
         user_id = str(canonical_user_id(user.id))
         transcript_session_id = self._transcript_session_id(user=user, activity=activity)
@@ -1110,6 +1114,9 @@ class BookLearningApplication:
         plan_id: UUID,
         plan_version: int,
         activity_id: UUID,
+        idempotency_key: str,
+        correlation_id: UUID,
+        now: datetime | None,
     ) -> tuple[LearningGoalV1, LearningPlan, LearningActivity]:
         goal = await self._require_goal(user, goal_id)
         plans = await self._plan_repo.list_versions(goal_id)
@@ -1130,6 +1137,23 @@ class BookLearningApplication:
         if activity is None:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_STALE_OR_UNAUTHORIZED")
         state = await ActivityLifecycleRepository(self._db).latest(activity_id)
+        if state is not None and state.status == "available":
+            await ActivityLifecycleService(self._db).start(
+                user=user,
+                command=StartLearningActivityV1(
+                    activity_id=activity_id,
+                    expected_state_version=state.version,
+                    idempotency_key=str(
+                        uuid5(
+                            NAMESPACE_URL,
+                            f"askora:book-compat-start:{user.id}:{idempotency_key}",
+                        )
+                    ),
+                ),
+                correlation_id=correlation_id,
+                now=now,
+            )
+            state = await ActivityLifecycleRepository(self._db).latest(activity_id)
         if state is None or state.status != "active":
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_SELECTED")
         return goal, plan, activity

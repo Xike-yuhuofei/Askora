@@ -17,6 +17,7 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | UI-02B Goals, Learning Path and Evidence | [Completion Report](ui-02b-goals-path-evidence.md) | Engineering PASS / Policy, Ownership, Security PASS / Learning Evidence Insufficient |
 | UI-02C Canonical Activity Lifecycle | [Completion Report](ui-02c-canonical-activity-lifecycle.md) | Engineering PASS / Policy, Ownership, Security PASS / Learning Evidence Insufficient |
 | Book-to-Adaptive-Learning | [Completion Report](book-to-adaptive-learning.md) | Engineering, Contract PASS / Policy, Ownership PASS / Learning Evidence Insufficient |
+| P1-03 Data Control and Recovery | [Completion Report](p1-03-data-control-recovery.md) | Engineering PASS / Policy, Ownership, Security PASS / Desktop Recovery E2E PASS / Learning Evidence Insufficient |
 | P1-04 Library Management | [Completion Report](p1-04-library-management.md) | Engineering PASS / Contract, Ownership, Security PASS / Real Browser, Local OCR PASS / Learning Evidence Insufficient |
 | P1-07 Error Recovery Center | [Completion Report](p1-07-error-recovery-center.md) | Engineering PASS / Policy, Ownership, Security, Product Usability PASS / Learning Evidence Insufficient |
 

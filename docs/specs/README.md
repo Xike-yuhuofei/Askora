@@ -71,6 +71,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
 - [Data Control and Recovery](interfaces/data-control-contract.md) — P1-03 加密恢复、导出与 owner 协调删除合同
+- [First-use Onboarding Contract](interfaces/onboarding-contract.md) — P1-06 presentation preference、owner-fact readiness、single next action 与 deep-link contract
 - [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
 - [Schema Versioning](interfaces/schema-versioning.md)
 
@@ -88,6 +89,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 已完成
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
+- [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040 active，EXEC-041 blocked
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成

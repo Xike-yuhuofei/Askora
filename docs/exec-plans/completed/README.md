@@ -13,8 +13,10 @@
 > P1-04 Library Management 收口日期：2026-08-09
 > P1-02A Secure Model Configuration Foundation 收口日期：2026-08-09
 > P1-07 Error Recovery Center 收口日期：2026-08-09
+> P1-03 收口日期：2026-08-09
+> P1-06A Onboarding Readiness Foundation 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-04 EXEC-031～033 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
 
 ## Completion Matrix
 
@@ -55,6 +57,11 @@
 | EXEC-033 — P1-04C Scanned PDF OCR Review | DONE | canonical P1-04 dependency baseline |
 | EXEC-037 — P1-07 Error Recovery Center | DONE | `c4a5928` / integration and release fixes through candidate HEAD |
 | EXEC-040 — P1-02A Secure Model Configuration Foundation | DONE | `0da63a7` / `7964ebd` / `d59837d` |
+| EXEC-1031 — P1-03 Recovery Foundation | DONE | `23e2c51` |
+| EXEC-1032 — P1-03 Verified Offline Restore | DONE | `cfed3e6` |
+| EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |
+| EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
+| EXEC-1061 — P1-06 Onboarding Readiness Foundation | DONE | `4747000` |
 
 ## Release Gate
 
@@ -157,6 +164,17 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 UI-02B 交付 current-user Goals、canonical plan order、owner-safe Evidence 与诚实 Today 计划摘要；未冻结的 activity/session link 不以 UI 状态伪造。详细证据见 `docs/releases/ui-02b-goals-path-evidence.md`。
+
+## P1-03 Release Gates
+
+```text
+Engineering Gate: PASS
+Policy / Ownership / Security Gate: PASS
+Desktop Recovery E2E Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+P1-03 交付 macOS 私人桌面 SQLite 的加密恢复、可验证离线恢复、current-user 可读导出和 owner-coordinated 四范围删除；详细 AC、测试、打包桌面恢复证据与既有仓库门禁债务见 `docs/releases/p1-03-data-control-recovery.md`。
 
 ## Historical Contract Rule
 

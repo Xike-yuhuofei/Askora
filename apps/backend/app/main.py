@@ -30,6 +30,7 @@ from app.api.v1 import (
     data_control_router,
     dialog_router,
     documents_router,
+    onboarding_router,
     orchestrator_router,
     recovery_router,
     users_router,
@@ -428,6 +429,7 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
+app.include_router(onboarding_router, prefix="/api/v1")
 app.include_router(recovery_router, prefix="/api/v1")
 
 # Orchestrator TEI v1 调试端点

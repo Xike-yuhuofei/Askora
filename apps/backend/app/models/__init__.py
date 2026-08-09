@@ -54,6 +54,10 @@ from app.models.ledger import (
     OutboxTaskRecord,
     RecoveryEventRecord,
 )
+from app.models.onboarding import (
+    OnboardingPreferenceCommandReceiptRecord,
+    OnboardingPreferenceRecord,
+)
 from app.models.planning import (
     ActivityLifecycleCommandReceiptRecord,
     DiagnosticNeedRecord,
@@ -104,6 +108,7 @@ __all__ = [
     "MasteryEstimateRecord",
     "BookLearningTranscriptTurnRecord",
     "BookLearningAdvanceRecord",
+    "ConsentRecord",
     "LearningActivityRecord",
     "LearningActivityStateRecord",
     "ActivityLifecycleCommandReceiptRecord",
@@ -133,4 +138,6 @@ __all__ = [
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
     "RecoveryEventRecord",
+    "OnboardingPreferenceRecord",
+    "OnboardingPreferenceCommandReceiptRecord",
 ]

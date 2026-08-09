@@ -171,3 +171,17 @@ Legacy endpoint MAY 暂时存在，但必须：
 - HTTP status/free text 作为唯一错误合同；
 - API response 暴露内部 reference answer/rubric secret。
 - 用公开 `/api/v1` endpoint 接收、保存或返回模型 credential。
+
+## 14. P1-06 Onboarding API
+
+### API-300
+
+`GET /api/v1/onboarding/journey` 与 `POST /api/v1/onboarding/preferences` MUST 调用 `ONBOARD-*`
+query/command port。API handler 不得计算 step completion、挑选业务对象、执行 provider probe、写领域
+state 或从 HTTP/free text 决定 recovery action。
+
+### API-301
+
+两端点 current-user scoped、strict v1、`private, no-store`。Preference command MUST 携带 expected
+version 与 idempotency key；response 不得包含 secret、Prompt、grader-only、raw provider body、绝对
+路径或其他用户 resource ref。

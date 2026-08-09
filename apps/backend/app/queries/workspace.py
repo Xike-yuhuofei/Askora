@@ -144,9 +144,7 @@ class WorkspaceTodayQueryService:
             view_state: Literal["READY", "PARTIAL", "EMPTY"] = "PARTIAL"
         elif path is None:
             view_state = "EMPTY"
-        elif any(
-            reason == "OBJECTIVE_METADATA_UNAVAILABLE" for reason in selection.reason_codes
-        ):
+        elif any(reason == "OBJECTIVE_METADATA_UNAVAILABLE" for reason in selection.reason_codes):
             view_state = "PARTIAL"
         else:
             view_state = "READY"
@@ -311,7 +309,11 @@ class WorkspaceTodayQueryService:
         evidence_reasons = (
             ("CURRENT_ACTIVITY_MASTERY_AVAILABLE",)
             if current_evidence is not None
-            else (("CURRENT_ACTIVITY_EVIDENCE_MISSING",) if current_activity else ("NO_CURRENT_ACTIVITY",))
+            else (
+                ("CURRENT_ACTIVITY_EVIDENCE_MISSING",)
+                if current_activity
+                else ("NO_CURRENT_ACTIVITY",)
+            )
         )
 
         return TodayWorkspaceResponseV1(
@@ -349,7 +351,11 @@ class WorkspaceTodayQueryService:
                     reason_codes=(
                         selection.reason_codes
                         if selection.reason_codes
-                        else (("CURRENT_PLAN_AVAILABLE",) if has_plan else ("CURRENT_PLAN_NOT_AVAILABLE",))
+                        else (
+                            ("CURRENT_PLAN_AVAILABLE",)
+                            if has_plan
+                            else ("CURRENT_PLAN_NOT_AVAILABLE",)
+                        )
                     ),
                 ),
                 WorkspaceSourceStatusV1(
@@ -387,7 +393,9 @@ class WorkspaceTodayQueryService:
             if str(goal.user_id) != owner_id or str(goal.goal_id) != record.goal_id:
                 raise ValueError("learning goal owner or identity mismatch")
             latest[record.goal_id] = goal
-        return sorted(latest.values(), key=lambda item: (-item.created_at.timestamp(), str(item.goal_id)))
+        return sorted(
+            latest.values(), key=lambda item: (-item.created_at.timestamp(), str(item.goal_id))
+        )
 
     async def _select_path(
         self,
@@ -454,9 +462,7 @@ class WorkspaceTodayQueryService:
             reason_codes=reasons,
         )
 
-    async def _latest_plans(
-        self, goals: list[LearningGoalV1]
-    ) -> dict[UUID, LearningPlan]:
+    async def _latest_plans(self, goals: list[LearningGoalV1]) -> dict[UUID, LearningPlan]:
         goal_ids = [str(goal.goal_id) for goal in goals]
         if not goal_ids:
             return {}
@@ -487,9 +493,7 @@ class WorkspaceTodayQueryService:
             latest[goal_key] = plan
         return latest
 
-    async def _ordered_activities(
-        self, plan: LearningPlan
-    ) -> tuple[LearningActivity, ...]:
+    async def _ordered_activities(self, plan: LearningPlan) -> tuple[LearningActivity, ...]:
         records = (
             await self._db.scalars(
                 select(LearningActivityRecord).where(
@@ -599,9 +603,7 @@ class WorkspaceTodayQueryService:
                 return match
         return None
 
-    async def _latest_mastery_records(
-        self, current_user: User
-    ) -> list[MasteryEstimateRecord]:
+    async def _latest_mastery_records(self, current_user: User) -> list[MasteryEstimateRecord]:
         owner_id = str(canonical_user_id(current_user.id))
         records = (
             await self._db.scalars(
@@ -640,21 +642,15 @@ class WorkspaceTodayQueryService:
         return CurrentEvidenceSummaryV1(
             knowledge_unit_ref=f"knowledge_unit:{wanted}:version-unavailable",
             confidence=self._optional_float(payload.get("confidence")),
-            independent_success_count=self._optional_int(
-                payload.get("independent_success_count")
-            ),
+            independent_success_count=self._optional_int(payload.get("independent_success_count")),
             delayed_recall_evidence_count=self._optional_int(
                 payload.get("delayed_recall_evidence_count")
             ),
-            transfer_evidence_count=self._optional_int(
-                payload.get("transfer_evidence_count")
-            ),
+            transfer_evidence_count=self._optional_int(payload.get("transfer_evidence_count")),
             validation_obligation="UNKNOWN",
         )
 
-    async def _knowledge_labels(
-        self, current_user: User
-    ) -> dict[str, tuple[str, int]]:
+    async def _knowledge_labels(self, current_user: User) -> dict[str, tuple[str, int]]:
         documents = (
             await self._db.scalars(
                 select(UserDocument).where(

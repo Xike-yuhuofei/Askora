@@ -220,3 +220,22 @@ destructive repair or continue against an unknown schema.
 - SQLite 本地版依赖 Kafka 才能启动；
 - migration 丢弃历史版本/证据而无显式设计批准。
 - 恢复直接覆盖 active path、明文/自包含 key recovery package、删除后继续激活不安全旧恢复点。
+
+## 15. P1-06 Presentation Preference Persistence
+
+### PERSIST-300
+
+`onboarding_preferences` MUST 使用 SQLite/PostgreSQL compatible schema，唯一键
+`(user_id, journey_id)`、optimistic `preference_version`、timezone-aware timestamps 与幂等 command
+receipt。表中 MUST NOT 出现 step completion 或 document/goal/plan/activity/transcript refs。
+
+### PERSIST-301
+
+Migration MUST 在同一事务把当时 existing users backfill 为 dismissed/legacy-existing-user；迁移后无
+row 的新用户首次查询创建 active v1，并发创建通过唯一约束 fetch existing。Rollback/forward-fix 不得
+改写任何 SYS01～SYS08 state。
+
+### PERSIST-302
+
+Preference 必须随 ALL_PERSONAL_DATA 删除，并在 logout/user switch/schema major change 清除 frontend
+read cache。localStorage/sessionStorage 不得成为 preference、journey 或 step truth。

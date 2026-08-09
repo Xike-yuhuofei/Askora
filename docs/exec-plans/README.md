@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：UI-02C EXEC-030 DONE；P1-04 EXEC-031～033 DONE；P1-02 EXEC-040 DONE / EXEC-041 ACTIVE；P1-03 EXEC-1031～1034 ACTIVE；P1-07 EXEC-037 DONE
-> Active：EXEC-041、EXEC-1031～1034（P1-03 串行）
-> 已完成：EXEC-001～EXEC-033、EXEC-037、EXEC-040
+> 状态：UI-02C、P1-03、P1-04、P1-07 DONE；P1-02B 与 P1-06B 按独立冻结队列推进
+> Active：EXEC-041（P1-02B）、EXEC-1062（P1-06B）
+> 已完成：EXEC-001～EXEC-033、EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-041](active/EXEC-041-p1-02b-model-settings-product-closure.md)、[EXEC-1031](active/EXEC-1031-p1-03-recovery-foundation.md)、[EXEC-1032](active/EXEC-1032-p1-03-verified-restore.md)、[EXEC-1033](active/EXEC-1033-p1-03-user-data-export.md)、[EXEC-1034](active/EXEC-1034-p1-03-erasure-ui-release.md) | EXEC-041 ACTIVE；P1-03 串行执行 |
-| [`completed/`](completed/README.md) | EXEC-001～033、EXEC-037、EXEC-040 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-041](active/EXEC-041-p1-02b-model-settings-product-closure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 两项均不得越过真实依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～033、EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -46,7 +46,9 @@ Accepted ADR / Canonical Design
 | P1-07 Error Recovery Center | [EXEC-037](completed/EXEC-037-p1-07-error-recovery-center.md) | DONE |
 | P1-02A Secure Model Configuration Foundation | [EXEC-040](completed/EXEC-040-p1-02a-model-configuration-foundation.md) | DONE |
 | P1-02B Model Settings Product Closure | EXEC-041 | FROZEN / ACTIVE |
-| P1-03 Data Control and Recovery | EXEC-1031～1034 | FROZEN / EXEC-1031 READY |
+| P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
+| P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
+| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 
 ## 2A. P1-03 Execution Chain
 
@@ -58,7 +60,7 @@ ADR-0103 + DATA-* + P1-03 Vertical Slice
 → EXEC-1034 Erasure / UX / Release Gate
 ```
 
-P1-03 使用任务域保留编号，避免与并行 P1 工作流的普通连续编号碰撞。四个 EXEC 必须独立本地 commit；后序不得越过前序 DONE gate。
+P1-03 使用任务域保留编号，避免与并行 P1 工作流的普通连续编号碰撞。四个 EXEC 已按依赖顺序完成并使用独立本地 commit；验证证据见 [P1-03 Release Report](../releases/p1-03-data-control-recovery.md)。
 
 v0.3 最终状态：
 
@@ -104,6 +106,21 @@ EXEC-020 ──────────────────────┤
 ```
 
 EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有 active Book-to-Learning EXEC。
+
+P1-06 dependency graph：
+
+```text
+ADR-0106 + ONBOARD Spec + UI-02C DONE
+        ↓
+    EXEC-1061
+        ↓
+P1-02/P1-03/P1-07 integration gate
+        ↓
+    EXEC-1062 → P1-06 DONE
+```
+
+用户于 2026-08-09 显式采纳事实驱动 onboarding，并授权真正关闭 P1-06。EXEC-1061 可独立实现
+preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用 placeholder 或 mock 绕过。
 
 ## 4. Queue Contract
 

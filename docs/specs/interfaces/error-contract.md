@@ -197,3 +197,20 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 - 模型超时给 AssessmentResult 记失败；
 - 依赖自由文本判断错误类型；
 - 把 stack trace/密钥直接返回前端。
+
+## 10. P1-06 Onboarding Errors
+
+### ERROR-100
+
+Onboarding stable codes 至少包括：
+
+```text
+ONBOARDING_SCHEMA_UNSUPPORTED
+ONBOARDING_PREFERENCE_VERSION_CONFLICT
+ONBOARDING_PREFERENCE_NOT_FOUND
+ONBOARDING_COMPLETION_PRECONDITION_FAILED
+ONBOARDING_DEPENDENCY_UNAVAILABLE
+```
+
+依赖 owner error MUST 保留原 stable code 和服务端允许的 P1-07 recovery action。partial/stale source 可
+返回 read view，但不得映射为 READY；provider/document/activity failure 不得写 learner negative evidence。

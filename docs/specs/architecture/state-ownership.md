@@ -197,3 +197,22 @@ Legacy dialog mastery、Socratic selector/state graph、old policy config、inte
 ## 11. Forbidden Implementations
 
 禁止：共享大状态表多模块任意写；conversation JSON 混 mastery/plan/review/teaching；多个 mastery/next_due writers；点赞直接转 mastery；LLM confidence 直接变 MasteryEstimate confidence；历史 AssessmentResult 静默覆盖；replay 调在线模型；TeachingStage 进入 learner truth；Outcome/Experiment analytics table 反向成为独立业务 truth；renderer/普通 API 持有模型密钥 truth；desktop vault 与 `.env` permanent dual-write；legacy/v0.3 permanent dual-write。
+
+## 12. P1-06 Onboarding Presentation Boundary
+
+### STATE-300 — OnboardingPreferenceV1
+
+`OnboardingPreferenceV1` 是 Platform Experience Preference 拥有的 presentation-only state，只可保存
+journey/version、active/dismissed、boundary notice acknowledgment 与 dismiss metadata。它 MUST NOT 保存
+step completion 或 model/document/goal/plan/activity/transcript/recovery truth/ref 副本。
+
+### STATE-301 — Onboarding Read Projection
+
+`OnboardingJourneyViewV1` 和 SYS06 `FirstActivityCompletionProjectionV1` 均为只读投影。Query hosting、
+API serialization 或 UI presentation MUST NOT 取得 SYS01～SYS08 写入权；投影失效只能重查 owner，
+不得回写或修补 owner state。
+
+### STATE-AC-300
+
+Architecture tests MUST 证明 onboarding 只有 presentation preference writer，且 activity completion 仍只由
+SYS06 lifecycle transition 产生。

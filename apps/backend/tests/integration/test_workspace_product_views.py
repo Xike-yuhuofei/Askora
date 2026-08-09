@@ -171,9 +171,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
     goal_id = uuid4()
     goal_v1 = _goal(goal_id=goal_id, user_id=owner_id, version=1, title="旧目标标题")
     goal_v2 = _goal(goal_id=goal_id, user_id=owner_id, version=2, title="理解函数变化")
-    private_goal = _goal(
-        goal_id=uuid4(), user_id=other_owner_id, version=1, title="其他用户目标"
-    )
+    private_goal = _goal(goal_id=uuid4(), user_id=other_owner_id, version=1, title="其他用户目标")
     plan, first, second = _plan_and_activities(goal_id)
     knowledge_unit_id = second.knowledge_unit_ids[0]
 
@@ -263,9 +261,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
         goals = await query.list_goals(user, correlation_id="goals")
         path = await query.get_path(user, goal_id=None, correlation_id="path")
         evidence = await query.get_evidence(user, correlation_id="evidence")
-        today = await query.get_today(
-            user, timezone_name="Asia/Shanghai", correlation_id="today"
-        )
+        today = await query.get_today(user, timezone_name="Asia/Shanghai", correlation_id="today")
 
         assert [item.title for item in goals.data.goals] == ["理解函数变化"]
         assert path.data.view_state == "PARTIAL"
@@ -326,16 +322,12 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
 
         query = WorkspaceTodayQueryService(session, clock=lambda: NOW)
         unscoped = await query.get_path(user, goal_id=None, correlation_id="unscoped")
-        scoped = await query.get_path(
-            user, goal_id=goals[0].goal_id, correlation_id="scoped"
-        )
+        scoped = await query.get_path(user, goal_id=goals[0].goal_id, correlation_id="scoped")
 
         assert unscoped.data.view_state == "PARTIAL"
         assert unscoped.data.learning_path is None
         assert len(unscoped.data.available_goal_refs) == 2
-        assert unscoped.data.reason_codes == (
-            "MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE",
-        )
+        assert unscoped.data.reason_codes == ("MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE",)
         assert scoped.data.learning_path is not None
         assert scoped.data.learning_path.goal_ref.endswith(f"{goals[0].goal_id}:v1")
 

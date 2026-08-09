@@ -40,21 +40,7 @@ apps/frontend/src/test/Settings.test.jsx
 
 ## Tasks
 
-1. erasure schema/migration；2. subject-binding registry/coverage gate；3. preview/token/confirm/workflow；4. four scope steps/receipts/checkpoint；5. old backup invalidation + POST_ERASURE；6. complete Settings states/a11y；7. full L0～L5/Electron E2E；8. release report/index/product gap DONE。
-
-## Accepted pre-release schema correction
-
-授权来源：用户明确要求真正关闭 P1-07；P1-03 是其冻结集成 gate。全量测试证明
-`consent_records` 已由 erasure owner 读写，却未进入 `app.models` canonical registry，也没有
-Alembic revision，导致 app-startup `create_all` 可能形成 migration 外隐形 schema。
-
-- 方案 A（采用）：注册既有 `ConsentRecord`，在 P1-03 integrated head 后新增 additive migration；
-  兼容 exact startup-precreated table，未知/不完整同名表 fail closed。
-- 方案 B（不采用）：测试内清除 `Base.metadata` 或绕过 `alembic check`；只能隐藏生产偏差。
-- 不变量：不新增 consent writer、不改变 consent 语义、不回填或猜测同意事实；upgrade 只建空表，
-  downgrade 只删该空/既有表结构，已发布环境优先 forward-fix。
-- 验证：empty/precreated upgrade、downgrade/forward-fix、SQLite `alembic check`、可用时 PostgreSQL，
-  以及 full-suite collection-order regression。
+1. erasure schema/migration（含 frozen manifest 中 `consent_records` 的 Alembic additive coverage 与旧版预建表兼容校验）；2. subject-binding registry/coverage gate；3. preview/token/confirm/workflow；4. four scope steps/receipts/checkpoint；5. old backup invalidation + POST_ERASURE；6. complete Settings states/a11y；7. full L0～L5/Electron E2E；8. release report/index/product gap DONE。
 
 ## Acceptance Criteria
 

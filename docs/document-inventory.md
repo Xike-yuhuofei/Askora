@@ -1,7 +1,7 @@
 # Askora 文档处置清单
 
 > 状态：Current  
-> 校准日期：2026-08-08  
+> 校准日期：2026-08-09
 > 基线提交：`33f938b85a3eba446db30b1598768311a79629fc`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
@@ -34,7 +34,7 @@
 |---|---|---|
 | `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
-| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-02/P1-07 保持 OPEN 直至各自门禁完成 |
+| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-03/P1-04/P1-07 DONE，P1-02/P1-06 保持独立门禁 |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
@@ -47,12 +47,14 @@
 | `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN | P1-07 统一恢复控制面与 bootstrap diagnostics 决策 |
 | `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | P1-02 desktop credential、probe、activation、rollback 与 clear 决策 |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
+| `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
 | `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
 | `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
 | `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A completion evidence snapshot |
+| `docs/releases/p1-03-data-control-recovery.md` | CURRENT-UPDATED | P1-03 Engineering、Policy/Ownership/Security、真实桌面恢复与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | UI-02B2 guided learning completion evidence snapshot |
 | `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN | P1-04 search、organization、deduplication 与 local OCR completion evidence |
 
@@ -65,6 +67,7 @@
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
 | `docs/design/p1-03-data-control-and-recovery.md` | CURRENT-UPDATED | P1-03 data protection additive Canonical Design |
 | `docs/design/p1-02-model-settings.md` | CANONICAL-RETAIN | P1-02 App 内模型配置产品与安全设计闭环 |
+| `docs/design/p1-06-fact-driven-first-use-journey.md` | CANONICAL-RETAIN | P1-06 事实驱动、可恢复的首次学习旅程设计 |
 | `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
@@ -110,6 +113,7 @@
 | `docs/specs/interfaces/data-control-contract.md` | CANONICAL-RETAIN | P1-03 recovery/export/erasure frozen contract |
 | `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
 | `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
+| `docs/specs/interfaces/onboarding-contract.md` | CANONICAL-RETAIN | P1-06 presentation preference、readiness、single next action 与 route contract |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
 | `docs/specs/interfaces/schema-versioning.md` | CANONICAL-RETAIN | 仍适用的 versioning contract |
 | `docs/specs/quality/testing-standard.md` | CANONICAL-RETAIN | v0.3 quality contract |
@@ -154,13 +158,14 @@
 | `docs/specs/vertical-slices/p1-07-error-recovery-center.md` | CANONICAL-RETAIN | P1-07 双入口统一恢复 Vertical Slice |
 | `docs/specs/vertical-slices/p1-03-data-control-recovery.md` | CANONICAL-RETAIN | 冻结 P1-03 backup/restore/export/erasure Slice |
 | `docs/specs/vertical-slices/p1-02-model-settings.md` | CANONICAL-RETAIN | 冻结 P1-02 configure→probe→activate→relaunch 产品闭环 |
+| `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033 已完成；P1-02、P1-03 与 P1-07 EXEC active |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-040 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033、EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061 已完成；EXEC-041、EXEC-1062 active |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -196,11 +201,13 @@
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
 | `docs/exec-plans/completed/EXEC-040-p1-02a-model-configuration-foundation.md` | HISTORICAL-RETAIN | P1-02A secure model configuration foundation completed contract |
 | `docs/exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md` | HISTORICAL-RETAIN | P1-07 completed execution contract |
-| `docs/exec-plans/active/EXEC-1031-p1-03-recovery-foundation.md` | CANONICAL-RETAIN | P1-03 recovery foundation ready |
-| `docs/exec-plans/active/EXEC-1032-p1-03-verified-restore.md` | CANONICAL-RETAIN | P1-03 restore blocked by EXEC-1031 |
-| `docs/exec-plans/active/EXEC-1033-p1-03-user-data-export.md` | CANONICAL-RETAIN | P1-03 export blocked by EXEC-1032 |
-| `docs/exec-plans/active/EXEC-1034-p1-03-erasure-ui-release.md` | CANONICAL-RETAIN | P1-03 erasure/release blocked by EXEC-1033 |
+| `docs/exec-plans/completed/EXEC-1031-p1-03-recovery-foundation.md` | HISTORICAL-RETAIN | P1-03 recovery foundation completed EXEC |
+| `docs/exec-plans/completed/EXEC-1032-p1-03-verified-restore.md` | HISTORICAL-RETAIN | P1-03 verified restore completed EXEC |
+| `docs/exec-plans/completed/EXEC-1033-p1-03-user-data-export.md` | HISTORICAL-RETAIN | P1-03 user export completed EXEC |
+| `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure and release completed EXEC |
 | `docs/exec-plans/active/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | 已冻结并 active；P1-02 Settings 产品闭环 |
+| `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
+| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 
 ## 6. Release Evidence
 
