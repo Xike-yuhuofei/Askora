@@ -30,6 +30,12 @@ export async function chooseAndVerifyBackup() {
   return api.chooseAndVerifyBackup()
 }
 
+export async function chooseAndRestoreBackup() {
+  const api = bridge()
+  if (!api?.chooseAndRestoreBackup) throw new Error('DATA_MODE_UNSUPPORTED')
+  return api.chooseAndRestoreBackup()
+}
+
 export async function revealRecoveryKey() {
   const api = bridge()
   if (!api?.revealRecoveryKey) throw new Error('DATA_MODE_UNSUPPORTED')

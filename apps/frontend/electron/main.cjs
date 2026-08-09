@@ -207,7 +207,15 @@ function stopLocalBackendForMaintenance() {
 }
 
 function runDataControlCommand(command, commandArgs = []) {
-  const allowedCommands = new Set(['status', 'backup', 'verify'])
+  const allowedCommands = new Set([
+    'status',
+    'backup',
+    'verify',
+    'restore',
+    'finalize-restore',
+    'rollback-restore',
+    'recover-interrupted-restore',
+  ])
   if (!allowedCommands.has(command)) {
     return Promise.reject(new Error('Unsupported data-control command'))
   }
@@ -316,14 +324,62 @@ async function createVerifiedBackup(reason, saveExternalCopy) {
 }
 
 async function runScheduledBackupIfDue() {
-  if (!fs.existsSync(path.join(userDataPath, 'askora.db'))) return
   try {
+    await runDataControlCommand('recover-interrupted-restore')
+    if (!fs.existsSync(path.join(userDataPath, 'askora.db'))) return
     const status = await runDataControlCommand('status')
     const due = !status.last_verified || !status.automatic_backup.next_due_at ||
       Date.parse(status.automatic_backup.next_due_at) <= Date.now()
     if (due) await runDataControlCommand('backup', ['--reason', 'SCHEDULED'])
   } catch (error) {
     console.error('[Askora] Scheduled recovery point failed:', error.code || error.message)
+  }
+}
+
+async function chooseAndRestoreBackup() {
+  const choice = await dialog.showOpenDialog(mainWindow, {
+    title: '选择要恢复的 Askora 恢复点',
+    properties: ['openFile'],
+    filters: [{ name: 'Askora Recovery', extensions: ['askora-recovery'] }],
+  })
+  if (choice.canceled || choice.filePaths.length !== 1) return null
+
+  mainWindow?.webContents.send('data-control:maintenance-state', { active: true })
+  await stopLocalBackendForMaintenance()
+  let awaitingReport = null
+  try {
+    awaitingReport = await runDataControlCommand('restore', ['--path', choice.filePaths[0]])
+    const backendURL = await startLocalBackend()
+    if (!backendURL) throw new Error('Restored backend readiness failed')
+    const completed = await runDataControlCommand('finalize-restore', [
+      '--transaction-id',
+      awaitingReport.transaction_id,
+    ])
+    await mainWindow?.webContents.session.clearStorageData({
+      storages: ['cookies', 'localstorage', 'cachestorage'],
+    })
+    mainWindow?.webContents.send('data-control:restored', {
+      reportId: completed.report_id,
+    })
+    mainWindow?.webContents.reload()
+    return completed
+  } catch (error) {
+    if (awaitingReport?.transaction_id) {
+      await stopLocalBackendForMaintenance()
+      try {
+        await runDataControlCommand('rollback-restore', [
+          '--transaction-id',
+          awaitingReport.transaction_id,
+        ])
+      } finally {
+        await startLocalBackend()
+      }
+    } else if (!backendProcess) {
+      await startLocalBackend()
+    }
+    throw error
+  } finally {
+    mainWindow?.webContents.send('data-control:maintenance-state', { active: false })
   }
 }
 
@@ -386,6 +442,7 @@ ipcMain.handle('data-control:choose-and-verify', async () => {
   if (choice.canceled || choice.filePaths.length !== 1) return null
   return runDataControlCommand('verify', ['--path', choice.filePaths[0]])
 })
+ipcMain.handle('data-control:choose-and-restore', () => chooseAndRestoreBackup())
 ipcMain.handle('data-control:reveal-recovery-key', async () => {
   const confirmation = await dialog.showMessageBox(mainWindow, {
     type: 'warning',

@@ -10,10 +10,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       saveExternalCopy: options.saveExternalCopy === true,
     }),
   chooseAndVerifyBackup: () => ipcRenderer.invoke('data-control:choose-and-verify'),
+  chooseAndRestoreBackup: () => ipcRenderer.invoke('data-control:choose-and-restore'),
   revealRecoveryKey: () => ipcRenderer.invoke('data-control:reveal-recovery-key'),
   onMaintenanceState: (callback) => {
     const listener = (_event, state) => callback(state)
     ipcRenderer.on('data-control:maintenance-state', listener)
     return () => ipcRenderer.removeListener('data-control:maintenance-state', listener)
+  },
+  onRestored: (callback) => {
+    const listener = (_event, state) => callback(state)
+    ipcRenderer.on('data-control:restored', listener)
+    return () => ipcRenderer.removeListener('data-control:restored', listener)
   },
 })

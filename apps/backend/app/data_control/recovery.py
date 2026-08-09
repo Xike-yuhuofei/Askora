@@ -415,6 +415,7 @@ class RecoveryManager:
             schema_revision = self._schema_revision(database_target)
             if schema_revision != manifest.database_schema_revision:
                 self._integrity_failed("恢复点数据库版本不匹配")
+            self._verify_registered_documents(database_target, manifest)
             return RecoveryVerificationV1(
                 backup_id=manifest.backup_id,
                 checked_at=datetime.now(UTC),
@@ -424,6 +425,42 @@ class RecoveryManager:
                 foreign_key_violations=0,
                 schema_revision=schema_revision,
             )
+
+    def _verify_registered_documents(
+        self,
+        database_path: Path,
+        manifest: RecoveryManifestV1,
+    ) -> None:
+        uri = f"file:{database_path.as_posix()}?mode=ro"
+        with sqlite3.connect(uri, uri=True) as connection:
+            exists = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_documents'"
+            ).fetchone()
+            if exists is None:
+                return
+            rows = connection.execute(
+                "SELECT storage_path, file_size_bytes, moderation_details "
+                "FROM user_documents WHERE is_deleted = 0"
+            ).fetchall()
+        files = {item.relative_path: item for item in manifest.files}
+        for raw_storage_path, expected_size, raw_details in rows:
+            storage_path = str(raw_storage_path)
+            self._validate_relative_path(storage_path)
+            archive_path = f"documents/{storage_path}"
+            item = files.get(archive_path)
+            if item is None or item.size_bytes != int(expected_size):
+                self._integrity_failed("恢复点缺少已登记资料文件")
+            details = raw_details
+            if isinstance(details, str):
+                try:
+                    details = json.loads(details)
+                except json.JSONDecodeError:
+                    details = {}
+            expected_checksum = (
+                details.get("raw_asset_checksum") if isinstance(details, dict) else None
+            )
+            if expected_checksum and item.sha256 != expected_checksum:
+                self._integrity_failed("恢复点资料文件摘要不匹配")
 
     def _snapshot_sqlite(self, destination: Path) -> None:
         source_uri = f"file:{self.database_path.as_posix()}?mode=ro"
