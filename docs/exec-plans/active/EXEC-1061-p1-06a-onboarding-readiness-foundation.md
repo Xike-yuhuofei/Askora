@@ -44,10 +44,12 @@ docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md
 apps/backend/alembic/versions/<exec1061_onboarding_preferences>.py
 apps/backend/app/api/v1/__init__.py
 apps/backend/app/api/v1/onboarding.py
+apps/backend/app/main.py
 apps/backend/app/contracts/onboarding.py
 apps/backend/app/models/__init__.py
 apps/backend/app/models/onboarding.py
 apps/backend/app/queries/onboarding.py
+apps/backend/app/repositories/__init__.py
 apps/backend/app/repositories/onboarding_preferences.py
 apps/backend/app/services/onboarding.py
 apps/backend/tests/architecture/test_onboarding_boundary.py
