@@ -37,6 +37,7 @@ async def test_representative_legacy_database_forward_rollback_and_reconcile(
     _alembic(database_url, "upgrade", "c81f6ec4a2d1")
     engine = create_async_engine(database_url)
     async with engine.begin() as connection:
+
         def insert_historical_fixture(sync_connection) -> None:
             metadata = MetaData()
             users = Table("users", metadata, autoload_with=sync_connection)

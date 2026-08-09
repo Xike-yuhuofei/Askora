@@ -613,7 +613,9 @@ class PrivacyInventoryRepository:
                             ManifestBlockingIssue(
                                 code="PRIVACY_FILE_PATH_INVALID",
                                 table_name="__local_files__",
-                                record_id=str(path.relative_to(storage_base_path.resolve())),  # noqa: ASYNC240
+                                record_id=str(
+                                    path.relative_to(storage_base_path.resolve())  # noqa: ASYNC240
+                                ),
                             )
                         )
                         continue

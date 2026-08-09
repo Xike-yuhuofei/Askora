@@ -130,6 +130,4 @@ class PrivacyTombstoneRecord(Base):
     final_status: Mapped[str] = mapped_column(String(20), nullable=False)
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("subject_digest", name="uq_privacy_tombstone_subject"),
-    )
+    __table_args__ = (UniqueConstraint("subject_digest", name="uq_privacy_tombstone_subject"),)

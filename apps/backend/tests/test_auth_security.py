@@ -33,9 +33,7 @@ def test_auth_requests_keep_legacy_login_but_enforce_v2_on_new_registration() ->
     assert PhoneLoginRequest(phone="13800138000", password="old-pass").password == "old-pass"
     with pytest.raises(ValidationError):
         RegisterRequest(phone="13800138000", password="short-password")
-    assert RegisterRequest(
-        phone="13800138000", password="correct horse battery staple"
-    ).password
+    assert RegisterRequest(phone="13800138000", password="correct horse battery staple").password
 
 
 @pytest.mark.asyncio

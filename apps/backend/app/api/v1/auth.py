@@ -187,9 +187,7 @@ async def refresh_token(
         access_token=new_access_token,
         refresh_token=new_refresh_token,
         expires_in=max(0, expires_in),
-        session_version=TokenService.decode_token(
-            new_access_token, token_type="access"
-        )["sv"],
+        session_version=TokenService.decode_token(new_access_token, token_type="access")["sv"],
     )
 
 

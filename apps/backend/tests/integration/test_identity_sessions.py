@@ -71,9 +71,7 @@ async def test_login_refresh_replay_revokes_durable_family(tmp_path: Path) -> No
         assert {"sid", "fam", "cv", "sv"}.issubset(access_payload)
         assert await service.validate_token_and_get_user(access, "client-instance-0001")
 
-        next_access, next_refresh, _ = await service.refresh_tokens(
-            refresh, "client-instance-0001"
-        )
+        next_access, next_refresh, _ = await service.refresh_tokens(refresh, "client-instance-0001")
         assert TokenService.decode_token(next_access, token_type="access")["sv"] == 2
         assert next_refresh != refresh
 
@@ -84,9 +82,10 @@ async def test_login_refresh_replay_revokes_durable_family(tmp_path: Path) -> No
 
         session = await service.repo.get_session(access_payload["sid"])
         assert session is not None and session.revoke_reason == "refresh_replay"
-        assert session.current_refresh_jti_digest != TokenService.decode_token(
-            next_refresh, token_type="refresh"
-        )["jti"]
+        assert (
+            session.current_refresh_jti_digest
+            != TokenService.decode_token(next_refresh, token_type="refresh")["jti"]
+        )
     await engine.dispose()
 
 
@@ -140,13 +139,9 @@ async def test_session_limit_uses_database_and_cross_user_revoke_is_not_enumerab
     async with factory() as db:
         service = AuthService(db)
         for index in range(MAX_SESSIONS):
-            await service.login_with_phone(
-                "13800138001", PASSWORD, f"client-instance-{index:04d}"
-            )
+            await service.login_with_phone("13800138001", PASSWORD, f"client-instance-{index:04d}")
         with pytest.raises(TooManySessionsError):
-            await service.login_with_phone(
-                "13800138001", PASSWORD, "client-instance-over-limit"
-            )
+            await service.login_with_phone("13800138001", PASSWORD, "client-instance-over-limit")
 
         access_two, _, _, _ = await service.login_with_phone(
             "13800138002", PASSWORD, "client-instance-user-two"

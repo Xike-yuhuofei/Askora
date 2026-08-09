@@ -174,9 +174,7 @@ class IdentityRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_active_recovery_credential(
-        self, user_id: str
-    ) -> RecoveryCredentialRecord | None:
+    async def get_active_recovery_credential(self, user_id: str) -> RecoveryCredentialRecord | None:
         result = await self.db.execute(
             select(RecoveryCredentialRecord)
             .where(
@@ -200,9 +198,7 @@ class IdentityRepository:
         self.db.add(credential)
         await self.db.flush()
 
-    async def revoke_active_recovery_credentials(
-        self, *, user_id: str, now: datetime
-    ) -> int:
+    async def revoke_active_recovery_credentials(self, *, user_id: str, now: datetime) -> int:
         result = await self.db.execute(
             update(RecoveryCredentialRecord)
             .where(
@@ -247,9 +243,7 @@ class IdentityRepository:
             "updated_at": now,
         }
         if dialect == "postgresql":
-            postgres_statement = postgresql_insert(RecoveryThrottleRecord).values(
-                **insert_values
-            )
+            postgres_statement = postgresql_insert(RecoveryThrottleRecord).values(**insert_values)
             postgres_statement = postgres_statement.on_conflict_do_update(
                 index_elements=["subject_digest", "action"], set_=update_values
             )

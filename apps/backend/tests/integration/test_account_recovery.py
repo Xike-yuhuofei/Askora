@@ -56,9 +56,7 @@ async def test_unknown_login_runs_password_verification(
         verified_hashes.append(encoded)
         return False, None
 
-    monkeypatch.setattr(
-        "app.services.auth.auth_service.verify_and_update_password", fake_verify
-    )
+    monkeypatch.setattr("app.services.auth.auth_service.verify_and_update_password", fake_verify)
     async with factory() as db:
         with pytest.raises(InvalidTokenError):
             await AuthService(db).login_with_phone("13900139009", "unknown-password")
@@ -115,9 +113,7 @@ async def test_registration_issues_once_and_settings_rotation_revokes_old_secret
         )
         assert replayed.replayed is True
         assert replayed.recovery_secret is None
-        receipts = (
-            await db.execute(select(IdentityCommandReceiptRecord))
-        ).scalars().all()
+        receipts = (await db.execute(select(IdentityCommandReceiptRecord))).scalars().all()
         persisted_receipts = json.dumps(
             [receipt.result_payload for receipt in receipts], ensure_ascii=False
         )
@@ -133,9 +129,7 @@ async def test_recovery_consumes_secret_revokes_sessions_and_rotates_credential(
     engine, factory = await _database(tmp_path)
     async with factory() as db:
         service = AuthService(db)
-        user, secret, first_credential = await service.register_user(
-            "13800138001", PASSWORD
-        )
+        user, secret, first_credential = await service.register_user("13800138001", PASSWORD)
         await service.login_with_phone("13800138001", PASSWORD, "client-instance-0001")
         await service.login_with_phone("13800138001", PASSWORD, "client-instance-0002")
 
@@ -168,9 +162,7 @@ async def test_recovery_consumes_secret_revokes_sessions_and_rotates_credential(
         )
         assert replayed.replayed is True
         assert replayed.recovery_secret is None
-        receipts = (
-            await db.execute(select(IdentityCommandReceiptRecord))
-        ).scalars().all()
+        receipts = (await db.execute(select(IdentityCommandReceiptRecord))).scalars().all()
         persisted_receipts = json.dumps(
             [receipt.result_payload for receipt in receipts], ensure_ascii=False
         )
@@ -223,9 +215,7 @@ async def test_login_and_current_password_throttles_survive_restart(tmp_path: Pa
         user, _, _ = await service.register_user("13800138001", PASSWORD)
         for attempt in range(4):
             with pytest.raises(InvalidTokenError):
-                await service.login_with_phone(
-                    "13800138001", f"wrong-login-password-{attempt}"
-                )
+                await service.login_with_phone("13800138001", f"wrong-login-password-{attempt}")
             with pytest.raises(CurrentPasswordInvalidError):
                 await service.issue_recovery_kit(
                     user=user,
@@ -308,9 +298,7 @@ async def test_unknown_and_known_invalid_recovery_share_durable_throttle_path(
                     idempotency_key="unknown-recovery-after-restart",
                 )
             )
-        rows = (
-            await restarted_db.execute(select(RecoveryThrottleRecord))
-        ).scalars().all()
+        rows = (await restarted_db.execute(select(RecoveryThrottleRecord))).scalars().all()
         assert len(rows) == 1 and rows[0].failure_count == 5
     await engine.dispose()
 
@@ -342,9 +330,7 @@ async def test_concurrent_recovery_failures_are_counted_without_bypass(tmp_path:
     async with factory() as db:
         throttle = (
             await db.execute(
-                select(RecoveryThrottleRecord).where(
-                    RecoveryThrottleRecord.action == "recovery"
-                )
+                select(RecoveryThrottleRecord).where(RecoveryThrottleRecord.action == "recovery")
             )
         ).scalar_one()
         assert throttle.failure_count == 5
