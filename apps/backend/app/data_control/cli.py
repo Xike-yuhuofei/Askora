@@ -39,6 +39,10 @@ def _parser() -> argparse.ArgumentParser:
     rollback = subparsers.add_parser("rollback-restore")
     rollback.add_argument("--transaction-id", required=True, type=UUID)
     subparsers.add_parser("recover-interrupted-restore")
+    finalize_erasure = subparsers.add_parser("finalize-erasure")
+    finalize_erasure.add_argument("--workflow-id", required=True, type=UUID)
+    finalize_erasure.add_argument("--checkpoint", required=True, type=int)
+    subparsers.add_parser("recover-interrupted-erasure")
     return parser
 
 
@@ -92,22 +96,29 @@ def run(
                 result_payload = coordinator.rollback(args.transaction_id).model_dump(mode="json")
             else:
                 result_payload = {"action": coordinator.recover_interrupted_activation()}
+        elif args.command == "finalize-erasure":
+            result_payload = manager.finalize_erasure(
+                workflow_id=args.workflow_id,
+                checkpoint=args.checkpoint,
+            ).model_dump(mode="json")
+        elif args.command == "recover-interrupted-erasure":
+            result_payload = manager.recover_interrupted_erasure()
         else:
             result_payload = manager.status().model_dump(mode="json")
     except RecoveryError as exc:
         return _error(exc.code, exc.message)
     except Exception:
-        code = (
-            DataControlErrorCode.RESTORE_FAILED_ROLLED_BACK
-            if args.command
-            in {
-                "restore",
-                "finalize-restore",
-                "rollback-restore",
-                "recover-interrupted-restore",
-            }
-            else DataControlErrorCode.BACKUP_INTEGRITY_FAILED
-        )
+        if args.command in {"finalize-erasure", "recover-interrupted-erasure"}:
+            code = DataControlErrorCode.ERASURE_PARTIAL
+        elif args.command in {
+            "restore",
+            "finalize-restore",
+            "rollback-restore",
+            "recover-interrupted-restore",
+        }:
+            code = DataControlErrorCode.RESTORE_FAILED_ROLLED_BACK
+        else:
+            code = DataControlErrorCode.BACKUP_INTEGRITY_FAILED
         return _error(code, "数据维护任务失败")
     return 0, {"ok": True, "result": result_payload}
 

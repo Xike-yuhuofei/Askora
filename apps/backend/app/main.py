@@ -17,6 +17,7 @@ import re
 from collections import Counter
 from contextlib import asynccontextmanager
 from math import log2
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,11 +49,15 @@ from app.core.startup_diagnostics import (
     classify_database_startup_error,
     emit_startup_diagnostic,
 )
+from app.data_control.erasure import erasure_fail_closed
 from app.observability import setup_observability
 
 # 初始化日志
 setup_logging()
 logger = get_logger(__name__)
+ERASURE_FAIL_CLOSED_MARKER = (
+    Path(settings.local_storage_base_path).resolve().parent / "recovery" / "erasure-pending.json"
+)
 
 
 def _check_runtime_config() -> None:
@@ -203,6 +208,22 @@ app.add_middleware(
 
 # 可观测性
 setup_observability(app)
+
+
+@app.middleware("http")
+async def enforce_pending_erasure_fail_closed(request: Request, call_next):
+    if erasure_fail_closed(ERASURE_FAIL_CLOSED_MARKER, request.url.path):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": {
+                    "code": "DATA_ERASURE_PARTIAL",
+                    "message": "删除后恢复基线尚未完成，学习数据功能暂时关闭",
+                    "request_id": getattr(request.state, "request_id", "unknown"),
+                }
+            },
+        )
+    return await call_next(request)
 
 
 # ========== 全局异常处理 ==========

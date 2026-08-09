@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as usersApi from '../api/users'
@@ -7,6 +7,8 @@ import { RouterProvider } from '../router'
 
 vi.mock('../api/users', () => ({ getSystemConfig: vi.fn() }))
 vi.mock('../api/dataControl', () => ({
+  getDataControlStatus: vi.fn().mockRejectedValue(new Error('desktop bridge unavailable')),
+  onMaintenanceState: vi.fn(() => () => {}),
   createUserExport: vi.fn(),
   downloadUserExport: vi.fn(),
 }))
@@ -47,7 +49,8 @@ describe('MODEL-CONFIG-033 renderer credential boundary', () => {
     fireEvent.change(key, { target: { value: 'sk-must-not-persist' } })
     fireEvent.click(screen.getByRole('button', { name: '验证并应用' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('模型凭据被 provider 拒绝')
+    const panel = screen.getByRole('heading', { name: '模型与密钥' }).closest('section')
+    expect(await within(panel).findByRole('alert')).toHaveTextContent('模型凭据被 provider 拒绝')
     expect(key).toHaveValue('')
     expect(document.body).not.toHaveTextContent('sk-must-not-persist')
     expect(localSet.mock.calls.some(([, value]) => String(value).includes('sk-must-not-persist'))).toBe(false)

@@ -18,6 +18,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }),
   chooseAndVerifyBackup: () => ipcRenderer.invoke('data-control:choose-and-verify'),
   chooseAndRestoreBackup: () => ipcRenderer.invoke('data-control:choose-and-restore'),
+  finalizeErasure: (options) => ipcRenderer.invoke('data-control:finalize-erasure', {
+    workflowId: options?.workflowId,
+    checkpoint: options?.checkpoint,
+    clearLocalSession: options?.clearLocalSession === true,
+  }),
+  resumePendingErasure: () => ipcRenderer.invoke('data-control:resume-pending-erasure'),
   revealRecoveryKey: () => ipcRenderer.invoke('data-control:reveal-recovery-key'),
   onMaintenanceState: (callback) => {
     const listener = (_event, state) => callback(state)
