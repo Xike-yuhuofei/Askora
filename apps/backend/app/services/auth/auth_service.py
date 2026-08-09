@@ -92,7 +92,7 @@ class AuthService:
         if not user or not user.password_hash or not verified:
             await self._record_auth_failure(subject_digest=phone_hash, action="login")
             raise InvalidTokenError("手机号或密码错误")
-        if user.status != UserStatus.ACTIVE:
+        if user.status != UserStatus.ACTIVE or user.account_lifecycle != "active":
             raise InvalidTokenError("账号不可登录")
 
         now = datetime.now(timezone.utc)
@@ -102,7 +102,9 @@ class AuthService:
         session_id = str(uuid.uuid4())
         family_id = str(uuid.uuid4())
         credential_version = user.credential_version
-        client_digest = self._hash_device_fingerprint(device_fingerprint) if device_fingerprint else None
+        client_digest = (
+            self._hash_device_fingerprint(device_fingerprint) if device_fingerprint else None
+        )
         access_token, _, access_expires_at = TokenService.create_access_token(
             user_id=user.id,
             role=user.role.value,
@@ -185,6 +187,7 @@ class AuthService:
         if (
             not user
             or user.status != UserStatus.ACTIVE
+            or user.account_lifecycle != "active"
             or user.credential_version != credential_version
         ):
             raise AuthSessionRevokedError()
@@ -208,6 +211,7 @@ class AuthService:
         if (
             not user
             or user.status != UserStatus.ACTIVE
+            or user.account_lifecycle != "active"
             or user.credential_version != credential_version
         ):
             raise AuthSessionRevokedError()
@@ -408,10 +412,10 @@ class AuthService:
             )
 
         throttle_subject = self._user_throttle_subject(user)
-        await self._assert_not_throttled(
-            subject_digest=throttle_subject, action="current_password"
-        )
-        if not user.password_hash or not verify_password(command.current_password, user.password_hash):
+        await self._assert_not_throttled(subject_digest=throttle_subject, action="current_password")
+        if not user.password_hash or not verify_password(
+            command.current_password, user.password_hash
+        ):
             await self._record_auth_failure(
                 subject_digest=throttle_subject, action="current_password"
             )
@@ -472,9 +476,7 @@ class AuthService:
         session.credential_version = next_credential_version
         session.last_seen_at = now
         session.refresh_expires_at = refresh_expires_at
-        await self.repo.reset_throttle(
-            subject_digest=throttle_subject, action="current_password"
-        )
+        await self.repo.reset_throttle(subject_digest=throttle_subject, action="current_password")
 
         stored_payload = {
             "schema_version": "1.0",
@@ -586,10 +588,10 @@ class AuthService:
 
         subject = self._user_throttle_subject(user)
         await self._assert_not_throttled(subject_digest=subject, action="current_password")
-        if not user.password_hash or not verify_password(command.current_password, user.password_hash):
-            await self._record_auth_failure(
-                subject_digest=subject, action="current_password"
-            )
+        if not user.password_hash or not verify_password(
+            command.current_password, user.password_hash
+        ):
+            await self._record_auth_failure(subject_digest=subject, action="current_password")
             raise CurrentPasswordInvalidError()
 
         now = datetime.now(timezone.utc)
@@ -659,7 +661,13 @@ class AuthService:
             credential.secret_digest if credential is not None else self._dummy_recovery_digest()
         )
         valid = hmac.compare_digest(provided_digest, expected_digest)
-        if not valid or user is None or credential is None or user.status != UserStatus.ACTIVE:
+        if (
+            not valid
+            or user is None
+            or credential is None
+            or user.status != UserStatus.ACTIVE
+            or user.account_lifecycle != "active"
+        ):
             await self._record_auth_failure(subject_digest=subject, action="recovery")
             raise AuthRecoveryInvalidError()
         if user.password_hash and verify_password(command.new_password, user.password_hash):
@@ -719,6 +727,21 @@ class AuthService:
         await self.repo.add_recovery_credential(credential)
         return secret, credential
 
+    async def verify_current_password_for_action(
+        self,
+        *,
+        user: User,
+        password: str,
+        action: str,
+    ) -> None:
+        """IDP-031: server-side throttled re-authentication for sensitive commands."""
+        subject = self._user_throttle_subject(user)
+        await self._assert_not_throttled(subject_digest=subject, action=action)
+        if not user.password_hash or not verify_password(password, user.password_hash):
+            await self._record_auth_failure(subject_digest=subject, action=action)
+            raise CurrentPasswordInvalidError()
+        await self.repo.reset_throttle(subject_digest=subject, action=action)
+
     async def _assert_not_throttled(self, *, subject_digest: str, action: str) -> None:
         row = await self.repo.get_throttle(subject_digest=subject_digest, action=action)
         if row is None or row.locked_until is None:
@@ -763,9 +786,7 @@ class AuthService:
                 logger.warning("legacy_phone_decrypt_failed", user_id=candidate.id)
         return None
 
-    def _required_session_claims(
-        self, payload: dict[str, Any]
-    ) -> tuple[str, str, str, int, int]:
+    def _required_session_claims(self, payload: dict[str, Any]) -> tuple[str, str, str, int, int]:
         user_id = payload.get("sub")
         session_id = payload.get("sid")
         family_id = payload.get("fam")
@@ -833,7 +854,11 @@ class AuthService:
 
     @staticmethod
     def _as_utc(value: datetime) -> datetime:
-        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+        return (
+            value.replace(tzinfo=timezone.utc)
+            if value.tzinfo is None
+            else value.astimezone(timezone.utc)
+        )
 
     @staticmethod
     def _client_label(client_digest: str | None) -> str:
@@ -847,11 +872,15 @@ class AuthService:
 
     @staticmethod
     def _phone_lookup_hash(phone: str) -> str:
-        return hmac.new(settings.kek_master_key.encode(), phone.encode(), hashlib.sha256).hexdigest()
+        return hmac.new(
+            settings.kek_master_key.encode(), phone.encode(), hashlib.sha256
+        ).hexdigest()
 
     @staticmethod
     def _digest_secret(value: str) -> str:
-        return hmac.new(settings.kek_master_key.encode(), value.encode(), hashlib.sha256).hexdigest()
+        return hmac.new(
+            settings.kek_master_key.encode(), value.encode(), hashlib.sha256
+        ).hexdigest()
 
     @classmethod
     def _request_digest(cls, value: dict[str, Any]) -> str:

@@ -189,6 +189,78 @@ class AuthRecoveryRateLimitedError(AuthError):
         )
 
 
+class AccountDeletionPreviewStaleError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_PREVIEW_STALE",
+            message="删除预览已过期或数据范围已变化，请重新生成预览",
+        )
+
+
+class AccountDeletionConfirmationInvalidError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error_code="ACCOUNT_DELETION_CONFIRMATION_INVALID",
+            message="删除确认信息无效",
+        )
+
+
+class AccountDeletionInProgressError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_IN_PROGRESS",
+            message="账号删除正在进行，普通登录和账号操作已停用",
+        )
+
+
+class AccountDeletionNotCancellableError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_NOT_CANCELLABLE",
+            message="删除已开始执行，当前状态不可取消",
+        )
+
+
+class AccountDeletionBlockedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_BLOCKED",
+            message="删除核对未通过，账号保持不可用",
+        )
+
+
+class PrivacySubjectAmbiguousError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_SUBJECT_AMBIGUOUS",
+            message="数据归属存在歧义，删除未开始",
+        )
+
+
+class PrivacyReconciliationFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_RECONCILIATION_FAILED",
+            message="删除后仍检测到目标数据，账号保持不可用",
+        )
+
+
+class PrivacyRestoreBlockedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_RESTORE_BLOCKED",
+            message="检测到已删除账号的旧快照，普通业务启动已阻断",
+        )
+
+
 # ========== 合规相关 (COMP-xxxx) ==========
 
 

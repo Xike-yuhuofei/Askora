@@ -1,83 +1,106 @@
 # P1-05 Account Lifecycle Release Evidence
 
-> 当前阶段：EXEC-034～035 DONE / EXEC-036 ACTIVE
-> P1-05 总状态：OPEN
+> 最终状态：DONE
+> 执行范围：EXEC-034～036
 > 证据日期：2026-08-09
 
-## EXEC-034 Engineering
-
-- 新密码 Argon2id 写入；历史 bcrypt 成功认证后同一 identity transaction rehash。
-- durable `AuthSession` 与 token family 绑定 `sid/fam/cv/sv`；旧 token fail closed 要求重新登录。
-- refresh compare-and-swap、并发/重放整族撤销、数据库 session limit、cross-user 不可枚举。
-- 修改密码递增 credential version、撤销其他 sessions、轮换当前 family；Settings 可操作并可恢复失败。
-- migration `f34a91b807d1` 已验证 SQLite upgrade/downgrade/forward-fix、Alembic drift check 与 PostgreSQL offline DDL。
-
-当前机器证据：
+## 结论
 
 ```text
-Identity backend targeted: 15 passed
-Frontend full: 52 passed
-Frontend build: PASS
-npm audit high: 0 vulnerabilities
-ruff app/tests: PASS
-mypy app: PASS
-SQLite alembic check: PASS
-Backend full: 342 passed, 1 skipped, 2 failed
-  - P1-05 introduced historical migration fixture: fixed and separately PASS
-  - remaining failure: pre-existing Book Learning non-UUID fixture outside EXEC-034 scope
+Engineering Gate: PASS
+Policy / Ownership Gate: PASS
+Learning Evidence: NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE
+Blocking SPEC GAP: NONE
 ```
+
+本报告只证明账号生命周期的工程、安全、所有权与交互合同，不证明 Askora 改善真人学习效果；项目整体学习证据状态不因此改变。
+
+## Engineering
+
+### EXEC-034 — Credential 与 durable session
+
+- 新密码写入 Argon2id；历史 bcrypt 只在成功认证后 rehash。
+- 数据库 `AuthSession` 是 session/token-family 唯一 truth；token 绑定 `sid/fam/cv/sv`。
+- refresh single-use、并发/重放整族撤销、数据库 session limit、修改密码后的 credential version 与 session rotation 已覆盖。
+
+### EXEC-035 — 本地恢复套件
+
+- 注册、设置轮换和恢复都使用一次性离线 recovery credential；明文只显示一次。
+- recovery 成功后 consume 旧 credential、写入 Argon2id 新密码、递增 credential version、撤销全部 session 并签发新 kit。
+- login/current-password/recovery 使用 durable throttle；unknown/existing 路径不枚举账号。
+
+### EXEC-036 — 删除、清除与恢复屏障
+
+- strict v1 preview/request/status/cancel/retry API；request 固定 preview digest、重新认证、精确确认短语与幂等键。
+- `deletion_pending` 立即冻结普通认证并保留独立 deletion-control；pending 可取消，purging 后不可取消。
+- 显式 subject registry 分类所有当前表；迭代 manifest 覆盖直接 owner、引用链、JSON payload、文件、outbox 和 projection，未知表或跨用户歧义 fail closed。
+- owner erasure 按冻结顺序生成 durable receipt：
+
+```text
+IDENTITY_FREEZE → SYS08_TASKS → SYS01 → SYS02 → SYS03 → SYS04
+→ SYS05 → SYS06 → SYS07 → SYS08_LEDGER → PROJECTIONS → IDENTITY_FINALIZE
+```
+
+- bounded retry、blocked 状态和显式 retry 从 receipt 恢复；进程重启自动继续 pending/purging。
+- reconciliation 非零不得完成；最终清除 identity PII、credential、session、recovery、业务数据、文件、任务与缓存，并保留最小无 PII tombstone。
+- Redis 可用时按冻结 manifest 立即清除；Redis 不可用时，外部 restore barrier 保存不可逆 HMAC cache scope，后续启动先于模型/文档 worker 清理恢复出的缓存。
+- 旧数据库快照命中外部 barrier 后，在业务 worker 启动前重新清除；已删除账号不能登录或继续处理旧任务。
+- Settings 提供修改密码、会话、恢复套件与删除账号四区；删除状态在刷新和后端重启后保持，用户显式完成后才清除本地 deletion-control。
+
+## P1-05 Acceptance Matrix
+
+| AC | 结果 | 当前证据 |
+|---|---|---|
+| P105-AC-001 | PASS | `IDP-AC-001..012` 的 session、recovery、删除、跨用户、重启、tombstone 与 UI 测试全部通过 |
+| P105-AC-002 | PASS | 360×800 无横向溢出；200% 缩放后结构与控件保留；关键输入、checkbox、tab、button 使用原生语义并在真实浏览器可聚焦 |
+| P105-AC-003 | PASS | logout/revoke/password/recovery/delete 分离，API effect、文案与 durable lifecycle 一致 |
+| P105-AC-004 | PASS | SQLite、真实 PostgreSQL、Redis-unavailable、restart、concurrent refresh/delete 均有自动化或真实运行证据 |
+| P105-AC-005 | PASS | all-table representative fixture 覆盖 SYS01～SYS08、legacy、文件、outbox/projection；其他用户与 global policy 保留 |
+| P105-AC-006 | PASS | 真实浏览器完成 change-password → re-login → recovery → re-login → preview/request/purge；刷新与后端重启仍为 deleted |
+| P105-AC-007 | PASS | EXEC-034～036 独立提交；full gates、release report 与 reconciliation 通过后才将 register 标 DONE |
+| P105-AC-008 | PASS | Engineering 与 Policy/Ownership 分开 PASS；Learning Evidence 为 `NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE` |
+
+键盘证据边界：真实浏览器确认关键原生控件的语义与焦点可达；浏览器自动化层的按键注入未产生可计入的激活事件，因此未把该次注入单独宣称为端到端键盘操作证据。原生控件、焦点状态和自动化交互共同构成当前 accessibility gate；未发现产品侧阻断。
+
+## 验证证据
+
+```text
+EXEC-036 targeted backend: 18 passed, 1 PostgreSQL env-gated skipped
+Backend full: 372 passed, 2 skipped
+ruff app/tests: PASS
+mypy app: PASS (169 source files)
+SQLite migration upgrade/rollback/forward-fix: PASS
+PostgreSQL full alembic upgrade head + check: PASS
+PostgreSQL representative deletion fixture: 1 passed
+Frontend full: 61 passed
+Frontend build: PASS
+npm audit --audit-level=high: 0 vulnerabilities
+Real browser console: 0 error / 0 warning
+360x800: innerWidth 360 / scrollWidth 360
+Redis unavailable startup/deletion journey: PASS
+Old snapshot + retained restore barrier + backend restart: PASS
+```
+
+普通全量测试中的 2 个 skip 分别是需要显式 real-model 凭据的学习 eval 和需要隔离 PostgreSQL URL 的删除夹具；后者已使用真实临时 PostgreSQL 数据库单独通过。真实模型门控与账号生命周期无关，不能作为本项学习效果证据。
 
 ## Policy / Ownership
 
-`AuthSession` 数据库是唯一 session truth。Redis/进程内 blacklist 不参与 EXEC-034 的认证放行、撤销、refresh single-use 或 session limit。Identity 不写 SYS01～SYS08 业务 truth。
+- Platform Identity 唯一写入 credential、credential version、AuthSession 与 RecoveryCredential。
+- Platform Privacy 只写 deletion request、frozen manifest、owner receipt、tombstone 与 restore barrier，不成为第九学习系统。
+- SYS01～SYS08 只通过显式 owner erasure 执行其删除责任；coordinator 没有普通 cross-owner write API。
+- Redis、前端 storage、tombstone 和 restore barrier 均不是 identity/session/learning truth。
+- 未新增短信、邮件、第三方身份服务、生产依赖或永久双写。
 
 ## Learning Evidence
 
 ```text
-LEARNING_EVIDENCE_INSUFFICIENT
+NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE
 ```
 
-本阶段只证明账号安全与工程行为，不能证明 Askora 改善真人学习效果。
+本项不改变项目整体的 `LEARNING_EVIDENCE_INSUFFICIENT` 结论。
 
-## EXEC-035 Engineering
+## 未完成项与 SPEC GAP
 
-- 新注册与 recovery credential 原子创建；Settings 读取状态并通过 current password 创建/轮换，旧 credential 立即撤销。
-- recovery 成功 consume 旧 credential、Argon2id 写新密码、递增 credential version、撤销全部 sessions、签发只显示一次的新 kit，并要求重新登录。
-- 登录、current-password、recovery 采用数据库 durable 5 次失败/15 分钟冷却；SQLite/PostgreSQL 原子 upsert 覆盖并发失败，不丢计数。
-- unknown login 执行 Argon2id dummy verify；unknown/existing recovery 执行同 credential lookup、keyed digest compare、稳定文案和 throttle path。
-- `Retry-After` 由统一 AppError handler 透传；恢复 secret 不进入数据库明文、receipt、日志或前端普通 localStorage/user cache。
-- migration `f35b91b807d2` 已验证 SQLite upgrade/downgrade/forward-fix/check 与 PostgreSQL offline DDL。
-
-当前机器证据：
-
-```text
-Identity/recovery targeted backend: 19 passed
-Frontend full: 57 passed
-Frontend build: PASS
-npm audit high: 0 vulnerabilities
-ruff app/tests: PASS
-mypy app: PASS
-SQLite migration/check: PASS
-PostgreSQL offline DDL: PASS
-Backend full before final EXEC-035 commit: 353 passed, 1 skipped, 1 failed
-  - remaining failure: pre-existing Book Learning legacy non-UUID fixture outside EXEC-035 scope
-Real browser: registration v1 → rotate v2 → old kit invalid → recover v3 → old sessions revoked → new login
-Browser console: 0 error / 0 warning
-```
-
-## EXEC-035 Policy / Ownership
-
-Identity 是 recovery credential、credential version、认证限流与 session revoke 的唯一 writer。没有新增第二 identity/session truth，没有写入 SYS01～SYS08 业务状态，也没有引入短信、邮件、第三方身份服务或安全问题。
-
-## EXEC-035 Learning Evidence
-
-```text
-LEARNING_EVIDENCE_INSUFFICIENT
-```
-
-本阶段只证明账号恢复的工程、安全和交互行为，不能证明 Askora 改善真人学习效果。
-
-## Remaining Before P1-05 DONE
-
-- EXEC-036：删除 preview/pending/cancel、owner erasure、reconciliation、tombstone、restore barrier。
-- P1-05 最终真实浏览器、360px/200% zoom/keyboard、restart 与零残留总验收。
+- P1-05 范围内未完成项：无。
+- Blocking SPEC GAP：无。
+- 未推送远程；三个 EXEC 均保留独立本地提交边界。

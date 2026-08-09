@@ -7,6 +7,7 @@
 > UI-02A 收口日期：2026-08-08
 > UI-02B1 收口日期：2026-08-08
 > UI-02B Goals/Path/Evidence 收口日期：2026-08-09
+> P1-05 Account Lifecycle 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
 > 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B Goals/Path/Evidence FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
 
@@ -42,6 +43,7 @@
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-034 — Identity Credential and Durable Sessions | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-035 — Local Account Recovery Kit | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-036 — Account Deletion, Owner Erasure and Restore Barrier | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 

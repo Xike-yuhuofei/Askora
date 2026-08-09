@@ -1,7 +1,7 @@
 # EXEC-036 — Account Deletion, Owner Erasure and Restore Barrier
 
 > Priority：P1-05
-> Status：FROZEN / ACTIVE
+> Status：FROZEN / DONE
 > Depends on：EXEC-035 DONE
 > Governing decision：ADR-0009
 
@@ -113,3 +113,17 @@ git diff --check
 ## Completion Report Format
 
 分别报告 Engineering、Policy/Ownership、Learning Evidence；逐项列 P1-05 AC、owner receipts、zero-residual evidence、restore barrier、测试、commit、未完成项和 SPEC GAP。
+
+## Completion Report
+
+2026-08-09 完成：strict deletion API、durable request/manifest/receipt/tombstone、12-step owner erasure、zero-residual reconciliation、Redis/cache 清除、外部 restore barrier、restart recovery 与 Settings deletion UI 均已实现。
+
+```text
+Engineering Gate: PASS
+Policy / Ownership Gate: PASS
+Learning Evidence: NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE
+P1-05 Acceptance Criteria: P105-AC-001..008 PASS
+Blocking SPEC GAP: NONE
+```
+
+当前候选验证：backend 372 passed / 2 skipped；EXEC-036 targeted 18 passed / 1 env-gated skipped；真实 PostgreSQL migration/check 与 representative fixture PASS；frontend 61 passed、build PASS、npm high vulnerabilities 0；ruff、mypy、docs 与 diff gate PASS。完整证据见 `docs/releases/p1-05-account-lifecycle.md`。

@@ -153,4 +153,11 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('当前密码不正确，请重新输入。')
   })
+
+  it('exposes account deletion as a distinct danger operation', async () => {
+    render(<RouterProvider><Settings /></RouterProvider>)
+    await screen.findByText('私人使用')
+    fireEvent.click(screen.getByRole('button', { name: '查看删除范围' }))
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/delete-account'))
+  })
 })

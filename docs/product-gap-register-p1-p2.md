@@ -92,11 +92,11 @@
 
 ### P1-05 账号生命周期
 
-**状态：OPEN**
+**状态：DONE**
 
 [认证客户端](../apps/frontend/src/api/auth.js) 当前覆盖注册、登录、刷新令牌和退出。
 
-治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034 已完成并独立提交，当前按 EXEC-035 → 036 串行实施。P1-04 已占用 EXEC-031～033，两队列不得混用文件或提交。
+治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034～036 已串行完成并保留独立提交，完整工程、所有权、迁移、恢复与真实浏览器证据见 [P1-05 Release Evidence](releases/p1-05-account-lifecycle.md)。P1-04 的 EXEC-031～033 未被混入本项文件或提交。
 
 方案边界：
 
@@ -114,6 +114,8 @@
 四个动作必须保持不同：退出当前 App 只撤销当前 session；撤销指定 App 只撤销该 token family；删除全部学习数据保留账号；删除账号删除全部用户数据并清除 credential/PII。
 
 完成标准：`IDP-AC-001..012` 与 `P105-AC-001..008` 全部满足；SQLite/PostgreSQL、Redis 故障、并发 refresh/delete、restart recovery、cross-user、文件/outbox/projection、旧快照 barrier、360px/200% zoom/keyboard 和真实浏览器通过；三份 EXEC 独立 commit/release evidence 完成后方可标 `DONE`。
+
+完成回执：上述门禁已于 2026-08-09 通过；Engineering 与 Policy/Ownership 为 `PASS`，Learning Evidence 为 `NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE`，项目整体学习证据状态保持不变。
 
 ### P1-06 首次使用引导
 

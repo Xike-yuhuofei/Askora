@@ -139,8 +139,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refresh_token', tokens.refresh_token)
   }
 
+  const clearForDeletion = () => {
+    clearTokens()
+    setUser(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, recover, logout, fetchMe, replaceSessionTokens }}>
+    <AuthContext.Provider value={{ user, loading, login, register, recover, logout, fetchMe, replaceSessionTokens, clearForDeletion }}>
       {children}
     </AuthContext.Provider>
   )

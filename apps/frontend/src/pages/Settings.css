@@ -194,6 +194,10 @@
   gap: 20px;
 }
 
+.settings-danger { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-color: color-mix(in srgb, var(--danger, #b42318) 35%, var(--border)); }
+.settings-danger h2 { margin: 0 0 5px; font-size: 16px; }
+.settings-danger p:last-child { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+
 .settings-session h2 {
   margin: 0 0 5px;
   font-size: 16px;
@@ -218,6 +222,8 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .settings-danger { align-items: flex-start; flex-direction: column; }
 
   .settings-form {
     grid-template-columns: 1fr;

@@ -321,6 +321,10 @@ export default function Settings() {
             {clearing ? '正在退出…' : '退出当前会话'}
           </button>
         </section>
+        <section className="surface settings-section settings-section--wide settings-danger" aria-labelledby="danger-heading">
+          <div><p className="eyebrow">危险操作</p><h2 id="danger-heading">删除账号</h2><p>永久删除学习数据、文件、会话和身份信息；先生成可核对的删除清单。</p></div>
+          <button type="button" className="button button--danger" onClick={() => navigate('/settings/delete-account')}>查看删除范围</button>
+        </section>
       </div>
     </div>
   )

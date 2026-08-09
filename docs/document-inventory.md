@@ -141,8 +141,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025 与 EXEC-029 已完成；EXEC-030 frozen/blocked |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025、EXEC-029 与 EXEC-034～035 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025、EXEC-029、EXEC-034～036 已完成；EXEC-030 frozen/blocked |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025、EXEC-029 与 EXEC-034～036 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -172,7 +172,7 @@
 | `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
 | `docs/exec-plans/completed/EXEC-034-identity-session-foundation.md` | HISTORICAL-RETAIN | P1-05 durable session/password completed EXEC |
 | `docs/exec-plans/completed/EXEC-035-local-account-recovery.md` | HISTORICAL-RETAIN | P1-05 local recovery completed EXEC |
-| `docs/exec-plans/active/EXEC-036-account-deletion-erasure.md` | CANONICAL-RETAIN | P1-05 account deletion/erasure frozen dependency EXEC |
+| `docs/exec-plans/completed/EXEC-036-account-deletion-erasure.md` | HISTORICAL-RETAIN | P1-05 account deletion/erasure completed EXEC |
 
 ## 6. Release Evidence
 

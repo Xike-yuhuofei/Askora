@@ -48,6 +48,12 @@ from app.models.planning import (
     ReviewObservationRecord,
     ReviewScheduleRecord,
 )
+from app.models.privacy import (
+    AccountDeletionPreviewRecord,
+    AccountDeletionRequestRecord,
+    OwnerErasureStepReceiptRecord,
+    PrivacyTombstoneRecord,
+)
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
@@ -67,6 +73,10 @@ __all__ = [
     "IdentityCommandReceiptRecord",
     "RecoveryCredentialRecord",
     "RecoveryThrottleRecord",
+    "AccountDeletionPreviewRecord",
+    "AccountDeletionRequestRecord",
+    "OwnerErasureStepReceiptRecord",
+    "PrivacyTombstoneRecord",
     "UserProfile",
     "DialogSession",
     "DialogMessage",
