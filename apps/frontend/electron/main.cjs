@@ -674,6 +674,9 @@ function getActiveMigrationGuard() {
       stopBackend: stopLocalBackend,
       reportFailure: setBackendFailure,
       hasActiveDatabase: () => fs.existsSync(path.join(userDataPath, 'askora.db')),
+      hasInterruptedActivation: () => fs.existsSync(
+        path.join(userDataPath, 'recovery', 'activation-journal.json'),
+      ),
     })
   }
   return activeMigrationGuard

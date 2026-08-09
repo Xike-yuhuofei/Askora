@@ -53,6 +53,21 @@ class RestoreCoordinator:
         """Protect, stage-migrate and activate the current desktop dataset."""
 
         try:
+            quick_check, foreign_key_violations = self.manager._check_sqlite(
+                self.manager.database_path
+            )
+        except (OSError, sqlite3.Error) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
+                "当前数据库完整性检查失败",
+            ) from exc
+        if quick_check != "ok" or foreign_key_violations:
+            raise RecoveryError(
+                DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
+                "当前数据库完整性检查失败",
+            )
+
+        try:
             schema_before, schema_after, required = self.migrator.plan(
                 self.manager.database_path
             )

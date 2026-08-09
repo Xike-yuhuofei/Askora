@@ -49,7 +49,7 @@ describe('DATA-050 desktop active migration guard', () => {
     assert.deepEqual(calls, ['recover-interrupted-restore', 'migrate-active'])
   })
 
-  test('a fresh install recovers first but does not plan migration without an active database', async () => {
+  test('a fresh install does not invoke maintenance before backend bootstrap diagnostics', async () => {
     const calls = []
     const guard = createActiveMigrationGuard({
       runCommand: async (command) => {
@@ -67,7 +67,30 @@ describe('DATA-050 desktop active migration guard', () => {
       migrated: false,
       backend_started: false,
     })
-    assert.deepEqual(calls, ['recover-interrupted-restore'])
+    assert.deepEqual(calls, [])
+  })
+
+  test('an activation journal is recovered even while the active database is temporarily absent', async () => {
+    const calls = []
+    let activeDatabaseExists = false
+    const guard = createActiveMigrationGuard({
+      runCommand: async (command) => {
+        calls.push(command)
+        if (command === 'recover-interrupted-restore') {
+          activeDatabaseExists = true
+          return { action: 'ROLLED_BACK_INTERRUPTED_RESTORE' }
+        }
+        return { required: false, schema_before: 'old', schema_after: 'head' }
+      },
+      hasActiveDatabase: () => activeDatabaseExists,
+      hasInterruptedActivation: () => true,
+      startBackend: async () => { throw new Error('must not start inside no-op guard') },
+      stopBackend: async () => {},
+      reportFailure: () => { throw new Error('must not fail') },
+    })
+
+    assert.equal((await guard.run(null)).ok, true)
+    assert.deepEqual(calls, ['recover-interrupted-restore', 'migrate-active'])
   })
 
   test('verified staging migration starts exact profile then finalizes readiness', async () => {
@@ -190,6 +213,26 @@ describe('DATA-050 desktop active migration guard', () => {
     assert.deepEqual(failure, {
       code: 'BOOTSTRAP_DATABASE_MIGRATION_REQUIRED',
       options: { retryable: true, data_safety: 'unknown' },
+    })
+  })
+
+  test('corrupt active database is reported as a non-retryable integrity failure', async () => {
+    let failure
+    const guard = createActiveMigrationGuard({
+      runCommand: async () => {
+        const error = new Error('sanitized maintenance failure')
+        error.code = 'DATA_BACKUP_INTEGRITY_FAILED'
+        throw error
+      },
+      startBackend: async () => null,
+      stopBackend: async () => {},
+      reportFailure: (code, options) => { failure = { code, options } },
+    })
+
+    await guard.run(null)
+    assert.deepEqual(failure, {
+      code: 'BOOTSTRAP_DATABASE_INTEGRITY_FAILED',
+      options: { retryable: false, data_safety: 'unknown' },
     })
   })
 })

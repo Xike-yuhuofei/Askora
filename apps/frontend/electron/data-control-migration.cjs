@@ -6,22 +6,36 @@ function createActiveMigrationGuard({
   stopBackend,
   reportFailure,
   hasActiveDatabase = () => true,
+  hasInterruptedActivation = () => false,
 }) {
   let inFlight = null
 
-  async function fail(dataSafety) {
-    reportFailure('BOOTSTRAP_DATABASE_MIGRATION_REQUIRED', {
-      retryable: true,
+  async function fail(code, dataSafety, retryable = true) {
+    reportFailure(code, {
+      retryable,
       data_safety: dataSafety,
     })
     return { ok: false, migrated: false, backend_started: false }
   }
 
+  function failMaintenance(error) {
+    if (error?.code === 'DATA_BACKUP_INTEGRITY_FAILED') {
+      return fail('BOOTSTRAP_DATABASE_INTEGRITY_FAILED', 'unknown', false)
+    }
+    if (error?.code === 'DATA_MAINTENANCE_BUSY') {
+      return fail('BOOTSTRAP_DATABASE_UNAVAILABLE', 'unknown')
+    }
+    return fail('BOOTSTRAP_DATABASE_MIGRATION_REQUIRED', 'unknown')
+  }
+
   async function execute(profile) {
+    if (!hasActiveDatabase() && !hasInterruptedActivation()) {
+      return { ok: true, migrated: false, backend_started: false }
+    }
     try {
       await runCommand('recover-interrupted-restore')
-    } catch {
-      return fail('unknown')
+    } catch (error) {
+      return failMaintenance(error)
     }
     if (!hasActiveDatabase()) {
       return { ok: true, migrated: false, backend_started: false }
@@ -30,8 +44,8 @@ function createActiveMigrationGuard({
     let migration
     try {
       migration = await runCommand('migrate-active')
-    } catch {
-      return fail('unknown')
+    } catch (error) {
+      return failMaintenance(error)
     }
     if (migration?.required !== true) {
       return { ok: true, migrated: false, backend_started: false }
@@ -39,7 +53,7 @@ function createActiveMigrationGuard({
 
     const transactionId = migration?.recovery_report?.transaction_id
     if (typeof transactionId !== 'string' || !TRANSACTION_ID.test(transactionId)) {
-      return fail('unknown')
+      return fail('BOOTSTRAP_DATABASE_MIGRATION_REQUIRED', 'unknown')
     }
 
     try {
@@ -58,7 +72,10 @@ function createActiveMigrationGuard({
         ])
         rollbackSucceeded = rolledBack?.status === 'FAILED_ROLLED_BACK'
       } catch {}
-      return fail(rollbackSucceeded ? 'preserved' : 'unknown')
+      return fail(
+        'BOOTSTRAP_DATABASE_MIGRATION_REQUIRED',
+        rollbackSucceeded ? 'preserved' : 'unknown',
+      )
     }
   }
 

@@ -227,3 +227,28 @@ def test_cli_active_upgrade_returns_transaction_for_readiness_finalize(
     assert finalize_code == 0
     assert finalized["result"]["status"] == "COMPLETED"
     assert migrator.revision(database) == migrator.current_head
+
+
+def test_active_upgrade_rejects_corrupt_database_before_creating_recovery_point(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "askora.db"
+    database.write_bytes(b"not-a-sqlite-database")
+    (tmp_path / "documents").mkdir()
+    (tmp_path / "local-secrets.json").write_text(
+        json.dumps({"jwtSecret": "corrupt-db-session", "kekSecret": "stable-kek"}),
+        encoding="utf-8",
+    )
+    before = hashlib.sha256(database.read_bytes()).hexdigest()
+    environment = {RECOVERY_KEY_ENV: generate_recovery_key()}
+
+    code, payload = run(
+        ["--user-data-dir", str(tmp_path), "migrate-active"],
+        environ=environment,
+    )
+
+    assert code == 2
+    assert payload["error"]["code"] == DataControlErrorCode.BACKUP_INTEGRITY_FAILED
+    assert hashlib.sha256(database.read_bytes()).hexdigest() == before
+    assert not (tmp_path / "recovery" / "catalog.json").exists()
+    assert not (tmp_path / "recovery" / "backups").exists()
