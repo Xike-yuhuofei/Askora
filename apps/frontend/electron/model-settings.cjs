@@ -340,9 +340,16 @@ function isAllowedModelSettingsSender(event, webContents, options) {
     const rendererURL = new URL(event.senderFrame.url)
     if (options?.isDev) {
       if (typeof options.devURL !== 'string') return false
-      return rendererURL.href === new URL(options.devURL).href
+      const allowedURL = new URL(options.devURL)
+      return (
+        rendererURL.origin === allowedURL.origin &&
+        rendererURL.pathname === allowedURL.pathname &&
+        rendererURL.search === '' &&
+        rendererURL.username === '' &&
+        rendererURL.password === ''
+      )
     }
-    if (rendererURL.protocol !== 'file:' || rendererURL.search || rendererURL.hash) return false
+    if (rendererURL.protocol !== 'file:' || rendererURL.search) return false
     if (typeof options?.allowedFilePath !== 'string') return false
     return path.resolve(fileURLToPath(rendererURL)) === path.resolve(options.allowedFilePath)
   } catch {

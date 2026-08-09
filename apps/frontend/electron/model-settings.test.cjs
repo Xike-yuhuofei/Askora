@@ -700,6 +700,16 @@ describe('IPC and preload isolation', () => {
       }),
       true,
     )
+    const spaFrame = { url: 'http://localhost:5173/#/settings/models' }
+    const spaContents = { mainFrame: spaFrame }
+    assert.equal(
+      isAllowedModelSettingsSender(
+        { sender: spaContents, senderFrame: spaFrame },
+        spaContents,
+        { isDev: true, devURL: 'http://localhost:5173/' },
+      ),
+      true,
+    )
     assert.equal(
       isAllowedModelSettingsSender({ ...allowed, senderFrame: { url: mainFrame.url } }, webContents, {
         isDev: true,
@@ -711,6 +721,16 @@ describe('IPC and preload isolation', () => {
       isAllowedModelSettingsSender(
         { sender: webContents, senderFrame: { url: 'http://localhost:5173/settings' } },
         webContents,
+        { isDev: true, devURL: 'http://localhost:5173/' },
+      ),
+      false,
+    )
+    const queryFrame = { url: 'http://localhost:5173/?token=untrusted#/settings' }
+    const queryContents = { mainFrame: queryFrame }
+    assert.equal(
+      isAllowedModelSettingsSender(
+        { sender: queryContents, senderFrame: queryFrame },
+        queryContents,
         { isDev: true, devURL: 'http://localhost:5173/' },
       ),
       false,
@@ -731,6 +751,15 @@ describe('IPC and preload isolation', () => {
     const webContents = { mainFrame }
     assert.equal(
       isAllowedModelSettingsSender({ sender: webContents, senderFrame: mainFrame }, webContents, {
+        isDev: false,
+        allowedFilePath: allowedPath,
+      }),
+      true,
+    )
+    const spaFrame = { url: `file://${allowedPath}#/settings/models` }
+    const spaContents = { mainFrame: spaFrame }
+    assert.equal(
+      isAllowedModelSettingsSender({ sender: spaContents, senderFrame: spaFrame }, spaContents, {
         isDev: false,
         allowedFilePath: allowedPath,
       }),
