@@ -52,6 +52,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
+- [SYS01 Library Management, Deduplication and OCR](systems/01-library-management.md) — P1-04 metadata/search/organization/dedup/OCR additive contract
 - [SYS02 Retrieval](systems/02-retrieval.md)
 - [SYS03 Learner Model](systems/03-learner-model.md)
 - [SYS04 Assessment](systems/04-assessment.md)
@@ -78,6 +79,9 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
+- [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
+- [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
+- [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
 - [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成

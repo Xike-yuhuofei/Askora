@@ -223,7 +223,7 @@ async def test_same_scanner_policy_cannot_reinspect_quarantine(tmp_path, monkeyp
         document.moderation_details = {
             **document.moderation_details,
             SAFETY_SCAN_CURRENT_KEY: {
-                "scanner_version": "document-safety-v2",
+                "scanner_version": "document-safety-v3",
                 "verdict": "quarantine",
                 "reason_codes": ["EPUB_ENTRY_PATH_UNSAFE"],
             },

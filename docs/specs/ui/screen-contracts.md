@@ -286,6 +286,18 @@ UI MUST NOT 使用单一 probability threshold 生成“已掌握/未掌握”�
 
 “清除本地登录信息”“删除服务端学习数据”“删除本地文档”必须使用不同动作和文案。不存在服务端删除合同的控件不得声称删除了学习数据。
 
+### UI-SCREEN-094 — P1-05 Account Lifecycle
+
+`/settings` 必须分为账号安全、恢复套件、设备/会话与危险操作。修改密码后展示旧 session 已撤销/当前 session 已轮换的结果；session label 只能称 App 实例，不得声称可信硬件身份。
+
+### UI-SCREEN-095 — Recovery
+
+Login 必须提供“使用恢复套件重设密码”。注册、轮换或成功恢复后的一次性 recovery kit 必须单独展示，并要求用户确认已保存；MUST NOT 自动放入普通 localStorage/user cache。
+
+### UI-SCREEN-096 — Account Deletion
+
+删除账号必须先展示 versioned preview，再要求 current password 和精确确认短语。pending 显示执行时间、可取消边界与本地 App 重启恢复说明；purging 后不显示取消。删除全部学习数据与删除账号继续为不同动作。
+
 ## 11. Accessibility
 
 ### UI-SCREEN-100

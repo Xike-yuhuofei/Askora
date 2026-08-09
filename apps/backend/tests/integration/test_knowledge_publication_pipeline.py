@@ -17,6 +17,7 @@ from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.domains.content_knowledge.publication import (
     KNOWLEDGE_EXTRACTOR_VERSION,
     KNOWLEDGE_PUBLICATION_POLICY_VERSION,
+    _mentioned_unit_pairs,
     build_extraction_run,
     publish_revision_knowledge,
     replay_persisted_knowledge_publication,
@@ -66,6 +67,33 @@ def _revision(document: UserDocument) -> dict:
     return next(
         item for item in record["revisions"] if item["revision_id"] == record["current_revision_id"]
     )
+
+
+def test_d03_relation_scan_prunes_pairs_absent_from_source_text() -> None:
+    """D03-AC-002: deterministic relation scan keeps only text-possible pairs."""
+    units = [
+        {"knowledge_unit_id": str(uuid4()), "canonical_name": "Alpha Foundation"},
+        {"knowledge_unit_id": str(uuid4()), "canonical_name": "Beta Application"},
+        *[
+            {
+                "knowledge_unit_id": str(uuid4()),
+                "canonical_name": f"Unmentioned Topic {index}",
+            }
+            for index in range(200)
+        ],
+    ]
+
+    pairs = list(
+        _mentioned_unit_pairs(
+            "Alpha Foundation is a prerequisite for Beta Application.",
+            units,
+        )
+    )
+
+    assert [(item[0]["canonical_name"], item[1]["canonical_name"]) for item in pairs] == [
+        ("Alpha Foundation", "Beta Application"),
+        ("Beta Application", "Alpha Foundation"),
+    ]
 
 
 @pytest.mark.asyncio

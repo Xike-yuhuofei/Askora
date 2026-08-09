@@ -10,8 +10,9 @@
 > UI-02B3 收口日期：2026-08-08
 > UI-02B Goals/Path/Evidence 收口日期：2026-08-09
 > UI-02C 收口日期：2026-08-09
+> P1-04 Library Management 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-04 EXEC-031～033 DONE
 
 ## Completion Matrix
 
@@ -47,6 +48,9 @@
 | EXEC-028 — Zhipu Development Model Integration | DONE | `zhipu/glm-4.7-flash` unit + real-model canonical gate PASS；local configuration only |
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-030 — UI-02C Canonical Activity Lifecycle | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-031 — P1-04A Library Search and Organization | DONE | canonical P1-04 dependency baseline |
+| EXEC-032 — P1-04B Library Deduplication | DONE | canonical P1-04 dependency baseline |
+| EXEC-033 — P1-04C Scanned PDF OCR Review | DONE | canonical P1-04 dependency baseline |
 
 ## Release Gate
 

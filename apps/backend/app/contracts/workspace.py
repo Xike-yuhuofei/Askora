@@ -17,6 +17,7 @@ from pydantic import Field
 
 from app.contracts.adaptive import AvailabilityStatus
 from app.contracts.base import ContractModel
+from app.contracts.library_management import LibraryCollectionViewV1, LibraryTagViewV1
 
 
 class WorkspaceSourceSystem(StrEnum):
@@ -221,9 +222,17 @@ class LibraryDocumentViewV1(ContractModel):
     document_ref: str
     document_id: UUID
     title: str
+    metadata_version: int = 1
     media_type: str
     file_size_bytes: int
     subject: str | None = None
+    author: str | None = None
+    language: str | None = None
+    tags: tuple[LibraryTagViewV1, ...] = ()
+    collections: tuple[LibraryCollectionViewV1, ...] = ()
+    match_field: Literal["title", "body"] | None = None
+    match_excerpt: str | None = None
+    match_source_span_ref: str | None = None
     processing_status: Literal[
         "pending", "processing", "completed", "failed", "rejected", "quarantined"
     ]
@@ -243,10 +252,12 @@ class LibraryWorkspaceDataV1(ContractModel):
     page: int
     page_size: int
     documents: tuple[LibraryDocumentViewV1, ...]
+    available_tags: tuple[LibraryTagViewV1, ...] = ()
+    available_collections: tuple[LibraryCollectionViewV1, ...] = ()
 
 
 class LibraryWorkspaceResponseV1(ContractModel):
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.0", "1.1"] = "1.0"
     generated_at: datetime
     data: LibraryWorkspaceDataV1
     source_status: tuple[WorkspaceSourceStatusV1, ...]
