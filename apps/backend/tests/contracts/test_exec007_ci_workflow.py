@@ -25,6 +25,7 @@ def test_exec007_ci_jobs_are_persistent_and_independently_auditable() -> None:
             "Ruff, formatting and type baseline / Python ${{ matrix.python-version }}"
         ),
         "alembic": "Alembic migration validation",
+        "backend-postgres-contract": "PostgreSQL persistence contract",
         "frontend": "Frontend build",
         "frontend-dependency-audit": "Frontend dependency audit",
         "dependency-audit": "Python dependency audit",
@@ -44,6 +45,10 @@ def test_exec007_ci_jobs_are_persistent_and_independently_auditable() -> None:
     assert "uv run alembic upgrade head" in alembic_commands
     assert "uv run alembic check" in alembic_commands
     assert "uv run alembic downgrade base" in alembic_commands
+
+    postgres_commands = _commands(jobs["backend-postgres-contract"])
+    assert "uv run alembic upgrade head" in postgres_commands
+    assert "test_postgres_decision_trace_compatibility.py" in postgres_commands
 
     assert "npm run build" in _commands(jobs["frontend"])
     assert "npm audit --audit-level=high" in _commands(jobs["frontend-dependency-audit"])

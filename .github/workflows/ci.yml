@@ -135,6 +135,55 @@ jobs:
           uv run alembic downgrade base
           uv run alembic upgrade head
 
+  backend-postgres-contract:
+    name: PostgreSQL persistence contract
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: askora
+          POSTGRES_PASSWORD: askora-ci-password
+          POSTGRES_DB: askora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U askora -d askora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      PRIVATE_APP: "true"
+      DATABASE_URL: postgresql+asyncpg://askora:askora-ci-password@127.0.0.1:5432/askora_test
+      ASKORA_POSTGRES_TEST_URL: postgresql+asyncpg://askora:askora-ci-password@127.0.0.1:5432/askora_test
+      JWT_SECRET_KEY: ci-only-jwt-secret-at-least-32-characters
+      KEK_MASTER_KEY: ci-only-kek-secret-at-least-32-characters
+      LLM_QWEN_API_KEY: ""
+      LLM_DEEPSEEK_API_KEY: ""
+      LLM_DOUBAO_API_KEY: ""
+      EMBEDDING_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装锁定依赖
+        run: |
+          python -m pip install uv==0.9.5
+          uv sync --frozen --extra dev
+
+      - name: PostgreSQL 迁移与 DecisionTrace 回归
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run pytest tests/integration/test_postgres_decision_trace_compatibility.py
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
@@ -205,6 +254,7 @@ jobs:
       - backend-tests
       - backend-quality
       - alembic
+      - backend-postgres-contract
       - frontend
       - frontend-dependency-audit
       - dependency-audit
