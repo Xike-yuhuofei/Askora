@@ -4,6 +4,7 @@
 
 `docs/design/` 保留正式设计基线与经用户授权形成的增量 Canonical Design：
 
+- [v0.3 Canonical Design Delta](v0.3-Canonical-Design-Delta.md)：DR-03-01～04 / Research Synthesis 到 v0.3 Canonical Design 的冻结变更记录、Canonical Decision Register、breaking change、migration 与 change-control 边界；
 - [个人 AI 辅助学习平台设计方案](个人AI辅助学习平台设计方案.md)：产品范围、总体架构、学习闭环和发布证据边界；
 - [AI 学习系统算法与教学内核设计](AI学习系统算法与教学内核设计.md)：学习科学、八系统边界、Teaching Policy 和学习效果验证。
 - [账号与隐私生命周期设计](账号与隐私生命周期设计.md)：本地优先 Identity、durable session、离线恢复与 owner-safe 数据删除。
