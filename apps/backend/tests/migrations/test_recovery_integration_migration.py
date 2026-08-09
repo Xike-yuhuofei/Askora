@@ -6,7 +6,7 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-INTEGRATED_HEAD = "p103m4a8c002"
+INTEGRATED_HEAD = "p103c5a0d003"
 
 
 def test_p1_07_dependency_migrations_have_one_integrated_head() -> None:

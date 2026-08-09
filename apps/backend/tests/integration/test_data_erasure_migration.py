@@ -21,6 +21,7 @@ ERASURE_TABLES = {
     "data_erasure_steps",
     "data_erasure_receipts",
     "data_erasure_checkpoints",
+    "consent_records",
 }
 
 
@@ -42,6 +43,7 @@ async def test_erasure_schema_upgrade_rollback_and_forward_fix(tmp_path: Path) -
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'erasure-migration.db'}"
     _alembic(database_url, "upgrade", PREVIOUS_HEAD)
     _alembic(database_url, "upgrade", "head")
+    _alembic(database_url, "check")
     engine = create_async_engine(database_url)
     async with engine.connect() as connection:
         tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
@@ -76,6 +78,7 @@ async def test_erasure_upgrade_accepts_exact_tables_precreated_by_app_startup(
 
     assert DataErasureCheckpointRecord.__tablename__ in ERASURE_TABLES
     _alembic(database_url, "upgrade", "head")
+    _alembic(database_url, "check")
 
     upgraded = create_async_engine(database_url)
     async with upgraded.connect() as connection:

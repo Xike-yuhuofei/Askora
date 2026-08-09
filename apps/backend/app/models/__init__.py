@@ -23,6 +23,7 @@ from app.models.assessment import (
     MasteryEstimateRecord,
 )
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
+from app.models.consent import ConsentRecord, ConsentStatus, ConsentType
 from app.models.data_control import (
     DataErasureCheckpointRecord,
     DataErasureReceiptRecord,
@@ -74,6 +75,9 @@ __all__ = [
     "DataErasureReceiptRecord",
     "DataErasureStepRecord",
     "DataErasureWorkflowRecord",
+    "ConsentRecord",
+    "ConsentStatus",
+    "ConsentType",
     "ExperimentAssignmentRecord",
     "LearningTrajectoryRecord",
     "OutcomeObservationRecord",
