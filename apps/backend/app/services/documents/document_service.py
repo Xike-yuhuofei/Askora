@@ -58,6 +58,7 @@ from app.models.document import (
     UserDocument,
 )
 from app.models.user import User
+from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
@@ -641,7 +642,7 @@ class DocumentService:
         event_repository = LearningEventRepository(self.db)
         for event in build_publication_events(
             revision,
-            user_id=UUID(user.id),
+            user_id=canonical_user_id(user.id),
             correlation_id=correlation_id,
         ):
             await event_repository.append(event)
