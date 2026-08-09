@@ -33,10 +33,10 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
 
   it('exposes the seven canonical standard destinations', () => {
     expect(resolveRoute('/today').type).toBe('page')
-    expect(resolveRoute('/goals')).toMatchObject({ type: 'unavailable', kind: 'goals' })
-    expect(resolveRoute('/path')).toMatchObject({ type: 'unavailable', kind: 'path' })
+    expect(resolveRoute('/goals').type).toBe('page')
+    expect(resolveRoute('/path').type).toBe('page')
     expect(resolveRoute('/library').type).toBe('page')
-    expect(resolveRoute('/evidence')).toMatchObject({ type: 'unavailable', kind: 'evidence' })
+    expect(resolveRoute('/evidence').type).toBe('page')
     expect(resolveRoute('/history').type).toBe('page')
     expect(resolveRoute('/settings').type).toBe('page')
   })

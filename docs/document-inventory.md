@@ -127,15 +127,14 @@
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
 | `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 已完成 |
 | `docs/specs/vertical-slices/ui-02b1-material-learning-launch.md` | CANONICAL-RETAIN | 冻结 UI-02B1 Vertical Slice；EXEC-025 已完成 |
-| `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 active |
+| `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结并完成 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 DONE |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025 已完成；EXEC-029 active |
-| `docs/exec-plans/active/EXEC-029-ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | UI-02B Goals/Path/Evidence 当前冻结执行合同 |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～024 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025 与 EXEC-029 已完成；当前无 active EXEC |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025 与 EXEC-029 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -161,6 +160,7 @@
 | `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN | Book-to-Learning readiness/additive API 与现有 canonical teaching handoff 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN | Book-to-Learning E2E、replay、security 与 release gate 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN | 单份资料到 canonical teaching 启动 UI 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
 
 ## 6. Release Evidence
 
@@ -169,6 +169,7 @@
 | `docs/releases/README.md` | CURRENT-UPDATED | 历史发布与验收证据索引 |
 | `docs/releases/book-to-adaptive-learning.md` | CURRENT-UPDATED | Book-to-Learning Engineering/Contract、Policy/Ownership 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b1-material-learning-launch.md` | CURRENT-UPDATED | UI-02B1 Engineering/UI Contract/Accessibility 与 Learning Evidence 分离报告 |
+| `docs/releases/ui-02b-goals-path-evidence.md` | CURRENT-UPDATED | UI-02B Goals/Path/Evidence Engineering、Ownership 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

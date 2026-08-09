@@ -1,0 +1,14 @@
+.path-scope { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.path-scope h2, .path-scope p { margin-bottom: 6px; }
+.path-scope p, .data-note { color: var(--text-secondary); line-height: 1.6; }
+.path-scope label { display: flex; flex-direction: column; gap: 6px; min-width: min(320px, 100%); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.data-note { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--border); }
+.path-list { margin: 0; padding: 0; list-style: none; }
+.path-list li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 16px 0; border-top: 1px solid var(--border); }
+.path-list li:first-child { border-top: 0; padding-top: 0; }
+.path-list li:last-child { padding-bottom: 0; }
+.path-list__index { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--surface-container-high); font-weight: 700; }
+.path-list h3 { margin: 0; font-size: 16px; }
+.path-list p { margin: 5px 0; color: var(--text-secondary); }
+.path-list small { color: var(--text-muted); overflow-wrap: anywhere; }
+@media (max-width: 680px) { .path-scope { align-items: stretch; flex-direction: column; } .path-scope label { min-width: 0; } }

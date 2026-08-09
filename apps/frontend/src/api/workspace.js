@@ -4,6 +4,16 @@ export const getTodayWorkspace = (timezone = Intl.DateTimeFormat().resolvedOptio
   api.get('/workspace/today', { params: { timezone: timezone || 'Asia/Shanghai' } })
     .then((response) => response.data)
 
+export const getGoalsWorkspace = () =>
+  api.get('/workspace/goals').then((response) => response.data)
+
+export const getLearningPath = (goalId) =>
+  api.get('/workspace/path', { params: goalId ? { goal_id: goalId } : {} })
+    .then((response) => response.data)
+
+export const getEvidenceWorkspace = () =>
+  api.get('/workspace/evidence').then((response) => response.data)
+
 export const getLibraryWorkspace = ({ status, subject, page = 1, pageSize = 20 } = {}) =>
   api.get('/workspace/library', {
     params: {

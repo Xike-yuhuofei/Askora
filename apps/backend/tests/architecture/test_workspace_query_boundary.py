@@ -17,8 +17,8 @@ def test_ui_data_ac_007_workspace_api_is_transport_only() -> None:
     assert "app.models.dialog" not in source
 
 
-def test_ui_data_ac_007_query_is_read_only_and_does_not_guess_plan_ownership() -> None:
-    """UI-DATA-AC-007: query has no writes or unsafe plan/activity reads."""
+def test_ui_data_ac_007_query_is_read_only_and_scopes_owner_records() -> None:
+    """UI-DATA-AC-007/ADR-0006: query reads owner records without domain writes."""
     source = (APP_ROOT / "queries" / "workspace.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     planning_imports = {
@@ -27,8 +27,16 @@ def test_ui_data_ac_007_query_is_read_only_and_does_not_guess_plan_ownership() -
         if isinstance(node, ast.ImportFrom) and node.module == "app.models.planning"
         for alias in node.names
     }
-    assert planning_imports == {"ReviewScheduleRecord"}
-    assert ".add(" not in source
-    assert ".commit(" not in source
-    assert ".flush(" not in source
-    assert ".delete(" not in source
+    assert planning_imports == {
+        "LearningActivityRecord",
+        "LearningGoalRecord",
+        "LearningPlanRecord",
+        "ReviewScheduleRecord",
+    }
+    assert "canonical_user_id" in source
+    assert "MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE" in source
+    assert "OBJECTIVE_METADATA_UNAVAILABLE" in source
+    assert "self._db.add(" not in source
+    assert "self._db.commit(" not in source
+    assert "self._db.flush(" not in source
+    assert "self._db.delete(" not in source

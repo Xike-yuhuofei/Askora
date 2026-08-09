@@ -9,7 +9,10 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.workspace import (
+    EvidenceProfileResponseV1,
+    GoalListResponseV1,
     KnowledgeMapResponseV1,
+    LearningPathResponseV1,
     LibraryWorkspaceResponseV1,
     TodayWorkspaceResponseV1,
 )
@@ -21,6 +24,53 @@ from app.queries.workspace import WorkspaceTodayQueryService
 from app.services.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/workspace", tags=["学习工作区"])
+
+
+@router.get("/goals", response_model=GoalListResponseV1, summary="获取学习目标")
+async def get_goals_workspace(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalListResponseV1:
+    result = await WorkspaceTodayQueryService(db).list_goals(
+        current_user,
+        correlation_id=getattr(request.state, "request_id", "unknown"),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.get("/path", response_model=LearningPathResponseV1, summary="获取学习路径")
+async def get_path_workspace(
+    request: Request,
+    response: Response,
+    goal_id: UUID | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LearningPathResponseV1:
+    result = await WorkspaceTodayQueryService(db).get_path(
+        current_user,
+        goal_id=goal_id,
+        correlation_id=getattr(request.state, "request_id", "unknown"),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.get("/evidence", response_model=EvidenceProfileResponseV1, summary="获取学习证据")
+async def get_evidence_workspace(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> EvidenceProfileResponseV1:
+    result = await WorkspaceTodayQueryService(db).get_evidence(
+        current_user,
+        correlation_id=getattr(request.state, "request_id", "unknown"),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.get("/library", response_model=LibraryWorkspaceResponseV1, summary="获取资料库")

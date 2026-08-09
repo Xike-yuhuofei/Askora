@@ -13,6 +13,8 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
+from pydantic import Field
+
 from app.contracts.adaptive import AvailabilityStatus
 from app.contracts.base import ContractModel
 
@@ -98,6 +100,118 @@ class TodayWorkspaceResponseV1(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     generated_at: datetime
     data: TodayWorkspaceDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
+
+
+class GoalListItemV1(ContractModel):
+    goal_ref: str
+    title: str
+    topic: str
+    target_capabilities: tuple[str, ...]
+    success_criteria: tuple[str, ...]
+    deadline_at: datetime | None = None
+    weekly_time_budget_minutes: int | None = None
+    status: str
+    confirmed_by_user: bool
+
+
+class GoalListDataV1(ContractModel):
+    view_state: Literal["READY", "EMPTY"]
+    goals: tuple[GoalListItemV1, ...] = ()
+
+
+class GoalListResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: GoalListDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
+
+
+class LearningPathObjectiveV1(ContractModel):
+    objective_ref: str
+    capability: str | None = None
+    cognitive_process: str | None = None
+    status: str | None = None
+    activity_refs: tuple[str, ...] = ()
+    reason_codes: tuple[str, ...] = ()
+
+
+class LearningPathActivityV1(ContractModel):
+    activity_ref: str
+    objective_ref: str
+    type: str
+    title: str
+    estimated_duration_minutes: int
+    priority: float
+    reason_codes: tuple[str, ...]
+    status: str
+
+
+class LearningPathViewV1(ContractModel):
+    plan_ref: str
+    goal_ref: str
+    status: Literal["active", "superseded", "completed", "paused"]
+    created_from_learner_state_version: int
+    knowledge_graph_version: str
+    review_schedule_version: str | None = None
+    assumptions: dict
+    reason_codes: tuple[str, ...]
+    objectives: tuple[LearningPathObjectiveV1, ...]
+    activities: tuple[LearningPathActivityV1, ...]
+
+
+class LearningPathDataV1(ContractModel):
+    view_state: Literal["READY", "PARTIAL", "EMPTY"]
+    selected_goal_ref: str | None = None
+    available_goal_refs: tuple[str, ...] = ()
+    learning_path: LearningPathViewV1 | None = None
+    reason_codes: tuple[str, ...] = ()
+
+
+class LearningPathResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: LearningPathDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
+
+
+class EvidenceEntryV1(ContractModel):
+    knowledge_unit_ref: str
+    label: str | None = None
+    competence_probability: float | None = None
+    confidence: float | None = None
+    independent_success_count: int | None = None
+    delayed_recall_evidence_count: int | None = None
+    transfer_evidence_count: int | None = None
+    evidence_count: int | None = None
+    effective_evidence_weight: float | None = None
+    active_misconception_ids: tuple[UUID, ...] | None = None
+    algorithm_id: str | None = None
+    algorithm_version: str | None = None
+    product_label: str | None = None
+    product_label_rule_version: str | None = None
+
+
+class LegacyEvidenceCompatibilityV1(ContractModel):
+    visible_by_default: Literal[False] = False
+    fields: dict = Field(default_factory=dict)
+    source_label: Literal["LEGACY_COMPATIBILITY"] = "LEGACY_COMPATIBILITY"
+
+
+class EvidenceProfileDataV1(ContractModel):
+    view_state: Literal["READY", "PARTIAL", "EMPTY"]
+    knowledge_units_assessed: int
+    entries: tuple[EvidenceEntryV1, ...] = ()
+    legacy_compatibility: LegacyEvidenceCompatibilityV1
+
+
+class EvidenceProfileResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: EvidenceProfileDataV1
     source_status: tuple[WorkspaceSourceStatusV1, ...]
     correlation_id: str
 

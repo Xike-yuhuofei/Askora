@@ -62,7 +62,7 @@ def _review_record(
 
 @pytest.mark.asyncio
 async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_path) -> None:
-    """UI01-VSLICE-AC-003/004: no cross-user leak or fake SYS06 state."""
+    """UI01/UI02B-AC-002/006: no cross-user leak or fake SYS06 state."""
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
@@ -130,7 +130,7 @@ async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_pat
     ]
     statuses = {item.source_system.value: item for item in result.source_status}
     assert statuses["SYS06"].availability.value == "MISSING"
-    assert statuses["SYS06"].reason_codes == ("OWNER_QUERY_UNAVAILABLE",)
+    assert statuses["SYS06"].reason_codes == ("CURRENT_PLAN_NOT_AVAILABLE",)
     assert statuses["LEGACY_COMPATIBILITY"].availability.value == "AVAILABLE"
     await engine.dispose()
 

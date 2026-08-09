@@ -1,7 +1,7 @@
 # EXEC-029 — UI-02B Goals, Learning Path and Evidence
 
 > Priority：P0 Product Completion
-> Status：ACTIVE / FROZEN
+> Status：DONE / FROZEN
 > Depends on：UI-02A DONE；UI-02B1 committed baseline
 > Governing decision：ADR-0006
 

@@ -8,6 +8,9 @@ import TutorWorkspace from './pages/TutorWorkspace'
 import History from './pages/History'
 import Library from './pages/Library'
 import BookLearningLaunch from './pages/BookLearningLaunch'
+import Evidence from './pages/Evidence'
+import Goals from './pages/Goals'
+import LearningPath from './pages/LearningPath'
 import Settings from './pages/Settings'
 import Unavailable from './pages/Unavailable'
 import { Navigate, useLocation } from './router'
@@ -22,14 +25,11 @@ const legacyRedirects = {
 const standardPages = {
   '/today': Today,
   '/library': Library,
+  '/goals': Goals,
+  '/path': LearningPath,
+  '/evidence': Evidence,
   '/history': History,
   '/settings': Settings,
-}
-
-const unavailablePages = {
-  '/goals': 'goals',
-  '/path': 'path',
-  '/evidence': 'evidence',
 }
 
 function decodeRouteParam(value) {
@@ -43,10 +43,6 @@ function decodeRouteParam(value) {
 export function resolveRoute(pathname) {
   if (legacyRedirects[pathname]) return { type: 'redirect', to: legacyRedirects[pathname] }
   if (standardPages[pathname]) return { type: 'page', Page: standardPages[pathname], shell: 'standard' }
-  if (unavailablePages[pathname]) {
-    return { type: 'unavailable', kind: unavailablePages[pathname], shell: 'standard' }
-  }
-
   const quickMatch = pathname.match(/^\/quick\/([^/]+)$/)
   if (quickMatch) {
     return {

@@ -6,8 +6,9 @@
 > UI-01 收口日期：2026-08-08
 > UI-02A 收口日期：2026-08-08
 > UI-02B1 收口日期：2026-08-08
+> UI-02B Goals/Path/Evidence 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B Goals/Path/Evidence FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
 
 ## Completion Matrix
 
@@ -38,6 +39,7 @@
 | EXEC-023 — Book-to-Adaptive Orchestration, Readiness & Additive API | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-024 — Book-to-Learning E2E, Replay, Security & Release Gate | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-025 — UI-02B1 Material-to-Learning Launch | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 
@@ -106,6 +108,16 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 UI-02A 交付 current-user Canonical 资料库、durable document processing、source-bound KnowledgeUnit candidates、范围化 Knowledge Map 与 SourceSpan Inspector；无证据时关系保持为空。详细证据见 `docs/releases/ui-02a-library-knowledge-map.md`。
+
+## UI-02B Goals, Learning Path and Evidence Release Gates
+
+```text
+Engineering Gate: PASS
+Policy / Ownership / Security Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+UI-02B 交付 current-user Goals、canonical plan order、owner-safe Evidence 与诚实 Today 计划摘要；未冻结的 activity/session link 不以 UI 状态伪造。详细证据见 `docs/releases/ui-02b-goals-path-evidence.md`。
 
 ## Historical Contract Rule
 

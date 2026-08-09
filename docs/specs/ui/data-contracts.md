@@ -61,9 +61,9 @@ observed_at: datetime|null
 | `GET /api/v1/workspace/activities/{activity_id}` | future activity-link slice | DEFERRED_BY_ACTIVITY_LINK_CONTRACT |
 | `GET /api/v1/workspace/library` | UI-02A | REQUIRED |
 | `GET /api/v1/workspace/knowledge-map` | UI-02A | REQUIRED |
-| `GET /api/v1/workspace/goals` | UI-02B / EXEC-029 | REQUIRED |
-| `GET /api/v1/workspace/path` | UI-02B / EXEC-029 | REQUIRED |
-| `GET /api/v1/workspace/evidence` | UI-02B / EXEC-029 | REQUIRED |
+| `GET /api/v1/workspace/goals` | UI-02B / EXEC-029 | IMPLEMENTED |
+| `GET /api/v1/workspace/path` | UI-02B / EXEC-029 | IMPLEMENTED |
+| `GET /api/v1/workspace/evidence` | UI-02B / EXEC-029 | IMPLEMENTED |
 
 这些 endpoint MUST 由 application/query layer 调用 owner query ports；API handler 只做 auth、validation、serialization 与 error mapping。
 
