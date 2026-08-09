@@ -1,7 +1,7 @@
 # EXEC-020 — Published Knowledge → Retrieval Projection & SYS02 Binding
 
 > Priority：P0 Book-to-Learning / SYS01→SYS02 Handoff  
-> Status：READY  
+> Status：DONE
 > Depends on：EXEC-019 DONE  
 > Primary Specs：SPEC-D02、SPEC-D03、SYS02  
 > Execution rule：可与 EXEC-021 在 EXEC-019 DONE 后独立实现；EXEC-023 需要本 EXEC DONE。

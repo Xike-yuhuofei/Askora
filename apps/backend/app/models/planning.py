@@ -53,9 +53,7 @@ class LearningPlanRecord(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("plan_id", "version", name="uq_learning_plan_version"),
-    )
+    __table_args__ = (UniqueConstraint("plan_id", "version", name="uq_learning_plan_version"),)
 
 
 class LearningActivityRecord(Base):
@@ -67,3 +65,138 @@ class LearningActivityRecord(Base):
     priority: Mapped[float] = mapped_column(Float)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LearningActivityStateRecord(Base):
+    """SYS06 append-only current lifecycle truth."""
+
+    __tablename__ = "learning_activity_state_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    activity_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    plan_id: Mapped[str] = mapped_column(String(36), index=True)
+    plan_version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    previous_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    transition_reason: Mapped[str] = mapped_column(String(200))
+    source_refs: Mapped[list[dict]] = mapped_column(JSON)
+    actor_type: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    correlation_id: Mapped[str] = mapped_column(String(36), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("activity_id", "version", name="uq_activity_state_version"),
+        Index("ix_activity_state_latest", "activity_id", "version"),
+        Index("ix_activity_state_plan", "plan_id", "plan_version", "status"),
+    )
+
+
+class ActivityLifecycleCommandReceiptRecord(Base):
+    """Immutable idempotency receipt scoped to the canonical current user."""
+
+    __tablename__ = "activity_lifecycle_command_receipts"
+
+    receipt_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    activity_id: Mapped[str] = mapped_column(String(36), index=True)
+    command_type: Mapped[str] = mapped_column(String(40))
+    idempotency_key: Mapped[str] = mapped_column(String(200))
+    command_digest: Mapped[str] = mapped_column(String(64))
+    response_payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "idempotency_key", name="uq_activity_lifecycle_user_idempotency"
+        ),
+        Index("ix_activity_lifecycle_receipt_activity", "user_id", "activity_id"),
+    )
+
+
+class LearningGoalRecord(Base):
+    """SYS06 immutable LearningGoal version stream."""
+
+    __tablename__ = "learning_goal_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("goal_id", "version", name="uq_learning_goal_version"),)
+
+
+class GoalKnowledgeMappingRecord(Base):
+    """SYS06 immutable GoalKnowledgeMapping decision version."""
+
+    __tablename__ = "goal_knowledge_mapping_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    mapping_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_version: Mapped[int] = mapped_column(Integer)
+    mapping_version: Mapped[int] = mapped_column(Integer)
+    mapper_version: Mapped[str] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("mapping_id", "mapping_version", name="uq_goal_mapping_version"),
+    )
+
+
+class GoalKnowledgeSubgraphRecord(Base):
+    """Rebuildable SYS06 projection over exact SYS01 relation refs."""
+
+    __tablename__ = "goal_knowledge_subgraph_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    subgraph_id: Mapped[str] = mapped_column(String(36), index=True)
+    mapping_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("subgraph_id", "version", name="uq_goal_subgraph_version"),)
+
+
+class GoalFormationInferenceRecord(Base):
+    """Persisted bounded goal-formation model result or unavailable outcome."""
+
+    __tablename__ = "goal_formation_inferences"
+
+    inference_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    input_digest: Mapped[str] = mapped_column(String(64), index=True)
+    provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiagnosticNeedRecord(Base):
+    """SYS06 immutable DiagnosticNeed decision version stream."""
+
+    __tablename__ = "diagnostic_need_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    need_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_mapping_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("need_id", "version", name="uq_diagnostic_need_version"),)

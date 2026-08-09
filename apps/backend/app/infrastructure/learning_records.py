@@ -9,11 +9,17 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.assessment import AssessmentAttempt
-from app.contracts.learning import AssessmentResult, LearnerEvidence, MasteryEstimate
+from app.contracts.learning import (
+    AssessmentResult,
+    LearnerEvidence,
+    LearnerStateV1,
+    MasteryEstimate,
+)
 from app.models.assessment import (
     CanonicalAssessmentAttemptRecord,
     CanonicalAssessmentResultRecord,
     LearnerEvidenceRecord,
+    LearnerStateRecord,
     MasteryEstimateRecord,
 )
 from app.models.dialog import DialogSession
@@ -193,6 +199,114 @@ class LearnerModelRepository:
             .limit(1)
         )
         return MasteryEstimate.model_validate(record.payload) if record else None
+
+    async def list_latest_mastery(
+        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...]
+    ) -> list[MasteryEstimate]:
+        if not knowledge_unit_ids:
+            return []
+        records = (
+            await self._session.scalars(
+                select(MasteryEstimateRecord)
+                .where(
+                    MasteryEstimateRecord.user_id == str(user_id),
+                    MasteryEstimateRecord.knowledge_unit_id.in_(
+                        [str(item) for item in knowledge_unit_ids]
+                    ),
+                )
+                .order_by(
+                    MasteryEstimateRecord.knowledge_unit_id,
+                    MasteryEstimateRecord.version.desc(),
+                )
+            )
+        ).all()
+        latest: dict[str, MasteryEstimateRecord] = {}
+        for record in records:
+            latest.setdefault(record.knowledge_unit_id, record)
+        return [MasteryEstimate.model_validate(item.payload) for item in latest.values()]
+
+    async def list_all_latest_mastery(self, *, user_id: UUID) -> list[MasteryEstimate]:
+        records = (
+            await self._session.scalars(
+                select(MasteryEstimateRecord)
+                .where(MasteryEstimateRecord.user_id == str(user_id))
+                .order_by(
+                    MasteryEstimateRecord.knowledge_unit_id,
+                    MasteryEstimateRecord.version.desc(),
+                )
+            )
+        ).all()
+        latest: dict[str, MasteryEstimateRecord] = {}
+        for record in records:
+            latest.setdefault(record.knowledge_unit_id, record)
+        return [MasteryEstimate.model_validate(item.payload) for item in latest.values()]
+
+    async def mastery_for_source_result(
+        self, *, result_id: UUID, user_id: UUID, knowledge_unit_id: UUID
+    ) -> MasteryEstimate | None:
+        evidence = await self._session.scalar(
+            select(LearnerEvidenceRecord).where(
+                LearnerEvidenceRecord.source_result_id == str(result_id),
+                LearnerEvidenceRecord.user_id == str(user_id),
+                LearnerEvidenceRecord.knowledge_unit_id == str(knowledge_unit_id),
+                LearnerEvidenceRecord.status == "accepted",
+            )
+        )
+        if evidence is None:
+            return None
+        latest = await self.latest_mastery(
+            user_id=user_id,
+            knowledge_unit_id=knowledge_unit_id,
+        )
+        if latest is None or UUID(evidence.id) not in latest.source_evidence_ids:
+            return None
+        return latest
+
+    async def next_learner_state_version(self, user_id: UUID) -> int:
+        latest = await self._session.scalar(
+            select(func.max(LearnerStateRecord.version)).where(
+                LearnerStateRecord.user_id == str(user_id)
+            )
+        )
+        return int(latest or 0) + 1
+
+    async def save_learner_state(self, state: LearnerStateV1) -> LearnerStateV1:
+        record_id = f"{state.learner_state_id}:{state.version}"
+        existing = await self._session.get(LearnerStateRecord, record_id)
+        if existing is not None:
+            return LearnerStateV1.model_validate(existing.payload)
+        self._session.add(
+            LearnerStateRecord(
+                id=record_id,
+                learner_state_id=str(state.learner_state_id),
+                user_id=str(state.user_id),
+                version=state.version,
+                payload=state.model_dump(mode="json"),
+            )
+        )
+        await self._session.flush()
+        return state
+
+    async def latest_learner_state(self, user_id: UUID) -> LearnerStateV1 | None:
+        record = await self._session.scalar(
+            select(LearnerStateRecord)
+            .where(LearnerStateRecord.user_id == str(user_id))
+            .order_by(LearnerStateRecord.version.desc())
+            .limit(1)
+        )
+        return LearnerStateV1.model_validate(record.payload) if record else None
+
+    async def get_learner_state(
+        self, *, learner_state_id: UUID, version: int, user_id: UUID
+    ) -> LearnerStateV1 | None:
+        record = await self._session.scalar(
+            select(LearnerStateRecord).where(
+                LearnerStateRecord.learner_state_id == str(learner_state_id),
+                LearnerStateRecord.version == version,
+                LearnerStateRecord.user_id == str(user_id),
+            )
+        )
+        return LearnerStateV1.model_validate(record.payload) if record else None
 
     async def sync_legacy_dialog_projection(
         self, *, dialog_session_id: UUID, estimate: MasteryEstimate

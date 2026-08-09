@@ -61,15 +61,15 @@ observed_at: datetime|null
 | `GET /api/v1/workspace/activities/{activity_id}` | future activity-link slice | DEFERRED_BY_ACTIVITY_LINK_CONTRACT |
 | `GET /api/v1/workspace/library` | UI-02A | REQUIRED |
 | `GET /api/v1/workspace/knowledge-map` | UI-02A | REQUIRED |
-| `GET /api/v1/workspace/goals` | UI-02B | NOT_STARTED |
-| `GET /api/v1/workspace/path` | UI-02B | NOT_STARTED |
-| `GET /api/v1/workspace/evidence` | UI-02B | NOT_STARTED |
+| `GET /api/v1/workspace/goals` | UI-02B / EXEC-029 | IMPLEMENTED |
+| `GET /api/v1/workspace/path` | UI-02B / EXEC-029 | IMPLEMENTED |
+| `GET /api/v1/workspace/evidence` | UI-02B / EXEC-029 | IMPLEMENTED |
 
 这些 endpoint MUST 由 application/query layer 调用 owner query ports；API handler 只做 auth、validation、serialization 与 error mapping。
 
-### UI-DATA-012 — Commands Remain Out of Scope
+### UI-DATA-012 — Commands Remain Out of Scope Except Frozen Additive Slices
 
-本 Spec Set 不新增：
+本基础 Spec Set 不新增：
 
 ```text
 Create/Confirm/Pause/Resume LearningGoal
@@ -80,7 +80,11 @@ SetTeachingAction / SetHintLevel
 StartLearningActivity canonical command
 ```
 
-现有 dialog/document/auth commands 可继续使用。未来新增 goal/activity command 时必须单独冻结公共 schema、idempotency、version conflict 与 ownership contract。
+现有 dialog/document/auth commands 可继续使用。UI-02B1 通过独立冻结 Slice 复用 SPEC-D06 已实现的单资料 Goal/diagnostic/plan/activity/teaching commands，并冻结 learner-visible diagnostic payload；这不授权完整 Goal/Plan 编辑或 durable activity/session link。未来其他 goal/activity command 仍必须单独冻结公共 schema、idempotency、version conflict 与 ownership contract。
+
+UI-02C 通过 ADR-0007、`SYS06 Activity Lifecycle and Completion` 与独立 Vertical Slice 单独
+冻结 `StartLearningActivityV1`、`CompleteLearningActivityV1` 和 activity query。该授权仅在
+EXEC-030 dependency gate 满足后生效，不扩大 Goal/Plan/mastery 编辑范围。
 
 ## 3. Common Response Envelope
 
@@ -211,10 +215,11 @@ learning_path:
   reason_codes: [string]
   objectives:
     - objective_ref: versioned_ref
-      capability: string
-      cognitive_process: string
-      status: string
+      capability: string|null
+      cognitive_process: string|null
+      status: string|null
       activity_refs: [versioned_ref]
+      reason_codes: [string]
   activities:
     - activity_ref: versioned_ref
       objective_ref: versioned_ref
@@ -227,6 +232,18 @@ learning_path:
 ```
 
 前端不得根据 priority 重新排序并称为 canonical plan；服务端 response order 是展示基线。
+
+### UI-DATA-042 — Path Scope and Missing Objective Metadata
+
+`GET /workspace/path` MAY 接受 `goal_id` scope。未提供 scope 时：零个 current plan 返回 EMPTY；
+恰好一个可返回该 plan；多个 current plan MUST 返回
+`MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE`，不得以创建时间、priority 或前端选择
+隐式定义业务上的唯一 current plan。
+
+当前 SYS06 未发布 durable LearningObjective metadata stream。Query MUST 保留 exact objective ref，
+并将 capability/cognitive_process/status 返回为 null，附
+`OBJECTIVE_METADATA_UNAVAILABLE`。不得从 Goal title、Activity type、KnowledgeUnit 或 legacy
+字段推断。未来 SYS06 发布 versioned Objective 时 MAY additive 填充这些 nullable 字段。
 
 ## 6. ActivityWorkspaceViewV1
 
@@ -448,3 +465,16 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 - 为知识地图读取 vector index/graph projection 后当作唯一 truth；
 - 用 current mutable state 补齐历史 plan/action/evidence refs；
 - 为了 UI 完整直接开放未定义的 SetMastery/SetNextReviewAt/SetTeachingAction。
+
+## 13. OnboardingJourneyViewV1
+
+### UI-DATA-100
+
+`GET /api/v1/onboarding/journey` MUST 复用 `ONBOARD-*` strict view。前端只呈现四个 steps 与一个
+`next_action`，不得依据 owner arrays、localStorage、message、duration 或 model result 重算完成、排序
+业务对象或生成恢复动作。
+
+### UI-DATA-101
+
+Preference 与 journey cache 必须 current-user scoped 且可失效；logout/switch/dismiss/reopen/owner
+mutation 后重查。MISSING/STALE/PARTIAL 不得转换为 false/READY；dismissed 不得转换为 completed。

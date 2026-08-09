@@ -11,15 +11,17 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID, uuid5
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.content import SourceReplayResult
 from app.core.exceptions import (
     ContentReinspectionChecksumMismatchError,
     ContentReinspectionNotAllowedError,
@@ -31,6 +33,9 @@ from app.core.logging import get_logger
 from app.domains.content_knowledge import (
     CONTENT_RECORD_KEY,
     EXTRACTION_VERSION,
+    KNOWLEDGE_EXTRACTOR_VERSION,
+    KNOWLEDGE_PUBLICATION_POLICY_VERSION,
+    PARSER_VERSION,
     RAW_ASSET_CHECKSUM_KEY,
     SAFETY_REINSPECTION_KEY,
     SAFETY_SCAN_CURRENT_KEY,
@@ -38,7 +43,16 @@ from app.domains.content_knowledge import (
     SAFETY_SCANNER_VERSION,
     SEGMENTATION_VERSION,
     build_content_revision,
+    build_multi_granularity_projections,
+    build_publication_decision_trace,
+    build_publication_events,
+    publish_revision_knowledge,
 )
+from app.domains.content_knowledge.epub_structure import (
+    replay_epub_locator,
+    replay_epub_locators,
+)
+from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepository
 from app.infrastructure.outbox import OutboxProducer, OutboxStatus
 from app.models.document import (
     DocumentChunk,
@@ -46,6 +60,9 @@ from app.models.document import (
     ProcessingStatus,
     UserDocument,
 )
+from app.models.user import User
+from app.services.auth.canonical_identity import canonical_user_id
+from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
@@ -62,7 +79,11 @@ DOCUMENT_REINSPECTION_TASK_SCHEMA_VERSION = "1.0"
 
 
 def document_processing_idempotency_key(document_id: str) -> str:
-    return f"document:{document_id}:process:{EXTRACTION_VERSION}:{SAFETY_SCANNER_VERSION}"
+    return (
+        f"document:{document_id}:process:{PARSER_VERSION}:"
+        f"{EXTRACTION_VERSION}:{KNOWLEDGE_EXTRACTOR_VERSION}:"
+        f"{KNOWLEDGE_PUBLICATION_POLICY_VERSION}:{SAFETY_SCANNER_VERSION}"
+    )
 
 
 def document_reinspection_idempotency_key(document_id: str) -> str:
@@ -107,13 +128,17 @@ class DocumentService:
             file_extension=file_ext,
         )
 
+        created_at = datetime.now(timezone.utc)
         document = UserDocument(
             id=document_id,
             pseudonym_id=pseudonym_id,
             original_filename=original_filename,
+            display_title=original_filename,
+            metadata_version=1,
             file_extension=file_ext,
             file_size_bytes=file_size,
             storage_path=storage_path,
+            raw_asset_checksum=hashlib.sha256(file_content).hexdigest(),
             processing_status=ProcessingStatus.PENDING,
             moderation_status=ModerationStatus.PENDING,
             subject=subject,
@@ -121,10 +146,13 @@ class DocumentService:
             moderation_details={
                 RAW_ASSET_CHECKSUM_KEY: hashlib.sha256(file_content).hexdigest(),
             },
+            created_at=created_at,
+            updated_at=created_at,
         )
 
         self.db.add(document)
         await self.db.flush()
+        await LibraryManagementService(self.db).rebuild_search_projection(document)
         await OutboxProducer(self.db).enqueue(
             task_type=DOCUMENT_PROCESS_TASK_TYPE,
             schema_version=DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
@@ -393,11 +421,16 @@ class DocumentService:
                 raise ValueError("raw asset checksum mismatch")
             canonical = existing_details.get(CONTENT_RECORD_KEY, {})
             current = self._current_revision(canonical)
+            parser = get_parser(document.file_extension)
             if (
                 document.processing_status == ProcessingStatus.COMPLETED
                 and current
                 and current.get("checksum") == checksum
+                and current.get("parser_version") == parser.semantic_version
                 and current.get("extraction_version") == EXTRACTION_VERSION
+                and current.get("knowledge_extractor_version") == KNOWLEDGE_EXTRACTOR_VERSION
+                and current.get("knowledge_publication_policy_version")
+                == KNOWLEDGE_PUBLICATION_POLICY_VERSION
             ):
                 chunk_count = await self.db.scalar(
                     select(func.count())
@@ -415,8 +448,11 @@ class DocumentService:
             await self.db.commit()
 
             # 1. 安全扫描（本地轻量扫描）
-            scan_result = self.scanner.scan(
-                file_content, document.file_extension, document.original_filename
+            scan_result = await asyncio.to_thread(
+                self.scanner.scan,
+                file_content,
+                document.file_extension,
+                document.original_filename,
             )
             scan_details = self._with_scan_record(document, scan_result, checksum)
 
@@ -448,12 +484,20 @@ class DocumentService:
                 return document
 
             # 2. 解析文档
-            parser = get_parser(document.file_extension)
-            parsed: ParsedContent = parser.parse(file_content, document.file_extension)
-            canonical_chunks = self._split_visibility_boundaries(parsed.chunks)
+            parsed: ParsedContent = await asyncio.to_thread(
+                parser.parse,
+                file_content,
+                document.file_extension,
+            )
+            canonical_chunks = (
+                parsed.chunks
+                if parsed.document_nodes is not None
+                else self._split_visibility_boundaries(parsed.chunks)
+            )
 
-            # 3. 建立不可变 revision、SourceSpan 与最小 KnowledgeUnit truth。
-            content_record = build_content_revision(
+            # 3. 建立不可变 revision/SourceSpan，并执行 SYS01 候选验证与发布。
+            content_record = await asyncio.to_thread(
+                build_content_revision,
                 document_id=UUID(document.id),
                 original_filename=document.original_filename,
                 file_content=file_content,
@@ -461,7 +505,55 @@ class DocumentService:
                 chunks=canonical_chunks,
                 previous_record=canonical,
                 knowledge_point_id=document.knowledge_point_id,
+                parser_version=parser.semantic_version,
+                document_format=self._canonical_document_format(document.file_extension),
+                document_nodes=parsed.document_nodes,
+                root_node_local_id=parsed.root_node_local_id,
             )
+            current_revision = self._current_revision(content_record)
+            if current_revision is None:
+                raise ValueError("canonical content revision missing")
+            anchor_statuses = await asyncio.to_thread(
+                self._current_revision_anchor_statuses,
+                current_revision,
+                file_content=file_content,
+                full_text=parsed.full_text,
+                file_extension=document.file_extension,
+            )
+            published_revision = await asyncio.to_thread(
+                self._publish_revision_knowledge,
+                current_revision,
+                anchor_statuses,
+            )
+            publication_result = published_revision["knowledge_publication_result"]
+            published_revision.update(
+                await asyncio.to_thread(
+                    build_multi_granularity_projections,
+                    revision_id=UUID(published_revision["revision_id"]),
+                    source_spans=published_revision.get("source_spans", []),
+                    document_nodes=published_revision.get("document_nodes", []),
+                    knowledge_units=published_revision.get("knowledge_units", []),
+                    relations=published_revision.get("relations", []),
+                    publication_bindings=published_revision.get(
+                        "knowledge_publication_bindings", {}
+                    ),
+                    knowledge_extractor_version=published_revision.get(
+                        "knowledge_extractor_version"
+                    ),
+                    publication_policy_version=published_revision.get(
+                        "knowledge_publication_policy_version"
+                    ),
+                    publication_decision_id=publication_result.get("decision_id"),
+                )
+            )
+            content_record["revisions"] = [
+                (
+                    published_revision
+                    if item.get("revision_id") == published_revision["revision_id"]
+                    else item
+                )
+                for item in content_record.get("revisions", [])
+            ]
             document.moderation_details = {
                 **scan_details,
                 CONTENT_RECORD_KEY: content_record,
@@ -484,7 +576,17 @@ class DocumentService:
             document.chunk_count = chunks_created
             document.total_tokens = parsed.metadata.get("estimated_tokens", 0)
             document.processing_status = ProcessingStatus.COMPLETED
+            document.processing_error = None
             document.processing_completed_at = datetime.now(timezone.utc)
+
+            library_management = LibraryManagementService(self.db)
+            search_projection = await library_management.rebuild_search_projection(document)
+            await library_management.refresh_duplicate_suggestions(
+                document,
+                normalized_body=search_projection.normalized_body,
+            )
+
+            await self._append_knowledge_publication_audit(document, published_revision)
 
             await self.db.commit()
             await self.db.refresh(document)
@@ -499,6 +601,10 @@ class DocumentService:
             return document
 
         except Exception as e:
+            await self.db.rollback()
+            document = await self.db.get(UserDocument, document_id)
+            if document is None:
+                raise
             document.processing_status = ProcessingStatus.FAILED
             document.processing_error = str(e)
             document.processing_completed_at = datetime.now(timezone.utc)
@@ -510,6 +616,83 @@ class DocumentService:
                 error=str(e),
             )
             raise
+
+    @staticmethod
+    def _publish_revision_knowledge(
+        revision: dict,
+        anchor_statuses: dict[str, str],
+    ) -> dict:
+        """Keep the sole SYS01 publication call visible behind the worker thread boundary."""
+        return publish_revision_knowledge(
+            revision,
+            anchor_status_by_span=anchor_statuses,
+        )
+
+    @staticmethod
+    def _current_revision_anchor_statuses(
+        revision: dict,
+        *,
+        file_content: bytes,
+        full_text: str,
+        file_extension: str,
+    ) -> dict[str, str]:
+        """Verify current-revision evidence without trusting candidate/model assertions."""
+        nodes = {item["node_id"]: item for item in revision.get("document_nodes", [])}
+        statuses: dict[str, str] = {}
+        epub_span_ids: list[str] = []
+        epub_requests: list[tuple[dict[str, Any], str]] = []
+        for span in revision.get("source_spans", []):
+            span_id = span["span_id"]
+            node = nodes.get(span.get("node_id"))
+            if file_extension == "epub" and node is not None:
+                epub_span_ids.append(span_id)
+                epub_requests.append((node["source_locator"], node["content_hash"]))
+                continue
+            start = span.get("start_offset")
+            end = span.get("end_offset")
+            if (
+                isinstance(start, int)
+                and isinstance(end, int)
+                and full_text[start:end] == span.get("text")
+            ):
+                statuses[span_id] = "EXACT"
+            elif span.get("text") and span["text"] in full_text:
+                statuses[span_id] = "RECOVERED"
+            else:
+                statuses[span_id] = "FAILED"
+        if epub_requests:
+            replay_results = replay_epub_locators(file_content, requests=epub_requests)
+            statuses.update(
+                {
+                    span_id: result[0]
+                    for span_id, result in zip(epub_span_ids, replay_results, strict=True)
+                }
+            )
+        return statuses
+
+    async def _append_knowledge_publication_audit(
+        self,
+        document: UserDocument,
+        revision: dict,
+    ) -> None:
+        """Persist owner decision/events in the same transaction as published truth."""
+        user = await self.db.scalar(select(User).where(User.pseudonym_id == document.pseudonym_id))
+        if user is None:
+            raise ValueError("knowledge publication owner context missing")
+        revision_id = UUID(revision["revision_id"])
+        correlation_id = uuid5(revision_id, "knowledge-publication-correlation")
+        trace = build_publication_decision_trace(
+            revision,
+            correlation_id=correlation_id,
+        )
+        await DecisionTraceRepository(self.db).append(trace)
+        event_repository = LearningEventRepository(self.db)
+        for event in build_publication_events(
+            revision,
+            user_id=canonical_user_id(user.id),
+            correlation_id=correlation_id,
+        ):
+            await event_repository.append(event)
 
     async def _create_chunks(
         self,
@@ -531,11 +714,35 @@ class DocumentService:
             for span_id in item.get("evidence_span_ids", []):
                 knowledge_unit_ids_by_span.setdefault(span_id, []).append(item["knowledge_unit_id"])
 
-        for idx, content in enumerate(chunks):
-            span = spans[idx]
-            role, exposure_level, allowed_use = self._classify_projection_visibility(content)
+        retrieval_chunks = revision.get("retrieval_chunks", [])
+        projection_rows = (
+            retrieval_chunks
+            if retrieval_chunks
+            else [
+                {
+                    "chunk_id": str(uuid5(revision_id, f"{SEGMENTATION_VERSION}:chunk:{idx}")),
+                    "text": content,
+                    "source_span_ids": [spans[idx]["span_id"]],
+                    "knowledge_unit_ids": knowledge_unit_ids_by_span.get(spans[idx]["span_id"], []),
+                    "pedagogical_role": self._classify_projection_visibility(content)[0],
+                    "answer_exposure": (
+                        "COMPLETE"
+                        if self._classify_projection_visibility(content)[2] == "grader_only"
+                        else "NONE"
+                    ),
+                    "allowed_use": self._classify_projection_visibility(content)[2],
+                    "hierarchy_scope_refs": [],
+                    "segmentation_version": SEGMENTATION_VERSION,
+                }
+                for idx, content in enumerate(chunks)
+            ]
+        )
+
+        for idx, projection in enumerate(projection_rows):
+            content = projection["text"]
+            exposure_level = 4 if projection["answer_exposure"] == "COMPLETE" else 0
             chunk = DocumentChunk(
-                id=str(uuid5(revision_id, f"{SEGMENTATION_VERSION}:chunk:{idx}")),
+                id=projection["chunk_id"],
                 document_id=document_id,
                 chunk_index=idx,
                 content=content,
@@ -543,15 +750,29 @@ class DocumentService:
                 chunk_metadata={
                     **metadata,
                     "chunk_index": idx,
-                    "total_chunks": len(chunks),
-                    "position": round(idx / max(len(chunks) - 1, 1), 2),
+                    "total_chunks": len(projection_rows),
+                    "position": round(idx / max(len(projection_rows) - 1, 1), 2),
                     "revision_id": str(revision_id),
-                    "segmentation_version": SEGMENTATION_VERSION,
-                    "source_span_ids": [span["span_id"]],
-                    "knowledge_unit_ids": knowledge_unit_ids_by_span.get(span["span_id"], []),
-                    "pedagogical_role": role,
+                    "segmentation_version": projection["segmentation_version"],
+                    "source_span_ids": projection["source_span_ids"],
+                    "knowledge_unit_ids": projection["knowledge_unit_ids"],
+                    "knowledge_unit_refs": projection.get("knowledge_unit_refs", []),
+                    "relation_refs": projection.get("relation_refs", []),
+                    "source_span_refs": projection.get("source_span_refs", []),
+                    "semantic_unit_ids": projection.get("semantic_unit_ids", []),
+                    "pedagogical_role": projection["pedagogical_role"],
+                    "answer_exposure": projection["answer_exposure"],
                     "exposure_level": exposure_level,
-                    "allowed_use": allowed_use,
+                    "allowed_use": projection["allowed_use"],
+                    "hierarchy_scope_refs": projection["hierarchy_scope_refs"],
+                    "hierarchy_refs": projection.get("hierarchy_refs", []),
+                    "projection_versions": projection.get("projection_versions", {}),
+                    "projection_fingerprint": projection.get("projection_fingerprint"),
+                    "canonical_retrieval_eligible": projection.get(
+                        "canonical_retrieval_eligible", False
+                    ),
+                    "eligibility_reason_codes": projection.get("eligibility_reason_codes", []),
+                    "compatibility_projection": "legacy-exposure-read-v1",
                 },
             )
             chunk_objects.append(chunk)
@@ -566,12 +787,11 @@ class DocumentService:
         document = await self.db.get(UserDocument, document_id)
         if document is None:
             raise ValueError(f"文档不存在: {document_id}")
-        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        content_record = self._rebuild_current_revision_projections(document)
         revision = self._current_revision(content_record)
         if revision is None:
             raise ValueError("canonical content revision missing")
-        spans = revision.get("source_spans", [])
-        chunks = [item["text"] for item in spans]
+        chunks = [item["text"] for item in revision.get("source_spans", [])]
         count = await self._create_chunks(
             document_id=document_id,
             chunks=chunks,
@@ -581,6 +801,43 @@ class DocumentService:
         document.chunk_count = count
         await self.db.commit()
         return count
+
+    async def rebuild_content_projections(self, document_id: str) -> dict:
+        """Rebuild all D02 working sets/projections without changing content truth."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            raise ValueError(f"文档不存在: {document_id}")
+        content_record = self._rebuild_current_revision_projections(document)
+        await self.db.commit()
+        revision = self._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        return revision
+
+    @staticmethod
+    def _rebuild_current_revision_projections(document: UserDocument) -> dict:
+        """Replace only rebuildable D02 fields in the current immutable revision envelope."""
+        details = copy.deepcopy(document.moderation_details or {})
+        content_record = details.get(CONTENT_RECORD_KEY, {})
+        revision = DocumentService._current_revision(content_record)
+        if revision is None:
+            raise ValueError("canonical content revision missing")
+        rebuilt = build_multi_granularity_projections(
+            revision_id=UUID(revision["revision_id"]),
+            source_spans=revision.get("source_spans", []),
+            document_nodes=revision.get("document_nodes", []),
+            knowledge_units=revision.get("knowledge_units", []),
+            relations=revision.get("relations", []),
+            publication_bindings=revision.get("knowledge_publication_bindings", {}),
+            knowledge_extractor_version=revision.get("knowledge_extractor_version"),
+            publication_policy_version=revision.get("knowledge_publication_policy_version"),
+            publication_decision_id=revision.get("knowledge_publication_result", {}).get(
+                "decision_id"
+            ),
+        )
+        revision.update(rebuilt)
+        document.moderation_details = details
+        return content_record
 
     async def get_source_span(self, document_id: str, span_id: str) -> dict | None:
         """Replay a citation anchor from canonical content truth (SYS01-AC-001)."""
@@ -596,6 +853,76 @@ class DocumentService:
                         "document_id": document_id,
                         "original_filename": document.original_filename,
                     }
+        return None
+
+    async def replay_source_span(
+        self,
+        document_id: str,
+        span_id: str,
+    ) -> SourceReplayResult | None:
+        """Replay SourceSpan -> DocumentNode -> original EPUB locator (D01-050/051)."""
+        document = await self.db.get(UserDocument, document_id)
+        if document is None:
+            return None
+        content_record = (document.moderation_details or {}).get(CONTENT_RECORD_KEY, {})
+        for revision in content_record.get("revisions", []):
+            span = next(
+                (
+                    item
+                    for item in revision.get("source_spans", [])
+                    if item.get("span_id") == span_id
+                ),
+                None,
+            )
+            if span is None:
+                continue
+            node_id = span.get("node_id")
+            node = next(
+                (
+                    item
+                    for item in revision.get("document_nodes", [])
+                    if item.get("node_id") == node_id
+                ),
+                None,
+            )
+            if node is None or document.file_extension.casefold() != "epub":
+                return SourceReplayResult(
+                    status="FAILED",
+                    document_id=UUID(document_id),
+                    revision_id=UUID(revision["revision_id"]),
+                    span_id=UUID(span_id),
+                    node_id=UUID(node_id) if node_id else None,
+                    reason_codes=["SOURCE_ANCHOR_FAILED"],
+                )
+            file_content = await asyncio.to_thread(self.storage.read_file, document.storage_path)
+            if hashlib.sha256(file_content).hexdigest() != revision.get("checksum"):
+                return SourceReplayResult(
+                    status="FAILED",
+                    document_id=UUID(document_id),
+                    revision_id=UUID(revision["revision_id"]),
+                    span_id=UUID(span_id),
+                    node_id=UUID(node_id),
+                    reason_codes=["SOURCE_ASSET_CHECKSUM_MISMATCH"],
+                )
+            status, resolved_path = replay_epub_locator(
+                file_content,
+                locator=node["source_locator"],
+                expected_content_hash=node["content_hash"],
+            )
+            reason_codes = {
+                "EXACT": [],
+                "RECOVERED": ["SOURCE_LOCATOR_RECOVERED"],
+                "FAILED": ["SOURCE_ANCHOR_FAILED"],
+            }[status]
+            return SourceReplayResult(
+                status=status,
+                document_id=UUID(document_id),
+                revision_id=UUID(revision["revision_id"]),
+                span_id=UUID(span_id),
+                node_id=UUID(node_id),
+                resolved_node_path=resolved_path,
+                reason_codes=reason_codes,
+            )
         return None
 
     @staticmethod
@@ -846,6 +1173,14 @@ class DocumentService:
         if "." in filename:
             return filename.rsplit(".", 1)[-1].lower()
         return ""
+
+    @staticmethod
+    def _canonical_document_format(file_extension: str) -> str:
+        return {
+            "md": "markdown",
+            "markdown": "markdown",
+            "txt": "text",
+        }.get(file_extension.casefold(), file_extension.casefold())
 
     @staticmethod
     def _estimate_tokens(text: str) -> int:

@@ -15,7 +15,11 @@ from app.infrastructure.outbox import (
     OutboxTask,
     PermanentTaskError,
 )
-from app.infrastructure.planning_records import LearningPlanRepository, ReviewScheduleRepository
+from app.infrastructure.planning_records import (
+    DiagnosticNeedRepository,
+    LearningPlanRepository,
+    ReviewScheduleRepository,
+)
 
 __all__ = [
     "AggregateVersionConflict",
@@ -27,6 +31,7 @@ __all__ = [
     "AssessmentRecordRepository",
     "LearnerModelRepository",
     "LearningPlanRepository",
+    "DiagnosticNeedRepository",
     "ReviewScheduleRepository",
     "OutboxRepository",
     "OutboxStatus",

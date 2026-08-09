@@ -13,6 +13,8 @@ const quickSubjects = [
   { id: 'physics', label: '物理', topics: ['力学运动', '电磁感应', '光学原理', '热力学'] },
 ]
 
+const activityStatusLabels = { planned: '已规划', available: '可开始', active: '进行中', completed: '已完成', skipped: '已跳过', superseded: '已替代' }
+
 function formatDue(value) {
   if (!value) return '时间未知'
   return new Intl.DateTimeFormat('zh-CN', {
@@ -101,6 +103,12 @@ export default function Today() {
   const { data, source_status: sourceStatus } = state.payload
   const sessions = data.compatibility_quick_start?.recent_sessions || []
   const reviews = data.review_due_candidates || []
+  const activeGoal = data.active_goal
+  const currentActivity = data.current_activity
+  const planSource = sourceStatus.find((item) => item.source_system === 'SYS06')
+  const multiplePlans = planSource?.reason_codes?.includes('MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE')
+  const currentActivityId = currentActivity?.activity_ref?.split(':')[1]
+  const activityAction = currentActivity?.launch_state === 'RESUMABLE' ? '继续学习' : currentActivity?.launch_state === 'REQUIRES_START_COMMAND' ? '开始学习' : ''
 
   return (
     <div className="today-page page-stack">
@@ -110,16 +118,35 @@ export default function Today() {
           <h1>今天</h1>
           <p>先看清当前可用信息，再决定下一步学习。</p>
         </div>
-        <span className="status-pill status-pill--partial">部分信息可用</span>
+        <span className={`status-pill status-pill--${data.view_state.toLowerCase()}`}>
+          {data.view_state === 'READY' ? '计划可用' : '部分信息可用'}
+        </span>
       </header>
 
-      <section className="plan-notice" aria-labelledby="plan-notice-title">
-        <div className="plan-notice__icon"><BookOpen size={20} /></div>
-        <div>
-          <h2 id="plan-notice-title">学习计划尚不可读取</h2>
-          <p>当前版本不会伪造目标、进度或今日任务。你仍可恢复已有会话，或使用明确标记的兼容入口开始学习。</p>
-        </div>
-      </section>
+      {activeGoal && currentActivity ? (
+        <section className="surface canonical-next" aria-labelledby="canonical-next-title">
+          <div className="canonical-next__content">
+            <p className="eyebrow">当前目标 · {activeGoal.title}</p>
+            <h2 id="canonical-next-title">{currentActivity.title}</h2>
+            <p>{currentActivity.estimated_duration_minutes ? `预计 ${currentActivity.estimated_duration_minutes} 分钟` : '预计时间尚未提供'} · {activityStatusLabels[currentActivity.status] || currentActivity.status}</p>
+            <small>活动状态来自 SYS06；完成本项不等于已经掌握。</small>
+          </div>
+          {activityAction && currentActivityId ? (
+            <button type="button" className="button button--primary" onClick={() => navigate(`/learn/${encodeURIComponent(currentActivityId)}`)}>{activityAction}<ArrowRight size={16} /></button>
+          ) : (
+            <button type="button" className="button button--secondary" onClick={() => navigate('/path')}>查看路径<ArrowRight size={16} /></button>
+          )}
+        </section>
+      ) : (
+        <section className="plan-notice" aria-labelledby="plan-notice-title">
+          <div className="plan-notice__icon"><BookOpen size={20} /></div>
+          <div>
+            <h2 id="plan-notice-title">{multiplePlans ? '请选择一个学习目标' : '还没有可展示的当前计划'}</h2>
+            <p>{multiplePlans ? '存在多个当前计划，Askora 不会按时间替你猜选。请在学习路径中明确选择目标。' : '当前版本不会伪造目标、进度或今日任务。你仍可恢复已有会话，或使用明确标记的兼容入口开始学习。'}</p>
+          </div>
+          {multiplePlans && <button type="button" className="button button--secondary" onClick={() => navigate('/path')}>选择目标</button>}
+        </section>
+      )}
 
       <div className="today-grid">
         <section className="surface today-primary" aria-labelledby="quick-title">
@@ -190,7 +217,7 @@ export default function Today() {
           <section className="surface" aria-labelledby="review-title">
             <div className="section-heading section-heading--compact">
               <div>
-                <p className="eyebrow">SYS07 只读投影</p>
+                <p className="eyebrow">复习安排</p>
                 <h2 id="review-title">到期复习</h2>
               </div>
               <Clock3 size={18} />

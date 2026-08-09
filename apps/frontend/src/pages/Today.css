@@ -35,6 +35,19 @@
   line-height: 1.6;
 }
 
+.canonical-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-color: #cfe2ff;
+}
+
+.canonical-next__content { min-width: 0; }
+.canonical-next h2 { margin: 5px 0 7px; font-size: 21px; }
+.canonical-next p { margin: 0 0 7px; color: var(--text-secondary); }
+.canonical-next small { color: var(--text-muted); line-height: 1.5; }
+
 .today-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
@@ -181,6 +194,17 @@
   }
 
   .quick-form .button {
+    width: 100%;
+  }
+
+  .canonical-next,
+  .plan-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .canonical-next .button,
+  .plan-notice .button {
     width: 100%;
   }
 }

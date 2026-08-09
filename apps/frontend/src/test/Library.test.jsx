@@ -7,8 +7,17 @@ import Library from '../pages/Library'
 
 vi.mock('../api/documents', () => ({
   uploadDocument: vi.fn(),
-  deleteDocument: vi.fn(),
   reinspectDocument: vi.fn(),
+  createLibraryTag: vi.fn(),
+  createLibraryCollection: vi.fn(),
+  updateDocumentMetadata: vi.fn(),
+  batchOrganizeDocuments: vi.fn(),
+  getDuplicateSuggestions: vi.fn(),
+  resolveDuplicateSuggestion: vi.fn(),
+  requestDocumentOcr: vi.fn(),
+  getDocumentOcrRun: vi.fn(),
+  reviewDocumentOcrRun: vi.fn(),
+  getOcrPageImage: vi.fn(),
 }))
 vi.mock('../api/workspace', () => ({
   getLibraryWorkspace: vi.fn(),
@@ -19,9 +28,17 @@ const documentView = {
   document_ref: 'source_document:document-1:revision:revision-1',
   document_id: '11111111-1111-4111-8111-111111111111',
   title: '函数基础.md',
+  metadata_version: 1,
   media_type: 'text/markdown',
   file_size_bytes: 2048,
   subject: '数学',
+  author: null,
+  language: null,
+  tags: [],
+  collections: [],
+  match_field: null,
+  match_excerpt: null,
+  match_source_span_ref: null,
   processing_status: 'completed',
   moderation_status: 'approved',
   current_revision_ref: 'material_revision:revision-1',
@@ -43,6 +60,8 @@ const libraryPayload = {
     page: 1,
     page_size: 20,
     documents: [documentView],
+    available_tags: [],
+    available_collections: [],
   },
   source_status: [
     { source_system: 'SYS01', availability: 'AVAILABLE', source_ref: null, reason_codes: ['CURRENT_USER_DOCUMENTS'] },
@@ -97,10 +116,20 @@ describe('UI02A 资料库', () => {
     workspaceApi.getLibraryWorkspace.mockReset()
     workspaceApi.getKnowledgeMap.mockReset()
     documentApi.uploadDocument.mockReset()
-    documentApi.deleteDocument.mockReset()
     documentApi.reinspectDocument.mockReset()
+    documentApi.createLibraryTag.mockReset()
+    documentApi.createLibraryCollection.mockReset()
+    documentApi.updateDocumentMetadata.mockReset()
+    documentApi.batchOrganizeDocuments.mockReset()
+    documentApi.getDuplicateSuggestions.mockReset()
+    documentApi.resolveDuplicateSuggestion.mockReset()
+    documentApi.requestDocumentOcr.mockReset()
+    documentApi.getDocumentOcrRun.mockReset()
+    documentApi.reviewDocumentOcrRun.mockReset()
+    documentApi.getOcrPageImage.mockReset()
     workspaceApi.getLibraryWorkspace.mockResolvedValue(libraryPayload)
     workspaceApi.getKnowledgeMap.mockResolvedValue(mapPayload)
+    documentApi.getDuplicateSuggestions.mockResolvedValue([])
   })
 
   it('展示资料、可审计知识候选，并诚实说明不存在已验证关系', async () => {
@@ -112,6 +141,10 @@ describe('UI02A 资料库', () => {
     expect(screen.getByText(/函数描述输入和输出之间的关系/)).toBeInTheDocument()
     expect(screen.getByText('未知，未伪造分数')).toBeInTheDocument()
     expect(screen.getByText('资料与知识')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '从这份资料开始学习' })).toHaveAttribute(
+      'href',
+      `#/book-learning/${documentView.document_id}`,
+    )
   })
 
   it('上传真实文件并刷新 Canonical 资料列表', async () => {
@@ -197,6 +230,7 @@ describe('UI02A 资料库', () => {
       await screen.findByText('电子书包包含不安全的文件路径，资料已隔离；知识建模未启动，也不会进入检索或知识地图。'),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '使用新版策略重新检查' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '从这份资料开始学习' })).not.toBeInTheDocument()
   })
 
   it('显式提交新版策略复检并防止重复提交', async () => {
@@ -221,7 +255,7 @@ describe('UI02A 资料库', () => {
     documentApi.reinspectDocument.mockResolvedValue({
       document_id: quarantinedDocument.document_id,
       status: 'accepted',
-      scanner_version: 'document-safety-v2',
+      scanner_version: 'document-safety-v3',
       message: '已提交新版安全策略重新检查',
     })
     render(<Library />)
@@ -264,28 +298,106 @@ describe('UI02A 资料库', () => {
     )
   })
 
-  it('要求二次确认后才删除资料', async () => {
-    documentApi.deleteDocument.mockResolvedValue({ success: true })
+  it('批量归档资料而不调用物理删除', async () => {
+    documentApi.batchOrganizeDocuments.mockResolvedValue({
+      schema_version: '1.0',
+      operation_id: '44444444-4444-4444-8444-444444444444',
+      results: [{ document_id: documentView.document_id, status: 'archived', metadata_version: 2 }],
+    })
     workspaceApi.getLibraryWorkspace
       .mockResolvedValueOnce(libraryPayload)
       .mockResolvedValue({ ...libraryPayload, data: { ...libraryPayload.data, total: 0, documents: [] } })
     render(<Library />)
     await screen.findByText('函数基础.md')
 
-    const deleteButton = screen.getByRole('button', { name: '删除资料 函数基础.md' })
-    fireEvent.click(deleteButton)
-    expect(documentApi.deleteDocument).not.toHaveBeenCalled()
-    const confirmButton = screen.getByRole('button', { name: '确认删除' })
-    await waitFor(() => expect(confirmButton).toHaveFocus())
-    fireEvent.keyDown(confirmButton, { key: 'Escape' })
-    await waitFor(() => expect(deleteButton).toHaveFocus())
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择资料 函数基础.md' }))
+    fireEvent.click(screen.getByRole('button', { name: '归档所选' }))
 
-    fireEvent.click(deleteButton)
-    fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
-
-    await waitFor(() => expect(documentApi.deleteDocument).toHaveBeenCalledWith(documentView.document_id))
-    expect(await screen.findByText('已删除“函数基础.md”。')).toBeInTheDocument()
+    await waitFor(() => expect(documentApi.batchOrganizeDocuments).toHaveBeenCalledWith(expect.objectContaining({
+      document_ids: [documentView.document_id],
+      expected_versions: { [documentView.document_id]: 1 },
+      archive: true,
+    })))
+    expect(await screen.findByText('所选资料已归档，可在归档视图恢复。')).toBeInTheDocument()
   })
+
+  it('搜索正文并以版本命令更新资料信息', async () => {
+    documentApi.updateDocumentMetadata.mockResolvedValue({
+      document_id: documentView.document_id,
+      metadata_version: 2,
+      display_title: '函数与映射',
+      subject: '数学',
+      author: null,
+      language: null,
+    })
+    render(<Library />)
+    await screen.findByText('函数基础.md')
+
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索标题与正文' }), { target: { value: '映射关系' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索' }))
+    await waitFor(() => expect(workspaceApi.getLibraryWorkspace).toHaveBeenLastCalledWith(expect.objectContaining({ query: '映射关系' })))
+
+    fireEvent.change(screen.getByRole('textbox', { name: '显示标题' }), { target: { value: '函数与映射' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存信息' }))
+    await waitFor(() => expect(documentApi.updateDocumentMetadata).toHaveBeenCalledWith(
+      documentView.document_id,
+      expect.objectContaining({ expected_version: 1, display_title: '函数与映射' }),
+    ))
+    expect(await screen.findByText('资料信息已保存；原文件与知识 revision 未改变。')).toBeInTheDocument()
+  })
+
+  it('扫描 PDF 必须人工接受候选后才发布', async () => {
+    const pdfDocument = { ...documentView, title: '扫描讲义.pdf', media_type: 'application/pdf' }
+    workspaceApi.getLibraryWorkspace.mockResolvedValue({
+      ...libraryPayload,
+      data: { ...libraryPayload.data, documents: [pdfDocument] },
+    })
+    const pending = {
+      run_id: '55555555-5555-4555-8555-555555555555',
+      document_id: pdfDocument.document_id,
+      status: 'pending',
+      candidates: [],
+    }
+    const ready = {
+      ...pending,
+      status: 'review_required',
+      page_count: 1,
+      candidate_count: 1,
+      candidates: [{
+        candidate_id: '66666666-6666-4666-8666-666666666666',
+        page_number: 1,
+        block_index: 0,
+        bbox: [10, 20, 300, 70],
+        text: '扫描候选文字',
+        confidence: 82,
+        image_hash: 'a'.repeat(64),
+        status: 'candidate',
+        corrected_text: null,
+        version: 1,
+      }],
+    }
+    documentApi.requestDocumentOcr.mockResolvedValue(pending)
+    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
+    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
+    documentApi.reviewDocumentOcrRun.mockResolvedValue({ ...ready, status: 'accepted' })
+    render(<Library />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '识别扫描 PDF' }))
+    expect(await screen.findByText('扫描 PDF 文字复核', {}, { timeout: 4000 })).toBeInTheDocument()
+    const publish = screen.getByRole('button', { name: '发布已复核文字' })
+    expect(publish).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox', { name: '接受这段文字' }))
+    fireEvent.click(publish)
+
+    await waitFor(() => expect(documentApi.reviewDocumentOcrRun).toHaveBeenCalledWith(
+      pending.run_id,
+      expect.objectContaining({
+        publish: true,
+        decisions: [expect.objectContaining({ action: 'ACCEPT', corrected_text: '扫描候选文字' })],
+      }),
+    ))
+    expect(await screen.findByText('复核文本已发布为新的可追溯 revision。')).toBeInTheDocument()
+  }, 6000)
 
   it('不把查询失败渲染为一个空资料库', async () => {
     workspaceApi.getLibraryWorkspace.mockRejectedValueOnce({ response: { status: 503 } })

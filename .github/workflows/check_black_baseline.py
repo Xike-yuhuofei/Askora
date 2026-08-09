@@ -23,13 +23,6 @@ LEGACY_UNFORMATTED: dict[str, str] = {
     "app/domains/review_scheduler/scheduler.py": (
         "8bbfb6f99b7aaf6f7f34ba422a703d10173661bfbb4a8ff69b927bd175cdf173"
     ),
-    "app/domains/retrieval/evidence_service.py": (
-        "86863eb34b89299b97ff321539af73868e282ec578622253c80c8804f6503a8d"
-    ),
-    "app/infrastructure/planning_records.py": (
-        "f71e978e48418b033fc556c6623a750445513b2f054a80c98a46132db709490d"
-    ),
-    "app/models/planning.py": ("994cc0929b46520f548c2e8afb8fa692a1f1c74c85f5f0c189cdc4c1906eaaa3"),
     "tests/test_assessment_mastery_replay.py": (
         "1e2641e7631ba093d0b3be40d109174bfaf5792e3d59b8ecccf0faf3db0f9c23"
     ),

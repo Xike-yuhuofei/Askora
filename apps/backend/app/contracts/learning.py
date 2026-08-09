@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import Field
 
+from app.contracts.adaptive import VersionedRef
 from app.contracts.base import ContractModel
 
 
@@ -90,6 +91,23 @@ class MasteryEstimate(ContractModel):
     algorithm_id: str
     algorithm_version: str
     source_evidence_ids: list[UUID]
+    created_at: datetime
+
+
+class LearnerStateV1(ContractModel):
+    """DOMAIN-080 SYS03-owned immutable aggregate projection."""
+
+    learner_state_id: UUID
+    learner_state_schema_version: str = Field(default="1.0", pattern=r"^1\.")
+    version: int = Field(ge=1)
+    user_id: UUID
+    mastery_estimate_ids: tuple[UUID, ...]
+    mastery_estimate_refs: tuple[VersionedRef, ...]
+    active_misconception_hypotheses: tuple[dict[str, Any], ...] = ()
+    learner_progress_summary: dict[str, Any]
+    uncertainty_summary: dict[str, Any]
+    created_from_event_sequence: int = Field(ge=0)
+    algorithm_bundle_version: str = Field(min_length=1)
     created_at: datetime
 
 

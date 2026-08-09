@@ -19,8 +19,10 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1 import (
     auth_router,
+    book_learning_router,
     dialog_router,
     documents_router,
+    onboarding_router,
     orchestrator_router,
     users_router,
     workspace_router,
@@ -49,6 +51,7 @@ def _check_runtime_config() -> None:
         "qwen": settings.llm_qwen_api_key,
         "deepseek": settings.llm_deepseek_api_key,
         "doubao": settings.llm_doubao_api_key,
+        "zhipu": settings.llm_zhipu_api_key,
     }
     if not any(llm_keys.values()):
         logger.warning(
@@ -246,7 +249,10 @@ async def health_check():
 async def config_health_check():
     """系统运行配置状态"""
     llm_configured = bool(
-        settings.llm_qwen_api_key or settings.llm_deepseek_api_key or settings.llm_doubao_api_key
+        settings.llm_qwen_api_key
+        or settings.llm_deepseek_api_key
+        or settings.llm_doubao_api_key
+        or settings.llm_zhipu_api_key
     )
 
     return {
@@ -260,11 +266,13 @@ async def config_health_check():
 
 # v1 API
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(book_learning_router, prefix="/api/v1")
 app.include_router(dialog_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
+app.include_router(onboarding_router, prefix="/api/v1")
 
 # Orchestrator TEI v1 调试端点
 if settings.enable_orchestrator_debug_api:

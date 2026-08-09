@@ -6,12 +6,15 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.decisions import DecisionTrace
 from app.contracts.events import LearningEventEnvelope
 from app.models.ledger import (
+    DECISION_TRACE_INPUT_ENTITY_ID_MAX_LENGTH,
+    DECISION_TRACE_INPUT_ENTITY_TYPE_MAX_LENGTH,
+    DECISION_TRACE_INPUT_ENTITY_VERSION_MAX_LENGTH,
     DecisionTraceInputRecord,
     DecisionTraceRecord,
     LearningEventRecord,
@@ -24,6 +27,23 @@ class LedgerConflictError(RuntimeError):
 
 class AggregateVersionConflict(LedgerConflictError):
     """同一 aggregate version 已被另一事件占用。"""
+
+
+class LedgerPersistenceError(RuntimeError):
+    """Ledger payload cannot be represented by the durable schema."""
+
+
+class DecisionTraceInputLengthError(LedgerPersistenceError):
+    """A DecisionTrace query-index value exceeds its storage budget."""
+
+    def __init__(self, *, field: str, actual_length: int, max_length: int) -> None:
+        self.field = field
+        self.actual_length = actual_length
+        self.max_length = max_length
+        super().__init__(
+            f"DECISION_TRACE_INPUT_LENGTH_INVALID:{field}:"
+            f"actual={actual_length}:max={max_length}"
+        )
 
 
 def _aware(value: datetime) -> datetime:
@@ -182,6 +202,7 @@ class DecisionTraceRepository:
             return existing
 
         data = trace.model_dump(mode="json")
+        indexed_inputs = [self._indexed_input(item) for item in data["inputs"]]
         record = DecisionTraceRecord(
             decision_id=data["decision_id"],
             decision_type=data["decision_type"],
@@ -201,20 +222,16 @@ class DecisionTraceRepository:
             created_at=trace.created_at,
             correlation_id=data["correlation_id"],
             trace_id=data["trace_id"],
-            indexed_inputs=[
-                DecisionTraceInputRecord(
-                    entity_type=item["entity_type"],
-                    entity_id=str(item["entity_id"]),
-                    entity_version=(str(item["version"]) if item["version"] is not None else None),
-                )
-                for item in data["inputs"]
-            ],
+            indexed_inputs=indexed_inputs,
         )
 
         savepoint = await self._session.begin_nested()
         try:
             self._session.add(record)
             await self._session.flush()
+        except DataError as exc:
+            await savepoint.rollback()
+            raise LedgerPersistenceError("DECISION_TRACE_PERSISTENCE_REJECTED") from exc
         except IntegrityError as exc:
             await savepoint.rollback()
             existing = await self.get(trace.decision_id)
@@ -224,6 +241,43 @@ class DecisionTraceRepository:
         else:
             await savepoint.commit()
         return trace
+
+    @staticmethod
+    def _indexed_input(item: dict) -> DecisionTraceInputRecord:
+        entity_type = str(item["entity_type"])
+        entity_id = str(item["entity_id"])
+        entity_version = str(item["version"]) if item["version"] is not None else None
+        DecisionTraceRepository._validate_length(
+            field="entity_type",
+            value=entity_type,
+            max_length=DECISION_TRACE_INPUT_ENTITY_TYPE_MAX_LENGTH,
+        )
+        DecisionTraceRepository._validate_length(
+            field="entity_id",
+            value=entity_id,
+            max_length=DECISION_TRACE_INPUT_ENTITY_ID_MAX_LENGTH,
+        )
+        if entity_version is not None:
+            DecisionTraceRepository._validate_length(
+                field="entity_version",
+                value=entity_version,
+                max_length=DECISION_TRACE_INPUT_ENTITY_VERSION_MAX_LENGTH,
+            )
+        return DecisionTraceInputRecord(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            entity_version=entity_version,
+        )
+
+    @staticmethod
+    def _validate_length(*, field: str, value: str, max_length: int) -> None:
+        actual_length = len(value)
+        if actual_length > max_length:
+            raise DecisionTraceInputLengthError(
+                field=field,
+                actual_length=actual_length,
+                max_length=max_length,
+            )
 
     async def get(self, decision_id: UUID | str) -> DecisionTrace | None:
         record = await self._session.get(DecisionTraceRecord, str(decision_id))

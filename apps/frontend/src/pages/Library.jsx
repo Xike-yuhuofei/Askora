@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Archive,
   BookOpen,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Copy,
   FileText,
   FolderOpen,
+  FolderPlus,
+  GraduationCap,
   Network,
   RefreshCw,
-  Trash2,
+  RotateCcw,
+  ScanText,
+  Search,
+  Tags,
   Upload,
 } from 'lucide-react'
 import * as documentApi from '../api/documents'
@@ -89,6 +97,7 @@ const safetyReasonLabels = {
   EPUB_COMPRESSION_RATIO_EXCEEDED: '电子书压缩比超过安全限制',
   EPUB_NESTED_ARCHIVE_BLOCKED: '电子书包含不允许的嵌套压缩包',
   EPUB_EXTERNAL_ENTITY_BLOCKED: '电子书包含不安全的外部实体',
+  EPUB_ENTITY_DECLARATION_BLOCKED: '电子书包含不安全的实体声明',
 }
 
 function formatBytes(value) {
@@ -115,6 +124,11 @@ function responseMessage(error, fallback) {
   const structuredMessage = error?.response?.data?.error?.message
   if (typeof structuredMessage === 'string' && structuredMessage.length <= 120) return structuredMessage
   return typeof detail === 'string' && detail.length <= 120 ? detail : fallback
+}
+
+function commandKey(prefix) {
+  const random = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+  return `${prefix}-${random}`
 }
 
 function safetyReason(document) {
@@ -150,8 +164,6 @@ function documentStateHint(document) {
 export default function Library() {
   const fileInputRef = useRef(null)
   const pendingSelectionRef = useRef(null)
-  const deleteConfirmRef = useRef(null)
-  const deleteReturnFocusRef = useRef(null)
   const [library, setLibrary] = useState({ status: 'loading', payload: null, error: '' })
   const [map, setMap] = useState({ status: 'idle', payload: null, error: '' })
   const [selectedDocumentId, setSelectedDocumentId] = useState(null)
@@ -160,13 +172,29 @@ export default function Library() {
   const [statusFilter, setStatusFilter] = useState('')
   const [subjectDraft, setSubjectDraft] = useState('')
   const [subjectFilter, setSubjectFilter] = useState('')
+  const [queryDraft, setQueryDraft] = useState('')
+  const [queryFilter, setQueryFilter] = useState('')
+  const [tagFilter, setTagFilter] = useState('')
+  const [collectionFilter, setCollectionFilter] = useState('')
+  const [archivedFilter, setArchivedFilter] = useState(false)
+  const [sort, setSort] = useState('created_desc')
   const [page, setPage] = useState(1)
   const [uploadSubject, setUploadSubject] = useState('')
   const [uploading, setUploading] = useState(false)
   const [actionMessage, setActionMessage] = useState('')
   const [actionError, setActionError] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
+  const [checkedIds, setCheckedIds] = useState([])
+  const [batchTagId, setBatchTagId] = useState('')
+  const [batchCollectionId, setBatchCollectionId] = useState('')
+  const [newTagName, setNewTagName] = useState('')
+  const [newCollectionName, setNewCollectionName] = useState('')
+  const [managing, setManaging] = useState(false)
+  const [metadataDraft, setMetadataDraft] = useState({ title: '', subject: '', author: '', language: '' })
+  const [duplicates, setDuplicates] = useState({ status: 'loading', items: [], error: '' })
+  const [ocr, setOcr] = useState({ status: 'idle', payload: null, error: '' })
+  const [ocrDecisions, setOcrDecisions] = useState({})
+  const [ocrPage, setOcrPage] = useState(1)
+  const [ocrPageUrl, setOcrPageUrl] = useState('')
   const [reinspectingDocumentId, setReinspectingDocumentId] = useState(null)
   const [mapReloadKey, setMapReloadKey] = useState(0)
 
@@ -174,6 +202,11 @@ export default function Library() {
     quiet = false,
     status = statusFilter,
     subject = subjectFilter,
+    query = queryFilter,
+    tagId = tagFilter,
+    collectionId = collectionFilter,
+    archived = archivedFilter,
+    requestedSort = sort,
     requestedPage = page,
   } = {}) => {
     if (!quiet) setLibrary((current) => ({ ...current, status: 'loading', error: '' }))
@@ -181,6 +214,11 @@ export default function Library() {
       const payload = await workspaceApi.getLibraryWorkspace({
         status,
         subject,
+        query,
+        tagId,
+        collectionId,
+        archived,
+        sort: requestedSort,
         page: requestedPage,
         pageSize: 20,
       })
@@ -205,7 +243,7 @@ export default function Library() {
         error: responseMessage(error, '资料库暂时无法读取。'),
       })
     }
-  }, [page, statusFilter, subjectFilter])
+  }, [archivedFilter, collectionFilter, page, queryFilter, sort, statusFilter, subjectFilter, tagFilter])
 
   useEffect(() => {
     loadLibrary()
@@ -216,6 +254,8 @@ export default function Library() {
     () => documents.find((document) => document.document_id === selectedDocumentId) || null,
     [documents, selectedDocumentId],
   )
+  const availableTags = library.payload?.data?.available_tags || []
+  const availableCollections = library.payload?.data?.available_collections || []
   const hasActiveProcessing = documents.some((document) =>
     ['pending', 'processing'].includes(document.processing_status)
     || document.knowledge_status === 'LEGACY_COMPATIBILITY'
@@ -271,22 +311,71 @@ export default function Library() {
   }, [selectedNodeRef, selectedNode])
 
   useEffect(() => {
-    if (deleteTarget) {
-      deleteConfirmRef.current?.focus()
-    } else if (deleteReturnFocusRef.current) {
-      deleteReturnFocusRef.current.focus()
-      deleteReturnFocusRef.current = null
+    setMetadataDraft({
+      title: selectedDocument?.title || '',
+      subject: selectedDocument?.subject || '',
+      author: selectedDocument?.author || '',
+      language: selectedDocument?.language || '',
+    })
+    setOcr({ status: 'idle', payload: null, error: '' })
+  }, [selectedDocumentId])
+
+  const loadDuplicates = useCallback(async () => {
+    try {
+      const items = await documentApi.getDuplicateSuggestions('pending')
+      setDuplicates({ status: 'ready', items, error: '' })
+    } catch (error) {
+      setDuplicates({ status: 'error', items: [], error: responseMessage(error, '重复资料建议暂时无法读取。') })
     }
-  }, [deleteTarget])
+  }, [])
 
-  const closeDeleteConfirmation = () => {
-    setDeleteTarget(null)
-  }
+  useEffect(() => { loadDuplicates() }, [loadDuplicates])
 
-  const submitSubjectFilter = (event) => {
+  useEffect(() => {
+    if (!['pending', 'processing'].includes(ocr.payload?.status)) return undefined
+    const timer = window.setTimeout(async () => {
+      try {
+        const payload = await documentApi.getDocumentOcrRun(ocr.payload.run_id)
+        setOcr({ status: 'ready', payload, error: '' })
+        if (payload.status === 'review_required') {
+          setOcrPage(payload.candidates?.[0]?.page_number || 1)
+          setOcrDecisions(Object.fromEntries((payload.candidates || []).map((candidate) => [
+            candidate.candidate_id,
+            { accepted: false, text: candidate.text },
+          ])))
+        }
+      } catch (error) {
+        setOcr({ status: 'error', payload: null, error: responseMessage(error, '文字识别状态暂时无法读取。') })
+      }
+    }, 1200)
+    return () => window.clearTimeout(timer)
+  }, [ocr.payload])
+
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+    if (ocr.payload?.status !== 'review_required') {
+      setOcrPageUrl('')
+      return undefined
+    }
+    documentApi.getOcrPageImage(ocr.payload.run_id, ocrPage)
+      .then((blob) => {
+        if (!active) return
+        objectUrl = URL.createObjectURL(blob)
+        setOcrPageUrl(objectUrl)
+      })
+      .catch(() => { if (active) setOcrPageUrl('') })
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [ocr.payload?.run_id, ocr.payload?.status, ocrPage])
+
+  const submitFilters = (event) => {
     event.preventDefault()
     setPage(1)
     setSubjectFilter(subjectDraft.trim())
+    setQueryFilter(queryDraft.trim())
   }
 
   const uploadFile = async (event) => {
@@ -304,7 +393,9 @@ export default function Library() {
       setSubjectDraft('')
       setSubjectFilter('')
       setPage(1)
-      await loadLibrary({ quiet: true, status: '', subject: '', requestedPage: 1 })
+      setQueryDraft('')
+      setQueryFilter('')
+      await loadLibrary({ quiet: true, status: '', subject: '', query: '', requestedPage: 1 })
     } catch (error) {
       setActionError(responseMessage(error, '上传失败，请检查文件格式后重试。'))
     } finally {
@@ -313,20 +404,135 @@ export default function Library() {
     }
   }
 
-  const confirmDelete = async () => {
-    if (!deleteTarget || deleting) return
-    setDeleting(true)
+  const createLabel = async (kind) => {
+    const name = (kind === 'tag' ? newTagName : newCollectionName).trim()
+    if (!name || managing) return
+    setManaging(true)
     setActionError('')
     try {
-      await documentApi.deleteDocument(deleteTarget.document_id)
-      setActionMessage(`已删除“${deleteTarget.title}”。`)
-      setDeleteTarget(null)
-      if (selectedDocumentId === deleteTarget.document_id) setSelectedDocumentId(null)
+      if (kind === 'tag') {
+        await documentApi.createLibraryTag(name, commandKey('create-tag'))
+        setNewTagName('')
+      } else {
+        await documentApi.createLibraryCollection(name, commandKey('create-collection'))
+        setNewCollectionName('')
+      }
+      setActionMessage(kind === 'tag' ? '标签已创建。' : '集合已创建。')
       await loadLibrary({ quiet: true })
     } catch (error) {
-      setActionError(responseMessage(error, '删除失败，请稍后重试。'))
+      setActionError(responseMessage(error, '分类创建失败，请稍后重试。'))
     } finally {
-      setDeleting(false)
+      setManaging(false)
+    }
+  }
+
+  const applyBatch = async (archive) => {
+    const selected = documents.filter((document) => checkedIds.includes(document.document_id))
+    if (!selected.length || managing) return
+    setManaging(true)
+    setActionError('')
+    try {
+      await documentApi.batchOrganizeDocuments({
+        document_ids: selected.map((document) => document.document_id),
+        expected_versions: Object.fromEntries(selected.map((document) => [document.document_id, document.metadata_version])),
+        idempotency_key: commandKey('batch-organize'),
+        add_tag_ids: batchTagId ? [batchTagId] : [],
+        add_collection_ids: batchCollectionId ? [batchCollectionId] : [],
+        archive,
+      })
+      setCheckedIds([])
+      setBatchTagId('')
+      setBatchCollectionId('')
+      setActionMessage(archive === true ? '所选资料已归档，可在归档视图恢复。' : archive === false ? '所选资料已恢复。' : '所选资料已完成分类。')
+      await loadLibrary({ quiet: true })
+    } catch (error) {
+      setActionError(responseMessage(error, '批量操作失败，请刷新后重试。'))
+    } finally {
+      setManaging(false)
+    }
+  }
+
+  const saveMetadata = async (event) => {
+    event.preventDefault()
+    if (!selectedDocument || managing) return
+    setManaging(true)
+    setActionError('')
+    try {
+      await documentApi.updateDocumentMetadata(selectedDocument.document_id, {
+        expected_version: selectedDocument.metadata_version,
+        idempotency_key: commandKey('update-metadata'),
+        display_title: metadataDraft.title.trim(),
+        subject: metadataDraft.subject.trim() || null,
+        author: metadataDraft.author.trim() || null,
+        language: metadataDraft.language.trim() || null,
+      })
+      setActionMessage('资料信息已保存；原文件与知识 revision 未改变。')
+      await loadLibrary({ quiet: true })
+    } catch (error) {
+      setActionError(responseMessage(error, '资料信息保存失败，请刷新后重试。'))
+    } finally {
+      setManaging(false)
+    }
+  }
+
+  const resolveDuplicate = async (suggestion, action) => {
+    setManaging(true)
+    try {
+      await documentApi.resolveDuplicateSuggestion(suggestion.suggestion_id, {
+        expected_version: suggestion.version,
+        idempotency_key: commandKey('resolve-duplicate'),
+        action,
+      })
+      setActionMessage(action === 'ARCHIVE_CANDIDATE' ? '候选资料已归档，原文件仍保留。' : '重复建议已处理。')
+      await Promise.all([loadDuplicates(), loadLibrary({ quiet: true })])
+    } catch (error) {
+      setActionError(responseMessage(error, '重复建议处理失败，请刷新后重试。'))
+    } finally {
+      setManaging(false)
+    }
+  }
+
+  const startOcr = async () => {
+    if (!selectedDocument || managing) return
+    setManaging(true)
+    try {
+      const payload = await documentApi.requestDocumentOcr(selectedDocument.document_id, {
+        idempotency_key: commandKey('ocr-request'),
+        languages: ['chi_sim', 'eng'],
+      })
+      setOcr({ status: 'ready', payload, error: '' })
+      setActionMessage('本地 OCR 已进入后台处理；结果必须由你复核后才会发布。')
+    } catch (error) {
+      setOcr({ status: 'error', payload: null, error: responseMessage(error, '本地 OCR 无法启动。') })
+    } finally {
+      setManaging(false)
+    }
+  }
+
+  const publishOcr = async () => {
+    if (!ocr.payload || managing) return
+    setManaging(true)
+    try {
+      const payload = await documentApi.reviewDocumentOcrRun(ocr.payload.run_id, {
+        idempotency_key: commandKey('ocr-review'),
+        decisions: ocr.payload.candidates.map((candidate) => ({
+          candidate_id: candidate.candidate_id,
+          expected_version: candidate.version,
+          action: ocrDecisions[candidate.candidate_id]?.accepted ? 'ACCEPT' : 'REJECT',
+          corrected_text: ocrDecisions[candidate.candidate_id]?.accepted
+            ? ocrDecisions[candidate.candidate_id]?.text
+            : null,
+        })),
+        publish: true,
+      })
+      setOcr({ status: 'ready', payload, error: '' })
+      setActionMessage('复核文本已发布为新的可追溯 revision。')
+      await loadLibrary({ quiet: true })
+      setMapReloadKey((value) => value + 1)
+    } catch (error) {
+      setActionError(responseMessage(error, 'OCR 复核发布失败，请检查至少接受一个候选。'))
+    } finally {
+      setManaging(false)
     }
   }
 
@@ -417,44 +623,90 @@ export default function Library() {
         {hasActiveProcessing && <p className="inline-notice">后台处理进行中，资料状态会自动刷新。</p>}
       </div>
 
-      {deleteTarget && (
-        <section
-          className="delete-confirmation"
-          role="alertdialog"
-          aria-labelledby="delete-title"
-          onKeyDown={(event) => { if (event.key === 'Escape') closeDeleteConfirmation() }}
-        >
-          <div>
-            <strong id="delete-title">确认删除“{deleteTarget.title}”？</strong>
-            <p>资料会从当前资料库移除，知识地图也将不可访问。</p>
-          </div>
-          <div>
-            <button type="button" className="button button--ghost" onClick={closeDeleteConfirmation} disabled={deleting}>
-              取消
-            </button>
-            <button ref={deleteConfirmRef} type="button" className="button button--danger" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? '正在删除…' : '确认删除'}
-            </button>
-          </div>
-        </section>
-      )}
-
       <section className="library-filters" aria-label="资料筛选">
+        <form onSubmit={submitFilters}>
+          <label className="library-search-field">
+            <span>搜索标题与正文</span>
+            <span className="input-with-icon"><Search size={15} /><input value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} maxLength={500} placeholder="输入资料中的关键词" /></span>
+          </label>
+          <label>
+            <span>学科</span>
+            <input value={subjectDraft} onChange={(event) => setSubjectDraft(event.target.value)} maxLength={100} placeholder="精确筛选学科" />
+          </label>
+          <button type="submit" className="button button--secondary">搜索</button>
+        </form>
         <label>
           <span>处理状态</span>
           <select value={statusFilter} onChange={(event) => { setPage(1); setStatusFilter(event.target.value) }}>
             {processingOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <form onSubmit={submitSubjectFilter}>
-          <label>
-            <span>学科</span>
-            <input value={subjectDraft} onChange={(event) => setSubjectDraft(event.target.value)} maxLength={100} placeholder="精确筛选学科" />
-          </label>
-          <button type="submit" className="button button--secondary">应用筛选</button>
-        </form>
+        <label>
+          <span>标签</span>
+          <select value={tagFilter} onChange={(event) => { setPage(1); setTagFilter(event.target.value) }}>
+            <option value="">全部标签</option>
+            {availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>集合</span>
+          <select value={collectionFilter} onChange={(event) => { setPage(1); setCollectionFilter(event.target.value) }}>
+            <option value="">全部集合</option>
+            {availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>视图</span>
+          <select value={archivedFilter ? 'archived' : 'active'} onChange={(event) => { setPage(1); setArchivedFilter(event.target.value === 'archived'); setCheckedIds([]) }}>
+            <option value="active">使用中</option>
+            <option value="archived">已归档</option>
+          </select>
+        </label>
+        <label>
+          <span>排序</span>
+          <select value={sort} onChange={(event) => { setPage(1); setSort(event.target.value) }}>
+            <option value="created_desc">最近导入</option>
+            <option value="updated_desc">最近更新</option>
+            <option value="title_asc">标题 A–Z</option>
+          </select>
+        </label>
         <span className="library-count">共 {total} 份资料</span>
       </section>
+
+      <section className="surface library-management" aria-labelledby="organize-title">
+        <div className="section-heading section-heading--compact">
+          <div><p className="eyebrow">可恢复操作</p><h2 id="organize-title">整理资料</h2></div>
+          <CheckSquare size={18} />
+        </div>
+        <div className="library-management__row">
+          <label><span>给所选资料加标签</span><select value={batchTagId} onChange={(event) => setBatchTagId(event.target.value)}><option value="">不更改</option>{availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}</select></label>
+          <label><span>加入集合</span><select value={batchCollectionId} onChange={(event) => setBatchCollectionId(event.target.value)}><option value="">不更改</option>{availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}</select></label>
+          <button type="button" className="button button--secondary" onClick={() => applyBatch(null)} disabled={!checkedIds.length || managing}>应用分类</button>
+          <button type="button" className="button button--secondary" onClick={() => applyBatch(archivedFilter ? false : true)} disabled={!checkedIds.length || managing}>
+            {archivedFilter ? <RotateCcw size={15} /> : <Archive size={15} />}
+            {archivedFilter ? '恢复所选' : '归档所选'}
+          </button>
+          <span>{checkedIds.length} 份已选</span>
+        </div>
+        <div className="library-management__row library-label-create">
+          <label><span>新标签</span><input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} maxLength={80} placeholder="例如：核心概念" /></label>
+          <button type="button" className="button button--ghost" onClick={() => createLabel('tag')} disabled={!newTagName.trim() || managing}><Tags size={15} />创建标签</button>
+          <label><span>新集合</span><input value={newCollectionName} onChange={(event) => setNewCollectionName(event.target.value)} maxLength={120} placeholder="例如：物理教材" /></label>
+          <button type="button" className="button button--ghost" onClick={() => createLabel('collection')} disabled={!newCollectionName.trim() || managing}><FolderPlus size={15} />创建集合</button>
+        </div>
+      </section>
+
+      {duplicates.items.length > 0 && (
+        <section className="surface duplicate-review" aria-labelledby="duplicate-title">
+          <div className="section-heading section-heading--compact"><div><p className="eyebrow">仅建议，不自动合并</p><h2 id="duplicate-title">重复资料复核</h2></div><Copy size={18} /></div>
+          {duplicates.items.map((suggestion) => (
+            <div className="duplicate-row" key={suggestion.suggestion_id}>
+              <span>{suggestion.kind === 'EXACT_DUPLICATE' ? '文件内容完全一致' : suggestion.kind === 'REVISION_CANDIDATE' ? '可能是同一资料的新版本' : '正文高度相似'} · {Math.round((suggestion.confidence || 0) * 100)}%</span>
+              <div><button type="button" className="button button--ghost" onClick={() => resolveDuplicate(suggestion, 'KEEP_SEPARATE')} disabled={managing}>保留两份</button><button type="button" className="button button--secondary" onClick={() => resolveDuplicate(suggestion, 'ARCHIVE_CANDIDATE')} disabled={managing}>归档候选</button></div>
+            </div>
+          ))}
+        </section>
+      )}
 
       <div className="library-workspace">
         <section className="surface library-documents" aria-labelledby="documents-title">
@@ -469,6 +721,14 @@ export default function Library() {
             <ul className="document-list">
               {documents.map((document) => (
                 <li key={document.document_id} className={document.document_id === selectedDocumentId ? 'is-selected' : ''}>
+                  <label className="document-check">
+                    <input
+                      type="checkbox"
+                      checked={checkedIds.includes(document.document_id)}
+                      onChange={(event) => setCheckedIds((current) => event.target.checked ? [...current, document.document_id] : current.filter((id) => id !== document.document_id))}
+                      aria-label={`选择资料 ${document.title}`}
+                    />
+                  </label>
                   <button
                     type="button"
                     className="document-select"
@@ -477,6 +737,8 @@ export default function Library() {
                   >
                     <span className="document-title">{document.title}</span>
                     <span>{document.subject || '未标注学科'} · {formatBytes(document.file_size_bytes)}</span>
+                    {(document.tags?.length > 0 || document.collections?.length > 0) && <span className="document-labels">{document.collections?.map((item) => item.name).join(' / ')}{document.tags?.length > 0 && ` · ${document.tags.map((item) => `#${item.name}`).join(' ')}`}</span>}
+                    {document.match_excerpt && <span className="document-match">命中{document.match_field === 'title' ? '标题' : '正文'}：{document.match_excerpt}</span>}
                     <span className="document-statuses">
                       <span className={`status-pill status-pill--document-${document.processing_status}`}>
                         {processingLabels[document.processing_status] || document.processing_status}
@@ -488,17 +750,6 @@ export default function Library() {
                       )}
                     </span>
                     <small>{formatDate(document.updated_at)}</small>
-                  </button>
-                  <button
-                    type="button"
-                    className="document-delete"
-                    aria-label={`删除资料 ${document.title}`}
-                    onClick={(event) => {
-                      deleteReturnFocusRef.current = event.currentTarget
-                      setDeleteTarget(document)
-                    }}
-                  >
-                    <Trash2 size={15} />
                   </button>
                 </li>
               ))}
@@ -521,6 +772,17 @@ export default function Library() {
               </button>
             </nav>
           )}
+          {selectedDocument && (
+            <form className="metadata-editor" onSubmit={saveMetadata}>
+              <h3>资料信息</h3>
+              <label><span>显示标题</span><input required value={metadataDraft.title} onChange={(event) => setMetadataDraft((current) => ({ ...current, title: event.target.value }))} maxLength={255} /></label>
+              <label><span>学科</span><input value={metadataDraft.subject} onChange={(event) => setMetadataDraft((current) => ({ ...current, subject: event.target.value }))} maxLength={100} /></label>
+              <label><span>作者</span><input value={metadataDraft.author} onChange={(event) => setMetadataDraft((current) => ({ ...current, author: event.target.value }))} maxLength={200} /></label>
+              <label><span>语言</span><input value={metadataDraft.language} onChange={(event) => setMetadataDraft((current) => ({ ...current, language: event.target.value }))} maxLength={35} placeholder="例如：zh-CN" /></label>
+              <button type="submit" className="button button--secondary" disabled={managing}>保存信息</button>
+              <small>只更新资料信息，不覆盖原文件，也不创建新的知识 revision。</small>
+            </form>
+          )}
         </section>
 
         <section className="surface knowledge-map" aria-labelledby="map-title">
@@ -531,6 +793,22 @@ export default function Library() {
             </div>
             <Network size={18} />
           </div>
+          {selectedDocument && !knowledgeBlockedStatuses.has(selectedDocument.processing_status) && (
+            <a
+              className="button button--primary library-learning-link"
+              href={`#/book-learning/${encodeURIComponent(selectedDocument.document_id)}`}
+            >
+              <GraduationCap size={16} />
+              从这份资料开始学习
+            </a>
+          )}
+          {selectedDocument?.media_type === 'application/pdf' && !knowledgeBlockedStatuses.has(selectedDocument.processing_status) && (
+            <button type="button" className="button button--secondary library-ocr-button" onClick={startOcr} disabled={managing || ['pending', 'processing'].includes(ocr.payload?.status)}>
+              <ScanText size={16} />
+              {['pending', 'processing'].includes(ocr.payload?.status) ? '本地 OCR 处理中…' : '识别扫描 PDF'}
+            </button>
+          )}
+          {ocr.error && <p className="inline-error" role="alert">{ocr.error}</p>}
           {!selectedDocument ? (
             <div className="library-empty"><p>选择一份资料后查看知识候选。</p></div>
           ) : map.status === 'loading' ? (
@@ -655,6 +933,47 @@ export default function Library() {
           {map.payload?.source_status && <SourceStatus items={map.payload.source_status} />}
         </aside>
       </div>
+
+      {ocr.payload?.status === 'review_required' && (
+        <section className="surface ocr-review" aria-labelledby="ocr-review-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">人工复核门禁</p>
+              <h2 id="ocr-review-title">扫描 PDF 文字复核</h2>
+              <p>左侧是本地渲染的原页，右侧是 OCR 候选。只有你勾选接受并发布的文字才会进入新的 revision。</p>
+            </div>
+            <ScanText size={20} />
+          </div>
+          <div className="ocr-pages" aria-label="OCR 页码">
+            {[...new Set(ocr.payload.candidates.map((candidate) => candidate.page_number))].map((pageNumber) => (
+              <button type="button" className={pageNumber === ocrPage ? 'is-selected' : ''} key={pageNumber} onClick={() => setOcrPage(pageNumber)}>第 {pageNumber} 页</button>
+            ))}
+          </div>
+          <div className="ocr-review__grid">
+            <figure className="ocr-page-preview">
+              {ocrPageUrl ? <img src={ocrPageUrl} alt={`PDF 第 ${ocrPage} 页原图`} /> : <div className="inline-state">原页预览载入中…</div>}
+              <figcaption>仅在本机临时渲染 · 不上传第三方</figcaption>
+            </figure>
+            <div className="ocr-candidates">
+              {ocr.payload.candidates.filter((candidate) => candidate.page_number === ocrPage).map((candidate) => (
+                <article key={candidate.candidate_id}>
+                  <header>
+                    <label><input type="checkbox" checked={ocrDecisions[candidate.candidate_id]?.accepted || false} onChange={(event) => setOcrDecisions((current) => ({ ...current, [candidate.candidate_id]: { ...current[candidate.candidate_id], accepted: event.target.checked } }))} />接受这段文字</label>
+                    <span>置信度 {candidate.confidence == null ? '未知' : `${Math.round(candidate.confidence)}%`}</span>
+                  </header>
+                  <textarea aria-label={`第 ${candidate.page_number} 页候选 ${candidate.block_index + 1}`} value={ocrDecisions[candidate.candidate_id]?.text ?? candidate.text} onChange={(event) => setOcrDecisions((current) => ({ ...current, [candidate.candidate_id]: { ...current[candidate.candidate_id], text: event.target.value } }))} rows={4} />
+                  <small>位置 [{candidate.bbox.join(', ')}] · 图像哈希 {candidate.image_hash.slice(0, 12)}…</small>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="ocr-review__actions">
+            <span>未勾选的候选会明确拒绝；发布失败时旧 revision 保持不变。</span>
+            <button type="button" className="button button--primary" onClick={publishOcr} disabled={managing || !Object.values(ocrDecisions).some((decision) => decision.accepted)}>发布已复核文字</button>
+          </div>
+        </section>
+      )}
+      {ocr.payload?.status === 'accepted' && <p className="inline-notice">OCR 复核已发布；资料搜索与知识地图已切换到新 revision。</p>}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 # EXEC-021 — LearningGoal Formation & Goal-to-Knowledge Mapping
 
 > Priority：P0 Book-to-Learning / SYS06 Bootstrap  
-> Status：READY  
+> Status：DONE
 > Depends on：EXEC-019 DONE  
 > Primary Spec：SPEC-D04  
 > Execution rule：可与 EXEC-020 在 EXEC-019 DONE 后独立实现；EXEC-022 需要本 EXEC DONE。

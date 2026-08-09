@@ -26,6 +26,7 @@ class LLMProvider(str, Enum):
     QWEN = "qwen"
     DEEPSEEK = "deepseek"
     DOUBAO = "doubao"
+    ZHIPU = "zhipu"
 
 
 class Settings(BaseSettings):
@@ -85,6 +86,11 @@ class Settings(BaseSettings):
     llm_deepseek_model: str = "deepseek-chat"
     llm_doubao_api_key: str = ""
     llm_doubao_model: str = "doubao-pro-32k"
+    llm_zhipu_api_key: str = ""
+    llm_zhipu_model: str = "glm-4.7-flash"
+    llm_zhipu_base_url: str = "https://open.bigmodel.cn/api/paas/v4"
+    llm_zhipu_thinking_enabled: bool = False
+    llm_math_provider: LLMProvider = LLMProvider.DEEPSEEK
     embedding_provider: str = "qwen"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 2048

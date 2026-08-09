@@ -28,6 +28,12 @@ from app.services.documents.document_service import (
     DocumentService,
     document_processing_idempotency_key,
 )
+from app.services.documents.ocr import (
+    OCR_TASK_SCHEMA_VERSION,
+    OCR_TASK_TYPE,
+    OcrService,
+)
+from app.services.documents.parsers import get_parser
 
 logger = get_logger(__name__)
 
@@ -80,7 +86,11 @@ class DocumentProcessingWorker:
         async with self._session_factory() as session:
             async with session.begin():
                 task = await OutboxRepository(session).claim_next(
-                    task_types={DOCUMENT_PROCESS_TASK_TYPE, DOCUMENT_REINSPECTION_TASK_TYPE},
+                    task_types={
+                        DOCUMENT_PROCESS_TASK_TYPE,
+                        DOCUMENT_REINSPECTION_TASK_TYPE,
+                        OCR_TASK_TYPE,
+                    },
                     now=current,
                 )
         if task is None:
@@ -120,9 +130,19 @@ class DocumentProcessingWorker:
                                 target_scanner_version=target_version,
                                 failure_code="CONTENT_REINSPECTION_UNAVAILABLE",
                             )
+                    if task.type == OCR_TASK_TYPE and (permanent or exhausted):
+                        run_id = task.payload.get("run_id")
+                        if isinstance(run_id, str):
+                            error_code = (
+                                failure.split(":")[-1] if failure else "OCR_ENGINE_UNAVAILABLE"
+                            )
+                            await OcrService(session).record_failure(run_id, error_code)
         return True
 
     async def _handle(self, task: OutboxTask) -> None:
+        if task.type == OCR_TASK_TYPE:
+            await self._handle_ocr(task)
+            return
         if task.type == DOCUMENT_REINSPECTION_TASK_TYPE:
             await self._handle_reinspection(task)
             return
@@ -170,6 +190,27 @@ class DocumentProcessingWorker:
         except AppError as exc:
             raise PermanentTaskError(exc.error_code) from exc
 
+    async def _handle_ocr(self, task: OutboxTask) -> None:
+        if task.schema_version != OCR_TASK_SCHEMA_VERSION:
+            raise PermanentTaskError("OCR_TASK_SCHEMA_UNSUPPORTED")
+        run_id = task.payload.get("run_id")
+        pseudonym_id = task.payload.get("pseudonym_id")
+        if not isinstance(run_id, str) or not isinstance(pseudonym_id, str):
+            raise PermanentTaskError("OCR_TASK_PAYLOAD_INVALID")
+        try:
+            async with self._session_factory() as session:
+                run = await OcrService(session).process_run(run_id)
+                if str(run.document_id) == "" or run.status not in {
+                    "review_required",
+                    "accepted",
+                    "rejected",
+                }:
+                    raise PermanentTaskError("OCR_OUTPUT_INVALID")
+        except AppError as exc:
+            if exc.error_code == "OCR_TIMEOUT":
+                raise
+            raise PermanentTaskError(exc.error_code) from exc
+
     @staticmethod
     def _needs_processing(document: UserDocument) -> bool:
         if document.processing_status in {ProcessingStatus.PENDING, ProcessingStatus.PROCESSING}:
@@ -182,7 +223,12 @@ class DocumentProcessingWorker:
             (item for item in record.get("revisions", []) if item.get("revision_id") == current_id),
             None,
         )
-        return revision is None or revision.get("extraction_version") != EXTRACTION_VERSION
+        return (
+            revision is None
+            or revision.get("parser_version")
+            != get_parser(document.file_extension).semantic_version
+            or revision.get("extraction_version") != EXTRACTION_VERSION
+        )
 
 
 class DocumentProcessingRuntime:

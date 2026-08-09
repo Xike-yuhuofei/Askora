@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.contracts.assessment import AssessmentItemV1, AssistanceSnapshot
+from app.contracts.assessment import AssessmentAttempt, AssessmentItemV1, AssistanceSnapshot
 from app.contracts.learning import AssessmentResult
 from app.domains.assessment import AssessmentScoringService
 from app.infrastructure.learning_records import AssessmentRecordRepository
@@ -30,6 +31,26 @@ class CanonicalAssessmentService:
         idempotency_key: str,
         correlation_id: str = "",
     ) -> AssessmentResult:
+        record = await self.score_submission_with_attempt(
+            item=item,
+            user_id=user_id,
+            response=response,
+            assistance=assistance,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        return record.result
+
+    async def score_submission_with_attempt(
+        self,
+        *,
+        item: AssessmentItemV1,
+        user_id: UUID,
+        response: Any,
+        assistance: AssistanceSnapshot,
+        idempotency_key: str,
+        correlation_id: str = "",
+    ) -> ScoredAssessmentRecord:
         attempt = self._scorer.submit(
             item=item,
             user_id=user_id,
@@ -52,4 +73,10 @@ class CanonicalAssessmentService:
             },
             idempotency_key=f"assessment-result-project:{result.result_id}",
         )
-        return result
+        return ScoredAssessmentRecord(attempt=attempt, result=result)
+
+
+@dataclass(frozen=True)
+class ScoredAssessmentRecord:
+    attempt: AssessmentAttempt
+    result: AssessmentResult

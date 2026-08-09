@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Spec Pack Frozen / Not Implemented
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Frozen / Implemented Baseline
 
 ## 1. Purpose
 
@@ -26,13 +26,13 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 → Gap Analysis
 → SPEC-D01～D06
 → Spec Freeze
-→ future EXEC decomposition
-→ Implementation
+→ EXEC-017～024
+→ Implemented Baseline
 ```
 
-当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTATION NOT STARTED**。Spec Freeze 不预占 EXEC 编号。
+当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
 
-实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。
+实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。用户已委托架构自治时，Codex MAY 代表该目标接受新的 superseding/additive ADR，并在同步更新 Spec/EXEC 后继续实现；不得用代码事实反向追认设计。
 
 ## 2. Spec Index
 
@@ -52,11 +52,13 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
+- [SYS01 Library Management, Deduplication and OCR](systems/01-library-management.md) — P1-04 metadata/search/organization/dedup/OCR additive contract
 - [SYS02 Retrieval](systems/02-retrieval.md)
 - [SYS03 Learner Model](systems/03-learner-model.md)
 - [SYS04 Assessment](systems/04-assessment.md)
 - [SYS05 Teaching Policy](systems/05-teaching-policy.md)
 - [SYS06 Learning Planner](systems/06-learning-planner.md)
+- [SYS06 Activity Lifecycle and Completion](systems/06-activity-lifecycle.md) — versioned start/resume/completion 与 next-activity progression
 - [SYS07 Review Scheduler](systems/07-review-scheduler.md)
 - [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
 
@@ -65,6 +67,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [API Contract](interfaces/api-contract.md)
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
+- [First-use Onboarding Contract](interfaces/onboarding-contract.md) — P1-06 presentation preference、owner-fact readiness、single next action 与 deep-link contract
 - [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
 - [Schema Versioning](interfaces/schema-versioning.md)
 
@@ -77,13 +80,22 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
+- [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
+- [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
+- [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
+- [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
+- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
+- [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
+- [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
+- [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成
+- [UI-02B1 Material-to-Learning Launch](vertical-slices/ui-02b1-material-learning-launch.md) — 单份资料→Goal→诊断→计划→canonical 教学启动；EXEC-025 已完成
 - [UI-02A Canonical Library and Scoped Knowledge Map](vertical-slices/ui-02a-library-knowledge-map.md) — frozen library slice；EXEC-016 已完成
 - [UI-01 Learning Shell and Compatibility Tutor Workspace](vertical-slices/ui-01-learning-shell-workspace.md) — frozen UI implementation slice；EXEC-015 已完成
 - [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
 - [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
 
-### Book-to-Learning Bootstrap（Frozen / Not Implemented）
+### Book-to-Learning Bootstrap（Frozen / Implemented Baseline）
 
 - [SPEC-D01 Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — structure-preserving ingestion、DocumentIR/DocumentNode、source locator/replay
 - [SPEC-D02 Multi-Granularity Content Model](systems/01-content-granularity.md) — EvidenceSpan/SemanticUnit/RetrievalChunk/HierarchyNode 边界
@@ -258,4 +270,8 @@ EXEC number pre-allocation                NONE
 
 **Book-to-Learning Spec Freeze Gate：PASS**。
 
-后续只能先生成新的 EXEC Plan，再交给 Codex 实现；Codex 不得从 D01～D06 自行扩大范围或补充未冻结的架构决定。
+Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Frozen 状态，也不构成真人学习效果结论。
+
+后续变化仍只能先生成新的 EXEC Plan 再实现。未获用户架构自治委托时，Codex 不得从
+D01～D06 自行扩大范围；已获委托时，Codex MAY 先接受所需 ADR、更新并冻结新增 Spec/
+Vertical Slice/EXEC，再在新边界内实现，且不得静默改写 D01～D06 的历史冻结语义。

@@ -22,6 +22,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+DECISION_TRACE_INPUT_ENTITY_TYPE_MAX_LENGTH = 100
+DECISION_TRACE_INPUT_ENTITY_ID_MAX_LENGTH = 255
+DECISION_TRACE_INPUT_ENTITY_VERSION_MAX_LENGTH = 255
+
 
 class ImmutableLedgerError(RuntimeError):
     """尝试修改或删除 append-only ledger row。"""
@@ -136,9 +140,15 @@ class DecisionTraceInputRecord(Base):
         ForeignKey("decision_traces.decision_id", ondelete="CASCADE"),
         nullable=False,
     )
-    entity_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    entity_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    entity_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    entity_type: Mapped[str] = mapped_column(
+        String(DECISION_TRACE_INPUT_ENTITY_TYPE_MAX_LENGTH), nullable=False
+    )
+    entity_id: Mapped[str] = mapped_column(
+        String(DECISION_TRACE_INPUT_ENTITY_ID_MAX_LENGTH), nullable=False
+    )
+    entity_version: Mapped[str | None] = mapped_column(
+        String(DECISION_TRACE_INPUT_ENTITY_VERSION_MAX_LENGTH), nullable=True
+    )
 
     decision: Mapped[DecisionTraceRecord] = relationship(back_populates="indexed_inputs")
 

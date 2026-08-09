@@ -33,7 +33,8 @@ export const getApiBaseURL = async () => {
 
 const api = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000,
+  // Provider execution is bounded at 30s; transport must leave room for validation + commit.
+  timeout: 65000,
 })
 
 export const getOrCreateDeviceFingerprint = () => {

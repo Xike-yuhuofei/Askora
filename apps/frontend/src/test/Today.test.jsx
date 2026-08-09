@@ -65,7 +65,7 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     render(<RouterProvider><Today /></RouterProvider>)
 
     expect(await screen.findByRole('heading', { name: '今天' })).toBeInTheDocument()
-    expect(screen.getByText('学习计划尚不可读取')).toBeInTheDocument()
+    expect(screen.getByText('还没有可展示的当前计划')).toBeInTheDocument()
     expect(screen.getByText('尚未纳入学习计划')).toBeInTheDocument()
     expect(screen.getAllByText('函数与导数').length).toBeGreaterThan(0)
     expect(screen.getAllByText('兼容会话').length).toBeGreaterThan(0)
@@ -89,5 +89,26 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('今日学习信息暂时无法读取')
     expect(screen.getByRole('button', { name: /重试/ })).toBeInTheDocument()
     expect(screen.queryByText('已掌握')).not.toBeInTheDocument()
+  })
+
+  it('launches the exact canonical activity from its lifecycle capability', async () => {
+    workspaceApi.getTodayWorkspace.mockResolvedValueOnce({
+      ...todayPayload,
+      data: {
+        ...todayPayload.data,
+        view_state: 'READY',
+        active_goal: { goal_ref: 'learning_goal:g1:v2', title: '理解函数', status: 'active', target_capabilities: ['解释变化'] },
+        current_activity: { activity_ref: 'learning_activity:a1:v1', objective_ref: 'learning_objective:o1:v1', type: 'diagnostic', title: '检查当前基础', estimated_duration_minutes: 5, reason_codes: ['PLAN_TARGET_STATE_UNKNOWN'], status: 'available', launch_state: 'REQUIRES_START_COMMAND' },
+      },
+      source_status: [
+        { source_system: 'SYS06', availability: 'AVAILABLE', source_ref: 'learning_plan:p1:v1', reason_codes: ['CURRENT_PLAN_AVAILABLE'] },
+      ],
+    })
+    render(<RouterProvider><Today /></RouterProvider>)
+
+    expect(await screen.findByRole('heading', { name: '检查当前基础' })).toBeInTheDocument()
+    expect(screen.getByText(/完成本项不等于已经掌握/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /开始学习/ }))
+    await waitFor(() => expect(window.location.hash).toBe('#/learn/a1'))
   })
 })

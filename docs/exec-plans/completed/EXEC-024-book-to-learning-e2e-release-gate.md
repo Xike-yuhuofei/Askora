@@ -1,7 +1,7 @@
 # EXEC-024 — Book-to-Learning E2E, Replay, Security & Release Gate
 
 > Priority：P0 Release Gate  
-> Status：READY  
+> Status：DONE
 > Depends on：EXEC-023 DONE  
 > Primary Spec：SPEC-D06  
 > Completion target：Book-to-Learning Engineering/Contract Gate PASS；Learning Evidence remains insufficient unless real human evidence exists.

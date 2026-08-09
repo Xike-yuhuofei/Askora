@@ -80,6 +80,19 @@ UI-02A: /library + durable document processing + scoped knowledge map + SourceSp
 
 该拆分不改变 UI-MIG-011 最终总范围；UI-02A 不得以 deferred Goals/Path/Evidence 数据伪造 UI-02 umbrella DONE。
 
+### UI-MIG-015 — Approved UI-02B1 Launch Slice
+
+用户于 2026-08-08 授权在 UI-02A 与完整 UI-02B 之间增加独立 bounded Slice：
+
+```text
+UI-02A DONE
+→ UI-02B1: single-document material-to-learning launch
+→ UI-02B1 DONE
+→ UI-02B: /goals + /path + /evidence
+```
+
+UI-02B1 只复用 Book-to-Learning façade 闭合 Goal/diagnostic/plan/teaching launch，不改变 UI-MIG-011 的完整 UI-02B 范围，也不冻结 durable activity/session link。
+
 ### UI-MIG-012 — UI-03 Focus and Adaptive Presentation Polish
 
 范围：
@@ -321,3 +334,17 @@ UI-01 使用显式 compatibility workspace，避免把 session 伪装为 Learnin
 - Profile 看起来更漂亮但仍误导 mastery；
 - RichMessage 或 Focus 绕过已有安全与 canonical execution；
 - UI 指标改善被描述为人类学习效果改善。
+
+## 11. P1-06 Migration and Quality Gate
+
+### UI-MIG-040
+
+P1-06 在 UI-02C DONE 后，通过 EXEC-1061→1062 串行实施。P1-02/P1-03/P1-07 未形成真实 owner
+capability/action 前不得以 placeholder/disabled button 关闭集成 gate；shared dirty worktree 继续按
+UI-MIG-002 保护。
+
+### UI-QUAL-040
+
+除现有 frontend/build/audit/backend/docs gates 外，必须验证 default route/deep-link/reload/relogin/App
+restart、dismiss/reopen、owner-fact rollback、P1-07 action、360/768/1024/1440、200% zoom、keyboard/
+focus/live region、deterministic/real-provider E2E 与首次用户体验。

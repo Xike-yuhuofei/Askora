@@ -118,7 +118,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
         assert library.data.total == 1
         item = library.data.documents[0]
         assert item.title == "algebra.md"
-        assert item.knowledge_status == "CANDIDATES"
+        assert item.knowledge_status == "PUBLISHED"
         assert item.knowledge_unit_count == 2
         assert "storage_path" not in item.model_dump()
 
@@ -131,7 +131,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
             "等式性质",
             "解一元一次方程",
         ]
-        assert all(node.status == "candidate" for node in knowledge_map.data.nodes)
+        assert all(node.status == "published" for node in knowledge_map.data.nodes)
         assert knowledge_map.data.edges == ()
         assert all("参考答案" not in span.excerpt for span in knowledge_map.data.source_spans)
         assert "NO_VERIFIED_RELATIONS" in knowledge_map.source_status[0].reason_codes
@@ -160,7 +160,7 @@ async def test_epub_processing_persists_scan_record_and_exposes_safe_reason_code
         valid = await service.upload_document(user.pseudonym_id, "sql.epub", _epub_bytes())
         await service.process_document(valid.id)
         assert valid.processing_status == "completed"
-        assert valid.moderation_details["security_scan"]["scanner_version"] == "document-safety-v2"
+        assert valid.moderation_details["security_scan"]["scanner_version"] == "document-safety-v3"
         assert valid.moderation_details["security_scan"]["verdict"] == "allow"
         assert valid.moderation_details["security_scan"]["reason_codes"] == []
         assert valid.chunk_count > 0
@@ -199,7 +199,7 @@ async def test_epub_processing_persists_scan_record_and_exposes_safe_reason_code
             correlation_id="epub-library-query",
         )
         by_title = {item.title: item for item in library.data.documents}
-        assert by_title["sql.epub"].knowledge_status == "CANDIDATES"
+        assert by_title["sql.epub"].knowledge_status == "PUBLISHED"
         assert by_title["unsafe.epub"].knowledge_status == "NOT_MODELED"
         assert by_title["unsafe.epub"].reason_codes == (
             "CONTENT_REVISION_MISSING",

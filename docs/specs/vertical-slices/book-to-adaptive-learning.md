@@ -186,6 +186,8 @@ LearningActivity
 
 MUST NOT 新建 `book_tutor` / `epub_tutor` 自由 LLM 主链绕过 SYS05。
 
+Book bootstrap 的 production handoff MUST 按 `ADR-0003` / `SYS05-304～306` 从 atomic active activation 解析 exact PolicyBundle 与 immutable runtime profile。缺失或不一致时必须停在 SYS05 unsupported-configuration boundary，MUST NOT 使用测试 fixture 或临时默认参数绕过。
+
 ## 9. Content-to-Plan Integrity
 
 ### D06-040
@@ -353,4 +355,4 @@ Spec Freeze Gate：**PASS**，条件为：
 - 未引入新的学习效果宣称；
 - 后续实现只能通过新的 EXEC 分解进入 Codex。
 
-任何实现阶段发现必须违反本合同或现有 canonical Spec 的情况，必须 `BLOCKED_BY_SPEC_GAP`，不得由 Codex 自主补设计。
+任何实现阶段发现必须违反本合同或现有 canonical Spec 的情况，必须报告 `SPEC GAP`。未获用户委托架构自治时标记 `BLOCKED_BY_SPEC_GAP`；已获委托时，Codex MUST 先以新的 Accepted ADR、Spec 与冻结 EXEC 显式补齐设计，再修改产品代码。

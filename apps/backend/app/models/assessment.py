@@ -226,3 +226,20 @@ class MasteryEstimateRecord(Base):
             "user_id", "knowledge_unit_id", "version", name="uq_canonical_mastery_version"
         ),
     )
+
+
+class LearnerStateRecord(Base):
+    """SYS03 immutable aggregate projection over exact mastery versions."""
+
+    __tablename__ = "learner_state_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    learner_state_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("learner_state_id", "version", name="uq_learner_state_version"),
+    )

@@ -22,6 +22,10 @@ from dataclasses import dataclass
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.domains.content_knowledge.epub_structure import (
+    EPUB_PARSER_VERSION,
+    parse_epub_structure,
+)
 
 logger = get_logger(__name__)
 
@@ -33,6 +37,8 @@ class ParsedContent:
     full_text: str
     chunks: list[str]
     metadata: dict
+    document_nodes: list[dict] | None = None
+    root_node_local_id: str | None = None
     """
     example: {
         "total_paragraphs": 45,
@@ -58,6 +64,8 @@ class DocumentParser:
 
     子类实现 parse() 方法以支持不同格式
     """
+
+    semantic_version = "askora-parser-v1"
 
     def parse(self, file_content: bytes, file_extension: str) -> ParsedContent:
         """
@@ -261,52 +269,30 @@ class EPubParser(DocumentParser):
     EPUB 文档解析器（需安装 ebooklib）
 
     特点：
-    - 按章节分块
-    - 保留目录结构
+    - 保留 spine / TOC / XHTML DOM 结构
+    - 产生 DocumentIR 所需的 typed working nodes
     """
+
+    semantic_version = EPUB_PARSER_VERSION
 
     def parse(self, file_content: bytes, file_extension: str) -> ParsedContent:
         try:
-            from ebooklib import epub
+            import ebooklib  # noqa: F401 - approved production parser dependency
         except ImportError:
             raise ImportError("EPUB 解析需要安装 ebooklib: pip install ebooklib")
-
-        import io
-
-        book = epub.read_epub(io.BytesIO(file_content))
-
-        chapters = []
-        for item in book.get_items_of_type(9):  # 9 = DOCUMENT
-            content = item.get_content().decode("utf-8", errors="ignore")
-            # 主动内容只作为扫描证据，不得进入知识建模文本。
-            content = re.sub(
-                r"<(?:script|style)\b[^>]*>.*?</(?:script|style)\s*>",
-                " ",
-                content,
-                flags=re.IGNORECASE | re.DOTALL,
-            )
-            # 简单提取文本（去除 HTML 标签）
-            text = re.sub(r"<[^>]+>", " ", content)
-            text = re.sub(r"\s+", " ", text).strip()
-            if text:
-                chapters.append(text)
-
-        full_text = "\n\n".join(chapters)
-
+        structured = parse_epub_structure(file_content)
+        full_text = structured["full_text"]
         metadata = {
-            "total_chapters": len(chapters),
+            **structured["metadata"],
             "estimated_tokens": self._estimate_tokens(full_text),
-            "format": "epub",
         }
-
-        # 使用 PlainTextParser 进行分块
-        plain_parser = PlainTextParser()
-        chunks = plain_parser._split_by_paragraphs(full_text)
 
         return ParsedContent(
             full_text=full_text,
-            chunks=chunks,
+            chunks=structured["chunks"],
             metadata=metadata,
+            document_nodes=structured["nodes"],
+            root_node_local_id=structured["root_local_id"],
         )
 
 

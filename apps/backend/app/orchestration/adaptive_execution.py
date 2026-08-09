@@ -22,6 +22,7 @@ from app.contracts.adaptive import (
 )
 from app.contracts.base import ContractModel
 from app.contracts.events import ActualAssistanceRecordedPayloadV03
+from app.contracts.model_execution import ModelExecutionV1
 
 _SCAFFOLD_RANK = {
     ScaffoldControl.NONE: 0,
@@ -58,12 +59,16 @@ class RenderProposal(ContractModel):
     used_evidence_ids: tuple[UUID, ...] = ()
     requested_tools: tuple[str, ...] = ()
     attempted_action_override: bool = False
+    model_execution: ModelExecutionV1 | None = None
 
 
 class AdaptiveRenderRequest(ContractModel):
     user_text: str
     teaching_action: TeachingActionV03
     evidence_bundle: EvidenceBundleV03
+    subject: str = "general"
+    target_capability: str | None = None
+    inference_id: UUID | None = None
 
 
 class AdaptiveRenderer(Protocol):
@@ -80,6 +85,7 @@ class AdaptiveExecutionResult(ContractModel):
     used_evidence_ids: tuple[UUID, ...]
     integrity_reason_codes: tuple[str, ...]
     fallback_used: bool
+    model_execution: ModelExecutionV1 | None = None
 
 
 def _state_for_axes(
@@ -130,6 +136,10 @@ class PolicyBoundTemplateRenderer:
             scaffold = ScaffoldControl.NONE
         hint = HintSpecificity.NONE
         state = _state_for_axes(scaffold, hint, exposure)
+        inference_id = request.inference_id or uuid5(
+            NAMESPACE_URL,
+            f"askora:template-render:{action.action_id}:{bundle.bundle_id}:{request.user_text}",
+        )
         return RenderProposal(
             response_id=response_id,
             response_version="template-renderer/1.0",
@@ -142,6 +152,15 @@ class PolicyBoundTemplateRenderer:
             actual_answer_exposure=exposure,
             declared_assistance_state=state,
             used_evidence_ids=used_ids,
+            model_execution=ModelExecutionV1(
+                mode="local_fallback",
+                prompt_version="template-renderer/1.0",
+                inference_id=inference_id,
+                latency_ms=0,
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+            ),
         )
 
 
@@ -160,6 +179,9 @@ class AdaptiveExecutionService:
         teaching_action: TeachingActionV03,
         evidence_bundle: EvidenceBundleV03,
         renderer: AdaptiveRenderer,
+        subject: str = "general",
+        target_capability: str | None = None,
+        inference_id: UUID | None = None,
     ) -> AdaptiveExecutionResult:
         if evidence_bundle.teaching_action_ref.entity_id != str(teaching_action.action_id):
             raise ValueError("SYS08_EVIDENCE_ACTION_REF_MISMATCH")
@@ -167,6 +189,9 @@ class AdaptiveExecutionService:
             user_text=user_text,
             teaching_action=teaching_action,
             evidence_bundle=evidence_bundle,
+            subject=subject,
+            target_capability=target_capability,
+            inference_id=inference_id,
         )
         proposal = await renderer.render(request)
         reasons: list[str] = []
@@ -233,6 +258,11 @@ class AdaptiveExecutionService:
             state = AssistanceState.INDEPENDENT
             used_ids: tuple[UUID, ...] = ()
             reasons.append("SYS08_TIGHTENING_FALLBACK_APPLIED")
+            model_execution = (
+                proposal.model_execution.model_copy(update={"mode": "local_fallback"})
+                if proposal.model_execution is not None
+                else None
+            )
         else:
             response_id = proposal.response_id
             response_version = proposal.response_version
@@ -243,6 +273,7 @@ class AdaptiveExecutionService:
             state = computed_state
             used_ids = proposal.used_evidence_ids
             reasons.append("SYS08_POLICY_ENVELOPE_VALIDATED")
+            model_execution = proposal.model_execution
 
         snapshot = AssistanceSnapshotV03(
             scaffold_control=scaffold,
@@ -278,4 +309,5 @@ class AdaptiveExecutionService:
             used_evidence_ids=used_ids,
             integrity_reason_codes=tuple(reasons),
             fallback_used=fallback_used,
+            model_execution=model_execution,
         )

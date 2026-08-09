@@ -1,7 +1,7 @@
 # EXEC-023 — Book-to-Adaptive Orchestration, Readiness & Additive API
 
 > Priority：P0 Book-to-Learning / Application Integration  
-> Status：READY  
+> Status：DONE
 > Depends on：EXEC-020 DONE + EXEC-022 DONE  
 > Primary Spec：SPEC-D06  
 > Execution rule：完成并归档本 EXEC 后，方可进入 EXEC-024。
@@ -75,11 +75,14 @@ apps/backend/app/contracts/**
 apps/backend/app/queries/**
 apps/backend/app/api/v1/**
 apps/backend/app/application/**
+apps/backend/app/config/policy_profiles/**
 apps/backend/app/services/dialog/**
 apps/backend/app/services/**
 apps/backend/app/engines/**
 apps/backend/app/infrastructure/**
 apps/backend/app/main.py
+apps/backend/backend.spec
+apps/backend/alembic/versions/**
 apps/backend/tests/contracts/**
 apps/backend/tests/architecture/**
 apps/backend/tests/integration/**
@@ -89,6 +92,9 @@ apps/frontend/src/api/**
 apps/frontend/src/pages/**
 apps/frontend/src/components/**
 apps/frontend/src/test/**
+docs/adr/**
+docs/specs/systems/05-teaching-policy.md
+docs/specs/vertical-slices/book-to-adaptive-learning.md
 ```
 
 修改 legacy dialog/engines 仅允许作为 canonical facade adapter/ownership convergence；不得把 legacy 路径升级为 Book Tutor owner。
@@ -116,6 +122,7 @@ apps/frontend/src/test/**
 9. architecture tests 证明没有第二 TeachingAction / LearnerState / Plan / Assessment truth 与 second default teaching path。
 10. integration 测试至少走到 first canonical TeachingAction/EvidenceBundle。
 11. full backend/frontend gates（若修改前端）并归档 EXEC-023。
+12. 按 2026-08-08 已批准的 `ADR-0003` 补齐 production `PolicyRuntimeProfile` immutable artifact、canonical digest、active PolicyBundle resolver 与 deterministic migration bootstrap；缺失/不匹配必须 fail closed，历史 replay 继续使用 pinned exact bundle/profile。
 
 ## Acceptance Criteria
 
@@ -127,6 +134,8 @@ apps/frontend/src/test/**
 - `EXEC023-AC-006`：current-user/source-scope/quarantine/grader-only 安全语义保持。
 - `EXEC023-AC-007`：一次 bootstrap correlation 可追踪 owner refs 而不形成 all-in-one second truth。
 - `EXEC023-AC-008`：first canonical TeachingAction 可使用 EXEC-020 的真实 EvidenceBundle。
+- `EXEC023-AC-009`：默认 production handoff 只解析 atomic active activation 指向的 exact bundle/profile；无配置或不匹配时 fail closed。
+- `EXEC023-AC-010`：默认 bundle/activation bootstrap 可确定性迁移，profile digest 可重算，历史 action 不被新 activation 重解释。
 
 ## Required Tests
 

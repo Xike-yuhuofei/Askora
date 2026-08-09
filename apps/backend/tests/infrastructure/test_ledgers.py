@@ -4,8 +4,10 @@ from uuid import uuid4
 
 import pytest
 
+from app.contracts import DecisionInput
 from app.infrastructure.ledger import (
     AggregateVersionConflict,
+    DecisionTraceInputLengthError,
     DecisionTraceRepository,
     LearningEventRepository,
 )
@@ -107,3 +109,54 @@ async def test_decision_ledger_is_append_only_and_queryable_by_trace_entity_vers
         with pytest.raises(ImmutableLedgerError):
             await session.flush()
         await session.rollback()
+
+
+async def test_decision_input_index_accepts_full_snapshot_and_rejects_oversized_value(
+    sqlite_factory,
+) -> None:
+    """PERSIST-032: storage budgets fail before the database and never truncate audit refs."""
+    snapshot = (
+        "document:17a0f10d-6a0d-475f-978d-1231b3e36231:"
+        "revision:5d32553e-892e-5b79-95f6-b8355bb0a420:"
+        "publication:b413e394-58d4-5d5b-8d86-c3d5b79a95ea"
+    )
+    assert len(snapshot) == 140
+    accepted = make_decision().model_copy(
+        update={
+            "inputs": [
+                DecisionInput(
+                    entity_type="KnowledgeGraphSnapshot",
+                    entity_id=snapshot,
+                    version=snapshot,
+                )
+            ]
+        }
+    )
+    rejected = make_decision().model_copy(
+        update={
+            "inputs": [
+                DecisionInput(
+                    entity_type="KnowledgeGraphSnapshot",
+                    entity_id="snapshot",
+                    version="v" * 256,
+                )
+            ]
+        }
+    )
+
+    async with sqlite_factory() as session:
+        async with session.begin():
+            repository = DecisionTraceRepository(session)
+            await repository.append(accepted)
+            with pytest.raises(
+                DecisionTraceInputLengthError,
+                match="DECISION_TRACE_INPUT_LENGTH_INVALID:entity_version:actual=256:max=255",
+            ):
+                await repository.append(rejected)
+        found = await repository.query(
+            entity_type="KnowledgeGraphSnapshot",
+            entity_id=snapshot,
+            entity_version=snapshot,
+        )
+        assert [item.decision_id for item in found] == [accepted.decision_id]
+        assert await repository.get(rejected.decision_id) is None
