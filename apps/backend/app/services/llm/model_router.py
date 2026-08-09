@@ -82,6 +82,47 @@ class BaseLLMProvider(ABC):
         """文本嵌入"""
         pass
 
+    async def close(self) -> None:
+        """Close the optional provider HTTP client."""
+        client = getattr(self, "_client", None)
+        if client is not None and not client.is_closed:
+            await client.aclose()
+
+
+class ModelRouteUnavailableError(RuntimeError):
+    """Stable SYS08 dependency failure for a non-runnable desktop route."""
+
+    code = "MODEL_NOT_AVAILABLE"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class UnavailableModelProvider(BaseLLMProvider):
+    """Fail closed instead of letting a disabled desktop route use a mock response."""
+
+    async def chat_completion(
+        self,
+        messages: list[ChatMessage],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs,
+    ) -> LLMResponse:
+        raise ModelRouteUnavailableError()
+
+    async def stream_chat_completion(
+        self,
+        messages: list[ChatMessage],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs,
+    ) -> AsyncGenerator[StreamChunk, None]:
+        raise ModelRouteUnavailableError()
+        yield StreamChunk(content="")
+
+    async def embedding(self, text: str) -> list[float]:
+        raise ModelRouteUnavailableError()
+
 
 class QwenProvider(BaseLLMProvider):
     """通义千问（阿里云）- 主力模型"""
@@ -90,12 +131,13 @@ class QwenProvider(BaseLLMProvider):
         self.api_key = settings.llm_qwen_api_key
         self.model = settings.llm_qwen_model
         self.base_url = "https://dashscope.aliyuncs.com/api/v1"
+        self.timeout_seconds = float(settings.llm_timeout)
         self._client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(settings.llm_timeout),
+                timeout=httpx.Timeout(self.timeout_seconds),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -124,8 +166,8 @@ class QwenProvider(BaseLLMProvider):
                 "messages": [{"role": m.role, "content": m.content} for m in messages],
             },
             "parameters": {
-                "temperature": temperature or settings.llm_temperature,
-                "max_tokens": max_tokens or settings.llm_max_tokens,
+                "temperature": temperature if temperature is not None else settings.llm_temperature,
+                "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
                 "result_format": "message",
             },
         }
@@ -191,8 +233,8 @@ class QwenProvider(BaseLLMProvider):
                 "messages": [{"role": m.role, "content": m.content} for m in messages],
             },
             "parameters": {
-                "temperature": temperature or settings.llm_temperature,
-                "max_tokens": max_tokens or settings.llm_max_tokens,
+                "temperature": temperature if temperature is not None else settings.llm_temperature,
+                "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
                 "result_format": "message",
                 "incremental_output": True,
             },
@@ -270,12 +312,13 @@ class DeepSeekProvider(BaseLLMProvider):
         self.api_key = settings.llm_deepseek_api_key
         self.model = settings.llm_deepseek_model
         self.base_url = "https://api.deepseek.com"
+        self.timeout_seconds = float(settings.llm_timeout)
         self._client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(settings.llm_timeout),
+                timeout=httpx.Timeout(self.timeout_seconds),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -300,8 +343,8 @@ class DeepSeekProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature or settings.llm_temperature,
-            "max_tokens": max_tokens or settings.llm_max_tokens,
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
             "stream": False,
         }
 
@@ -351,8 +394,8 @@ class DeepSeekProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature or settings.llm_temperature,
-            "max_tokens": max_tokens or settings.llm_max_tokens,
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
             "stream": True,
         }
 
@@ -413,12 +456,13 @@ class DoubaoProvider(BaseLLMProvider):
         self.api_key = settings.llm_doubao_api_key
         self.model = settings.llm_doubao_model
         self.base_url = "https://ark.cn-beijing.volces.com/api/v3"
+        self.timeout_seconds = float(settings.llm_timeout)
         self._client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(settings.llm_timeout),
+                timeout=httpx.Timeout(self.timeout_seconds),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -457,8 +501,8 @@ class DoubaoProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature or settings.llm_temperature,
-            "max_tokens": max_tokens or settings.llm_max_tokens,
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
         }
 
         response = await client.post(f"{self.base_url}/chat/completions", json=payload)
@@ -501,8 +545,8 @@ class DoubaoProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature or settings.llm_temperature,
-            "max_tokens": max_tokens or settings.llm_max_tokens,
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "max_tokens": max_tokens if max_tokens is not None else settings.llm_max_tokens,
             "stream": True,
         }
 
@@ -547,12 +591,13 @@ class ZhipuProvider(BaseLLMProvider):
         self.api_key = settings.llm_zhipu_api_key
         self.model = settings.llm_zhipu_model
         self.base_url = settings.llm_zhipu_base_url.rstrip("/")
+        self.timeout_seconds = float(settings.llm_timeout)
         self._client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(settings.llm_timeout),
+                timeout=httpx.Timeout(self.timeout_seconds),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -582,8 +627,7 @@ class ZhipuProvider(BaseLLMProvider):
             "thinking": {"type": "enabled" if settings.llm_zhipu_thinking_enabled else "disabled"},
             "stream": False,
         }
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
+        payload["max_tokens"] = max_tokens if max_tokens is not None else settings.llm_max_tokens
         try:
             response = await client.post(f"{self.base_url}/chat/completions", json=payload)
             response.raise_for_status()
@@ -632,8 +676,7 @@ class ZhipuProvider(BaseLLMProvider):
             "thinking": {"type": "enabled" if settings.llm_zhipu_thinking_enabled else "disabled"},
             "stream": True,
         }
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
+        payload["max_tokens"] = max_tokens if max_tokens is not None else settings.llm_max_tokens
         try:
             async with client.stream(
                 "POST", f"{self.base_url}/chat/completions", json=payload
@@ -702,10 +745,25 @@ class ModelRouter:
             "zhipu": ZhipuProvider(),
         }
         self._default_provider = settings.llm_default_provider.value
+        self._desktop_single_route = (
+            settings.model_config_source.upper() == "DESKTOP_VAULT"
+            or settings.model_config_state.upper() == "DISABLED"
+        )
+        desktop_route_provider = self._providers[self._default_provider]
+        self._desktop_route_unavailable = self._desktop_single_route and (
+            settings.model_config_state.upper() != "ACTIVE"
+            or not getattr(desktop_route_provider, "api_key", "")
+        )
+        self._unavailable_provider = UnavailableModelProvider()
 
     def get_provider(self, provider_name: Optional[str] = None) -> BaseLLMProvider:
         """获取指定供应商，默认使用配置的默认模型"""
+        if self._desktop_route_unavailable:
+            return self._unavailable_provider
         name = provider_name or self._default_provider
+        if self._desktop_single_route and name != self._default_provider:
+            logger.warning("desktop_provider_override_blocked", provider=name)
+            name = self._default_provider
         if name not in self._providers:
             logger.warning("unknown_provider_fallback", provider=name)
             name = self._default_provider
@@ -717,6 +775,8 @@ class ModelRouter:
         - 数学 → 配置的数学模型（可用时）
         - 其他 → 配置的默认模型
         """
+        if self._desktop_single_route:
+            return self.get_provider()
         if subject and subject.lower() in {"math", "mathematics", "数学", "shuxue"}:
             math_provider = self._providers[settings.llm_math_provider.value]
             if getattr(math_provider, "api_key", ""):
@@ -731,6 +791,8 @@ class ModelRouter:
         - normal: 通义千问
         - low: DeepSeek（高质量）
         """
+        if self._desktop_single_route:
+            return self.get_provider()
         if cost_sensitivity == "high":
             return self._providers["doubao"]
         elif cost_sensitivity == "low":
@@ -749,10 +811,11 @@ class ModelRouter:
         """
         providers_to_try = [self.route_for_subject(subject or "general")]
 
-        # 添加备选
-        for p in self._providers.values():
-            if p not in providers_to_try:
-                providers_to_try.append(p)
+        # Desktop vault intentionally has one exact external route (MODEL-CONFIG-070).
+        if not self._desktop_single_route:
+            for p in self._providers.values():
+                if p not in providers_to_try:
+                    providers_to_try.append(p)
 
         last_error = None
         for provider in providers_to_try:
@@ -770,14 +833,40 @@ class ModelRouter:
                 continue
 
         # 所有供应商都失败了
+        if isinstance(last_error, ModelRouteUnavailableError):
+            raise last_error
         error_type = type(last_error).__name__ if last_error else "unknown"
         raise RuntimeError(f"所有 LLM 供应商均不可用（{error_type}）")
 
     async def close(self) -> None:
         """关闭所有供应商的连接"""
         for provider in self._providers.values():
-            if hasattr(provider, "_client") and provider._client and not provider._client.is_closed:
-                await provider._client.aclose()
+            await provider.close()
+
+
+def create_explicit_provider(
+    provider_name: str,
+    *,
+    api_key: str,
+    model: str,
+    timeout: float,
+) -> BaseLLMProvider:
+    """Build an isolated candidate provider without mutating process-global settings."""
+
+    provider_types: dict[str, type[BaseLLMProvider]] = {
+        "qwen": QwenProvider,
+        "deepseek": DeepSeekProvider,
+        "doubao": DoubaoProvider,
+        "zhipu": ZhipuProvider,
+    }
+    provider_type = provider_types.get(provider_name)
+    if provider_type is None:
+        raise ValueError("unsupported provider")
+    provider = provider_type()
+    provider.api_key = api_key  # type: ignore[attr-defined]
+    provider.model = model  # type: ignore[attr-defined]
+    provider.timeout_seconds = timeout  # type: ignore[attr-defined]
+    return provider
 
 
 # 全局单例

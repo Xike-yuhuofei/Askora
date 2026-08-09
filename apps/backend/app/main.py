@@ -11,11 +11,15 @@ FastAPI 主应用入口
 
 from __future__ import annotations
 
+import base64
+import hmac
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from app.api.v1 import (
     auth_router,
@@ -28,6 +32,11 @@ from app.api.v1 import (
     users_router,
     workspace_router,
     ws_router,
+)
+from app.contracts.model_configuration import (
+    ModelConfigErrorCategory,
+    ModelConfigErrorCode,
+    ModelConfigErrorV1,
 )
 from app.core.config import settings
 from app.core.database import close_db, init_db
@@ -268,18 +277,112 @@ async def health_check():
 @app.get("/health/config", tags=["系统"])
 async def config_health_check():
     """系统运行配置状态"""
-    llm_configured = bool(
-        settings.llm_qwen_api_key
-        or settings.llm_deepseek_api_key
-        or settings.llm_doubao_api_key
-        or settings.llm_zhipu_api_key
-    )
+    from app.orchestration.model_configuration import get_runtime_model_config_summary
 
     return {
         "status": "ok",
         "mode": "private" if settings.private_app else "service",
-        "llm_ready": llm_configured,
+        "model_configuration": get_runtime_model_config_summary().model_dump(mode="json"),
     }
+
+
+_DESKTOP_CONTROL_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{64}")
+
+
+def _is_high_entropy_desktop_control_token(token: str) -> bool:
+    """Accept Electron's 48-byte base64url token and reject obvious low-entropy values."""
+    if not _DESKTOP_CONTROL_TOKEN_PATTERN.fullmatch(token):
+        return False
+    try:
+        decoded = base64.urlsafe_b64decode(token + "==")
+    except (ValueError, UnicodeEncodeError):
+        return False
+    return len(decoded) == 48 and len(set(decoded)) >= 16
+
+
+def _model_config_error_response(
+    *, status_code: int, error: ModelConfigErrorV1
+) -> JSONResponse:
+    return JSONResponse(status_code=status_code, content={"error": error.model_dump(mode="json")})
+
+
+async def _desktop_model_probe(request: Request) -> JSONResponse:
+    """Local-only credential probe; deliberately absent from public API/OpenAPI."""
+    from app.contracts.model_configuration import ModelConfigCandidateV1
+    from app.orchestration.model_configuration import (
+        ModelConfigurationProbeError,
+        probe_model_configuration,
+    )
+
+    correlation_id = getattr(request.state, "request_id", None)
+    peer = request.client.host if request.client else ""
+    supplied_token = request.headers.get("x-askora-desktop-control", "")
+    if peer not in {"127.0.0.1", "::1"} or not hmac.compare_digest(
+        supplied_token, settings.desktop_control_token
+    ):
+        return _model_config_error_response(
+            status_code=404,
+            error=ModelConfigErrorV1(
+                code=ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE,
+                category=ModelConfigErrorCategory.SECURITY,
+                message="本地模型控制面不可用",
+                retryable=False,
+                correlation_id=correlation_id,
+            ),
+        )
+    try:
+        payload = await request.json()
+        candidate = ModelConfigCandidateV1.model_validate(payload)
+    except (ValidationError, ValueError, TypeError):
+        code = ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED
+        try:
+            if isinstance(payload, dict) and payload.get("schema_version") == "1.0":
+                code = ModelConfigErrorCode.MODEL_NOT_AVAILABLE
+        except UnboundLocalError:
+            pass
+        return _model_config_error_response(
+            status_code=422,
+            error=ModelConfigErrorV1(
+                code=code,
+                category=ModelConfigErrorCategory.VALIDATION,
+                message="模型配置格式或 provider/model 组合不受支持",
+                retryable=False,
+                correlation_id=correlation_id,
+            ),
+        )
+    try:
+        result = await probe_model_configuration(candidate, correlation_id=correlation_id)
+        return JSONResponse(status_code=200, content=result.model_dump(mode="json"))
+    except ModelConfigurationProbeError as exc:
+        status_code = 503 if exc.retryable else 400
+        if exc.code == ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED:
+            status_code = 401
+        elif exc.code == ModelConfigErrorCode.MODEL_RATE_LIMITED:
+            status_code = 429
+        return _model_config_error_response(
+            status_code=status_code,
+            error=ModelConfigErrorV1(
+                code=exc.code,
+                category=exc.category,
+                message=exc.message,
+                retryable=exc.retryable,
+                correlation_id=correlation_id,
+            ),
+        )
+
+
+if (
+    settings.is_local
+    and settings.private_app
+    and settings.host in {"127.0.0.1", "::1", "localhost"}
+    and _is_high_entropy_desktop_control_token(settings.desktop_control_token)
+):
+    app.add_api_route(
+        "/_desktop/model-configuration/probe",
+        _desktop_model_probe,
+        methods=["POST"],
+        include_in_schema=False,
+    )
 
 
 # ========== API 路由 ==========
