@@ -32,9 +32,15 @@ apps/backend/tests/integration/test_recovery_backup.py
 apps/backend/tests/security/test_recovery_package_security.py
 apps/frontend/electron/main.cjs
 apps/frontend/electron/preload.cjs
+apps/frontend/electron/data-control-migration.cjs
+apps/frontend/electron/data-control-migration.test.cjs
+apps/frontend/package.json
 apps/frontend/src/api/dataControl.js
 apps/frontend/src/test/DataControlBridge.test.jsx
 ```
+
+DATA-050 的 desktop startup orchestration 必须可独立证明 single-flight、readiness finalize
+与 rollback；因此允许一个纯编排模块及 Node 测试，不授权把 recovery owner 状态复制到 renderer。
 
 ## Forbidden Changes
 
