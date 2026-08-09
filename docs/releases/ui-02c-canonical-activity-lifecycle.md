@@ -13,7 +13,7 @@
 ```text
 Engineering Gate: PASS
 Policy / Ownership / Security Gate: PASS
-Real Browser Activity Lifecycle Gate: PASS (terminal-plan branch)
+Real Browser Activity Lifecycle Gate: PASS
 Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 Candidate Migration Head: e30c06a1b2c3
 ```
@@ -38,8 +38,7 @@ completion truth。
 - query 在 lifecycle 未迁移时返回 `LEGACY_ACTIVITY_STATE_UNMIGRATED`，不回退到 payload 或
   event recency；
 - start / complete 使用 expected version 与 idempotency receipt；并发 duplicate start 只推进
-  一次，冲突事务通过新 snapshot 重放获胜 receipt；即使首次 receipt lookup 早于获胜事务提交，
-  version mismatch 分支也会再次读取同一 digest 的 receipt，而不是误报状态冲突；
+  一次，冲突事务通过新 snapshot 重放获胜 receipt；
 - completion、下一项 available、event 与 outbox 共享事务；失败回滚后可安全重试；
 - completed 不写 mastery、objective、goal 或 review schedule。
 
@@ -48,46 +47,41 @@ completion truth。
 真实本地前后端和应用内浏览器完成：
 
 ```text
-available v2 → start → active v3
-刷新/重新登录 → 恢复 exact active activity
-真实 provider timeout / 429 → 保持 active，未写 transcript 或 completion
-canonical fixed-provider accepted transcript → complete → completed v4
-terminal plan → plan completed；goal/mastery 不变
+available v1 → start → active v2
+刷新 → 恢复 exact active activity
+accepted transcript fixture → complete → completed v3
+进入下一项 → next activity available v2
 ```
 
-桌面 `1280px` 与 `360x800` viewport 均无横向溢出，窄屏导航正确收起，主 CTA 可见；
-刷新后稳定恢复 v3，完成后刷新稳定恢复 v4，并明确说明不会自动更新掌握度或目标达成状态。
-该隔离 fixture 只有一个活动，因此浏览器验证 terminal-plan 分支；下一项 `planned → available`
-由 SQLite/PostgreSQL integration tests 验证，不把 terminal fixture 误报成浏览器 next-activity 证据。
+桌面与 `360x800` viewport 均可操作，窄屏导航正确收起，主 CTA 可见，浏览器 console 无
+error/warning。首次 completion 后浏览器发现 completed transcript 读取被错误拒绝；修复后
+completed 页面稳定展示“本项已完成”，并明确说明不会自动更新掌握度或目标达成状态。
 
-浏览器验收中的 accepted transcript 由同一 canonical teaching facade 和固定 provider 创建，
-不代表外部 provider 当次成功。真实配置 Zhipu 两次分别返回 ReadTimeout 与 429，均按合同
-fail closed；本报告不把 fixed provider 或历史 DeepSeek 证据冒充本次外部连通性 PASS。
+浏览器验收中的 accepted transcript 是本地验收 fixture，不代表当次浏览器又调用一次外部
+模型。真实 production renderer 依赖已由 DeepSeek `deepseek-chat`、
+`v03-policy-bound-real-render/1.0` 单独通过；一次 Zhipu 429 按合同 fail closed。
 
 ## 4. Verification Evidence
 
 | Gate | 结果 |
 |---|---|
-| targeted lifecycle/backend suite | 12 passed, 1 skipped；PostgreSQL case 在无 URL 时 skip |
-| concurrent duplicate start repetition | 5/5 passed；全量套件再通过 1 次 |
-| backend full pytest | 379 passed, 3 skipped |
-| Ruff `app tests` | PASS |
-| mypy `app` | PASS；167 source files，仅既有 untyped-body notes |
-| fresh SQLite migration/forward-fix | PASS |
-| isolated PostgreSQL migration to lifecycle revision and current head | PASS |
-| isolated PostgreSQL `alembic check` | PASS；No new upgrade operations detected |
-| PostgreSQL state/event/outbox transaction case | PASS |
-| frontend Vitest | 15 files / 57 tests PASS |
-| frontend production build | PASS |
-| `npm audit --audit-level=high` | PASS；0 vulnerabilities |
-| real browser start / refresh / provider failure / complete / terminal plan | PASS |
-| desktop 1280px + 360px responsive | PASS；无横向溢出 |
+| targeted lifecycle/backend suite | 15 passed, 1 skipped |
+| concurrent duplicate start repetition | 10/10 passed |
+| isolated backend full pytest | 362 passed, 3 skipped |
+| isolated Ruff `app tests` | PASS |
+| isolated mypy `app` | PASS；164 source files，仅既有 untyped-body notes |
+| fresh SQLite migration | `e30c06a1b2c3 (head)` |
+| isolated `alembic check` | PASS；No new upgrade operations detected |
+| isolated frontend Vitest | 15 files / 55 tests PASS |
+| isolated frontend production build | PASS |
+| isolated `npm audit --audit-level=high` | PASS；0 vulnerabilities |
+| real browser start / refresh / complete / next | PASS |
+| desktop + 360px responsive / console | PASS / no errors or warnings |
 | `git diff --check` | PASS |
 
-全量验证在共享工作区执行，但提交只暂存 EXEC-030 精确文件；P1-04/P1-05 未提交文件保持
-未暂存。PostgreSQL 使用固定名称的隔离临时数据库，验证完成后已删除；合成资料目录已移入
-macOS 废纸篓，可恢复。默认全量 pytest 因未设置 `ASKORA_POSTGRES_TEST_URL` 显示该 case
-为 skip，但同一 case 已在隔离 PostgreSQL URL 下单独 PASS，不把 SQLite 结果冒充 PostgreSQL。
+全量验证在 detached 临时 worktree 中只应用 UI-02C 精确候选补丁，未混入共享工作区中的
+P1-04/P1-05 未提交文件。PostgreSQL 原子性测试保留为配置 `POSTGRES_TEST_URL` 时执行的门禁；
+本次无该测试 URL，因此显示为 skip，不把 SQLite 结果冒充 PostgreSQL 当前运行证据。
 
 ## 5. AC 与证据边界
 

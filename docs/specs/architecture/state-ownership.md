@@ -33,7 +33,7 @@ LLM、grader、retriever、experiment 或用户反馈产生的建议/evidence/ca
 | TeachingAction / TeachingContext decision-snapshot semantics / TeachingStage derivation / PolicyBundle governance / validation obligation | SYS05 | execute / read |
 | LearningGoal / Objective / LearningActivity / LearningPlan | SYS06 | read |
 | ReviewSchedule / memory scheduling state / next_due_at | SYS07 | read / plan from |
-| WorkflowRun / ModelInference / Tool execution / execution validation | SYS08 | execute / host ledgers |
+| WorkflowRun / ModelRouteProfile / ModelInference / Tool execution / execution validation | SYS08 | execute / host ledgers |
 
 ## 3. Existing Boundary Requirements Retained
 
@@ -147,6 +147,14 @@ LLM/Agent MAY 生成 explanation、worked example、hint、diagnostic candidate�
 
 SYS08/SYS02 MAY 收紧 TeachingAction envelope；MUST NOT 扩大 scaffold、hint specificity、answer exposure 或 action semantics。
 
+### STATE-222 — ModelRouteProfile
+
+`ModelRouteProfileV1` 是 SYS08 拥有的版本化执行配置 truth。Electron desktop adapter MAY 加密保存并激活该对象，但 MUST NOT 把密钥或 provider 选择复制成 renderer、普通 API、`.env` 或第二持久化 truth。
+
+### STATE-223 — Disabled Tombstone
+
+桌面用户清除配置时 MUST 写入版本化 `DISABLED` tombstone；该状态优先于外部环境变量，防止旧 `.env` 在重启后静默恢复已清除的 provider。外部环境变量仅在不存在 desktop revision 时作为只读兼容输入。
+
 ### STATE-230 — Misconception Four-way Ownership
 
 `Misconception definition → SYS01`；`MisconceptionEvidence → SYS04`；`MisconceptionHypothesis → SYS03`；`Remediation decision → SYS05`。MUST NOT 合并为跨系统可写对象。
@@ -183,10 +191,12 @@ Legacy dialog mastery、Socratic selector/state graph、old policy config、inte
 - `STATE-AC-203`：validation obligation 由 SYS05 控制，fresh Attempt 前不能被 SYS03 完成。
 - `STATE-AC-204`：Outcome/Experiment ledger records 不覆盖八系统 domain truth。
 - `STATE-AC-205`：LLM/SYS08/legacy Socratic 无 final TeachingAction ownership。
+- `STATE-AC-206`：desktop ModelRouteProfile 只有 SYS08 语义 owner，renderer 与普通 API 无 secret truth。
+- `STATE-AC-207`：清除配置后的重启保持 DISABLED，不被 `.env` 静默重新激活。
 
 ## 11. Forbidden Implementations
 
-禁止：共享大状态表多模块任意写；conversation JSON 混 mastery/plan/review/teaching；多个 mastery/next_due writers；点赞直接转 mastery；LLM confidence 直接变 MasteryEstimate confidence；历史 AssessmentResult 静默覆盖；replay 调在线模型；TeachingStage 进入 learner truth；Outcome/Experiment analytics table 反向成为独立业务 truth；legacy/v0.3 permanent dual-write。
+禁止：共享大状态表多模块任意写；conversation JSON 混 mastery/plan/review/teaching；多个 mastery/next_due writers；点赞直接转 mastery；LLM confidence 直接变 MasteryEstimate confidence；历史 AssessmentResult 静默覆盖；replay 调在线模型；TeachingStage 进入 learner truth；Outcome/Experiment analytics table 反向成为独立业务 truth；renderer/普通 API 持有模型密钥 truth；desktop vault 与 `.env` permanent dual-write；legacy/v0.3 permanent dual-write。
 
 ## 12. P1-06 Onboarding Presentation Boundary
 

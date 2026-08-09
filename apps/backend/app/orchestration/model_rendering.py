@@ -8,6 +8,7 @@ from app.contracts.adaptive import AssistanceState
 from app.contracts.model_execution import ModelExecutionV1
 from app.orchestration.adaptive_execution import AdaptiveRenderRequest, RenderProposal
 from app.services.llm.model_router import ChatMessage, ModelRouter, get_model_router
+from app.services.llm.provider_errors import classify_provider_failure
 
 POLICY_BOUND_MODEL_PROMPT_VERSION = "v03-policy-bound-real-render/1.0"
 MAX_EVIDENCE_CHARS = 4_000
@@ -16,6 +17,18 @@ MAX_RENDERED_CHARS = 2_000
 
 class ModelRenderingError(RuntimeError):
     """Stable fail-closed boundary for provider and model-output failures."""
+
+    def __init__(
+        self,
+        code: str,
+        *,
+        retryable: bool = False,
+        retry_after_seconds: int | None = None,
+    ) -> None:
+        self.code = code
+        self.retryable = retryable
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__(code)
 
 
 class PolicyBoundModelRenderer:
@@ -37,6 +50,8 @@ class PolicyBoundModelRenderer:
             f"{request.evidence_bundle.bundle_id}:{request.user_text}",
         )
         provider = self._router.route_for_subject(request.subject)
+        if hasattr(provider, "api_key") and not provider.api_key:  # type: ignore[attr-defined]
+            raise ModelRenderingError("AI_PROVIDER_KEY_MISSING")
         try:
             response = await provider.chat_completion(
                 [
@@ -68,13 +83,18 @@ class PolicyBoundModelRenderer:
                 temperature=0.2,
             )
         except Exception as exc:
-            raise ModelRenderingError("AI_MODEL_UNAVAILABLE") from exc
+            failure = classify_provider_failure(exc)
+            raise ModelRenderingError(
+                failure.code,
+                retryable=failure.retryable,
+                retry_after_seconds=failure.retry_after_seconds,
+            ) from exc
 
         text = response.content.strip()
         if not text or len(text) > MAX_RENDERED_CHARS:
-            raise ModelRenderingError("AI_MODEL_OUTPUT_INVALID")
+            raise ModelRenderingError("AI_OUTPUT_VALIDATION_FAILED")
         if "mock" in response.model.lower():
-            raise ModelRenderingError("AI_MODEL_REAL_PROVIDER_REQUIRED")
+            raise ModelRenderingError("AI_PROVIDER_KEY_MISSING")
 
         action = request.teaching_action
         actual_state = AssistanceState.INDEPENDENT

@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import zipfile
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import event
@@ -121,6 +121,27 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
         assert item.knowledge_status == "PUBLISHED"
         assert item.knowledge_unit_count == 2
         assert "storage_path" not in item.model_dump()
+
+        targeted = await query.list_library(
+            user,
+            status=None,
+            subject=None,
+            document_id=document.id,
+            page=1,
+            page_size=20,
+            correlation_id="library-targeted-query",
+        )
+        assert [entry.document_id for entry in targeted.data.documents] == [UUID(document.id)]
+        cross_owner_target = await query.list_library(
+            user,
+            status=None,
+            subject=None,
+            document_id=other_document.id,
+            page=1,
+            page_size=20,
+            correlation_id="library-cross-owner-target",
+        )
+        assert cross_owner_target.data.documents == ()
 
         knowledge_map = await query.get_knowledge_map(
             user,

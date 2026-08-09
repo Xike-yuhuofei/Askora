@@ -143,6 +143,13 @@ ModelInference metadata/event，并随 durable transcript 恢复 exact execution
 
 provider/invalid output/validation/persistence failure MUST fail closed，不得写 learner failure 或 accepted transcript。
 
+### SYS08-083 — Desktop Model Configuration
+
+SYS08 拥有版本化 `ModelRouteProfileV1` 语义、路由与运行时 revision；具体合同见
+`systems/08-model-configuration.md`。Electron main process 仅作为 OS-protected storage/activation adapter。
+候选配置必须先经 local-only、synthetic、no-fallback probe，成功后才能激活；激活失败必须恢复上一
+encrypted revision。renderer、普通 API、日志、Prompt 与 telemetry 均不得获得明文 credential。
+
 ## 3. v0.3 TeachingAction Execution Envelope
 
 ### SYS08-200 — Tightening-only Rule
@@ -198,7 +205,7 @@ SYS08 MUST NOT 在 DecisionTrace replay 中重新调用在线 LLM 来重建 SYS0
 
 ## 5. Failure Semantics
 
-必须区分 provider timeout/unavailable、rate limit、invalid structured output、context overflow、citation unsupported、envelope violation、tool unauthorized/failure、workflow invariant violation、persistence/event delivery failure。
+必须区分 provider timeout/unavailable、rate limit、invalid credential/model、invalid structured output、context overflow、citation unsupported、envelope violation、tool unauthorized/failure、workflow invariant violation、credential storage/schema/revision conflict、configuration apply/rollback、persistence/event delivery failure。
 
 ## 6. Idempotency
 
@@ -208,7 +215,24 @@ WorkflowRun command、ToolCall side effects、Append event/decision、stream rec
 
 Trace MUST 覆盖：API request → WorkflowRun → TeachingAction → retrieval → model/tool → validation → rendered response → actual assistance/exposure → Attempt/event。
 
-至少记录 action envelope、actual envelope、tightening reason、violation/block、model/tool versions、citation、fallback、event delivery、cost/latency。
+至少记录 action envelope、actual envelope、tightening reason、violation/block、model/tool versions、citation、fallback、event delivery、cost/latency，以及脱敏的 model configuration source/revision/apply outcome。不得记录 secret、ciphertext、control token 或原始 provider body。
+
+### SYS08-220 — Operational recovery projection
+
+SYS08 MAY publish provider/tool/workflow/persistence operational incidents for Recovery Center. This
+projection is operational evidence only: it MUST NOT write learner state, assessment, plan, review,
+content truth or activity completion. Successful execution MAY append a resolved event for the same
+issue key; it MUST NOT rewrite the failure event.
+
+Provider failures MUST preserve typed categories for timeout, rate limit, missing/invalid key, model
+unavailable and invalid output. Raw provider bodies, keys and full prompts MUST NOT enter recovery rows
+or user-visible diagnostics.
+
+### SYS08-221 — Recovery command routing
+
+SYS08 recovery routing may create a replacement execution only when the registered handler declares
+owner scope and idempotent replay. Unknown task/schema/unscoped side effects are diagnostic-only. The
+router MUST NOT mutate an original dead-letter record to conceal history.
 
 ## 8. Security
 
@@ -216,7 +240,7 @@ Security 进一步遵循 `quality/security-standard.md`。SYS08 的 tool、exter
 
 ## 9. Tests
 
-必须覆盖：normal/streaming 同主链；provider fallback；invalid output bounded repair；context overflow；tool deny；prompt injection；citation unsupported；tightening-only；attempted support/exposure expansion blocked；actual exposure event captured；stream reconnect idempotency；workflow resume；side-effect retry no duplicate；event ledger failure visible；LLM mastery/plan/review/action fields 无法写 canonical state；DecisionTrace replay 不调用在线 LLM。
+必须覆盖：normal/streaming 同主链；provider fallback；invalid output bounded repair；context overflow；tool deny；prompt injection；citation unsupported；tightening-only；attempted support/exposure expansion blocked；actual exposure event captured；stream reconnect idempotency；workflow resume；side-effect retry no duplicate；event ledger failure visible；LLM mastery/plan/review/action fields 无法写 canonical state；DecisionTrace replay 不调用在线 LLM；desktop vault/IPC/probe/restart/revision verification/rollback/disabled tombstone。
 
 至少一个 E2E MUST 使用实际配置模型验证 provider/gateway/orchestration；Mock-only 不得作为“真实模型已接通”。
 
@@ -233,6 +257,8 @@ Security 进一步遵循 `quality/security-standard.md`。SYS08 的 tool、exter
 - `SYS08-AC-007`：应用重启后 durable workflow/task 能恢复或明确失败。
 - `SYS08-AC-008`：关键事件账本写失败不静默忽略。
 - `SYS08-AC-009`：真实 E2E 至少一次通过实际配置模型，不以 Mock 替代。
+- `SYS08-AC-010`：provider/system failures 可恢复且不产生 learner negative evidence。
+- `SYS08-AC-011`：manual recovery preserves original failure and is idempotent across restart。
 
 新增 v0.3 AC：
 
@@ -240,6 +266,9 @@ Security 进一步遵循 `quality/security-standard.md`。SYS08 的 tool、exter
 - `SYS08-AC-201`：actual experienced assistance/exposure 能进入 SYS04/事件链。
 - `SYS08-AC-202`：SYS08 无法通过 LLM/Agent override hard rule。
 - `SYS08-AC-203`：policy replay 不调用在线 LLM 或读取当前 mutable state。
+- `SYS08-AC-204`：候选模型配置 probe 成功且 runtime revision 验证通过后才成为 active。
+- `SYS08-AC-205`：renderer、普通 API、日志、Prompt 与 telemetry 无明文 credential。
+- `SYS08-AC-206`：apply 失败恢复上一 revision；rollback 失败以稳定错误显式呈现。
 
 ## 11. Legacy Mapping
 

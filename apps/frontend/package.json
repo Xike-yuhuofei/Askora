@@ -15,7 +15,8 @@
     "electron:build:mac": "npm run build && electron-builder --mac",
     "electron:build:mac:with-backend": "npm run backend:build && npm run build && electron-builder --mac",
     "backend:build": "bash build-backend.sh",
-    "test": "vitest",
+    "test": "vitest --exclude 'electron/*.test.cjs'",
+    "test:electron": "node --test electron/*.test.cjs",
     "notarize": "node notarize.js"
   },
   "dependencies": {

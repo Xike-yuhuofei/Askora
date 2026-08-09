@@ -89,6 +89,7 @@ class WorkspaceLibraryQueryService:
         status: str | None,
         subject: str | None,
         query_text: str | None = None,
+        document_id: UUID | None = None,
         tag_id: UUID | None = None,
         collection_id: UUID | None = None,
         archived: bool = False,
@@ -115,6 +116,8 @@ class WorkspaceLibraryQueryService:
         )
         if status:
             query = query.where(UserDocument.processing_status == status)
+        if document_id is not None:
+            query = query.where(UserDocument.id == str(document_id))
         if subject:
             query = query.where(UserDocument.subject == subject)
         if tag_id is not None:

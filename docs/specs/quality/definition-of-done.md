@@ -48,6 +48,10 @@ MUST 先创建/接受所需 ADR、更新 Spec 并冻结 EXEC，再继续修改�
 
 涉及 LLM gateway/orchestrator“已接通”的任务，至少一次真实已配置模型调用成功才可满足对应 AC；普通 unit/integration 仍应主要使用 Mock/fixture。
 
+### DOD-031 — Desktop Model Settings Closure
+
+桌面模型设置只有在 OS-protected save、synthetic probe、runtime revision verification、apply rollback、clear tombstone、renderer secret isolation 与 relaunch recovery 均通过自动化测试后才可报 Engineering DONE。若声称当前真实 provider 可用，还必须在 packaged macOS app 中重新完成 provider probe、激活、canonical learning turn 与重启恢复；历史成功记录不能替代当前证据。
+
 ## 2. Migration Done Baseline
 
 Database/state migration 只有在 migration 可执行、representative fixture backfill 正确、owner truth 明确、reconciliation test 通过、legacy write path 关闭或有关闭条件、rollback/forward-fix 明确时才算完成。

@@ -10,6 +10,7 @@ from app.api.v1.documents import router as documents_router
 from app.api.v1.goals import router as goals_router
 from app.api.v1.onboarding import router as onboarding_router
 from app.api.v1.orchestrator import router as orchestrator_router
+from app.api.v1.recovery import router as recovery_router
 from app.api.v1.users import router as users_router
 from app.api.v1.workspace import router as workspace_router
 from app.api.v1.ws import router as ws_router
@@ -22,6 +23,7 @@ __all__ = [
     "users_router",
     "orchestrator_router",
     "onboarding_router",
+    "recovery_router",
     "documents_router",
     "goals_router",
     "ws_router",

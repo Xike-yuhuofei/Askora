@@ -24,6 +24,8 @@ def test_subject_registry_explicitly_classifies_every_current_table() -> None:
     assert SUBJECT_REGISTRY["policy_bundles"].disposition is RegistryDisposition.GLOBAL
     assert SUBJECT_REGISTRY["learning_events"].disposition is RegistryDisposition.ERASE
     assert SUBJECT_REGISTRY["outbox_tasks"].disposition is RegistryDisposition.ERASE
+    assert SUBJECT_REGISTRY["recovery_events"].disposition is RegistryDisposition.ERASE
+    assert SUBJECT_REGISTRY["recovery_events"].subject_columns == ("pseudonym_id",)
     assert SUBJECT_REGISTRY["privacy_tombstones"].disposition is RegistryDisposition.GOVERNANCE
     assert SUBJECT_REGISTRY["data_erasure_receipts"].disposition is RegistryDisposition.GOVERNANCE
     assert "owner_erasure_step_receipts" not in Base.metadata.tables

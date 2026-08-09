@@ -23,7 +23,7 @@ from app.models.assessment import (
     MasteryEstimateRecord,
 )
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
-from app.models.consent import ConsentRecord
+from app.models.consent import ConsentRecord, ConsentStatus, ConsentType
 from app.models.data_control import (
     DataErasureCheckpointRecord,
     DataErasureReceiptRecord,
@@ -71,6 +71,7 @@ from app.models.ledger import (
     DecisionTraceRecord,
     LearningEventRecord,
     OutboxTaskRecord,
+    RecoveryEventRecord,
 )
 from app.models.onboarding import (
     OnboardingPreferenceCommandReceiptRecord,
@@ -102,6 +103,9 @@ __all__ = [
     "DataErasureReceiptRecord",
     "DataErasureStepRecord",
     "DataErasureWorkflowRecord",
+    "ConsentRecord",
+    "ConsentStatus",
+    "ConsentType",
     "ExperimentAssignmentRecord",
     "LearningTrajectoryRecord",
     "OutcomeObservationRecord",
@@ -175,6 +179,7 @@ __all__ = [
     "DecisionTraceRecord",
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
+    "RecoveryEventRecord",
     "OnboardingPreferenceRecord",
     "OnboardingPreferenceCommandReceiptRecord",
 ]

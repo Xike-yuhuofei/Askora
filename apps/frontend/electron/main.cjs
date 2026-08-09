@@ -5,6 +5,16 @@ const http = require('http')
 const path = require('path')
 const { spawn } = require('child_process')
 const { createAppMenu } = require('./app-menu.cjs')
+const bootstrapDiagnostics = require('./bootstrap-diagnostics.cjs')
+const { createActiveMigrationGuard } = require('./data-control-migration.cjs')
+const {
+  EncryptedModelVault,
+  ModelSettingsController,
+  ModelSettingsError,
+  applyModelProfileToEnvironment,
+  externalSummaryFromEnv,
+  isAllowedModelSettingsSender,
+} = require('./model-settings.cjs')
 
 const isDev = !app.isPackaged
 if (process.platform !== 'win32') process.umask(0o077)
@@ -25,7 +35,14 @@ const MAX_MAINTENANCE_OUTPUT_BYTES = 2 * 1024 * 1024
 let mainWindow
 let backendProcess = null
 let readyBackendURL = null
+let backendStartPromise = null
+let backendDiagnosticBuffer = ''
+let backendStartupState = bootstrapDiagnostics.starting({ attempt: -1 })
+let desktopControlToken = null
+let modelSettingsController = null
+let activeLaunchProfile = null
 let windowCreationPromise = null
+let activeMigrationGuard = null
 
 function getBackendBinaryPath() {
   if (isDev) {
@@ -107,17 +124,29 @@ function waitForBackend(url, timeoutMs) {
   })
 }
 
-async function startLocalBackend() {
-  const backendInfo = getBackendBinaryPath()
-  if (!backendInfo) {
-    console.error('[Askora] Local backend executable was not found')
-    return null
-  }
+function setBackendFailure(code, options = {}) {
+  publishBackendStartupState(bootstrapDiagnostics.failed(backendStartupState, code, options))
+}
 
-  const localSecrets = loadOrCreateLocalSecrets()
-  const databasePath = path.join(userDataPath, 'askora.db')
-  const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
-  const env = {
+function publishBackendStartupState(nextState) {
+  backendStartupState = nextState
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('app:backend-startup-state', { ...backendStartupState })
+  }
+}
+
+function consumeBackendDiagnostics(data) {
+  backendDiagnosticBuffer += data.toString()
+  const lines = backendDiagnosticBuffer.split(/\r?\n/)
+  backendDiagnosticBuffer = lines.pop() || ''
+  for (const line of lines) {
+    const diagnostic = bootstrapDiagnostics.parseDiagnosticLine(backendStartupState, line.trim())
+    if (diagnostic) publishBackendStartupState(diagnostic)
+  }
+}
+
+function buildBackendEnvironment(profile, localSecrets, databasePath, controlToken) {
+  const baseEnvironment = {
     ...process.env,
     APP_ENV: 'local',
     PRIVATE_APP: 'true',
@@ -133,53 +162,235 @@ async function startLocalBackend() {
     KEK_MASTER_KEY: localSecrets.kekSecret,
     ENABLE_ORCHESTRATOR_DEBUG_API: 'false',
     WORKER_ENABLED: 'false',
+    DESKTOP_CONTROL_TOKEN: controlToken,
+  }
+  return applyModelProfileToEnvironment(baseEnvironment, profile)
+}
+
+async function startLocalBackendAttempt(profile = activeLaunchProfile) {
+  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
+  backendDiagnosticBuffer = ''
+  const backendInfo = getBackendBinaryPath()
+  if (!backendInfo) {
+    console.error('[Askora] Local backend executable was not found')
+    setBackendFailure('BOOTSTRAP_BACKEND_BINARY_MISSING', { retryable: false })
+    return null
   }
 
-  backendProcess = spawn(backendInfo.command, backendInfo.args, {
+  const localSecrets = loadOrCreateLocalSecrets()
+  const databasePath = path.join(userDataPath, 'askora.db')
+  const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
+  desktopControlToken = crypto.randomBytes(48).toString('base64url')
+  const env = buildBackendEnvironment(profile, localSecrets, databasePath, desktopControlToken)
+  const spawnedProcess = spawn(backendInfo.command, backendInfo.args, {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
     cwd: backendInfo.cwd,
   })
+  backendProcess = spawnedProcess
 
-  backendProcess.stdout?.on('data', (data) => {
-    console.log(`[Backend] ${data.toString().trim()}`)
+  // Backend output may contain paths or provider detail. The desktop boundary only
+  // consumes the fixed-prefix sanitized diagnostic channel and never mirrors raw text.
+  spawnedProcess.stdout?.on('data', () => {})
+  spawnedProcess.stderr?.on('data', (data) => {
+    consumeBackendDiagnostics(data)
   })
-  backendProcess.stderr?.on('data', (data) => {
-    console.error(`[Backend] ${data.toString().trim()}`)
+  spawnedProcess.on('error', () => {
+    console.error('[Askora] Failed to start local backend')
+    setBackendFailure('BOOTSTRAP_BACKEND_SPAWN_FAILED', { retryable: true })
   })
-  backendProcess.on('error', (error) => {
-    console.error('[Askora] Failed to start local backend:', error.message)
-  })
-  backendProcess.on('exit', (code) => {
+  spawnedProcess.on('exit', (code) => {
     console.log(`[Askora] Local backend exited with code ${code}`)
+    if (backendProcess !== spawnedProcess) return
+    if (backendStartupState.status === 'starting' || backendStartupState.status === 'ready') {
+      setBackendFailure('BOOTSTRAP_BACKEND_EXITED', { retryable: true, exit_code: code })
+    }
     backendProcess = null
     readyBackendURL = null
+    desktopControlToken = null
   })
 
   const ready = await waitForBackend(backendURL, BACKEND_STARTUP_TIMEOUT)
   if (!ready) {
     console.error('[Askora] Local backend did not become ready before the timeout')
-    stopLocalBackend()
+    if (backendStartupState.status === 'starting') {
+      setBackendFailure('BOOTSTRAP_BACKEND_START_TIMEOUT', { retryable: true })
+    }
+    await stopLocalBackend()
     return null
   }
 
   readyBackendURL = backendURL
+  activeLaunchProfile = profile
+  publishBackendStartupState(bootstrapDiagnostics.ready(backendStartupState))
   console.log('[Askora] Local backend is ready')
   return backendURL
+}
+
+function startLocalBackend(profile = activeLaunchProfile) {
+  if (backendStartPromise) return backendStartPromise
+  backendStartPromise = startLocalBackendAttempt(profile).finally(() => {
+    backendStartPromise = null
+  })
+  return backendStartPromise
+}
+
+async function retryLocalBackend() {
+  if (backendStartPromise) return backendStartPromise
+  const previousProcess = backendProcess
+  stopLocalBackend()
+  if (previousProcess && previousProcess.exitCode === null) {
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3200)
+      previousProcess.once('exit', () => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+  }
+  return startLocalBackend()
 }
 
 function stopLocalBackend() {
   const processToStop = backendProcess
   readyBackendURL = null
-  if (!processToStop || processToStop.exitCode !== null) return
+  desktopControlToken = null
+  if (!processToStop || processToStop.exitCode !== null) return Promise.resolve()
 
-  try {
-    processToStop.kill('SIGTERM')
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    processToStop.once('exit', finish)
+    try {
+      processToStop.kill('SIGTERM')
+    } catch {
+      finish()
+      return
+    }
     setTimeout(() => {
-      if (processToStop.exitCode === null) processToStop.kill('SIGKILL')
+      if (processToStop.exitCode === null) {
+        try {
+          processToStop.kill('SIGKILL')
+        } catch {}
+      }
+      setTimeout(finish, 500)
     }, 3000)
-  } catch {}
+  })
+}
+
+function requestBackendJSON({ method = 'GET', pathname, body = null, token = null, timeoutMs = 15000 }) {
+  return new Promise((resolve, reject) => {
+    const encoded = body === null ? null : Buffer.from(JSON.stringify(body), 'utf8')
+    const request = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: BACKEND_PORT,
+        path: pathname,
+        method,
+        headers: {
+          ...(encoded ? { 'content-type': 'application/json', 'content-length': encoded.length } : {}),
+          ...(token ? { 'x-askora-desktop-control': token } : {}),
+        },
+      },
+      (response) => {
+        const chunks = []
+        response.on('data', (chunk) => chunks.push(chunk))
+        response.on('end', () => {
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+            resolve({ statusCode: response.statusCode || 500, payload })
+          } catch {
+            reject(new Error('invalid backend response'))
+          }
+        })
+      },
+    )
+    request.setTimeout(timeoutMs, () => request.destroy(new Error('backend request timeout')))
+    request.on('error', reject)
+    if (encoded) request.write(encoded)
+    request.end()
+  })
+}
+
+async function probeModelCandidate(candidate) {
+  if (!readyBackendURL || !desktopControlToken) {
+    throw new ModelSettingsError(
+      'MODEL_PROVIDER_UNAVAILABLE',
+      'dependency',
+      '本地模型服务尚未就绪',
+      true,
+    )
+  }
+  const result = await requestBackendJSON({
+    method: 'POST',
+    pathname: '/_desktop/model-configuration/probe',
+    body: candidate,
+    token: desktopControlToken,
+  })
+  if (result.statusCode !== 200 || !result.payload?.ok) {
+    const error = result.payload?.error || {}
+    throw new ModelSettingsError(
+      typeof error.code === 'string' ? error.code : 'MODEL_PROVIDER_UNAVAILABLE',
+      typeof error.category === 'string' ? error.category : 'dependency',
+      typeof error.message === 'string' ? error.message : '模型连接测试失败',
+      Boolean(error.retryable),
+    )
+  }
+  return result.payload
+}
+
+async function getBackendRuntimeSummary() {
+  if (!readyBackendURL) throw new Error('runtime configuration unavailable')
+  const result = await requestBackendJSON({ pathname: '/health/config', timeoutMs: 5000 })
+  if (result.statusCode !== 200 || !result.payload?.model_configuration) {
+    throw new Error('runtime configuration unavailable')
+  }
+  return result.payload.model_configuration
+}
+
+async function restartBackendWithProfile(profile) {
+  await stopLocalBackend()
+  const url = await startLocalBackend(profile)
+  if (!url) throw new Error('backend restart failed')
+  return getBackendRuntimeSummary()
+}
+
+function isAllowedRenderer(event) {
+  if (!mainWindow) return false
+  return isAllowedModelSettingsSender(event, mainWindow.webContents, {
+    isDev,
+    devURL: 'http://localhost:5173/',
+    allowedFilePath: path.join(__dirname, '..', 'dist', 'index.html'),
+  })
+}
+
+function registerModelSettingsIPC() {
+  const denied = () => ({
+    ok: false,
+    error: {
+      code: 'MODEL_CONFIG_IPC_DENIED',
+      category: 'security',
+      message: '模型配置请求未获授权',
+      retryable: false,
+    },
+  })
+  for (const channel of ['model-settings:get', 'model-settings:apply', 'model-settings:clear']) {
+    ipcMain.removeHandler(channel)
+  }
+  ipcMain.handle('model-settings:get', (event) =>
+    isAllowedRenderer(event) ? modelSettingsController.getSettings() : denied(),
+  )
+  ipcMain.handle('model-settings:apply', (event, command) =>
+    isAllowedRenderer(event) ? modelSettingsController.apply(command) : denied(),
+  )
+  ipcMain.handle('model-settings:clear', (event, command) =>
+    isAllowedRenderer(event) ? modelSettingsController.clear(command) : denied(),
+  )
 }
 
 function stopLocalBackendForMaintenance() {
@@ -217,6 +428,7 @@ function runDataControlCommand(command, commandArgs = []) {
     'finalize-restore',
     'rollback-restore',
     'recover-interrupted-restore',
+    'migrate-active',
     'finalize-erasure',
     'recover-interrupted-erasure',
   ])
@@ -226,6 +438,11 @@ function runDataControlCommand(command, commandArgs = []) {
   const backendInfo = getBackendBinaryPath()
   if (!backendInfo) return Promise.reject(new Error('Local backend executable was not found'))
   const recoveryKey = loadOrCreateRecoveryKey()
+  const maintenanceEnvironment = applyModelProfileToEnvironment(process.env, {
+    state: 'DISABLED',
+    revision: null,
+    verified_at: null,
+  })
   const args = [
     ...backendInfo.args,
     'data-control',
@@ -240,7 +457,9 @@ function runDataControlCommand(command, commandArgs = []) {
   return new Promise((resolve, reject) => {
     const maintenanceProcess = spawn(backendInfo.command, args, {
       cwd: backendInfo.cwd,
-      env: { ...process.env, ASKORA_RECOVERY_KEY: recoveryKey },
+      // Data-control owns recovery data only. Provider credentials stay inside
+      // the P1-02 runtime boundary and are explicitly cleared for this child.
+      env: { ...maintenanceEnvironment, ASKORA_RECOVERY_KEY: recoveryKey },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     })
@@ -277,7 +496,7 @@ function runDataControlCommand(command, commandArgs = []) {
       try {
         payload = JSON.parse(payloadLine || '')
       } catch {
-        console.error('[Askora] Data-control command did not return JSON', stderr.trim())
+        console.error('[Askora] Data-control command did not return valid JSON')
         reject(new Error('Data-control command failed'))
         return
       }
@@ -337,7 +556,7 @@ async function runScheduledBackupIfDue() {
       Date.parse(status.automatic_backup.next_due_at) <= Date.now()
     if (due) await runDataControlCommand('backup', ['--reason', 'SCHEDULED'])
   } catch (error) {
-    console.error('[Askora] Scheduled recovery point failed:', error.code || error.message)
+    console.error('[Askora] Scheduled recovery point failed:', error.code || 'DATA_CONTROL_FAILED')
   }
 }
 
@@ -448,9 +667,63 @@ async function resumePendingErasure() {
   }
 }
 
+function getActiveMigrationGuard() {
+  if (!activeMigrationGuard) {
+    activeMigrationGuard = createActiveMigrationGuard({
+      runCommand: runDataControlCommand,
+      startBackend: startLocalBackend,
+      stopBackend: stopLocalBackend,
+      reportFailure: setBackendFailure,
+      hasActiveDatabase: () => fs.existsSync(path.join(userDataPath, 'askora.db')),
+      hasInterruptedActivation: () => fs.existsSync(
+        path.join(userDataPath, 'recovery', 'activation-journal.json'),
+      ),
+    })
+  }
+  return activeMigrationGuard
+}
+
+async function prepareDesktopDataAndBackend(profile) {
+  activeLaunchProfile = profile
+  const migration = await getActiveMigrationGuard().run(profile)
+  if (!migration.ok) return false
+  if (!migration.backend_started) {
+    await runScheduledBackupIfDue()
+    await startLocalBackend(profile)
+  }
+  return Boolean(readyBackendURL)
+}
+
+async function retryDesktopStartup() {
+  if (backendStartupState.code !== 'BOOTSTRAP_DATABASE_MIGRATION_REQUIRED') {
+    return retryLocalBackend()
+  }
+  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
+  return prepareDesktopDataAndBackend(activeLaunchProfile)
+}
+
 async function createWindow() {
-  await runScheduledBackupIfDue()
-  await startLocalBackend()
+  if (!modelSettingsController) {
+    const vault = new EncryptedModelVault({
+      safeStorage,
+      filePath: path.join(userDataPath, 'model-route-profile.v1.enc.json'),
+    })
+    modelSettingsController = new ModelSettingsController({
+      vault,
+      probeCandidate: probeModelCandidate,
+      restartBackend: restartBackendWithProfile,
+      getRuntimeSummary: getBackendRuntimeSummary,
+      externalSummary: () => externalSummaryFromEnv(process.env),
+    })
+  }
+  let launchProfile
+  try {
+    launchProfile = await modelSettingsController.getLaunchProfile()
+  } catch {
+    // An unreadable existing vault must not silently reactivate inherited environment keys.
+    launchProfile = { state: 'DISABLED', revision: null, verified_at: null }
+  }
+  await prepareDesktopDataAndBackend(launchProfile)
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -466,6 +739,8 @@ async function createWindow() {
       webSecurity: true,
     },
   })
+
+  registerModelSettingsIPC()
 
   Menu.setApplicationMenu(createAppMenu(mainWindow))
   if (isDev) {
@@ -503,6 +778,11 @@ function ensureWindow() {
 ipcMain.handle('app:get-version', () => app.getVersion())
 ipcMain.handle('app:get-platform', () => process.platform)
 ipcMain.handle('app:get-backend-url', () => readyBackendURL)
+ipcMain.handle('app:get-backend-startup-state', () => ({ ...backendStartupState }))
+ipcMain.handle('app:retry-backend-startup', async () => {
+  await retryDesktopStartup()
+  return { ...backendStartupState }
+})
 ipcMain.handle('data-control:get-status', () => runDataControlCommand('status'))
 ipcMain.handle('data-control:create-backup', (_event, options) => {
   const saveExternalCopy = options?.saveExternalCopy === true
@@ -546,8 +826,10 @@ app.on('activate', () => {
 })
 
 app.on('window-all-closed', () => {
-  stopLocalBackend()
+  void stopLocalBackend()
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('before-quit', stopLocalBackend)
+app.on('before-quit', () => {
+  void stopLocalBackend()
+})

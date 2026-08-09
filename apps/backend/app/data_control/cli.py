@@ -39,6 +39,7 @@ def _parser() -> argparse.ArgumentParser:
     rollback = subparsers.add_parser("rollback-restore")
     rollback.add_argument("--transaction-id", required=True, type=UUID)
     subparsers.add_parser("recover-interrupted-restore")
+    subparsers.add_parser("migrate-active")
     finalize_erasure = subparsers.add_parser("finalize-erasure")
     finalize_erasure.add_argument("--workflow-id", required=True, type=UUID)
     finalize_erasure.add_argument("--checkpoint", required=True, type=int)
@@ -84,6 +85,7 @@ def run(
             "finalize-restore",
             "rollback-restore",
             "recover-interrupted-restore",
+            "migrate-active",
         }:
             from app.data_control.restore import RestoreCoordinator
 
@@ -94,6 +96,8 @@ def run(
                 result_payload = coordinator.finalize(args.transaction_id).model_dump(mode="json")
             elif args.command == "rollback-restore":
                 result_payload = coordinator.rollback(args.transaction_id).model_dump(mode="json")
+            elif args.command == "migrate-active":
+                result_payload = coordinator.migrate_active().model_dump(mode="json")
             else:
                 result_payload = {"action": coordinator.recover_interrupted_activation()}
         elif args.command == "finalize-erasure":
@@ -115,6 +119,7 @@ def run(
             "finalize-restore",
             "rollback-restore",
             "recover-interrupted-restore",
+            "migrate-active",
         }:
             code = DataControlErrorCode.RESTORE_FAILED_ROLLED_BACK
         else:

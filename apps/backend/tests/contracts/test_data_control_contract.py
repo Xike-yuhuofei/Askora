@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.contracts.data_control import (
+    ActiveMigrationResultV1,
     BackupReason,
     ErasureOwnerImpactV1,
     ErasurePreviewV1,
@@ -65,6 +66,20 @@ def test_recovery_contract_rejects_naive_datetime() -> None:
             ),
             totals=RecoveryManifestTotalsV1(file_count=1, size_bytes=1),
         )
+
+
+def test_active_migration_result_is_strict_and_versioned() -> None:
+    result = ActiveMigrationResultV1(
+        required=False,
+        schema_before="current-head",
+        schema_after="current-head",
+    )
+
+    assert result.schema_version == "1.0"
+    assert result.pre_migration_point is None
+    assert result.recovery_report is None
+    with pytest.raises(ValidationError):
+        ActiveMigrationResultV1.model_validate({**result.model_dump(), "secret": "forbidden"})
 
 
 def test_erasure_preview_report_and_receipt_are_strict_and_content_free() -> None:

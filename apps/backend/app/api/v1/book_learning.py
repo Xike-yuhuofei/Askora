@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable
-from typing import TypeVar
+from typing import NoReturn, TypeVar
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -28,10 +28,13 @@ from app.contracts.book_learning import (
     StartBookTeachingRequestV1,
     SubmitBookDiagnosticResponseV1,
 )
+from app.contracts.recovery import RecoveryIssueViewV1
 from app.core.database import get_db
 from app.core.exceptions import BusinessError
 from app.models.user import User
+from app.queries.recovery import RecoveryQueryService
 from app.services.auth.dependencies import get_current_user
+from app.services.recovery import RecoveryIncidentService
 
 router = APIRouter(prefix="/book-learning", tags=["书籍自适应学习"])
 T = TypeVar("T")
@@ -55,23 +58,49 @@ async def _execute(command: Awaitable[T]) -> T:
     try:
         return await command
     except BookLearningApplicationError as exc:
-        code = str(exc)
-        status_code = (
-            status.HTTP_503_SERVICE_UNAVAILABLE
-            if code.startswith(("POLICY_RUNTIME_", "AI_MODEL_"))
-            else status.HTTP_409_CONFLICT
-        )
-        raise BusinessError(
-            message=code,
-            error_code="BIZ-0023",
-            status_code=status_code,
-        ) from exc
+        _raise_application_error(exc)
     except ValueError as exc:
         raise BusinessError(
             message=str(exc),
             error_code="BIZ-0023",
             status_code=status.HTTP_409_CONFLICT,
         ) from exc
+
+
+def _raise_application_error(
+    exc: BookLearningApplicationError,
+    *,
+    correlation_id: str | None = None,
+    recovery_issue: RecoveryIssueViewV1 | None = None,
+) -> NoReturn:
+    code = exc.code
+    status_code = (
+        status.HTTP_429_TOO_MANY_REQUESTS
+        if code == "AI_PROVIDER_RATE_LIMITED"
+        else (
+            status.HTTP_503_SERVICE_UNAVAILABLE
+            if code.startswith(("POLICY_RUNTIME_", "AI_"))
+            else status.HTTP_409_CONFLICT
+        )
+    )
+    raise BusinessError(
+        message=code,
+        error_code=code,
+        status_code=status_code,
+        detail={"legacy_code": "BIZ-0023"},
+        category=exc.category,
+        retryable=exc.retryable,
+        correlation_id=correlation_id,
+        recovery={
+            "issue_ref": recovery_issue.issue_ref if recovery_issue is not None else None,
+            "retry_after_seconds": exc.retry_after_seconds,
+            "actions": (
+                [action.model_dump(mode="json") for action in recovery_issue.actions]
+                if recovery_issue is not None
+                else []
+            ),
+        },
+    ) from exc
 
 
 @router.get(
@@ -432,8 +461,9 @@ async def start_teaching_round(
             error_code="BIZ-0023",
             status_code=status.HTTP_409_CONFLICT,
         )
-    result = await _execute(
-        application.start_teaching_round(
+    correlation_id = _correlation_id(request)
+    try:
+        result = await application.start_teaching_round(
             user=current_user,
             goal_id=body.goal_id,
             plan_id=body.plan_id,
@@ -444,8 +474,41 @@ async def start_teaching_round(
             turn_kind=body.turn_kind,
             learner_text=body.learner_text,
             idempotency_key=body.idempotency_key,
-            correlation_id=_correlation_id(request),
+            correlation_id=correlation_id,
         )
+    except BookLearningApplicationError as exc:
+        await db.rollback()
+        recovery_issue = None
+        if exc.code.startswith("AI_"):
+            await RecoveryIncidentService(db).record_model_failure(
+                current_user,
+                activity_id=str(activity_id),
+                code=exc.code,
+                retryable=exc.retryable,
+                retry_after_seconds=exc.retry_after_seconds,
+                correlation_id=str(correlation_id),
+            )
+            recovery_issue = next(
+                (
+                    issue
+                    for issue in (
+                        await RecoveryQueryService(db).list_issues(
+                            current_user, correlation_id=str(correlation_id)
+                        )
+                    ).issues
+                    if issue.issue_ref == f"provider:{activity_id}"
+                ),
+                None,
+            )
+        _raise_application_error(
+            exc,
+            correlation_id=str(correlation_id),
+            recovery_issue=recovery_issue,
+        )
+    await RecoveryIncidentService(db).resolve_model_issue(
+        current_user,
+        activity_id=str(activity_id),
+        correlation_id=str(correlation_id),
     )
     await db.commit()
     return result

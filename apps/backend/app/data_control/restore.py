@@ -16,6 +16,7 @@ from typing import Any, NoReturn
 from uuid import UUID, uuid4
 
 from app.contracts.data_control import (
+    ActiveMigrationResultV1,
     BackupReason,
     DataControlErrorCode,
     RecoveryManifestV1,
@@ -48,7 +49,59 @@ class RestoreCoordinator:
         self.reports_dir = manager.recovery_dir / "reports"
         self.journal_path = manager.recovery_dir / "activation-journal.json"
 
-    def restore(self, backup_path: Path) -> RecoveryReportV1:
+    def migrate_active(self) -> ActiveMigrationResultV1:
+        """Protect, stage-migrate and activate the current desktop dataset."""
+
+        try:
+            quick_check, foreign_key_violations = self.manager._check_sqlite(
+                self.manager.database_path
+            )
+        except (OSError, sqlite3.Error) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
+                "当前数据库完整性检查失败",
+            ) from exc
+        if quick_check != "ok" or foreign_key_violations:
+            raise RecoveryError(
+                DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
+                "当前数据库完整性检查失败",
+            )
+
+        try:
+            schema_before, schema_after, required = self.migrator.plan(self.manager.database_path)
+        except SchemaCompatibilityError as exc:
+            raise RecoveryError(
+                DataControlErrorCode.RESTORE_SCHEMA_UNSUPPORTED,
+                "当前数据库版本不受支持",
+            ) from exc
+        if not required:
+            return ActiveMigrationResultV1(
+                required=False,
+                schema_before=schema_before,
+                schema_after=schema_after,
+            )
+
+        pre_migration_point = self.manager.create_backup(BackupReason.PRE_MIGRATION)
+        report = self.restore(
+            self.manager.recovery_dir / pre_migration_point.relative_path,
+            preserve_active_jwt=True,
+            staged_reason_code="DATA_MIGRATION_STAGED_AND_ACTIVATED",
+        )
+        return ActiveMigrationResultV1(
+            required=True,
+            schema_before=report.schema_before,
+            schema_after=report.schema_after or schema_after,
+            pre_migration_point=pre_migration_point,
+            recovery_report=report,
+        )
+
+    def restore(
+        self,
+        backup_path: Path,
+        *,
+        preserve_active_jwt: bool = False,
+        staged_reason_code: str = "DATA_RESTORE_STAGED_AND_ACTIVATED",
+    ) -> RecoveryReportV1:
         """Stage and activate; caller must prove backend readiness before finalize."""
 
         rescue = self.manager.create_backup(BackupReason.PRE_RESTORE)
@@ -80,7 +133,10 @@ class RestoreCoordinator:
                         "恢复点数据库版本不受支持",
                     ) from exc
                 document_refs = self._reconcile_staging(staging_root)
-                self._prepare_runtime_secrets(staging_root)
+                self._prepare_runtime_secrets(
+                    staging_root,
+                    preserve_active_jwt=preserve_active_jwt,
+                )
                 report = RecoveryReportV1(
                     report_id=report_id,
                     transaction_id=transaction_id,
@@ -98,7 +154,7 @@ class RestoreCoordinator:
                     ),
                     erasure_checkpoint=manifest.erasure_checkpoint,
                     started_at=started_at,
-                    reason_codes=("DATA_RESTORE_STAGED_AND_ACTIVATED",),
+                    reason_codes=(staged_reason_code,),
                 )
                 self._activate(
                     staging_root,
@@ -298,7 +354,12 @@ class RestoreCoordinator:
             connection.commit()
             return len(rows)
 
-    def _prepare_runtime_secrets(self, staging_root: Path) -> None:
+    def _prepare_runtime_secrets(
+        self,
+        staging_root: Path,
+        *,
+        preserve_active_jwt: bool,
+    ) -> None:
         source_path = staging_root / SECRETS_ARCHIVE_PATH
         try:
             recovered = self._read_json(source_path)
@@ -314,11 +375,24 @@ class RestoreCoordinator:
                 DataControlErrorCode.RESTORE_RECONCILIATION_FAILED,
                 "恢复点数据加密材料无效",
             ) from exc
+        jwt_secret = secrets.token_urlsafe(48)
+        if preserve_active_jwt:
+            try:
+                current = self._read_json(self.manager.local_secrets_path)
+                candidate = current["jwtSecret"]
+                if not isinstance(candidate, str) or len(candidate) < 16:
+                    raise ValueError
+                jwt_secret = candidate
+            except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as exc:
+                raise RecoveryError(
+                    DataControlErrorCode.RESTORE_RECONCILIATION_FAILED,
+                    "当前会话加密材料无效",
+                ) from exc
         runtime_path = staging_root / "local-secrets.json"
         runtime_path.write_text(
             json.dumps(
                 {
-                    "jwtSecret": secrets.token_urlsafe(48),
+                    "jwtSecret": jwt_secret,
                     "kekSecret": kek_secret,
                 },
                 separators=(",", ":"),

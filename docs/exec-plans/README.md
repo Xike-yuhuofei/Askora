@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：EXEC-030、P1-01、P1-03、P1-04、P1-05 与 P1-05/P1-03 merge integration DONE；P1-06 独立推进
-> Active：EXEC-1062（P1-06 product closure）
-> 已完成：EXEC-001～EXEC-039、EXEC-1031～1034、EXEC-1061
+> 状态：UI-02C、P1-01、P1-03、P1-04、P1-05、P1-07 DONE；P1-02B 与 P1-06B 按独立冻结队列推进
+> Active：EXEC-041（P1-02B）、EXEC-1062（P1-06B）
+> 已完成：EXEC-001～EXEC-040、EXEC-1031～1034、EXEC-1061（其中 EXEC-037 有两个历史任务域文件）
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06 product closure dependency-gated 队列；不得越过已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～039、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-041](active/EXEC-041-p1-02b-model-settings-product-closure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 两项均不得越过真实依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～040、EXEC-1031～1034、EXEC-1061（EXEC-037 含两个历史任务域文件） | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -40,7 +40,21 @@ Accepted ADR / Canonical Design
 | Zhipu Development Model Integration | EXEC-028 | DONE |
 | UI-02B Goals, Learning Path and Evidence | EXEC-029 | DONE |
 | UI-02C Canonical Activity Lifecycle | EXEC-030 | DONE |
+| P1-04A Library Search and Organization | [EXEC-031](completed/EXEC-031-p1-04a-library-organization.md) | DONE |
+| P1-04B Library Deduplication | [EXEC-032](completed/EXEC-032-p1-04b-library-deduplication.md) | DONE |
+| P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
+| P1-05 Identity Credential and Durable Sessions | EXEC-034 | DONE |
+| P1-05 Local Account Recovery | EXEC-035 | DONE |
+| P1-05 Account Deletion and Erasure | EXEC-036 | DONE |
+| P1-05 / P1-03 Canonical Erasure Integration | [EXEC-037](completed/EXEC-037-p1-05-p1-03-erasure-integration.md) | DONE |
+| P1-07 Error Recovery Center | [EXEC-037](completed/EXEC-037-p1-07-error-recovery-center.md) | DONE |
+| P1-01A Goal Definition, Draft and Safe Replan | [EXEC-038](completed/EXEC-038-p1-01a-goal-definition-draft-replan.md) | DONE |
+| P1-01B Goal Lifecycle and Evidence-gated Achievement | [EXEC-039](completed/EXEC-039-p1-01b-goal-lifecycle-achievement.md) | DONE |
+| P1-02A Secure Model Configuration Foundation | [EXEC-040](completed/EXEC-040-p1-02a-model-configuration-foundation.md) | DONE |
+| P1-02B Model Settings Product Closure | EXEC-041 | FROZEN / ACTIVE |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
+| P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
+| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 
 ## 2A. P1-03 Execution Chain
 
@@ -53,17 +67,6 @@ ADR-0103 + DATA-* + P1-03 Vertical Slice
 ```
 
 P1-03 使用任务域保留编号，避免与并行 P1 工作流的普通连续编号碰撞。四个 EXEC 已按依赖顺序完成并使用独立本地 commit；验证证据见 [P1-03 Release Report](../releases/p1-03-data-control-recovery.md)。
-| P1-04A Library Search and Organization | [EXEC-031](completed/EXEC-031-p1-04a-library-organization.md) | DONE |
-| P1-04B Library Deduplication | [EXEC-032](completed/EXEC-032-p1-04b-library-deduplication.md) | DONE |
-| P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
-| P1-05 Identity Credential and Durable Sessions | EXEC-034 | DONE |
-| P1-05 Local Account Recovery | EXEC-035 | DONE |
-| P1-05 Account Deletion and Erasure | EXEC-036 | DONE |
-| P1-05 / P1-03 Canonical Erasure Integration | [EXEC-037](completed/EXEC-037-p1-05-p1-03-erasure-integration.md) | DONE |
-| P1-01A Goal Definition, Draft and Safe Replan | [EXEC-038](completed/EXEC-038-p1-01a-goal-definition-draft-replan.md) | DONE |
-| P1-01B Goal Lifecycle and Evidence-gated Achievement | [EXEC-039](completed/EXEC-039-p1-01b-goal-lifecycle-achievement.md) | DONE |
-| P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 
 v0.3 最终状态：
 
@@ -123,6 +126,9 @@ ADR-0009 + IDP Spec
 ```
 
 用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。EXEC-034～036 已在冻结的 Allowed Files/owner 边界内串行完成；EXEC-037 已将账号删除收敛到 P1-03 canonical erasure single truth 并通过 PR CI。P1-05 当前为 DONE，证据见 `docs/releases/p1-05-account-lifecycle.md`。
+
+P1-05/P1-03 integration 与 P1-07 在并行历史中都使用了 `EXEC-037`；两份已归档合同以完整文件路径
+区分，禁止据此重写已接受的合同或提交历史。
 
 P1-06 dependency graph：
 

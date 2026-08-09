@@ -161,9 +161,20 @@ function documentStateHint(document) {
   return ''
 }
 
+function readRecoveryTarget() {
+  const query = window.location.hash.replace(/^#/, '').split('?')[1] || ''
+  const params = new URLSearchParams(query)
+  return {
+    documentId: params.get('document'),
+    ocrRunId: params.get('ocrRun'),
+  }
+}
+
 export default function Library() {
   const fileInputRef = useRef(null)
-  const pendingSelectionRef = useRef(null)
+  const recoveryTargetRef = useRef(readRecoveryTarget())
+  const pendingSelectionRef = useRef(recoveryTargetRef.current.documentId)
+  const ocrReviewRef = useRef(null)
   const [library, setLibrary] = useState({ status: 'loading', payload: null, error: '' })
   const [map, setMap] = useState({ status: 'idle', payload: null, error: '' })
   const [selectedDocumentId, setSelectedDocumentId] = useState(null)
@@ -203,6 +214,7 @@ export default function Library() {
     status = statusFilter,
     subject = subjectFilter,
     query = queryFilter,
+    documentId = recoveryTargetRef.current.documentId,
     tagId = tagFilter,
     collectionId = collectionFilter,
     archived = archivedFilter,
@@ -215,6 +227,7 @@ export default function Library() {
         status,
         subject,
         query,
+        documentId,
         tagId,
         collectionId,
         archived,
@@ -319,6 +332,42 @@ export default function Library() {
     })
     setOcr({ status: 'idle', payload: null, error: '' })
   }, [selectedDocumentId])
+
+  useEffect(() => {
+    const target = recoveryTargetRef.current
+    if (!target.ocrRunId || !target.documentId || selectedDocumentId !== target.documentId) {
+      return undefined
+    }
+    const runId = target.ocrRunId
+    target.ocrRunId = null
+    let active = true
+    setOcr({ status: 'loading', payload: null, error: '' })
+    documentApi.getDocumentOcrRun(runId)
+      .then((payload) => {
+        if (!active) return
+        if (payload.document_id !== target.documentId || payload.status !== 'review_required') {
+          setOcr({ status: 'error', payload: null, error: '这项 OCR 复核已不可用或不属于当前资料。' })
+          return
+        }
+        setOcr({ status: 'ready', payload, error: '' })
+        setOcrPage(payload.candidates?.[0]?.page_number || 1)
+        setOcrDecisions(Object.fromEntries((payload.candidates || []).map((candidate) => [
+          candidate.candidate_id,
+          { accepted: false, text: candidate.text },
+        ])))
+      })
+      .catch((error) => {
+        if (active) {
+          setOcr({ status: 'error', payload: null, error: responseMessage(error, 'OCR 复核暂时无法读取。') })
+        }
+      })
+    return () => { active = false }
+  }, [selectedDocumentId])
+
+  useEffect(() => {
+    if (ocr.payload?.status !== 'review_required') return
+    window.requestAnimationFrame(() => ocrReviewRef.current?.focus())
+  }, [ocr.payload?.status])
 
   const loadDuplicates = useCallback(async () => {
     try {
@@ -935,7 +984,7 @@ export default function Library() {
       </div>
 
       {ocr.payload?.status === 'review_required' && (
-        <section className="surface ocr-review" aria-labelledby="ocr-review-title">
+        <section ref={ocrReviewRef} className="surface ocr-review" aria-labelledby="ocr-review-title" tabIndex="-1">
           <div className="section-heading">
             <div>
               <p className="eyebrow">人工复核门禁</p>

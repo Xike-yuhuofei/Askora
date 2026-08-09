@@ -23,6 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.content import SourceReplayResult
 from app.core.exceptions import (
+    ContentChecksumMismatchError,
+    ContentFileMissingError,
     ContentReinspectionChecksumMismatchError,
     ContentReinspectionNotAllowedError,
     ContentReinspectionPolicyUnchangedError,
@@ -53,7 +55,7 @@ from app.domains.content_knowledge.epub_structure import (
     replay_epub_locators,
 )
 from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepository
-from app.infrastructure.outbox import OutboxProducer, OutboxStatus
+from app.infrastructure.outbox import OutboxProducer, OutboxRepository, OutboxStatus, OutboxTask
 from app.models.document import (
     DocumentChunk,
     ModerationStatus,
@@ -249,6 +251,58 @@ class DocumentService:
         await self.db.commit()
         await self.db.refresh(document)
         return document, "accepted"
+
+    async def retry_failed_document(
+        self,
+        *,
+        document_id: str,
+        pseudonym_id: str,
+        recovery_idempotency_key: str,
+        recovery_of: str | None = None,
+    ) -> tuple[UserDocument, OutboxTask]:
+        """SYS01 owner command: replace a failed processing task without erasing history."""
+        document = await self.db.scalar(
+            select(UserDocument).where(
+                UserDocument.id == document_id,
+                UserDocument.pseudonym_id == pseudonym_id,
+                UserDocument.is_deleted.is_(False),
+            )
+        )
+        if document is None:
+            raise ResourceNotFoundError("文档")
+        replacement_key = f"document:{document.id}:recovery:{recovery_idempotency_key}"
+        existing = await OutboxRepository(self.db).get_by_idempotency_key(replacement_key)
+        if existing is not None:
+            return document, existing
+        if document.processing_status != ProcessingStatus.FAILED:
+            from app.core.exceptions import RecoveryActionNotAllowedError
+
+            raise RecoveryActionNotAllowedError("DOCUMENT_NOT_FAILED")
+
+        try:
+            raw = await asyncio.to_thread(self.storage.read_file, document.storage_path)
+        except FileNotFoundError as exc:
+            raise ContentFileMissingError() from exc
+        expected_checksum = (document.moderation_details or {}).get(RAW_ASSET_CHECKSUM_KEY)
+        if expected_checksum and hashlib.sha256(raw).hexdigest() != expected_checksum:
+            raise ContentChecksumMismatchError()
+
+        document.processing_status = ProcessingStatus.PENDING
+        document.processing_error = None
+        document.processing_started_at = None
+        document.processing_completed_at = None
+        task = await OutboxProducer(self.db).enqueue(
+            task_type=DOCUMENT_PROCESS_TASK_TYPE,
+            schema_version=DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
+            payload={
+                "document_id": document.id,
+                "pseudonym_id": pseudonym_id,
+                "recovery_of": recovery_of or f"document:{document.id}:failed",
+            },
+            idempotency_key=replacement_key,
+        )
+        await self.db.flush()
+        return document, task
 
     async def reinspect_document(
         self,
@@ -1023,6 +1077,12 @@ class DocumentService:
         if details.get("reason") == "security_scan_failed":
             return "legacy-unversioned"
         return None
+
+    @staticmethod
+    def last_scanner_version(details: dict) -> str | None:
+        """Expose the SYS01 safety-policy version for read-only projections."""
+
+        return DocumentService._last_scanner_version(details)
 
     @staticmethod
     def _classify_projection_visibility(content: str) -> tuple[str, int, str]:

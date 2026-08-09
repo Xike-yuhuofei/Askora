@@ -495,6 +495,15 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "policy_bundles": _entry("SYS05", _G, "global_policy"),
     "recovery_credentials": _entry("IDENTITY_FINALIZE", _E, "identity", subject=("user_id",)),
     "recovery_throttles": _entry("IDENTITY_FINALIZE", _E, "identity", digest="subject_digest"),
+    "recovery_events": _entry(
+        "SYS08_LEDGER",
+        _E,
+        "operational_audit",
+        subject=("pseudonym_id",),
+        refs=("resource_ref", "correlation_id"),
+        json=("safe_details",),
+        within_order=40,
+    ),
     "review_observations": _entry(
         "SYS07", _E, "canonical", subject=("user_id",), json=("payload",)
     ),

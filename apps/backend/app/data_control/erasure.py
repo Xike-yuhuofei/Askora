@@ -299,6 +299,13 @@ SUBJECT_BINDINGS: tuple[SubjectBinding, ...] = (
         *_MODEL,
     ),
     _binding(
+        "recovery_events",
+        "SYS08",
+        "pseudonym_id",
+        "EXCLUDED_INTERNAL_RECOVERY_AUDIT",
+        ErasureScope.ALL_PERSONAL_DATA,
+    ),
+    _binding(
         "teaching_contexts",
         "SYS05",
         "decision->context_id",

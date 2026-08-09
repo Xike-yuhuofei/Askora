@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.7
     llm_max_tokens: int = 2048
     llm_timeout: int = 30
+    # Desktop model vault runtime projection. Credentials still use provider-specific env fields.
+    model_config_source: str = "EXTERNAL_ENVIRONMENT"
+    model_config_state: str = "EXTERNAL_READ_ONLY"
+    model_config_revision: Optional[int] = None
+    model_config_verified_at: str = ""
+    desktop_control_token: str = ""
 
     # 日志
     log_level: str = "INFO"

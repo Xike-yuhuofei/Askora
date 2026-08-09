@@ -34,6 +34,22 @@ UI MUST 优先使用稳定 `error.code`、`category`、`retryable` 与 `correlat
 
 Empty state 必须说明“目前没有什么”和“用户下一步能做什么”。不得用假数据、模拟掌握度或默认 activity 填充空白。
 
+### UI-SCREEN-005 — Recovery Card Anatomy
+
+每张 recovery issue card MUST 明确呈现：发生了什么、数据是否安全、现在能做什么、重试/重复
+副作用语义。UI MUST 使用服务端 `RecoveryActionV1`；可以格式化 label，但不得自行发明 enabled
+command。技术详情默认折叠，且只显示 stable code、correlation 与 safe resource ref。
+
+Command 必须有 accessible pending/succeeded/failed live region，提交期间禁用重复点击，完成后
+恢复 focus 并 re-query。`waiting` 显示服务端时间且不伪造进度。空态显示最近检查时间，但不得
+声称系统绝对安全。
+
+### UI-SCREEN-006 — Bootstrap Recovery Shell
+
+Electron backend status 为 `failed` 时 MUST 显示不依赖业务 API 的恢复壳，包含数据安全状态、
+stable diagnostic code、single-flight retry 和复制脱敏诊断。不得显示 raw stderr、traceback、
+绝对路径或环境变量值。
+
 ## 2. 今天 / 学习驾驶舱
 
 ### UI-SCREEN-010 — Purpose
@@ -286,25 +302,35 @@ UI MUST NOT 使用单一 probability threshold 生成“已掌握/未掌握”�
 
 “清除本地登录信息”“删除服务端学习数据”“删除本地文档”必须使用不同动作和文案。不存在服务端删除合同的控件不得声称删除了学习数据。
 
-### UI-SCREEN-094 — P1-05 Account Lifecycle
+### UI-SCREEN-094 — Recovery Station
 
-`/settings` 必须分为账号安全、恢复套件、设备/会话与危险操作。修改密码后展示旧 session 已撤销/当前 session 已轮换的结果；session label 只能称 App 实例，不得声称可信硬件身份。
+`/settings/recovery` 按 blocking、waiting、warning 排序 owner-scoped issues；rate limit 显示 next
+eligible time，Key invalid 导航模型设置，quarantine 仅在新策略存在时允许复检，OCR 候选只
+进入人工复核。File missing 不承诺自动找回。Resolved 不得写成学习成功或资料正确。
 
-### UI-SCREEN-095 — Recovery
-
-Login 必须提供“使用恢复套件重设密码”。注册、轮换或成功恢复后的一次性 recovery kit 必须单独展示，并要求用户确认已保存；MUST NOT 自动放入普通 localStorage/user cache。
-
-### UI-SCREEN-096 — Account Deletion
-
-删除账号必须先展示 versioned preview，再要求 current password 和精确确认短语。pending 显示执行时间、可取消边界与本地 App 重启恢复说明；purging 后不显示取消。删除全部学习数据与删除账号继续为不同动作。
-
-### UI-SCREEN-097 — Data Control and Recovery
+### UI-SCREEN-095 — Data Control and Recovery
 
 `/settings` 的“数据与恢复”区域必须显示 protection state、最后 VERIFIED recovery point、位置边界、自动备份状态与失败原因，并提供手动备份、验证、恢复、导出和分范围删除。恢复必须解释会停止本地服务、验证后才替换并要求重新登录；同盘备份不得暗示能防整盘丢失。
 
 删除 UI 必须先展示 owner 影响预览，再要求与 scope 匹配的明确确认。DOCUMENT、LEARNING_RECORDS、MODEL_EXECUTION、ALL_PERSONAL_DATA 使用不同名称和后果；PARTIAL/FAILED 不得显示“已删除”。
 
 页面覆盖 `NOT_PROTECTED|READY|IN_PROGRESS|PARTIAL|ERROR` 及通用 LOADING/UNAUTHORIZED；进度/错误使用 live region，Recovery Key 只在用户显式请求时短暂显示，不进入 DOM 日志、URL 或 localStorage。
+
+### UI-SCREEN-096 — Model Settings State
+
+设置页 MUST 显示 `未配置 / 外部只读配置 / 已验证 / 正在验证 / 正在应用 / 应用失败已恢复 / 恢复失败 / 已停用` 之一，并展示脱敏 provider、model、source、revision 与最后验证时间。MUST NOT 展示、回填或复制完整 API Key；已保存 credential 只能用“已安全保存”状态表达。
+
+### UI-SCREEN-097 — Configure and Verify
+
+v1 仅允许从受支持 provider/model allowlist 选择并输入 credential。主动作“验证并应用”必须先说明：测试使用固定 synthetic text，不发送个人资料，但可能产生少量 provider 调用成本。验证/应用期间动作不可重复提交；为与 `MODEL-CONFIG-033` 的 secret lifetime 边界一致，提交完成（成功或失败）后必须清空 credential 字段，失败时要求用户重新输入，不得持久化或回填。
+
+### UI-SCREEN-098 — Data and Cost Disclosure
+
+设置页必须明确区分测试与真实学习数据边界：测试只发固定 synthetic text；Book canonical 路径发送当前学习意图与一份 learner-visible evidence；兼容 quick flow 最多发送最近 20 条消息。Askora 不读取 provider 余额、不承诺价格或预算控制；实际费用以 provider 账户为准。
+
+### UI-SCREEN-099 — Clear and Recovery
+
+清除配置必须二次确认，并说明只停用 Askora desktop vault，不编辑 `.env` 或 provider 账户。成功后显示 `已停用`；apply 失败且 rollback 成功必须显示旧配置仍可用，rollback 失败必须显示当前配置不可用及可执行恢复动作，不能以通用 toast 伪装成功。
 
 ## 11. Accessibility
 
@@ -333,7 +359,11 @@ Login 必须提供“使用恢复套件重设密码”。注册、轮换或成�
 - `UI-SCREEN-AC-008`：正式登录、开发自动登录和本地退出语义清晰分离。
 - `UI-SCREEN-AC-009`：360px 与 200% zoom 下关键任务、错误、引用和帮助状态可访问。
 - `UI-SCREEN-AC-011`：兼容工作台保留 RichMessage、ownership 与 canonical dialog path，同时不伪造 activity/policy/evidence 数据。
-- `UI-SCREEN-AC-012`：数据控制页清楚区分 backup/export/restore/logout/four erasure scopes，只有 VERIFIED 恢复点可激活。
+- `UI-SCREEN-AC-012`：Recovery Center 和 bootstrap shell 满足 UI-SCREEN-005/006/094。
+- `UI-SCREEN-AC-013`：数据控制页清楚区分 backup/export/restore/logout/four erasure scopes，只有 VERIFIED 恢复点可激活。
+- `UI-SCREEN-AC-014`：首次用户可在 App 内完成 model configure→verify→apply，且永不看到已保存完整 credential。
+- `UI-SCREEN-AC-015`：credential/model/rate-limit/timeout/provider/apply/rollback 错误分别给出安全说明和下一动作。
+- `UI-SCREEN-AC-016`：clear 后显示 DISABLED；apply rollback 成功/失败状态不混淆。
 
 ## 13. Forbidden Implementations
 
@@ -346,6 +376,8 @@ Login 必须提供“使用恢复套件重设密码”。注册、轮换或成�
 - 未实现 persistence 却显示“已保存”；
 - 隐藏 unknown/stale/low-confidence，只保留看起来完整的数字；
 - 为知识地图或今日推荐编造后端不存在的理由与关系。
+- 未经过 probe/runtime revision verification 就显示“已验证/已应用”；
+- 回填、展示、复制或通过 DOM 属性保留已保存完整 API Key。
 
 ## 14. P1-06 First-use Journey
 

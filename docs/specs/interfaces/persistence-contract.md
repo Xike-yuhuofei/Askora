@@ -165,13 +165,6 @@ Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite
 
 明确删除后，managed recovery catalog 与 projection rebuild MUST 消费单调 erasure checkpoint；无法证明不会复活被删事实的旧恢复点不得激活。
 
-### PERSIST-104 — Legacy Privacy Schema Adoption
-
-进入 P1-03 frozen subject-binding manifest 的 legacy personal-data 表 MUST 由 Alembic migration
-覆盖，不得只依赖本地 `create_all`。`consent_records` 由 P1-03 migration additive 建立；若旧版应用已
-预建同名表，migration MUST 校验 required columns/indexes 后 forward-adopt，不兼容时 fail closed。
-该 schema adoption 不改变 Identity/Privacy owner、记录语义或普通写入边界。
-
 ## 12. Failure Semantics
 
 - transient DB lock/network → bounded retry；
@@ -179,6 +172,24 @@ Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite
 - migration mismatch → fail startup/health gate；
 - outbox delivery failure → durable retry；
 - projection failure → mark stale, canonical truth preserved。
+
+### PERSIST-092 — Operational recovery ledger
+
+Recovery incident/action audit MAY 由 SYS08 以 append-only ledger 持久化，但它不是文档、计划、
+learner state 或原 outbox task 的 current truth。至少保存 stable code、safe resource ref、status
+event、attempt/budget、correlation、idempotency 与 timestamps；MUST NOT 保存 secret、完整 Prompt、
+绝对路径、SQL/traceback 或 provider 原始 body。
+
+同一 issue 的 current projection必须 deterministic fold append-only events。Manual replay 必须创建
+带 `recovery_of` 的 replacement task/run，原 dead-letter row/history 不得重置或删除。重复 action
+idempotency key 返回同一 result。
+
+### PERSIST-093 — Startup compatibility gate
+
+Local desktop startup MUST verify database connectivity and migration compatibility before `/ready`。
+Mismatch/failure must fail readiness and publish a sanitized bootstrap diagnostic. Migration recovery
+MUST route to P1-03 verified snapshot/restore/forward-fix capability; startup code MUST NOT silently run
+destructive repair or continue against an unknown schema.
 
 ## 13. Tests
 
@@ -193,6 +204,8 @@ Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite
 - migration upgrade on representative fixture；
 - rollback/forward-fix path；
 - Redis unavailable degradation（相关功能）。
+- recovery event fold、action idempotency、replacement lineage 与 restart；
+- startup migration mismatch/forward-fix and sanitized diagnostic。
 - encrypted recovery round trip、tamper/wrong-key/path/limit；
 - staging restore、rescue rollback、erasure no-resurrection。
 

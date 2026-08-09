@@ -192,11 +192,7 @@ completion projection；deep-link 规则已冻结；v1 明确不提供样例资�
 
 ### P1-07 错误恢复中心
 
-**状态：OPEN**
-
-当前已有部分页面级错误、资料隔离复检和重试能力，但没有统一恢复入口。
-
-仍缺：
+**状态：DONE（2026-08-09，EXEC-037）**
 
 - provider 超时、限流、Key 无效和模型不可用；
 - 资料解析失败、隔离、OCR 低置信；
@@ -205,7 +201,35 @@ completion projection；deep-link 规则已冻结；v1 明确不提供样例资�
 - 重试预算、等待状态、恢复结果和审计信息；
 - 防止把系统失败记录成学习者错误或负向证据。
 
-完成标准：用户可以看到“发生了什么、数据是否安全、现在能做什么、重试是否会重复副作用”，并能从统一入口完成恢复。
+已交付 `/settings/recovery` 与 Electron bootstrap recovery shell。运行期问题由统一机器合同投影，
+恢复动作只调用真实 owner command；启动期后端缺失、数据库损坏与 migration 问题不依赖业务 API。
+
+用户可以看到“发生了什么、数据是否安全、现在能做什么、重试是否会重复副作用”，并能从统一
+入口完成恢复。Engineering、Policy/Ownership、Security/Privacy 与 Product Usability 门禁均通过；
+Learning Evidence 继续为 `LEARNING_EVIDENCE_INSUFFICIENT`。验收边界和当前命令见
+[P1-07 Completion Report](releases/p1-07-error-recovery-center.md)。
+
+#### 已采纳方案：双入口、单合同、Owner Command
+
+- App 内以 `/settings/recovery` 为统一运行期入口，AppShell 只在存在 active/waiting issue
+  时显示全局指示器；错误恢复不新增常驻一级导航；
+- 后端未启动时由 Electron bootstrap recovery shell 显示稳定、脱敏诊断并 single-flight
+  重试；该入口不依赖业务 API；
+- `RecoveryIssueViewV1/RecoveryActionV1/RecoveryResultV1` 形成单一机器合同。恢复中心只组合
+  owner facts 与 SYS08 operational incidents，不成为第九个领域 truth；
+- 所有有副作用动作路由到原 owner command。Dead-letter 历史不原地复活；只有 handler 明确
+  声明 owner scope 与幂等重放时，才能创建带 lineage、预算和新幂等键的 replacement task/run；
+- provider、资料、OCR、数据库、outbox 和 bootstrap 使用稳定 code → data safety → action 目录，
+  UI 不依赖自由文本或 HTTP status 猜测；
+- 系统/provider/storage/database failure 与 learner error、0 分、mastery decrease、review failure
+  或 activity completion 严格分离。
+
+冻结合同见 [ADR-0012](adr/ADR-0012-unified-recovery-control-plane.md)、
+[Recovery Contract](specs/interfaces/recovery-contract.md)、
+[P1-07 Vertical Slice](specs/vertical-slices/p1-07-error-recovery-center.md) 与
+[EXEC-037](exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md)。owner actions、全量自动门禁
+与真实桌面/浏览器恢复路径均已有当前证据，因此本项关闭。P1-02B 的独立产品门禁仍按其 active
+EXEC 管理，不由 P1-07 状态代替。
 
 ## 3. P2 — Apple 级体验精修
 
