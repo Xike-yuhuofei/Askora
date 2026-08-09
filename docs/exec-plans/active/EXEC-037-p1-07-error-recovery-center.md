@@ -61,12 +61,14 @@ apps/backend/app/api/v1/workspace.py
 apps/backend/app/services/documents/document_service.py
 apps/backend/app/services/documents/processing_worker.py
 apps/backend/app/services/llm/provider_errors.py
+apps/backend/app/services/activity_lifecycle.py
 apps/backend/app/services/recovery.py
 apps/backend/app/services/storage/local_storage.py
 apps/backend/tests/**/test_*recovery*.py
 apps/backend/tests/**/test_*error*.py
 apps/backend/tests/**/test_*startup*.py
 apps/backend/tests/integration/test_v03_adaptive_execution_loop.py
+apps/backend/tests/integration/test_activity_lifecycle.py
 apps/backend/tests/integration/test_library_workspace_query.py
 apps/frontend/electron/main.cjs
 apps/frontend/electron/app-menu.cjs
@@ -100,6 +102,11 @@ apps/frontend/src/test/client.test.js
 `P107-AC-008` 的真实 Electron 200% zoom gate 要求自定义应用菜单保留标准
 `resetZoom/zoomIn/zoomOut` 角色；因此允许纯菜单模板、最小接线及 Node 测试，不授权改变
 外部链接、系统权限或产品导航语义。
+
+UI-02C 集成 gate 的同一幂等启动命令可能在首次 receipt 查询后被并发事务提交；允许在
+`ACTIVITY_STATE_VERSION_CONFLICT` 前刷新当前只读事务快照，并对相同 user、idempotency key
+与 command digest 进入一次既有的 200ms 有界 receipt 回放窗口。无匹配 receipt 时必须保留
+原冲突，不授权改变 SYS06 状态 owner、版本语义或事件写入路径。
 
 ## Forbidden changes
 
