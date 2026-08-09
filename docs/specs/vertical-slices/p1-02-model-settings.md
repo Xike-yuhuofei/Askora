@@ -2,7 +2,7 @@
 
 > 状态：FROZEN
 > 日期：2026-08-09
-> Governing：ADR-0012、`MODEL-CONFIG-*`
+> Governing：ADR-0013、`MODEL-CONFIG-*`
 > Decision authority：user-delegated Codex
 
 ## 1. Objective

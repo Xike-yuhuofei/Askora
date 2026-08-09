@@ -2,7 +2,7 @@
 
 > Status：FROZEN / ACTIVE
 > Priority：P1 Product Reliability
-> Governing：ADR-0012、`MODEL-CONFIG-*`、P1-02 Vertical Slice
+> Governing：ADR-0013、`MODEL-CONFIG-*`、P1-02 Vertical Slice
 > Decision authority：user-delegated Codex
 
 ## Objective
@@ -20,7 +20,7 @@
 ```text
 docs/design/p1-02-model-settings.md
 docs/product-gap-register-p1-p2.md
-docs/adr/ADR-0012-desktop-model-credential-and-activation.md
+docs/adr/ADR-0013-desktop-model-credential-and-activation.md
 docs/adr/README.md
 docs/document-inventory.md
 docs/specs/README.md

@@ -3,7 +3,7 @@
 > Spec ID：`MODEL-CONFIG-*`
 > 状态：Canonical Implementation Contract / FROZEN
 > 版本：v1.0
-> Governing decision：ADR-0012
+> Governing decision：ADR-0013
 
 ## 1. Responsibility and Ownership
 

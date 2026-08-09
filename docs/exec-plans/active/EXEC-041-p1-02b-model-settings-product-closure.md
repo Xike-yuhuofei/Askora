@@ -2,7 +2,7 @@
 
 > Status：FROZEN / BLOCKED_BY_EXEC_040
 > Priority：P1 Product Reliability
-> Governing：ADR-0012、`MODEL-CONFIG-*`、P1-02 Vertical Slice
+> Governing：ADR-0013、`MODEL-CONFIG-*`、P1-02 Vertical Slice
 
 ## Objective
 
