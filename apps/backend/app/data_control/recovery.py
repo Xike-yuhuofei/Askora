@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import stat
 import tempfile
@@ -24,6 +25,9 @@ from app.contracts.data_control import (
     BackupReason,
     DataControlErrorCode,
     DataControlStatusV1,
+    ErasureReportV1,
+    ErasureWorkflowStatus,
+    PostErasureMaintenanceV1,
     ProtectionState,
     RecoveryCatalogV1,
     RecoveryManifestFileV1,
@@ -190,9 +194,11 @@ class RecoveryManager:
             point
             for point in catalog.points
             if point.status == RecoveryPointStatus.VERIFIED
+            and point.erasure_checkpoint >= catalog.erasure_checkpoint
             and (self.recovery_dir / point.relative_path).is_file()
         ]
         last_verified = max(verified, key=lambda point: point.created_at, default=None)
+        erasure_pending = (self.recovery_dir / "erasure-pending.json").is_file()
         next_due_at = (
             last_verified.verified_at + timedelta(hours=24)
             if last_verified is not None and last_verified.verified_at is not None
@@ -200,7 +206,9 @@ class RecoveryManager:
         )
         return DataControlStatusV1(
             protection_state=(
-                ProtectionState.READY if last_verified else ProtectionState.NOT_PROTECTED
+                ProtectionState.PARTIAL
+                if erasure_pending
+                else ProtectionState.READY if last_verified else ProtectionState.NOT_PROTECTED
             ),
             supported_mode="PRIVATE_DESKTOP_SQLITE",
             last_verified=last_verified,
@@ -209,8 +217,130 @@ class RecoveryManager:
                 next_due_at=next_due_at,
             ),
             erasure_checkpoint=catalog.erasure_checkpoint,
-            reason_codes=(() if last_verified else ("DATA_NO_VERIFIED_RECOVERY_POINT",)),
+            reason_codes=(
+                ("DATA_POST_ERASURE_BASELINE_REQUIRED",)
+                if erasure_pending
+                else () if last_verified else ("DATA_NO_VERIFIED_RECOVERY_POINT",)
+            ),
         )
+
+    def finalize_erasure(
+        self,
+        *,
+        workflow_id: UUID,
+        checkpoint: int,
+    ) -> PostErasureMaintenanceV1:
+        """Invalidate unsafe managed points and publish a verified new baseline."""
+
+        with self.exclusive_lock():
+            database_checkpoint = self._database_erasure_checkpoint()
+            if checkpoint < 1 or database_checkpoint != checkpoint:
+                raise RecoveryError(
+                    DataControlErrorCode.ERASURE_PARTIAL,
+                    "删除检查点与当前数据库不一致",
+                )
+            self._purge_erasure_file_journal(workflow_id)
+            catalog = self._load_catalog()
+            updated: list[RecoveryPointV1] = []
+            purged = 0
+            for point in catalog.points:
+                if (
+                    point.erasure_checkpoint < checkpoint
+                    and point.status == RecoveryPointStatus.VERIFIED
+                ):
+                    self._managed_point_path(point).unlink(missing_ok=True)
+                    updated.append(
+                        point.model_copy(
+                            update={
+                                "status": RecoveryPointStatus.PURGED,
+                                "reason_codes": (
+                                    *point.reason_codes,
+                                    "DATA_ERASURE_CHECKPOINT_SUPERSEDED",
+                                ),
+                            }
+                        )
+                    )
+                    purged += 1
+                else:
+                    updated.append(point)
+            self._write_catalog(
+                catalog.model_copy(
+                    update={
+                        "erasure_checkpoint": checkpoint,
+                        "points": tuple(updated),
+                        "updated_at": datetime.now(UTC),
+                    }
+                )
+            )
+
+        point = self.create_backup(BackupReason.POST_ERASURE)
+        self._complete_erasure_workflow(workflow_id, checkpoint, point.backup_id)
+        marker = self.recovery_dir / "erasure-pending.json"
+        self._remove_matching_erasure_marker(marker, workflow_id, checkpoint)
+        return PostErasureMaintenanceV1(
+            workflow_id=workflow_id,
+            checkpoint=checkpoint,
+            purged_points=purged,
+            post_erasure_point=point,
+        )
+
+    def recover_interrupted_erasure(self) -> dict[str, object]:
+        """Converge a marker left by a crash before the renderer received a report."""
+
+        marker = self.recovery_dir / "erasure-pending.json"
+        if not marker.is_file():
+            return {"action": None}
+        try:
+            payload = json.loads(marker.read_text(encoding="utf-8"))
+            workflow_id = UUID(str(payload["workflow_id"]))
+            with sqlite3.connect(self.database_path) as connection:
+                row = connection.execute(
+                    "SELECT status, checkpoint FROM data_erasure_workflows "
+                    "WHERE workflow_id = ?",
+                    (str(workflow_id),),
+                ).fetchone()
+            if row is None:
+                raise ValueError
+            checkpoint = int(row[1]) if row[1] is not None else None
+        except (
+            KeyError,
+            OSError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "无法恢复中断的删除工作流",
+            ) from exc
+
+        if checkpoint is not None and checkpoint >= 1:
+            completed = self.finalize_erasure(
+                workflow_id=workflow_id,
+                checkpoint=checkpoint,
+            )
+            return {
+                "action": "FINALIZED_POST_ERASURE_BASELINE",
+                "result": completed.model_dump(mode="json"),
+            }
+
+        journal_dir = self.recovery_dir / "erasure-files" / str(workflow_id)
+        shutil.rmtree(journal_dir, ignore_errors=True)
+        try:
+            with sqlite3.connect(self.database_path) as connection:
+                connection.execute(
+                    "UPDATE data_erasure_workflows SET status = ?, updated_at = CURRENT_TIMESTAMP "
+                    "WHERE workflow_id = ?",
+                    (ErasureWorkflowStatus.FAILED_RETRYABLE.value, str(workflow_id)),
+                )
+            marker.unlink()
+        except (OSError, sqlite3.Error) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "中断删除回滚登记失败",
+            ) from exc
+        return {"action": "ROLLED_BACK_PRE_CHECKPOINT_ERASURE"}
 
     def _build_plaintext_archive(
         self,
@@ -525,18 +655,141 @@ class RecoveryManager:
 
     def _load_catalog(self) -> RecoveryCatalogV1:
         if not self.catalog_path.exists():
-            return RecoveryCatalogV1(
+            catalog = RecoveryCatalogV1(
                 backup_set_id=uuid4(),
                 updated_at=datetime.now(UTC),
             )
-        try:
-            return RecoveryCatalogV1.model_validate_json(
-                self.catalog_path.read_text(encoding="utf-8")
+        else:
+            try:
+                catalog = RecoveryCatalogV1.model_validate_json(
+                    self.catalog_path.read_text(encoding="utf-8")
+                )
+            except (OSError, ValidationError, UnicodeDecodeError) as exc:
+                raise RecoveryError(
+                    DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
+                    "恢复点目录损坏",
+                ) from exc
+        database_checkpoint = self._database_erasure_checkpoint()
+        if database_checkpoint > catalog.erasure_checkpoint:
+            catalog = catalog.model_copy(
+                update={
+                    "erasure_checkpoint": database_checkpoint,
+                    "updated_at": datetime.now(UTC),
+                }
             )
-        except (OSError, ValidationError, UnicodeDecodeError) as exc:
+            self._write_catalog(catalog)
+        return catalog
+
+    def _database_erasure_checkpoint(self) -> int:
+        if not self.database_path.is_file():
+            return 0
+        try:
+            uri = f"file:{self.database_path.as_posix()}?mode=ro"
+            with sqlite3.connect(uri, uri=True) as connection:
+                exists = connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='data_erasure_checkpoints'"
+                ).fetchone()
+                if exists is None:
+                    return 0
+                row = connection.execute(
+                    "SELECT checkpoint FROM data_erasure_checkpoints WHERE id = 1"
+                ).fetchone()
+            return max(0, int(row[0])) if row is not None else 0
+        except (OSError, sqlite3.Error, TypeError, ValueError) as exc:
             raise RecoveryError(
                 DataControlErrorCode.BACKUP_INTEGRITY_FAILED,
-                "恢复点目录损坏",
+                "无法读取当前删除检查点",
+            ) from exc
+
+    def _complete_erasure_workflow(
+        self,
+        workflow_id: UUID,
+        checkpoint: int,
+        backup_id: UUID,
+    ) -> None:
+        try:
+            with sqlite3.connect(self.database_path) as connection:
+                row = connection.execute(
+                    "SELECT report, checkpoint FROM data_erasure_workflows "
+                    "WHERE workflow_id = ?",
+                    (str(workflow_id),),
+                ).fetchone()
+                if row is None or int(row[1]) != checkpoint:
+                    raise ValueError
+                report = ErasureReportV1.model_validate_json(row[0])
+                completed = report.model_copy(
+                    update={
+                        "status": ErasureWorkflowStatus.COMPLETED,
+                        "completed_at": datetime.now(UTC),
+                        "post_erasure_backup_id": backup_id,
+                        "reason_codes": (
+                            *report.reason_codes,
+                            "DATA_POST_ERASURE_BASELINE_VERIFIED",
+                        ),
+                    }
+                )
+                connection.execute(
+                    "UPDATE data_erasure_workflows "
+                    "SET status = ?, report = ?, updated_at = CURRENT_TIMESTAMP "
+                    "WHERE workflow_id = ?",
+                    (
+                        completed.status.value,
+                        completed.model_dump_json(),
+                        str(workflow_id),
+                    ),
+                )
+        except (OSError, sqlite3.Error, TypeError, ValueError, ValidationError) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "删除已执行，但无法完成删除后恢复基线登记",
+            ) from exc
+
+    def _purge_erasure_file_journal(self, workflow_id: UUID) -> None:
+        journal_dir = self.recovery_dir / "erasure-files" / str(workflow_id)
+        journal = journal_dir / "journal.json"
+        if not journal.is_file():
+            return
+        try:
+            payload = json.loads(journal.read_text(encoding="utf-8"))
+            relative_paths = payload.get("relative_paths")
+            if payload.get("schema_version") != "1.0" or not isinstance(relative_paths, list):
+                raise ValueError
+            for raw_relative in relative_paths:
+                if not isinstance(raw_relative, str):
+                    raise ValueError
+                self._validate_relative_path(raw_relative)
+                target = (self.documents_dir / PurePosixPath(raw_relative)).resolve()
+                if self.documents_dir not in target.parents or target.is_symlink():
+                    raise ValueError
+                target.unlink(missing_ok=True)
+            shutil.rmtree(journal_dir)
+        except (OSError, ValueError, json.JSONDecodeError, RecoveryError) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "删除原始资料文件清理尚未完成",
+            ) from exc
+
+    @staticmethod
+    def _remove_matching_erasure_marker(
+        marker: Path,
+        workflow_id: UUID,
+        checkpoint: int,
+    ) -> None:
+        try:
+            payload = json.loads(marker.read_text(encoding="utf-8"))
+            if (
+                payload.get("workflow_id") != str(workflow_id)
+                or payload.get("checkpoint") != checkpoint
+            ):
+                raise ValueError
+            marker.unlink()
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "删除后维护标记清理失败",
             ) from exc
 
     def _write_catalog(self, catalog: RecoveryCatalogV1) -> None:

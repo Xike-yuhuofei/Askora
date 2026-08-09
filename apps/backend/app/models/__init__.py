@@ -22,6 +22,12 @@ from app.models.assessment import (
     LearnerStateRecord,
     MasteryEstimateRecord,
 )
+from app.models.data_control import (
+    DataErasureCheckpointRecord,
+    DataErasureReceiptRecord,
+    DataErasureStepRecord,
+    DataErasureWorkflowRecord,
+)
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.knowledge import KnowledgePoint, LearningMaterial
@@ -46,6 +52,10 @@ from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
+    "DataErasureCheckpointRecord",
+    "DataErasureReceiptRecord",
+    "DataErasureStepRecord",
+    "DataErasureWorkflowRecord",
     "ExperimentAssignmentRecord",
     "LearningTrajectoryRecord",
     "OutcomeObservationRecord",

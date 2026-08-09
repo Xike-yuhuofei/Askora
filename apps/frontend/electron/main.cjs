@@ -25,6 +25,7 @@ const MAX_MAINTENANCE_OUTPUT_BYTES = 2 * 1024 * 1024
 let mainWindow
 let backendProcess = null
 let readyBackendURL = null
+let windowCreationPromise = null
 
 function getBackendBinaryPath() {
   if (isDev) {
@@ -215,6 +216,8 @@ function runDataControlCommand(command, commandArgs = []) {
     'finalize-restore',
     'rollback-restore',
     'recover-interrupted-restore',
+    'finalize-erasure',
+    'recover-interrupted-erasure',
   ])
   if (!allowedCommands.has(command)) {
     return Promise.reject(new Error('Unsupported data-control command'))
@@ -325,6 +328,7 @@ async function createVerifiedBackup(reason, saveExternalCopy) {
 
 async function runScheduledBackupIfDue() {
   try {
+    await runDataControlCommand('recover-interrupted-erasure')
     await runDataControlCommand('recover-interrupted-restore')
     if (!fs.existsSync(path.join(userDataPath, 'askora.db'))) return
     const status = await runDataControlCommand('status')
@@ -334,6 +338,37 @@ async function runScheduledBackupIfDue() {
   } catch (error) {
     console.error('[Askora] Scheduled recovery point failed:', error.code || error.message)
   }
+}
+
+function pendingErasureRequest() {
+  const markerPath = path.join(userDataPath, 'recovery', 'erasure-pending.json')
+  if (!fs.existsSync(markerPath)) return null
+  let payload
+  try {
+    payload = JSON.parse(fs.readFileSync(markerPath, 'utf8'))
+  } catch {
+    throw new Error('Pending erasure marker is invalid')
+  }
+  const workflowId = typeof payload.workflow_id === 'string' ? payload.workflow_id : ''
+  const checkpoint = Number(payload.checkpoint)
+  if (
+    payload.schema_version !== '1.0' ||
+    !/^[0-9a-f-]{36}$/i.test(workflowId) ||
+    !Number.isSafeInteger(checkpoint) ||
+    checkpoint < 1
+  ) {
+    throw new Error('Pending erasure marker is invalid')
+  }
+  return { workflowId, checkpoint }
+}
+
+async function finalizePendingErasure() {
+  const pending = pendingErasureRequest()
+  if (!pending) return null
+  return runDataControlCommand('finalize-erasure', [
+    '--workflow-id', pending.workflowId,
+    '--checkpoint', String(pending.checkpoint),
+  ])
 }
 
 async function chooseAndRestoreBackup() {
@@ -383,6 +418,35 @@ async function chooseAndRestoreBackup() {
   }
 }
 
+async function finalizeErasure(options) {
+  const workflowId = typeof options?.workflowId === 'string' ? options.workflowId : ''
+  const checkpoint = Number(options?.checkpoint)
+  if (!/^[0-9a-f-]{36}$/i.test(workflowId) || !Number.isSafeInteger(checkpoint) || checkpoint < 1) {
+    throw new Error('Invalid erasure maintenance request')
+  }
+  const result = await runOfflineDataControl('finalize-erasure', [
+    '--workflow-id', workflowId,
+    '--checkpoint', String(checkpoint),
+  ])
+  if (options?.clearLocalSession === true) {
+    await mainWindow?.webContents.session.clearStorageData({
+      storages: ['cookies', 'localstorage', 'cachestorage'],
+    })
+  }
+  return result
+}
+
+async function resumePendingErasure() {
+  mainWindow?.webContents.send('data-control:maintenance-state', { active: true })
+  await stopLocalBackendForMaintenance()
+  try {
+    return await finalizePendingErasure()
+  } finally {
+    await startLocalBackend()
+    mainWindow?.webContents.send('data-control:maintenance-state', { active: false })
+  }
+}
+
 async function createWindow() {
   await runScheduledBackupIfDue()
   await startLocalBackend()
@@ -425,6 +489,16 @@ async function createWindow() {
   })
 }
 
+function ensureWindow() {
+  if (mainWindow) return Promise.resolve()
+  if (!windowCreationPromise) {
+    windowCreationPromise = createWindow().finally(() => {
+      windowCreationPromise = null
+    })
+  }
+  return windowCreationPromise
+}
+
 ipcMain.handle('app:get-version', () => app.getVersion())
 ipcMain.handle('app:get-platform', () => process.platform)
 ipcMain.handle('app:get-backend-url', () => readyBackendURL)
@@ -443,6 +517,8 @@ ipcMain.handle('data-control:choose-and-verify', async () => {
   return runDataControlCommand('verify', ['--path', choice.filePaths[0]])
 })
 ipcMain.handle('data-control:choose-and-restore', () => chooseAndRestoreBackup())
+ipcMain.handle('data-control:finalize-erasure', (_event, options) => finalizeErasure(options))
+ipcMain.handle('data-control:resume-pending-erasure', () => resumePendingErasure())
 ipcMain.handle('data-control:reveal-recovery-key', async () => {
   const confirmation = await dialog.showMessageBox(mainWindow, {
     type: 'warning',
@@ -456,10 +532,16 @@ ipcMain.handle('data-control:reveal-recovery-key', async () => {
   return loadOrCreateRecoveryKey()
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(ensureWindow).catch((error) => {
+  console.error('[Askora] Window startup failed:', error.code || error.message)
+})
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  if (BrowserWindow.getAllWindows().length === 0) {
+    ensureWindow().catch((error) => {
+      console.error('[Askora] Window activation failed:', error.code || error.message)
+    })
+  }
 })
 
 app.on('window-all-closed', () => {

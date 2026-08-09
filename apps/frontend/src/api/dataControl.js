@@ -78,3 +78,42 @@ export async function downloadUserExport({ exportId, token }) {
     URL.revokeObjectURL(objectURL)
   }
 }
+
+export async function createErasurePreview({ scope, targetRef = null }) {
+  const response = await api.post('/data-control/erasures/preview', {
+    scope,
+    target_ref: targetRef,
+  })
+  return response.data
+}
+
+export async function confirmErasure({
+  previewId,
+  confirmationToken,
+  confirmationPhrase,
+  idempotencyKey,
+}) {
+  const response = await api.post('/data-control/erasures/confirm', {
+    preview_id: previewId,
+    confirmation_token: confirmationToken,
+    confirmation_phrase: confirmationPhrase,
+    idempotency_key: idempotencyKey,
+  })
+  return response.data
+}
+
+export async function finalizeErasure({ workflowId, checkpoint, clearLocalSession = false }) {
+  const electron = bridge()
+  if (!electron?.finalizeErasure) throw new Error('DATA_MODE_UNSUPPORTED')
+  return electron.finalizeErasure({
+    workflowId,
+    checkpoint,
+    clearLocalSession: clearLocalSession === true,
+  })
+}
+
+export async function resumePendingErasure() {
+  const electron = bridge()
+  if (!electron?.resumePendingErasure) throw new Error('DATA_MODE_UNSUPPORTED')
+  return electron.resumePendingErasure()
+}
