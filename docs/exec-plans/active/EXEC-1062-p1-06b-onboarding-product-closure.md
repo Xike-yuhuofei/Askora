@@ -53,7 +53,6 @@ apps/frontend/src/pages/Settings.css
 apps/frontend/src/test/AppRoutes.test.jsx
 apps/frontend/src/test/Welcome.test.jsx
 apps/frontend/src/test/OnboardingSecurity.test.jsx
-apps/frontend/electron/main.cjs
 apps/frontend/package.json
 ```
 
@@ -84,7 +83,7 @@ apps/frontend/package.json
 - `EXEC1062-AC-002`：clean profile 无开发者入口完成真实四步与 Today next action。
 - `EXEC1062-AC-003`：dismiss/reopen/deep link/restart/回退/恢复状态有机器和真实体验证据。
 - `EXEC1062-AC-004`：数据/模型说明与实际 P1-02/P1-03 行为一致，无样例/secret/path 泄漏。
-- `EXEC1062-AC-005`：full backend/frontend/electron/security/docs/migration gates PASS。
+- `EXEC1062-AC-005`：full backend/frontend/security/docs/migration gates PASS。
 - `EXEC1062-AC-006`：P1-06 register=DONE；Engineering/Security/Product PASS；Learning Evidence
   仍 insufficient。
 
@@ -98,7 +97,6 @@ mypy app
 alembic check
 
 cd apps/frontend
-npm run test:electron
 npm test -- --run
 npm run build
 npm audit --audit-level=high
@@ -108,8 +106,8 @@ python3 .github/workflows/check_docs.py
 git diff --check
 ```
 
-真实门禁另需：clean macOS App、真实 provider 配置/验证、私人资料处理、Goal/diagnostic/plan、activity
-start/resume/complete、App restart、Today next action、360px/200%/keyboard，以及无内部知识首次用户。
+真实门禁另需：clean Web App、真实 provider 配置/验证、私人资料处理、Goal/diagnostic/plan、activity
+start/resume/complete、360px/200%/keyboard，以及无内部知识首次用户。
 
 ## Completion Report
 

@@ -28,16 +28,14 @@
   - [5.3 关键组件](#53-关键组件)
   - [5.4 路由系统](#54-路由系统)
   - [5.5 API 客户端](#55-api-客户端)
-  - [5.6 Electron 桌面壳](#56-electron-桌面壳)
 - [6. 数据库设计](#6-数据库设计)
 - [7. 依赖关系](#7-依赖关系)
 - [8. 项目运行方式](#8-项目运行方式)
   - [8.1 环境要求](#81-环境要求)
   - [8.2 后端运行](#82-后端运行)
   - [8.3 前端运行](#83-前端运行)
-  - [8.4 桌面版构建](#84-桌面版构建)
-  - [8.5 Docker 部署](#85-docker-部署)
-  - [8.6 测试与验证](#86-测试与验证)
+  - [8.4 Docker 部署](#84-docker-部署)
+  - [8.5 测试与验证](#85-测试与验证)
 - [9. 核心业务流程](#9-核心业务流程)
 - [10. 规范与约束](#10-规范与约束)
 
@@ -45,7 +43,7 @@
 
 ## 1. 项目概述
 
-**Askora** 是一个私人自用、不公开发布的本地 AI 学习 App。仓库包含 FastAPI 后端、React/Vite 前端和 macOS Electron 桌面壳；默认运行边界是单用户、单设备、本地优先，而不是多租户 SaaS 或公共互联网服务。
+**Askora** 是一个私人自用、不公开发布的本地 AI 学习 App。仓库包含 FastAPI 后端和 React/Vite 前端；当前开发路径为 Web-first / Web-only；默认运行边界是单用户、单设备、本地优先，而不是多租户 SaaS 或公共互联网服务。
 
 ### 核心特性
 
@@ -81,30 +79,30 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ### 系统架构图
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Askora 应用层                        │
-├─────────────┬───────────────────────────┬───────────────┤
-│  前端 Web/Electron  │    FastAPI 后端    │   桌面壳 (Electron)  │
-├─────────────┼───────────────────────────┼───────────────┤
-│             │  API 路由层 (api/v1)      │               │
-│             ├───────────────────────────┤               │
-│             │  Contracts 公共合同层       │               │
-│             ├───────────────────────────┤               │
-│             │  Orchestration 编排层      │               │
-│             ├───────────────────────────┤               │
-│             │  Domains 领域层 (SYS01-07) │               │
-│             ├───────────────────────────┤               │
-│             │  Engines 教学引擎层         │               │
-│             ├───────────────────────────┤               │
-│             │  Services 服务层            │               │
-│             ├───────────────────────────┤               │
-│             │  Infrastructure 基础设施   │               │
-│             ├───────────────────────────┤               │
-│             │  Models 数据模型层          │               │
-├─────────────┼───────────────────────────┼───────────────┤
-│             │  PostgreSQL / SQLite      │               │
-│             │  Redis                    │               │
-└─────────────┴───────────────────────────┴───────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Askora 应用层                           │
+├──────────────────────────────┬──────────────────────────────┤
+│         Web 前端 (React)      │        FastAPI 后端          │
+├──────────────────────────────┼──────────────────────────────┤
+│                              │  API 路由层 (api/v1)         │
+│                              ├──────────────────────────────┤
+│                              │  Contracts 公共合同层         │
+│                              ├──────────────────────────────┤
+│                              │  Orchestration 编排层         │
+│                              ├──────────────────────────────┤
+│                              │  Domains 领域层 (SYS01-07)    │
+│                              ├──────────────────────────────┤
+│                              │  Engines 教学引擎层           │
+│                              ├──────────────────────────────┤
+│                              │  Services 服务层              │
+│                              ├──────────────────────────────┤
+│                              │  Infrastructure 基础设施       │
+│                              ├──────────────────────────────┤
+│                              │  Models 数据模型层            │
+├──────────────────────────────┼──────────────────────────────┤
+│                              │  PostgreSQL / SQLite         │
+│                              │  Redis                      │
+└──────────────────────────────┴──────────────────────────────┘
 ```
 
 ### 教学主链路
@@ -610,12 +608,6 @@ class DialogService:
 
 ```
 apps/frontend/
-├── electron/                     # Electron 桌面壳
-│   ├── main.cjs                  # Electron 主进程
-│   ├── preload.cjs               # 预加载脚本
-│   └── app-menu.cjs              # 应用菜单
-├── resources/
-│   └── backend/                  # 后端二进制打包目录
 ├── src/
 │   ├── api/                      # API 客户端
 │   │   ├── client.js             # Axios 实例与拦截器
@@ -667,8 +659,6 @@ apps/frontend/
 | Markdown 渲染 | react-markdown | 10.1.0 |
 | 数学公式 | KaTeX + remark-math + rehype-katex | - |
 | 图标 | lucide-react | 0.424.0 |
-| 桌面壳 | Electron | 43.3.0 |
-| 打包 | electron-builder | 26.15.3 |
 | 测试 | Vitest + Testing Library | 4.1.10 |
 
 ### 5.3 关键组件
@@ -759,20 +749,6 @@ api.interceptors.response.use(null, async (error) => { ... })
 | `documents.js` | `uploadDocument`, `listDocuments` | 文档 |
 | `users.js` | `getProfile`, `updateNickname` | 用户 |
 | `workspace.js` | `getTodayData`, `getLibraryData` | 工作区 |
-
-### 5.6 Electron 桌面壳
-
-**文件**: [main.cjs](../apps/frontend/electron/main.cjs)
-
-macOS 桌面壳，核心功能：
-- 内嵌 Python 后端（PyInstaller 打包）
-- 预加载 API 桥接（`preload.cjs`）
-- 原生应用菜单（`app-menu.cjs`）
-
-**构建脚本**：
-```bash
-npm run electron:build:mac:with-backend
-```
 
 ---
 
@@ -957,7 +933,6 @@ uv run alembic check
 | PostgreSQL | 16（可选，本地用 SQLite） |
 | Redis | 7（可选，不可用时降级） |
 | Docker | 最新（可选） |
-| Xcode CLT | 构建 macOS 桌面版时需要 |
 
 ### 8.2 后端运行
 
@@ -966,7 +941,7 @@ cd apps/backend
 
 # 1. 安装依赖
 python -m pip install uv==0.9.5
-uv sync --frozen --extra dev --extra desktop
+uv sync --frozen --extra dev
 
 # 2. 配置环境变量
 cp .env.example .env
@@ -1005,18 +980,7 @@ npm run dev
 # API 默认：http://127.0.0.1:8000/api/v1
 ```
 
-### 8.4 桌面版构建
-
-```bash
-cd apps/frontend
-
-# 构建包含后端的 macOS 桌面版
-npm run electron:build:mac:with-backend
-
-# 产物位置：apps/frontend/release/
-```
-
-### 8.5 Docker 部署
+### 8.4 Docker 部署
 
 ```bash
 # 1. 配置环境

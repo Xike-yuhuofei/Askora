@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, ArrowLeft, ShieldAlert } from 'lucide-react'
 import * as accountApi from '../api/account'
-import * as dataControlApi from '../api/dataControl'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from '../router'
 import './AccountDeletion.css'
@@ -117,25 +116,6 @@ export default function AccountDeletion() {
     }
   }
 
-  const finishPostErasureMaintenance = async () => {
-    if (!status?.erasure_workflow_id || !status?.erasure_checkpoint) return
-    setPhase('loading')
-    setMessage('正在使旧恢复点失效并创建删除后恢复基线…')
-    try {
-      await dataControlApi.finalizeErasure({
-        workflowId: status.erasure_workflow_id,
-        checkpoint: status.erasure_checkpoint,
-        clearLocalSession: true,
-      })
-      setPhase('status')
-      setMessage('删除后恢复基线已验证；正在确认最终账号状态。')
-      await loadStatus()
-    } catch {
-      setPhase('status')
-      setMessage('个人数据已进入不可用状态，但删除后恢复基线尚未完成；请重试或重启本地 App。')
-    }
-  }
-
   const finish = () => {
     sessionStorage.removeItem(CONTROL_KEY)
     setControlToken('')
@@ -155,7 +135,7 @@ export default function AccountDeletion() {
         {phase === 'idle' && <><p>此操作将删除学习数据、文件、会话和身份信息。全局知识与策略不属于个人数据，不会删除。</p><button className="button button--danger" onClick={createPreview}>生成删除清单</button></>}
         {phase === 'loading' && <p role="status">正在安全处理，请勿重复提交…</p>}
         {phase === 'confirm' && preview && <form className="deletion-form" onSubmit={submitDeletion}><div className="deletion-summary"><strong>删除清单</strong><span>{Object.values(preview.counts_by_owner).reduce((sum, value) => sum + value, 0)} 条记录</span><span>{preview.file_count} 个文件</span><span>{preview.pending_task_count} 个待处理任务</span></div>{preview.blocking_issues.length > 0 && <p className="inline-error" role="alert">范围存在阻断项，不能继续删除。</p>}<label>当前密码<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label><label>输入确认短语：<strong>{CONFIRMATION}</strong><input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></label><p className="deletion-warning"><AlertTriangle size={18} />提交后普通会话会立即撤销。24 小时等待期内可取消；进入清除后不可取消。</p><button className="button button--danger" disabled={confirmation !== CONFIRMATION || preview.blocking_issues.length > 0}>确认进入删除等待期</button></form>}
-        {phase === 'status' && status && <div className="deletion-status"><strong>当前状态：{status.lifecycle}</strong><p>计划执行时间：{new Date(status.purge_due_at).toLocaleString('zh-CN')}</p><p>关闭本地 App 会延迟本地清除，重启后会自动继续。</p>{status.lifecycle === 'deletion_pending' && <button className="button button--secondary" onClick={cancel} disabled={!status.cancellable}>取消删除</button>}{status.requires_post_erasure_maintenance && <><p>个人数据已清除，但旧恢复点失效和删除后恢复基线仍待完成；完成前不会显示“已删除”。</p><button className="button button--danger" onClick={finishPostErasureMaintenance}>完成防复活维护</button></>}{status.lifecycle === 'deletion_blocked' && <button className="button button--danger" onClick={retry}>重试安全清除</button>}{status.lifecycle === 'deleted' && <><p>账号及个人数据已清除。完成确认前，刷新仍会保留这份结果。</p><button className="button button--primary" onClick={finish}>完成并清除本地状态</button></>}</div>}
+        {phase === 'status' && status && <div className="deletion-status"><strong>当前状态：{status.lifecycle}</strong><p>计划执行时间：{new Date(status.purge_due_at).toLocaleString('zh-CN')}</p><p>服务端会按计划继续执行清除；您可随时返回本页面查看进度。</p>{status.lifecycle === 'deletion_pending' && <button className="button button--secondary" onClick={cancel} disabled={!status.cancellable}>取消删除</button>}{status.requires_post_erasure_maintenance && <p>个人数据已清除，系统正在自动完成恢复基线失效与删除后恢复基线；完成前不会显示“已删除”。</p>}{status.lifecycle === 'deletion_blocked' && <button className="button button--danger" onClick={retry}>重试安全清除</button>}{status.lifecycle === 'deleted' && <><p>账号及个人数据已清除。完成确认前，刷新仍会保留这份结果。</p><button className="button button--primary" onClick={finish}>完成并清除本地状态</button></>}</div>}
         {phase === 'cancelled' && <div className="deletion-status"><strong>删除已取消</strong><p>旧会话仍保持撤销。请重新登录继续使用。</p><button className="button button--primary" onClick={() => navigate('/login')}>重新登录</button></div>}
         {message && <p className="inline-error" role="alert">{message}</p>}
       </section>

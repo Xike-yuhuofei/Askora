@@ -26,7 +26,7 @@ Askora 后端是面向私人本地学习 App 的 FastAPI 模块化单体。公�
 
 ```bash
 python -m pip install uv==0.9.5
-uv sync --frozen --extra dev --extra desktop
+uv sync --frozen --extra dev
 cp .env.example .env
 uv run alembic upgrade head
 uv run python -m app.main

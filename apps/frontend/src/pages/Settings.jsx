@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle,
   CircleAlert,
   Download,
-  HardDrive,
   KeyRound,
   Laptop,
   LockKeyhole,
   LogOut,
-  RotateCcw,
   Server,
   Shield,
   Trash2,
@@ -18,403 +16,12 @@ import * as authApi from '../api/auth'
 import * as usersApi from '../api/users'
 import * as dataControlApi from '../api/dataControl'
 import { useAuth } from '../hooks/useAuth'
-import { useLocation, useNavigate } from '../router'
+import { useNavigate } from '../router'
 import './Settings.css'
-
-const MODEL_OPTIONS = {
-  qwen: { label: '通义千问', models: ['qwen-turbo'] },
-  deepseek: { label: 'DeepSeek', models: ['deepseek-chat'] },
-  doubao: { label: '豆包', models: ['doubao-pro-32k'] },
-  zhipu: { label: '智谱', models: ['glm-4.7-flash'] },
-}
-
-const MODEL_SOURCE_LABELS = {
-  DESKTOP_VAULT: 'App 安全存储',
-  EXTERNAL_ENVIRONMENT: '外部只读配置',
-  NONE: '未配置',
-}
-
-const MODEL_PROFILE_KEYS = Object.freeze([
-  'schema_version',
-  'state',
-  'provider',
-  'model',
-  'source',
-  'revision',
-  'verified_at',
-  'runtime_ready',
-  'runtime_revision',
-  'reason_codes',
-])
-const MODEL_PROFILE_STATES = new Set(['ACTIVE', 'DISABLED', 'EXTERNAL_READ_ONLY', 'UNCONFIGURED', 'DEGRADED'])
-const MODEL_PROFILE_SOURCES = new Set(['DESKTOP_VAULT', 'EXTERNAL_ENVIRONMENT', 'NONE'])
-
-function parseModelSummary(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const keys = Object.keys(value)
-  if (keys.length !== MODEL_PROFILE_KEYS.length || !MODEL_PROFILE_KEYS.every((key) => keys.includes(key))) return null
-  if (
-    value.schema_version !== '1.0'
-    || !MODEL_PROFILE_STATES.has(value.state)
-    || !MODEL_PROFILE_SOURCES.has(value.source)
-    || typeof value.runtime_ready !== 'boolean'
-    || !Array.isArray(value.reason_codes)
-    || (value.revision !== null && (!Number.isSafeInteger(value.revision) || value.revision < 1))
-    || (value.runtime_revision !== null && (!Number.isSafeInteger(value.runtime_revision) || value.runtime_revision < 1))
-  ) return null
-  const requiresRoute = ['ACTIVE', 'EXTERNAL_READ_ONLY', 'DEGRADED'].includes(value.state)
-  if (requiresRoute !== (value.provider !== null && value.model !== null)) return null
-  if (value.provider !== null && !MODEL_OPTIONS[value.provider]?.models.includes(value.model)) return null
-  if (value.source === 'DESKTOP_VAULT' && value.revision === null) return null
-  if (value.source !== 'DESKTOP_VAULT' && value.revision !== null) return null
-  return {
-    schema_version: value.schema_version,
-    state: value.state,
-    provider: value.provider,
-    model: value.model,
-    source: value.source,
-    revision: value.revision,
-    verified_at: typeof value.verified_at === 'string' ? value.verified_at : null,
-    runtime_ready: value.runtime_ready,
-    runtime_revision: value.runtime_revision,
-    reason_codes: value.reason_codes.filter((code) => typeof code === 'string'),
-  }
-}
-
-function safeModelError(code) {
-  const presentations = {
-    MODEL_VIEW_SCHEMA_UNSUPPORTED: ['无法安全读取模型配置', '请升级 Askora 后重试；当前不会应用或覆盖任何配置。'],
-    MODEL_CONTROL_NOT_AVAILABLE: ['本地模型控制面不可用', '请在 Askora 桌面 App 中打开此页面后重试。'],
-    MODEL_CONFIG_STORAGE_UNAVAILABLE: ['安全存储不可用', '请解锁 macOS 登录钥匙串并重开 Askora；当前配置未被覆盖。'],
-    MODEL_CONFIG_SCHEMA_UNSUPPORTED: ['已保存的配置无法读取', '可重置为停用状态后重新配置；该操作不会启用 .env 中的 Key。'],
-    MODEL_CONFIG_REVISION_CONFLICT: ['配置已在其他操作中更新，请重新确认。', '已刷新最新脱敏状态；请核对后重新输入 Key。'],
-    MODEL_CREDENTIAL_REJECTED: ['模型凭据被 provider 拒绝，请更新后重试', '候选配置没有写入；请确认凭据和模型权限。'],
-    MODEL_NOT_AVAILABLE: ['所选模型不可用', '请确认 provider 账户权限，或选择列表中的其他模型。'],
-    MODEL_RATE_LIMITED: ['Provider 正在限流', '请等待片刻后重试；Askora 不会自动切换 provider。'],
-    MODEL_PROVIDER_TIMEOUT: ['连接测试超时', '当前配置未被覆盖；请检查网络后重新输入 Key 并重试。'],
-    MODEL_PROVIDER_UNAVAILABLE: ['模型连接测试失败。', '当前配置未被覆盖；请稍后重新输入 Key 并重试。'],
-    MODEL_CONFIG_APPLY_FAILED: ['应用失败，旧配置已恢复', '旧配置仍可用；请检查本机服务后重新验证。'],
-    MODEL_CONFIG_ROLLBACK_FAILED: ['旧配置恢复失败。', '当前模型配置不可用；请打开恢复中心处理。'],
-  }
-  const [message, guidance] = presentations[code] || ['模型配置操作失败', '当前配置未被静默替换；请刷新状态后重试。']
-  return { code, message, guidance }
-}
-
-function parseModelBridgeResult(result) {
-  if (!result || typeof result !== 'object' || typeof result.ok !== 'boolean') {
-    return { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
-  }
-  if (result.ok) {
-    const summary = parseModelSummary(result.settings)
-    return summary
-      ? { ok: true, summary }
-      : { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
-  }
-  const code = typeof result.error?.code === 'string' ? result.error.code : 'MODEL_CONTROL_NOT_AVAILABLE'
-  return {
-    ok: false,
-    error: safeModelError(code),
-    summary: result.settings ? parseModelSummary(result.settings) : null,
-    rollbackSucceeded: result.rollback_succeeded === true,
-    rollbackFailed: result.rollback_succeeded === false || code === 'MODEL_CONFIG_ROLLBACK_FAILED',
-  }
-}
-
-function modelStatusLabel(model) {
-  if (model.phase === 'loading') return '正在读取'
-  if (model.phase === 'validating') return '正在验证'
-  if (model.phase === 'applying') return '正在应用'
-  if (model.phase === 'unavailable') return '未配置'
-  if (model.phase === 'apply_recovered') return '应用失败已恢复'
-  if (model.phase === 'rollback_failed') return '恢复失败'
-  const summary = model.summary
-  if (summary?.state === 'ACTIVE' && summary.runtime_ready) return '已验证'
-  if (summary?.state === 'EXTERNAL_READ_ONLY') return '外部只读配置'
-  if (summary?.state === 'DISABLED') return '已停用'
-  if (summary?.state === 'DEGRADED') return '恢复失败'
-  return '未配置'
-}
-
-function formatVerifiedAt(value) {
-  if (!value) return '尚未验证'
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
-}
-
-function ModelSettingsPanel({ sectionRef }) {
-  const { pathname } = useLocation()
-  const navigate = useNavigate()
-  const [model, setModel] = useState({ phase: 'loading', summary: null, error: null, message: '' })
-  const [provider, setProvider] = useState('qwen')
-  const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS.qwen.models[0])
-  const [credential, setCredential] = useState('')
-  const [clearArmed, setClearArmed] = useState(false)
-  const [recoveryArmed, setRecoveryArmed] = useState(false)
-  const bridgeAvailable = Boolean(window.electronAPI?.getModelSettings)
-  const canApply = Boolean(window.electronAPI?.applyModelSettings)
-  const canClear = Boolean(window.electronAPI?.clearModelSettings)
-
-  const acceptSummary = useCallback((summary, nextPhase = 'ready') => {
-    setModel({ phase: nextPhase, summary, error: null, message: '' })
-    if (summary?.provider && MODEL_OPTIONS[summary.provider]) {
-      setProvider(summary.provider)
-      setSelectedModel(summary.model || MODEL_OPTIONS[summary.provider].models[0])
-    }
-  }, [])
-
-  const loadModelSettings = useCallback(async () => {
-    if (!bridgeAvailable) {
-      setModel({ phase: 'unavailable', summary: null, error: null, message: '' })
-      return null
-    }
-    setModel((current) => ({ ...current, phase: 'loading', error: null, message: '' }))
-    try {
-      const parsed = parseModelBridgeResult(await window.electronAPI.getModelSettings())
-      if (!parsed.ok) {
-        setModel({ phase: 'rollback_failed', summary: parsed.summary, error: parsed.error, message: '' })
-        return null
-      }
-      acceptSummary(parsed.summary)
-      return parsed.summary
-    } catch {
-      setModel({ phase: 'rollback_failed', summary: null, error: {
-        code: 'MODEL_PROVIDER_UNAVAILABLE',
-        ...safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
-      }, message: '' })
-      return null
-    }
-  }, [acceptSummary, bridgeAvailable])
-
-  useEffect(() => {
-    loadModelSettings()
-  }, [loadModelSettings])
-
-  useEffect(() => {
-    if (pathname !== '/settings/models') return undefined
-    const frame = window.requestAnimationFrame(() => sectionRef.current?.focus())
-    return () => window.cancelAnimationFrame(frame)
-  }, [pathname, sectionRef])
-
-  const changeProvider = (event) => {
-    const nextProvider = event.target.value
-    setProvider(nextProvider)
-    setSelectedModel(MODEL_OPTIONS[nextProvider].models[0])
-    setClearArmed(false)
-  }
-
-  const applySettings = async (event) => {
-    event.preventDefault()
-    if (!canApply || ['validating', 'applying'].includes(model.phase)) return
-    const candidateKey = credential
-    setCredential('')
-    setClearArmed(false)
-    if (candidateKey.length < 8) {
-      setModel((current) => ({
-        ...current,
-        phase: 'ready',
-        error: { code: 'MODEL_CREDENTIAL_REJECTED', message: '请输入有效的模型 Key。' },
-        message: '',
-      }))
-      return
-    }
-    setModel((current) => ({ ...current, phase: 'validating', error: null, message: '' }))
-    try {
-      const parsed = parseModelBridgeResult(await window.electronAPI.applyModelSettings({
-        schema_version: '1.0',
-        provider,
-        model: selectedModel,
-        api_key: candidateKey,
-        expected_revision: model.summary?.revision ?? null,
-      }))
-      if (parsed.ok) {
-        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: '模型配置已验证并应用。' })
-        return
-      }
-      let summary = parsed.summary || model.summary
-      if (parsed.error.code === 'MODEL_CONFIG_REVISION_CONFLICT') {
-        summary = await loadModelSettings() || summary
-      }
-      setModel({
-        phase: parsed.rollbackSucceeded
-          ? 'apply_recovered'
-          : parsed.rollbackFailed
-            ? 'rollback_failed'
-            : 'ready',
-        summary,
-        error: parsed.error,
-        message: '',
-      })
-    } catch {
-      setModel((current) => ({
-        ...current,
-        phase: 'ready',
-        error: safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
-        message: '',
-      }))
-    }
-  }
-
-  const clearSettings = async (recovery = false) => {
-    if (!canClear || model.phase === 'applying') return
-    setClearArmed(false)
-    setRecoveryArmed(false)
-    setCredential('')
-    setModel((current) => ({ ...current, phase: 'applying', error: null, message: '' }))
-    try {
-      const command = recovery
-        ? { schema_version: '1.0', expected_revision: null, recovery_confirmation: 'RESET_UNREADABLE_VAULT' }
-        : { schema_version: '1.0', expected_revision: model.summary?.revision ?? null }
-      const parsed = parseModelBridgeResult(await window.electronAPI.clearModelSettings(command))
-      if (parsed.ok) {
-        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: 'App 模型配置已停用；外部配置未被编辑。' })
-        return
-      }
-      setModel({
-        phase: parsed.rollbackSucceeded ? 'apply_recovered' : 'rollback_failed',
-        summary: parsed.summary || model.summary,
-        error: parsed.error,
-        message: '',
-      })
-    } catch {
-      setModel((current) => ({
-        ...current,
-        phase: 'rollback_failed',
-        error: safeModelError('MODEL_CONFIG_ROLLBACK_FAILED'),
-        message: '',
-      }))
-    }
-  }
-
-  const busy = ['validating', 'applying'].includes(model.phase)
-  const summary = model.summary
-  const stateLabel = modelStatusLabel(model)
-
-  return (
-    <section
-      className="surface settings-section settings-section--wide model-settings"
-      ref={sectionRef}
-      tabIndex={-1}
-      aria-labelledby="model-settings-title"
-    >
-      <div className="section-heading section-heading--compact">
-        <div>
-          <p className="eyebrow">SYS08 · 本机安全存储</p>
-          <h2 id="model-settings-title">模型与密钥</h2>
-          <p>配置 Askora 实际使用的单一 provider/model；已保存的 Key 永不回显。</p>
-        </div>
-        <KeyRound size={18} />
-      </div>
-
-      <div className="model-settings-status" role="status" aria-live="polite">
-        <strong>{stateLabel}</strong>
-        {model.phase === 'loading' && <span>正在读取脱敏配置…</span>}
-        {model.phase === 'unavailable' && (
-          <span>仅在 macOS 桌面 App 中提供安全写入；浏览器视图不会接收或保存 Key。</span>
-        )}
-        {summary && (
-          <dl className="model-settings-summary">
-            <div><dt>Provider</dt><dd>{MODEL_OPTIONS[summary.provider]?.label || '未配置'}</dd></div>
-            <div><dt>Model</dt><dd>{summary.model || '未配置'}</dd></div>
-            <div><dt>来源</dt><dd>{MODEL_SOURCE_LABELS[summary.source] || summary.source || '未配置'}</dd></div>
-            <div><dt>Revision</dt><dd>{summary.revision ?? '无'}</dd></div>
-            <div><dt>最后验证</dt><dd>{formatVerifiedAt(summary.verified_at)}</dd></div>
-            <div><dt>运行一致性</dt><dd>{summary.runtime_ready && summary.runtime_revision === summary.revision ? '一致' : '未就绪'}</dd></div>
-          </dl>
-        )}
-      </div>
-
-      {canApply && (
-        <form className="model-settings-form" onSubmit={applySettings}>
-          <label>
-            <span>Provider</span>
-            <select value={provider} onChange={changeProvider} disabled={busy}>
-              {Object.entries(MODEL_OPTIONS).map(([value, option]) => (
-                <option value={value} key={value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Model</span>
-            <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={busy}>
-              {MODEL_OPTIONS[provider].models.map((value) => <option value={value} key={value}>{value}</option>)}
-            </select>
-          </label>
-          <label className="model-settings-key">
-            <span>API Key</span>
-            <input
-              type="password"
-              value={credential}
-              onChange={(event) => setCredential(event.target.value)}
-              autoComplete="new-password"
-              spellCheck="false"
-              disabled={busy}
-              placeholder="提交后立即清空，不会回显"
-            />
-          </label>
-          <div className="model-settings-disclosure">
-            <strong>验证边界</strong>
-            <p>测试只发送固定合成文本，不发送个人资料，但可能产生极少量 provider 调用费用。</p>
-            <p>真实 Book Learning 会发送当前学习意图与一份 learner-visible evidence；兼容 quick flow 最多发送最近 20 条消息。Askora 不读取余额，实际费用以 provider 账户为准。</p>
-          </div>
-          <div className="model-settings-actions">
-            <button type="submit" className="button button--primary" disabled={busy || credential.length < 8}>
-              {model.phase === 'validating' ? '正在验证…' : '验证并应用'}
-            </button>
-            {canClear && summary?.source === 'DESKTOP_VAULT' && summary.state !== 'DISABLED' && !clearArmed && (
-              <button type="button" className="button button--secondary" disabled={busy} onClick={() => setClearArmed(true)}>
-                停用 App 模型配置
-              </button>
-            )}
-          </div>
-          {clearArmed && (
-            <div className="model-settings-confirm" role="alert">
-              <p>停用会写入 DISABLED revision 并重启本地服务；不会编辑 `.env` 或 provider 账户。</p>
-              <div>
-                <button type="button" className="button button--danger" onClick={() => clearSettings(false)}>确认停用</button>
-                <button type="button" className="button button--secondary" onClick={() => setClearArmed(false)}>取消</button>
-              </div>
-            </div>
-          )}
-        </form>
-      )}
-
-      {model.message && <p className="settings-success" role="status">{model.message}</p>}
-      {model.error && (
-        <div className="inline-error model-settings-error" role="alert">
-          <strong>{model.error.message}</strong>
-          <span>错误码：{model.error.code}</span>
-          <span>{model.error.guidance}</span>
-          <span>{model.phase === 'apply_recovered' ? '旧配置仍可用；本次候选已丢弃。' : model.phase === 'rollback_failed' ? '当前模型不可用，请进入恢复中心处理。' : '候选配置没有写入；当前 owner 状态未被覆盖。'}</span>
-          {model.error.code === 'MODEL_CONFIG_SCHEMA_UNSUPPORTED' && !recoveryArmed && (
-            <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(true)}>重置不可读配置</button>
-          )}
-          {recoveryArmed && (
-            <div role="dialog" aria-label="确认重置不可读配置" className="model-settings-confirm">
-              <p>这会写入停用 revision，不会启用外部环境中的 Key。</p>
-              <div>
-                <button type="button" className="button button--danger" onClick={() => clearSettings(true)}>确认重置并停用</button>
-                <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(false)}>取消</button>
-              </div>
-            </div>
-          )}
-          {model.phase === 'rollback_failed' && (
-            <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>打开恢复中心</button>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
 
 export default function Settings() {
   const { user, logout, replaceSessionTokens } = useAuth()
   const navigate = useNavigate()
-  const modelSectionRef = useRef(null)
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [clearing, setClearing] = useState(false)
   const [sessions, setSessions] = useState({ status: 'loading', data: [], error: '' })
@@ -426,6 +33,20 @@ export default function Settings() {
   const [accountRecoveryAction, setAccountRecoveryAction] = useState('idle')
   const [issuedRecovery, setIssuedRecovery] = useState(null)
   const [recoveryConfirmed, setRecoveryConfirmed] = useState(false)
+  const [exportScopes, setExportScopes] = useState({
+    PROFILE: true,
+    DOCUMENTS: true,
+    LEARNING_RECORDS: true,
+    MODEL_EXECUTION: true,
+  })
+  const [includeDocumentOriginals, setIncludeDocumentOriginals] = useState(false)
+  const [exportState, setExportState] = useState({ status: 'idle', message: '' })
+  const [erasureScope, setErasureScope] = useState('LEARNING_RECORDS')
+  const [erasureTarget, setErasureTarget] = useState('')
+  const [erasurePreview, setErasurePreview] = useState(null)
+  const [erasureCommandKey, setErasureCommandKey] = useState('')
+  const [erasurePhrase, setErasurePhrase] = useState('')
+  const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
 
   const loadSessions = () => {
     setSessions((current) => ({ ...current, status: 'loading', error: '' }))
@@ -440,45 +61,14 @@ export default function Settings() {
       .then((data) => setAccountRecovery({ status: 'ready', data, error: '' }))
       .catch(() => setAccountRecovery({ status: 'error', data: null, error: '无法读取恢复套件状态，请稍后重试。' }))
   }
-  const [exportScopes, setExportScopes] = useState({
-    PROFILE: true,
-    DOCUMENTS: true,
-    LEARNING_RECORDS: true,
-    MODEL_EXECUTION: true,
-  })
-  const [includeDocumentOriginals, setIncludeDocumentOriginals] = useState(false)
-  const [exportState, setExportState] = useState({ status: 'idle', message: '' })
-  const [recovery, setRecovery] = useState({ status: 'loading', data: null, message: '' })
-  const [recoveryAction, setRecoveryAction] = useState('')
-  const [saveExternalCopy, setSaveExternalCopy] = useState(false)
-  const [recoveryKey, setRecoveryKey] = useState('')
-  const [erasureScope, setErasureScope] = useState('LEARNING_RECORDS')
-  const [erasureTarget, setErasureTarget] = useState('')
-  const [erasurePreview, setErasurePreview] = useState(null)
-  const [erasureCommandKey, setErasureCommandKey] = useState('')
-  const [erasurePhrase, setErasurePhrase] = useState('')
-  const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
-
-  const refreshRecovery = () => dataControlApi.getDataControlStatus()
-    .then((data) => setRecovery({ status: 'ready', data, message: '' }))
-    .catch(() => setRecovery({ status: 'error', data: null, message: '无法读取本机恢复状态。' }))
 
   useEffect(() => {
     usersApi.getSystemConfig()
       .then((data) => setSystem({ status: 'ready', data, error: '' }))
       .catch(() => setSystem({ status: 'error', data: null, error: '后端服务不可用，无法读取实时运行状态。' }))
-    refreshRecovery()
-    return dataControlApi.onMaintenanceState?.((state) => {
-      if (state?.active) {
-        setRecovery((current) => ({ ...current, message: '正在执行离线数据维护…' }))
-      } else {
-        refreshRecovery()
-      }
-    })
+    loadSessions()
+    loadAccountRecoveryStatus()
   }, [])
-
-  useEffect(() => { loadSessions() }, [])
-  useEffect(() => { loadAccountRecoveryStatus() }, [])
 
   const createIdempotencyKey = (prefix) => `${prefix}-${crypto.randomUUID()}`
 
@@ -637,30 +227,6 @@ export default function Settings() {
     }
   }
 
-  const runRecoveryAction = async (name, action, successMessage) => {
-    if (recoveryAction) return
-    setRecoveryAction(name)
-    setRecovery((current) => ({ ...current, message: '正在执行离线数据维护…' }))
-    try {
-      await action()
-      await refreshRecovery()
-      setRecovery((current) => ({ ...current, message: successMessage }))
-    } catch {
-      setRecovery((current) => ({ ...current, message: '数据维护失败；当前数据未被声明为已恢复。' }))
-    } finally {
-      setRecoveryAction('')
-    }
-  }
-
-  const revealKey = async () => {
-    try {
-      const value = await dataControlApi.revealRecoveryKey()
-      if (value) setRecoveryKey(value)
-    } catch {
-      setRecovery((current) => ({ ...current, message: 'Recovery Key 无法显示。' }))
-    }
-  }
-
   const previewErasure = async () => {
     if (erasureState.status === 'working') return
     if (erasureScope === 'DOCUMENT' && !erasureTarget.trim()) {
@@ -685,38 +251,9 @@ export default function Settings() {
     }
   }
 
-  const finishErasureBaseline = async (report, scope) => {
-    try {
-      const result = await dataControlApi.finalizeErasure({
-        workflowId: report.workflow_id,
-        checkpoint: report.checkpoint,
-        clearLocalSession: scope === 'ALL_PERSONAL_DATA',
-      })
-      if (result?.post_erasure_point?.status !== 'VERIFIED') throw new Error('baseline not verified')
-      setErasureState({
-        status: 'success',
-        message: '删除完成；删除后恢复基线已验证。',
-        report,
-      })
-      setErasurePreview(null)
-      setErasurePhrase('')
-      await refreshRecovery()
-      if (scope === 'ALL_PERSONAL_DATA') {
-        await logout()
-        navigate('/login')
-      }
-    } catch {
-      setErasureState({
-        status: 'partial',
-        message: '数据已删除，但恢复基线尚未完成；学习功能保持关闭，请重试。',
-        report,
-      })
-    }
-  }
-
   const confirmErasure = async () => {
     if (!erasurePreview || erasurePhrase !== erasurePreview.confirmation_phrase) return
-    setErasureState({ status: 'working', message: '正在删除并建立反复活检查点…', report: null })
+    setErasureState({ status: 'working', message: '正在删除受影响数据…', report: null })
     try {
       const report = await dataControlApi.confirmErasure({
         previewId: erasurePreview.preview_id,
@@ -724,36 +261,13 @@ export default function Settings() {
         confirmationPhrase: erasurePhrase,
         idempotencyKey: erasureCommandKey,
       })
-      if (report.status !== 'AWAITING_RECOVERY_BASELINE') {
-        setErasureState({ status: 'error', message: '删除未完成；受影响范围仍被关闭。', report })
-        return
-      }
-      await finishErasureBaseline(report, erasurePreview.scope)
+      setErasureState({ status: 'success', message: '删除已提交；受影响数据已删除。', report })
+      setErasurePreview(null)
+      setErasurePhrase('')
     } catch {
-      try {
-        const recovered = await dataControlApi.resumePendingErasure()
-        if (recovered?.post_erasure_point?.status === 'VERIFIED') {
-          setErasurePreview(null)
-          setErasureState({
-            status: 'success',
-            message: '删除完成；删除后恢复基线已验证。',
-            report: null,
-          })
-          await refreshRecovery()
-          return
-        }
-      } catch {}
       setErasureState({ status: 'error', message: '删除未完成；没有显示成功。', report: null })
     }
   }
-
-  const protectionLabel = {
-    READY: '已验证保护',
-    NOT_PROTECTED: '尚无已验证恢复点',
-    PARTIAL: '保护未完成',
-    ERROR: '保护异常',
-    UNSUPPORTED: '当前模式不支持',
-  }[recovery.data?.protection_state] || '正在读取'
 
   return (
     <div className="settings-page page-stack">
@@ -787,47 +301,6 @@ export default function Settings() {
           </dl>
         </section>
 
-        <section className="surface settings-section settings-section--wide">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <h2>恢复与备份</h2>
-              <p>恢复包经过加密与完整重开校验；可读数据导出不能用于恢复。</p>
-            </div>
-            <HardDrive size={18} />
-          </div>
-          {recovery.status === 'loading' && <p className="inline-state" role="status">正在读取保护状态…</p>}
-          {recovery.status === 'error' && <p className="inline-error" role="alert">{recovery.message}</p>}
-          {recovery.status === 'ready' && (
-            <>
-              <dl className="settings-list settings-recovery-status">
-                <div><dt>保护状态</dt><dd>{protectionLabel}</dd></div>
-                <div><dt>最近已验证恢复点</dt><dd>{recovery.data.last_verified ? new Date(recovery.data.last_verified.created_at).toLocaleString('zh-CN') : '无'}</dd></div>
-                <div><dt>删除检查点</dt><dd>{recovery.data.erasure_checkpoint}</dd></div>
-              </dl>
-              <label className="settings-inline-check">
-                <input type="checkbox" checked={saveExternalCopy} onChange={(event) => setSaveExternalCopy(event.target.checked)} />
-                同时保存一个经验证的外部副本（可防整盘故障）
-              </label>
-              <div className="settings-actions">
-                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('backup', () => dataControlApi.createVerifiedBackup({ saveExternalCopy }), '恢复点已创建并通过完整校验。')}>立即创建恢复点</button>
-                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('verify', dataControlApi.chooseAndVerifyBackup, '所选恢复点已通过完整校验。')}>校验恢复点</button>
-                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('restore', dataControlApi.chooseAndRestoreBackup, '恢复完成，当前数据已通过启动检查。')}><RotateCcw size={16} />恢复数据</button>
-                <button type="button" className="button button--secondary" onClick={revealKey}>显示 Recovery Key</button>
-                {recovery.data.protection_state === 'PARTIAL' && (
-                  <button type="button" className="button button--danger" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('resume-erasure', dataControlApi.resumePendingErasure, '删除后恢复基线已补齐。')}>完成删除后恢复基线</button>
-                )}
-              </div>
-              {recoveryKey && (
-                <div className="settings-recovery-key" role="status">
-                  <code>{recoveryKey}</code>
-                  <button type="button" onClick={() => setRecoveryKey('')}>隐藏</button>
-                </div>
-              )}
-              {recovery.message && <p className="settings-success" role="status">{recovery.message}</p>}
-            </>
-          )}
-        </section>
-
         <section className="surface settings-section">
           <div className="section-heading section-heading--compact">
             <div><h2>运行状态</h2></div>
@@ -845,8 +318,6 @@ export default function Settings() {
             </dl>
           )}
         </section>
-
-        <ModelSettingsPanel sectionRef={modelSectionRef} />
 
         <section className="surface settings-section settings-section--wide settings-erasure">
           <div className="section-heading section-heading--compact">
@@ -888,9 +359,6 @@ export default function Settings() {
               </label>
               <button type="button" className="button button--danger" onClick={confirmErasure} disabled={erasurePhrase !== erasurePreview.confirmation_phrase || erasureState.status === 'working'}>确认永久删除</button>
             </div>
-          )}
-          {erasureState.status === 'partial' && erasureState.report && (
-            <button type="button" className="button button--danger" onClick={() => finishErasureBaseline(erasureState.report, erasureScope)}>重试完成恢复基线</button>
           )}
           {erasureState.message && <p className={erasureState.status === 'success' ? 'settings-success' : 'inline-error'} role={erasureState.status === 'success' ? 'status' : 'alert'}>{erasureState.message}</p>}
           <p className="settings-help">删除全部个人数据与账号需要密码复验和 24 小时可取消等待期。</p>

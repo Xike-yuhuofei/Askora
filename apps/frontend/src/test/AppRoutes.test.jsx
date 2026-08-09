@@ -39,7 +39,6 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/evidence').type).toBe('page')
     expect(resolveRoute('/history').type).toBe('page')
     expect(resolveRoute('/settings').type).toBe('page')
-    expect(resolveRoute('/settings/models').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
   })
 

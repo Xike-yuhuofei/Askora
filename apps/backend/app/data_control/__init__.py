@@ -1,5 +1,5 @@
-"""Local desktop data-control maintenance capabilities."""
+"""Web data-control maintenance capabilities."""
 
-from app.data_control.recovery import RecoveryError, RecoveryManager
+from app.data_control.recovery import RecoveryError
 
-__all__ = ["RecoveryError", "RecoveryManager"]
+__all__ = ["RecoveryError"]

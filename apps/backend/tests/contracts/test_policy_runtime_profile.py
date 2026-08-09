@@ -32,8 +32,3 @@ def test_adr0003_production_profile_has_exact_digest_and_approved_behavior() -> 
     profile.assert_matches(bundle)
     assert profile.profile_id == "askora-v03-default-1"
     assert bundle.bundle_id == "askora-v03-default-bundle-1"
-
-
-def test_production_backend_bundle_includes_policy_artifact() -> None:
-    spec = (BACKEND_ROOT / "backend.spec").read_text(encoding="utf-8")
-    assert "('app/config', 'app/config')" in spec

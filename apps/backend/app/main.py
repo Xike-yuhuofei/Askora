@@ -11,19 +11,13 @@ FastAPI 主应用入口
 
 from __future__ import annotations
 
-import base64
-import hmac
-import re
-from collections import Counter
 from contextlib import asynccontextmanager
-from math import log2
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
 
 from app.api.v1 import (
     auth_router,
@@ -40,19 +34,11 @@ from app.api.v1 import (
     ws_router,
 )
 from app.api.v1.account import router as account_router
-from app.contracts.model_configuration import (
-    ModelConfigErrorCode,
-    ModelConfigErrorV1,
-)
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.exceptions import AppError
 from app.core.logging import get_logger, setup_logging
 from app.core.redis_client import close_redis, init_redis
-from app.core.startup_diagnostics import (
-    classify_database_startup_error,
-    emit_startup_diagnostic,
-)
 from app.data_control.erasure import erasure_fail_closed
 from app.observability import setup_observability
 
@@ -109,12 +95,7 @@ async def lifespan(app: FastAPI):
     )
 
     # 初始化数据库
-    try:
-        await init_db()
-    except Exception as exc:
-        code, retryable = classify_database_startup_error(exc)
-        emit_startup_diagnostic(code, retryable=retryable)
-        raise
+    await init_db()
     logger.info("database_initialized")
 
     # 恢复屏障与到期删除必须先于 Redis、模型和文档后台处理。
@@ -334,145 +315,17 @@ async def health_check():
 @app.get("/health/config", tags=["系统"])
 async def config_health_check():
     """系统运行配置状态"""
-    from app.orchestration.model_configuration import get_runtime_model_config_summary
-
+    provider = settings.llm_default_provider.value
+    api_key = getattr(settings, f"llm_{provider}_api_key")
     return {
         "status": "ok",
         "mode": "private" if settings.private_app else "service",
-        "model_configuration": get_runtime_model_config_summary().model_dump(mode="json"),
+        "model_configuration": {
+            "provider": provider,
+            "model": getattr(settings, f"llm_{provider}_model"),
+            "runtime_ready": bool(api_key),
+        },
     }
-
-
-_DESKTOP_CONTROL_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{64}")
-_DESKTOP_CONTROL_TOKEN_BYTES = 48
-_DESKTOP_CONTROL_TOKEN_MIN_UNIQUE_BYTES = 24
-_DESKTOP_CONTROL_TOKEN_MIN_SHANNON_ENTROPY = 4.75
-
-
-def _shannon_entropy(data: bytes) -> float:
-    counts = Counter(data)
-    total = len(data)
-    return -sum((count / total) * log2(count / total) for count in counts.values())
-
-
-def _has_repeated_block(data: bytes) -> bool:
-    for block_size in range(1, len(data) // 2 + 1):
-        if len(data) % block_size == 0 and data == data[:block_size] * (len(data) // block_size):
-            return True
-    return False
-
-
-def _is_high_entropy_desktop_control_token(token: str) -> bool:
-    """Validate Electron's 48-byte token against explicit statistical quality limits."""
-    if not _DESKTOP_CONTROL_TOKEN_PATTERN.fullmatch(token):
-        return False
-    try:
-        decoded = base64.urlsafe_b64decode(token + "==")
-    except (ValueError, UnicodeEncodeError):
-        return False
-    return (
-        len(decoded) == _DESKTOP_CONTROL_TOKEN_BYTES
-        and len(set(decoded)) >= _DESKTOP_CONTROL_TOKEN_MIN_UNIQUE_BYTES
-        and _shannon_entropy(decoded) >= _DESKTOP_CONTROL_TOKEN_MIN_SHANNON_ENTROPY
-        and not _has_repeated_block(decoded)
-    )
-
-
-def _model_config_error_response(*, status_code: int, error: ModelConfigErrorV1) -> JSONResponse:
-    return JSONResponse(status_code=status_code, content={"error": error.model_dump(mode="json")})
-
-
-def _is_authorized_desktop_control_request(request: Request) -> bool:
-    peer = request.client.host if request.client else ""
-    supplied_token = request.headers.get("x-askora-desktop-control", "")
-    return peer in {"127.0.0.1", "::1"} and hmac.compare_digest(
-        supplied_token, settings.desktop_control_token
-    )
-
-
-async def _desktop_control_ready(request: Request) -> JSONResponse:
-    """Authenticated child identity handshake; never a public health endpoint."""
-    if not _is_authorized_desktop_control_request(request):
-        correlation_id = getattr(request.state, "request_id", None)
-        return _model_config_error_response(
-            status_code=404,
-            error=ModelConfigErrorV1.for_code(
-                code=ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE,
-                message="本地模型控制面不可用",
-                correlation_id=correlation_id,
-            ),
-        )
-    return JSONResponse(status_code=200, content={"status": "ready"})
-
-
-async def _desktop_model_probe(request: Request) -> JSONResponse:
-    """Local-only credential probe; deliberately absent from public API/OpenAPI."""
-    from app.contracts.model_configuration import ModelConfigCandidateV1
-    from app.orchestration.model_configuration import (
-        ModelConfigurationProbeError,
-        probe_model_configuration,
-    )
-
-    correlation_id = getattr(request.state, "request_id", None)
-    if not _is_authorized_desktop_control_request(request):
-        return _model_config_error_response(
-            status_code=404,
-            error=ModelConfigErrorV1.for_code(
-                code=ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE,
-                message="本地模型控制面不可用",
-                correlation_id=correlation_id,
-            ),
-        )
-    try:
-        payload = await request.json()
-        candidate = ModelConfigCandidateV1.model_validate(payload)
-    except (ValidationError, ValueError, TypeError):
-        return _model_config_error_response(
-            status_code=422,
-            error=ModelConfigErrorV1.for_code(
-                code=ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED,
-                message="模型配置格式或 provider/model 组合不受支持",
-                correlation_id=correlation_id,
-            ),
-        )
-    try:
-        result = await probe_model_configuration(candidate, correlation_id=correlation_id)
-        return JSONResponse(status_code=200, content=result.model_dump(mode="json"))
-    except ModelConfigurationProbeError as exc:
-        error = ModelConfigErrorV1.for_code(
-            code=exc.code,
-            message=exc.message,
-            correlation_id=correlation_id,
-        )
-        status_code = 503 if error.retryable else 400
-        if exc.code == ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED:
-            status_code = 401
-        elif exc.code == ModelConfigErrorCode.MODEL_RATE_LIMITED:
-            status_code = 429
-        return _model_config_error_response(
-            status_code=status_code,
-            error=error,
-        )
-
-
-if (
-    settings.is_local
-    and settings.private_app
-    and settings.host in {"127.0.0.1", "::1", "localhost"}
-    and _is_high_entropy_desktop_control_token(settings.desktop_control_token)
-):
-    app.add_api_route(
-        "/_desktop/model-configuration/ready",
-        _desktop_control_ready,
-        methods=["GET"],
-        include_in_schema=False,
-    )
-    app.add_api_route(
-        "/_desktop/model-configuration/probe",
-        _desktop_model_probe,
-        methods=["POST"],
-        include_in_schema=False,
-    )
 
 
 # ========== API 路由 ==========
@@ -512,13 +365,6 @@ if settings.dev_auto_login_enabled:
 
 def main():
     """命令行启动入口"""
-    import sys
-
-    if len(sys.argv) > 1 and sys.argv[1] == "data-control":
-        from app.data_control.cli import main as data_control_main
-
-        raise SystemExit(data_control_main(sys.argv[2:]))
-
     import uvicorn
 
     target = "app.main:app" if settings.is_development else app
