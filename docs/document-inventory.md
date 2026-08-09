@@ -160,7 +160,7 @@
 | 文件 | 处置 | 说明 |
 |---|---|---|
 | `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033 已完成；P1-02、P1-03 与 P1-07 EXEC active |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033 |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-040 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -194,13 +194,13 @@
 | `docs/exec-plans/completed/EXEC-031-p1-04a-library-organization.md` | HISTORICAL-RETAIN | P1-04A completed execution contract |
 | `docs/exec-plans/completed/EXEC-032-p1-04b-library-deduplication.md` | HISTORICAL-RETAIN | P1-04B completed execution contract |
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
+| `docs/exec-plans/completed/EXEC-040-p1-02a-model-configuration-foundation.md` | HISTORICAL-RETAIN | P1-02A secure model configuration foundation completed contract |
 | `docs/exec-plans/active/EXEC-037-p1-07-error-recovery-center.md` | CURRENT-UPDATED | P1-07 active execution contract |
 | `docs/exec-plans/active/EXEC-1031-p1-03-recovery-foundation.md` | CANONICAL-RETAIN | P1-03 recovery foundation ready |
 | `docs/exec-plans/active/EXEC-1032-p1-03-verified-restore.md` | CANONICAL-RETAIN | P1-03 restore blocked by EXEC-1031 |
 | `docs/exec-plans/active/EXEC-1033-p1-03-user-data-export.md` | CANONICAL-RETAIN | P1-03 export blocked by EXEC-1032 |
 | `docs/exec-plans/active/EXEC-1034-p1-03-erasure-ui-release.md` | CANONICAL-RETAIN | P1-03 erasure/release blocked by EXEC-1033 |
-| `docs/exec-plans/active/EXEC-040-p1-02a-model-configuration-foundation.md` | CANONICAL-RETAIN | 已冻结并 active；P1-02 安全基础 |
-| `docs/exec-plans/active/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | 已冻结；等待 EXEC-040 完成 |
+| `docs/exec-plans/active/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | 已冻结并 active；P1-02 Settings 产品闭环 |
 
 ## 6. Release Evidence
 

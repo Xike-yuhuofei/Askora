@@ -322,7 +322,7 @@ eligible time，Key invalid 导航模型设置，quarantine 仅在新策略存�
 
 ### UI-SCREEN-097 — Configure and Verify
 
-v1 仅允许从受支持 provider/model allowlist 选择并输入 credential。主动作“验证并应用”必须先说明：测试使用固定 synthetic text，不发送个人资料，但可能产生少量 provider 调用成本。验证/应用期间动作不可重复提交；失败时保留本次表单输入于 renderer memory 供用户修正，但不得持久化。
+v1 仅允许从受支持 provider/model allowlist 选择并输入 credential。主动作“验证并应用”必须先说明：测试使用固定 synthetic text，不发送个人资料，但可能产生少量 provider 调用成本。验证/应用期间动作不可重复提交；为与 `MODEL-CONFIG-033` 的 secret lifetime 边界一致，提交完成（成功或失败）后必须清空 credential 字段，失败时要求用户重新输入，不得持久化或回填。
 
 ### UI-SCREEN-098 — Data and Cost Disclosure
 

@@ -1,6 +1,6 @@
 # EXEC-041 — P1-02B Model Settings Product Closure
 
-> Status：FROZEN / BLOCKED_BY_EXEC_040
+> Status：FROZEN / ACTIVE
 > Priority：P1 Product Reliability
 > Governing：ADR-0013、`MODEL-CONFIG-*`、P1-02 Vertical Slice
 
@@ -10,7 +10,7 @@
 
 ## Dependency Gate
 
-EXEC-040 必须归档、所有 AC PASS 并形成独立 commit。否则本 EXEC 不授权修改产品代码。
+EXEC-040 已归档，所有 foundation AC PASS，并形成独立集成提交 `d59837d`。
 
 ## Allowed Files
 
