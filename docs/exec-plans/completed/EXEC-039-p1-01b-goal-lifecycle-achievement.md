@@ -1,4 +1,4 @@
-# EXEC-038 — P1-01B Goal Lifecycle and Evidence-gated Achievement
+# EXEC-039 — P1-01B Goal Lifecycle and Evidence-gated Achievement
 
 > Status: DONE
 > Governing: ADR-0011, SYS06 Goal Management, P1-01B

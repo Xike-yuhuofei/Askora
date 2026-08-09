@@ -1,7 +1,7 @@
 # P1-01B Goal Lifecycle and Evidence-gated Achievement Completion Report
 
 > Date: 2026-08-09
-> Scope: EXEC-038
+> Scope: EXEC-039
 > Governing: ADR-0011, SYS06 Goal Management, P1-01B Vertical Slice
 
 ## 1. Final gate
@@ -30,19 +30,21 @@ P1-01B 已关闭。该结论证明目标生命周期、成功标准测量和证�
 ## 3. Automated gates
 
 ```text
-Backend full pytest on latest main integration: 453 passed, 6 skipped
+Backend full pytest on latest main integration: 488 passed, 7 skipped
 Backend ruff app/tests: PASS
-Backend mypy app: PASS (190 source files)
+Backend mypy app: PASS (202 source files)
 Alembic: single head; SQLite fresh upgrade, representative migration and alembic check PASS
-Frontend tests: 71 passed
+Frontend tests: 83 passed
 Frontend production build: PASS
 Frontend npm audit --omit=dev: 0 vulnerabilities
-Documentation checker: 173 files, 0 broken local links
+Documentation checker: 183 files, 0 broken local links
 ```
 
-PR 集成时已将 P1-01A migration 串行到 `main` 上 P1-03/onboarding 的 merge revision
-`m103f1061a01` 之后，避免形成第二个 Alembic head；20 项代表性迁移/恢复回归通过，
+PR 集成时已将 P1-01A migration 串行到 `main` 上 P1-05 account lifecycle head
+`f36c91b807d3` 之后，避免形成第二个 Alembic head；20 项代表性迁移/恢复回归通过，
 另 1 项 PostgreSQL 环境条件测试跳过。
+P1-01 新增表也已显式加入 P1-05 账号删除 subject registry：10 张用户目标表按 SYS06
+可擦除数据处理，achievement policy 表保持全局规则，grader payload 纳入删除扫描。
 
 覆盖包括 lifecycle expected-version/idempotency、Focus、exact resume、输入过期 replan、归档复制、
 暂停调度门禁、四类成功标准、确定性评分、开放题双重评分、相关活跃误解门禁、owner 隔离、

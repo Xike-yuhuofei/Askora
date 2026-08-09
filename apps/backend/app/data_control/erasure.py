@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, NoReturn, cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.schema import Table
@@ -36,7 +36,9 @@ from app.contracts.data_control import (
     ErasureScope,
     ErasureWorkflowStatus,
 )
+from app.core.database import Base
 from app.data_control.recovery import RecoveryError
+from app.infrastructure.privacy import FrozenSubjectManifest
 from app.models.adaptive import (
     ExperimentAssignmentRecord,
     LearningTrajectoryRecord,
@@ -53,7 +55,6 @@ from app.models.assessment import (
     LearnerStateRecord,
     MasteryEstimateRecord,
 )
-from app.models.consent import ConsentRecord
 from app.models.data_control import (
     DataErasureCheckpointRecord,
     DataErasureReceiptRecord,
@@ -79,7 +80,6 @@ from app.models.planning import (
     ReviewObservationRecord,
     ReviewScheduleRecord,
 )
-from app.models.profile import ChildProfile, ParentChildRelation, UserProfile
 from app.models.user import User
 
 PREVIEW_TTL = timedelta(minutes=10)
@@ -374,6 +374,7 @@ class DeletionOperation:
     table: Table
     primary_key: Any
     record_ids: tuple[Any, ...]
+    exact_predicates: tuple[Any, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -453,12 +454,14 @@ class ErasureCoordinator:
         documents_dir: Path,
         fail_closed_marker: Path,
         owner_failure_injector: Callable[[str], None] | None = None,
+        account_manifest: FrozenSubjectManifest | None = None,
     ) -> None:
         self.session = session
         self.registry = registry or preview_registry
         self.documents_dir = documents_dir.resolve()
         self.fail_closed_marker = fail_closed_marker.resolve()
         self.owner_failure_injector = owner_failure_injector
+        self.account_manifest = account_manifest
 
     async def preview(
         self,
@@ -466,6 +469,41 @@ class ErasureCoordinator:
         user: User,
         scope: ErasureScope,
         target_ref: str | None = None,
+    ) -> ErasurePreviewV1:
+        if scope == ErasureScope.ALL_PERSONAL_DATA:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_CONFIRMATION_INVALID,
+                "全部个人数据删除必须通过账号删除流程确认",
+            )
+        return await self._create_preview(user=user, scope=scope, target_ref=target_ref)
+
+    async def execute_authorized_account_deletion(
+        self,
+        *,
+        user: User,
+        account_request_id: UUID,
+    ) -> ErasureReportV1:
+        """Execute P1-05's accepted account authorization in the canonical workflow."""
+
+        preview = await self._create_preview(
+            user=user,
+            scope=ErasureScope.ALL_PERSONAL_DATA,
+            target_ref=None,
+        )
+        return await self.confirm(
+            user=user,
+            preview_id=preview.preview_id,
+            token=preview.confirmation_token,
+            confirmation_phrase=preview.confirmation_phrase,
+            idempotency_key=f"account-deletion:{account_request_id}",
+        )
+
+    async def _create_preview(
+        self,
+        *,
+        user: User,
+        scope: ErasureScope,
+        target_ref: str | None,
     ) -> ErasurePreviewV1:
         self._validate_target(scope, target_ref)
         plan = await self._build_plan(user, scope, target_ref)
@@ -514,28 +552,7 @@ class ErasureCoordinator:
                 self._confirmation_invalid()
             existing_report = ErasureReportV1.model_validate(existing.report)
             if existing_report.status == ErasureWorkflowStatus.PARTIAL:
-                try:
-                    self._purge_file_journal(UUID(existing.workflow_id))
-                except OSError:
-                    return existing_report
-                awaiting = existing_report.model_copy(
-                    update={
-                        "status": ErasureWorkflowStatus.AWAITING_RECOVERY_BASELINE,
-                        "reason_codes": (
-                            *existing_report.reason_codes,
-                            "DATA_ERASURE_FILE_CLEANUP_COMPLETED",
-                        ),
-                    }
-                )
-                existing.status = awaiting.status.value
-                existing.report = awaiting.model_dump(mode="json")
-                await self.session.commit()
-                self._write_marker(
-                    awaiting.workflow_id,
-                    awaiting.checkpoint,
-                    awaiting.status,
-                )
-                return awaiting
+                return await self.resume_committed_workflow(UUID(existing.workflow_id))
             if existing_report.status not in {
                 ErasureWorkflowStatus.FAILED_RETRYABLE,
             }:
@@ -584,6 +601,11 @@ class ErasureCoordinator:
             report=pending_report.model_dump(mode="json"),
         )
         self.session.add(workflow)
+        # SQLAlchemy cannot infer the insert dependency here because the ORM
+        # records intentionally do not expose a relationship.  Persist the
+        # workflow first so PostgreSQL never sees child steps before their
+        # foreign-key parent during an autoflush triggered below.
+        await self.session.flush()
         for ordinal, impact in enumerate(self._impacts(current_plan), start=1):
             self.session.add(
                 DataErasureStepRecord(
@@ -599,6 +621,90 @@ class ErasureCoordinator:
         await self.session.commit()
 
         return await self._run_workflow(workflow, preview, current_plan, pending_report)
+
+    async def resume_committed_workflow(self, workflow_id: UUID) -> ErasureReportV1:
+        """Finish file cleanup after the database receipt already committed."""
+
+        workflow = await self.session.get(DataErasureWorkflowRecord, str(workflow_id))
+        if workflow is None:
+            raise RecoveryError(DataControlErrorCode.ERASURE_PARTIAL, "删除工作流不存在")
+        report = ErasureReportV1.model_validate(workflow.report)
+        if report.status != ErasureWorkflowStatus.PARTIAL:
+            return report
+        try:
+            self._purge_file_journal(workflow_id)
+        except OSError:
+            return report
+        awaiting = report.model_copy(
+            update={
+                "status": ErasureWorkflowStatus.AWAITING_RECOVERY_BASELINE,
+                "reason_codes": (
+                    *report.reason_codes,
+                    "DATA_ERASURE_FILE_CLEANUP_COMPLETED",
+                ),
+            }
+        )
+        workflow.status = awaiting.status.value
+        workflow.report = awaiting.model_dump(mode="json")
+        await self.session.commit()
+        self._write_marker(awaiting.workflow_id, awaiting.checkpoint, awaiting.status)
+        return awaiting
+
+    async def complete_operational_no_resurrection(
+        self,
+        *,
+        workflow_id: UUID,
+        checkpoint: int,
+        barrier_digest: str,
+    ) -> ErasureReportV1:
+        """Complete non-desktop workflows from a verified operational barrier adapter."""
+
+        bind = self.session.get_bind()
+        if bind.dialect.name == "sqlite":
+            raise RecoveryError(
+                DataControlErrorCode.MODE_UNSUPPORTED,
+                "SQLite 必须创建 VERIFIED POST_ERASURE 恢复基线",
+            )
+        workflow = await self.session.get(DataErasureWorkflowRecord, str(workflow_id))
+        receipt = await self.session.scalar(
+            select(DataErasureReceiptRecord).where(
+                DataErasureReceiptRecord.workflow_id == str(workflow_id)
+            )
+        )
+        current_checkpoint = await self.session.get(DataErasureCheckpointRecord, 1)
+        if (
+            workflow is None
+            or receipt is None
+            or current_checkpoint is None
+            or workflow.checkpoint != checkpoint
+            or receipt.checkpoint != checkpoint
+            or current_checkpoint.checkpoint != checkpoint
+            or not barrier_digest.startswith("sha256:")
+        ):
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "删除检查点与运维防复活屏障不一致",
+            )
+        report = ErasureReportV1.model_validate(workflow.report)
+        if report.status == ErasureWorkflowStatus.COMPLETED:
+            return report
+        if report.status != ErasureWorkflowStatus.AWAITING_RECOVERY_BASELINE:
+            raise RecoveryError(DataControlErrorCode.ERASURE_PARTIAL, "删除工作流尚不可完成")
+        completed = report.model_copy(
+            update={
+                "status": ErasureWorkflowStatus.COMPLETED,
+                "completed_at": datetime.now(UTC),
+                "reason_codes": (
+                    *report.reason_codes,
+                    "DATA_OPERATIONAL_NO_RESURRECTION_BARRIER_VERIFIED",
+                ),
+            }
+        )
+        workflow.status = completed.status.value
+        workflow.report = completed.model_dump(mode="json")
+        await self.session.commit()
+        self._remove_matching_marker(workflow_id, checkpoint)
+        return completed
 
     async def _run_workflow(
         self,
@@ -1278,63 +1384,69 @@ class ErasureCoordinator:
         return DeletionPlan(operations=tuple(item for item in operations if item.record_ids))
 
     async def _all_personal_data_plan(self, user: User) -> DeletionPlan:
-        document_ids = await self._ids(
-            select(UserDocument.id).where(UserDocument.pseudonym_id == user.pseudonym_id)
-        )
-        plans = [await self._learning_plan(user), await self._model_execution_plan(user)]
-        for document_id in document_ids:
-            plans.append(await self._document_plan(user, str(document_id)))
-        identity_operations = (
-            await self._op(
-                "IDENTITY",
-                ConsentRecord,
-                ConsentRecord.id,
-                await self._ids(
-                    select(ConsentRecord.id).where(
-                        or_(
-                            ConsentRecord.user_id == user.id,
-                            ConsentRecord.guardian_user_id == user.id,
-                        )
+        manifest = self.account_manifest
+        if (
+            manifest is None
+            or manifest.user_id != user.id
+            or manifest.pseudonym_id != user.pseudonym_id
+            or manifest.policy_version != "account-deletion-v1"
+        ):
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_CONFIRMATION_INVALID,
+                "账号删除缺少冻结的全部个人数据清单",
+            )
+        if manifest.blocking_issues:
+            raise RecoveryError(
+                DataControlErrorCode.ERASURE_PARTIAL,
+                "全部个人数据范围存在无法安全归属的记录",
+            )
+
+        grouped: dict[tuple[str, str, str], list[Any]] = {}
+        composite_operations: list[DeletionOperation] = []
+        files: set[Path] = set()
+        for entry in manifest.entries:
+            if entry.file_path is not None:
+                files.add(self._resolve_document(entry.file_path))
+            if entry.table_name == "__local_files__":
+                continue
+            table = cast(Table, Base.metadata.tables[entry.table_name])
+            if len(entry.primary_key) != 1:
+                composite_operations.append(
+                    DeletionOperation(
+                        owner_system=entry.owner,
+                        table=table,
+                        primary_key=next(iter(table.primary_key.columns)),
+                        record_ids=(entry.record_id,),
+                        exact_predicates=(
+                            and_(
+                                *(table.c[column] == value for column, value in entry.primary_key)
+                            ),
+                        ),
                     )
-                ),
-            ),
-            await self._op(
-                "IDENTITY",
-                ParentChildRelation,
-                ParentChildRelation.id,
-                await self._ids(
-                    select(ParentChildRelation.id).where(
-                        or_(
-                            ParentChildRelation.parent_id == user.id,
-                            ParentChildRelation.child_id == user.id,
-                        )
-                    )
-                ),
-            ),
-            await self._op(
-                "IDENTITY",
-                ChildProfile,
-                ChildProfile.id,
-                await self._ids(
-                    select(ChildProfile.id).where(
-                        ChildProfile.child_pseudonym_id == user.pseudonym_id
-                    )
-                ),
-            ),
-            await self._op(
-                "IDENTITY",
-                UserProfile,
-                UserProfile.id,
-                await self._ids(
-                    select(UserProfile.id).where(UserProfile.pseudonym_id == user.pseudonym_id)
-                ),
-            ),
-            await self._op("IDENTITY", User, User.id, (user.id,)),
+                )
+                continue
+            column_name, value = entry.primary_key[0]
+            grouped.setdefault((entry.owner, entry.table_name, column_name), []).append(value)
+
+        operations = [
+            DeletionOperation(
+                owner_system=owner,
+                table=cast(Table, Base.metadata.tables[table_name]),
+                primary_key=Base.metadata.tables[table_name].c[column_name],
+                record_ids=tuple(record_ids),
+            )
+            for (owner, table_name, column_name), record_ids in grouped.items()
+        ]
+        operations.extend(composite_operations)
+        operations.append(
+            DeletionOperation(
+                owner_system="IDENTITY_FINALIZE",
+                table=cast(Table, User.__table__),
+                primary_key=User.id,
+                record_ids=(user.id,),
+            )
         )
-        plans.append(
-            DeletionPlan(operations=tuple(item for item in identity_operations if item.record_ids))
-        )
-        return self._merge_plans(*plans)
+        return DeletionPlan(operations=tuple(operations), files=tuple(sorted(files)))
 
     async def _execute_plan(
         self,
@@ -1347,11 +1459,14 @@ class ErasureCoordinator:
             if self.owner_failure_injector is not None and operation.owner_system not in injected:
                 injected.add(operation.owner_system)
                 self.owner_failure_injector(operation.owner_system)
+            predicate = (
+                or_(*operation.exact_predicates)
+                if operation.exact_predicates
+                else operation.primary_key.in_(operation.record_ids)
+            )
             result = cast(
                 CursorResult[Any],
-                await self.session.execute(
-                    delete(operation.table).where(operation.primary_key.in_(operation.record_ids))
-                ),
+                await self.session.execute(delete(operation.table).where(predicate)),
             )
             grouped[operation.owner_system] = grouped.get(operation.owner_system, 0) + int(
                 result.rowcount or 0
@@ -1615,6 +1730,19 @@ class ErasureCoordinator:
         finally:
             temporary.unlink(missing_ok=True)
 
+    def _remove_matching_marker(self, workflow_id: UUID, checkpoint: int) -> None:
+        if not self.fail_closed_marker.is_file():
+            return
+        try:
+            payload = json.loads(self.fail_closed_marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        if (
+            payload.get("workflow_id") == str(workflow_id)
+            and payload.get("checkpoint") == checkpoint
+        ):
+            self.fail_closed_marker.unlink(missing_ok=True)
+
     def _resolve_document(self, storage_path: str) -> Path:
         candidate = Path(storage_path)
         if candidate.is_absolute() or ".." in candidate.parts:
@@ -1641,6 +1769,10 @@ class ErasureCoordinator:
                     table=operation.table,
                     primary_key=operation.primary_key,
                     record_ids=tuple(ids),
+                    exact_predicates=(
+                        *(existing.exact_predicates if existing is not None else ()),
+                        *operation.exact_predicates,
+                    ),
                 )
         return DeletionPlan(tuple(merged.values()), tuple(sorted(files)))
 

@@ -2,7 +2,7 @@
 
 > 状态：Current Product Gap Register
 > 校准日期：2026-08-09
-> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-01、P1-03、P1-04 已关闭
+> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-01、P1-03、P1-04、P1-05 已关闭
 > 用途：记录产品完整性审计中仍未关闭的 P1、P2 问题
 > 权威边界：本文件是产品优先级与验收清单，不是 Spec、ADR 或 EXEC；实现前仍须按 `AGENTS.md` 完成治理闭环
 
@@ -10,7 +10,7 @@
 
 | 优先级 | 总数 | 完全未修复 | 部分改善 | 已关闭 |
 |---|---:|---:|---:|---:|
-| P1 — 可靠的私人产品 | 7 | 4 | 0 | 3 |
+| P1 — 可靠的私人产品 | 7 | 3 | 0 | 4 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
 本清单不包含已经通过发布门禁并归档的 P0；UI-02C“开始 → 恢复 → 完成 → 下一项”闭环已完成。
@@ -83,17 +83,17 @@ Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Brows
 
 ### P1-05 账号生命周期
 
-**状态：OPEN**
+**状态：DONE**
 
 [认证客户端](../apps/frontend/src/api/auth.js) 当前覆盖注册、登录、刷新令牌和退出。
 
-治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、`IDP-*` 与 P1-05 Vertical Slice 已冻结，按 EXEC-034 → 035 → 036 串行实施。P1-04 已通过 EXEC-031～033 完成并冻结；P1-05 不得改写其 owner、migration 或公共合同。
+治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、ADR-0107、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034～036 已串行完成；P1-03 合入后由 EXEC-037 将账号宽限/取消编排接到唯一 `ALL_PERSONAL_DATA` workflow，完整工程、所有权、迁移、恢复与真实浏览器证据见 [P1-05 Release Evidence](releases/p1-05-account-lifecycle.md)。
 
 方案边界：
 
 - Platform Identity 唯一拥有 credential version、durable AuthSession/token family 与离线 RecoveryCredential；Redis/前端不是 session truth；
-- Platform Privacy 只拥有 deletion request、subject manifest、owner step receipt、tombstone 与 restore barrier，不成为第九学习系统；
-- SYS01～SYS08 各自执行 owner erasure；删除账号复用同一数据清除 foundation，不直接 ORM cascade User；
+- Platform Privacy 只拥有 deletion request、subject manifest、tombstone projection 与 restore barrier adapter，不成为第九学习系统；
+- P1-03 `DataErasureWorkflowV1` 唯一拥有 owner step/receipt/checkpoint；删除账号固定调用 `ALL_PERSONAL_DATA`，不保留第二 erasure truth；
 - 首版使用离线恢复套件，不引入短信/邮件第三方身份服务。
 
 实施工作包：
@@ -105,6 +105,8 @@ Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Brows
 四个动作必须保持不同：退出当前 App 只撤销当前 session；撤销指定 App 只撤销该 token family；删除全部学习数据保留账号；删除账号删除全部用户数据并清除 credential/PII。
 
 完成标准：`IDP-AC-001..012` 与 `P105-AC-001..008` 全部满足；SQLite/PostgreSQL、Redis 故障、并发 refresh/delete、restart recovery、cross-user、文件/outbox/projection、旧快照 barrier、360px/200% zoom/keyboard 和真实浏览器通过；三份 EXEC 独立 commit/release evidence 完成后方可标 `DONE`。
+
+完成回执：上述门禁已于 2026-08-09 通过；Engineering 与 Policy/Ownership 为 `PASS`，Learning Evidence 为 `NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE`，项目整体学习证据状态保持不变。
 
 ### P1-06 首次使用引导
 

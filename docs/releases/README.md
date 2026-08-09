@@ -21,5 +21,6 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | P1-04 Library Management | [Completion Report](p1-04-library-management.md) | Engineering PASS / Contract, Ownership, Security PASS / Real Browser, Local OCR PASS / Learning Evidence Insufficient |
 | P1-01A Goal Definition, Draft and Safe Replan | [Completion Report](p1-01a-goal-definition-draft-replan.md) | Engineering PASS / Contract, Ownership, Security, Real Browser PASS / Learning Evidence Insufficient |
 | P1-01B Goal Lifecycle and Evidence-gated Achievement | [Completion Report](p1-01b-goal-lifecycle-achievement.md) | Engineering PASS / Contract, Ownership, Security, Real Model, Real Browser PASS / Learning Evidence Insufficient |
+| P1-05 Account Lifecycle | [Completion Report](p1-05-account-lifecycle.md) | Engineering PASS / Policy, Ownership PASS / Learning Evidence Not Applicable |
 
 任何新的发布声明都必须基于候选 SHA 的当前测试、迁移、构建和必要外部检查，不能只引用本目录中的历史结果。

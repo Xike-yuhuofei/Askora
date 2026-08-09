@@ -14,7 +14,7 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-PREVIOUS_HEAD = "m103f1061a01"
+PREVIOUS_HEAD = "f36c91b807d3"
 GOAL_A_HEAD = "d2f1010a37a1"
 GOAL_HEAD = "d2f1010b38b2"
 POSTGRES_TEST_URL = os.environ.get("ASKORA_POSTGRES_TEST_URL")

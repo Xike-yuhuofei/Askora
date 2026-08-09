@@ -227,6 +227,14 @@ Alembic schema coverage，不得只依赖本地 `create_all` 偶然建表。P1-0
 
 任一 step 失败时 workflow 为 `FAILED_RETRYABLE|FAILED_TERMINAL|PARTIAL`；target scope 保持不可见。UI 不得显示“删除完成”。Retry 只执行未完成的幂等 step；最终报告列出 owner/status/reason，不含被删内容。
 
+### DATA-078 — P1-05 Account Authorization Bridge
+
+P1-05 继续拥有账号删除的 password re-auth、精确确认短语、24h grace/cancel、session revoke 与 deletion-control token；这些记录是调用 `ALL_PERSONAL_DATA` 的 authorization/orchestration envelope，不是第二 erasure workflow。
+
+账号请求到期后 MUST 以稳定 request idempotency identity 调用本工作流。`data_erasure_workflows`、`data_erasure_steps`、`data_erasure_receipts` 与 `data_erasure_checkpoints` 是唯一执行 truth；P1-05 只能保存其 refs/digest 和最小 tombstone。P1-05 MUST NOT 写独立 owner-step receipt。
+
+当前 `ALL_PERSONAL_DATA` plan MUST 使用已登记的 exhaustive subject-binding coverage，包含后续落地的 activity、library、onboarding、auth/recovery 数据；P1-03/P1-05 governance rows 不作为用户正文删除。账号状态在 canonical partial/retry 或必需的 POST_ERASURE/no-resurrection maintenance 完成前 MUST 保持 `PURGING|DELETION_BLOCKED`，不得显示 `DELETED`。
+
 ## 9. API / IPC
 
 ### DATA-080

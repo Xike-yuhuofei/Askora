@@ -7,6 +7,10 @@ const authApi = vi.hoisted(() => ({
   loginWithPhone: vi.fn(),
   logout: vi.fn(),
   registerWithPhone: vi.fn(),
+  changePassword: vi.fn(),
+  listSessions: vi.fn(),
+  revokeOtherSessions: vi.fn(),
+  revokeSession: vi.fn(),
 }))
 
 vi.mock('../api/auth', () => authApi)

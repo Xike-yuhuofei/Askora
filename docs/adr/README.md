@@ -79,9 +79,11 @@ Codex 可以为该目标创建并接受 ADR，并继续同步 Spec、EXEC、代�
 | `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted | 2026-08-09 |
 | `ADR-0008` | Library Management, Deduplication and OCR Governance | accepted | 2026-08-09 |
+| `ADR-0009` | Local-first Identity and Privacy Lifecycle | accepted | 2026-08-09 |
 | `ADR-0010` | Goal Definition, State, Draft and Safe Replan | accepted | 2026-08-09 |
 | `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
+| `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | accepted | 2026-08-09 |
 
 ### v0.3 ADR-C Resolution
 

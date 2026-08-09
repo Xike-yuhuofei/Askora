@@ -15,6 +15,7 @@ import GoalDetail from './pages/GoalDetail'
 import GoalEditor from './pages/GoalEditor'
 import LearningPath from './pages/LearningPath'
 import Settings from './pages/Settings'
+import AccountDeletion from './pages/AccountDeletion'
 import Unavailable from './pages/Unavailable'
 import { Navigate, useLocation } from './router'
 
@@ -85,6 +86,7 @@ export function resolveRoute(pathname) {
 function AppRoutes() {
   const { pathname } = useLocation()
   if (pathname === '/login') return <Login />
+  if (pathname === '/settings/delete-account') return <AccountDeletion />
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />

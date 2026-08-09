@@ -120,11 +120,11 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 
 ### PERSIST-081 — Durable Identity and Privacy State
 
-`AuthSession`、`RecoveryCredential`、`AccountDeletionRequest`、subject manifest、owner step receipt 与 privacy tombstone MUST 持久化于 SQLite/PostgreSQL compatible store。Redis、renderer local state 或只存在内存的 token blacklist MUST NOT 成为唯一 truth。
+`AuthSession`、`RecoveryCredential`、`AccountDeletionRequest`、subject manifest 与 privacy tombstone projection MUST 持久化于 SQLite/PostgreSQL compatible store。owner step/workflow/receipt/checkpoint 唯一持久化 truth 是 P1-03 `DataErasureWorkflowV1` records；P1-05 request 只保存其 refs。Redis、renderer local state 或只存在内存的 token blacklist MUST NOT 成为唯一 truth。
 
 ### PERSIST-082 — Privacy Erasure
 
-隐私删除 MUST 使用 frozen manifest、per-owner idempotent step 与 reconciliation。普通 immutable repository 继续拒绝 delete；只有携带 deletion request/manifest 的 privacy-only repository MAY 按 `EVENT-071` 删除受保护 ledger。
+隐私删除 MUST 使用固定 scope、registered subject manifest、P1-03 per-owner idempotent step/receipt/checkpoint 与 reconciliation。普通 immutable repository 继续拒绝 delete；只有携带 canonical erasure workflow 与 accepted account authorization/manifest 的 privacy-only adapter MAY 按 `EVENT-071` 删除受保护 ledger。
 
 ### PERSIST-083 — Restore Barrier
 
