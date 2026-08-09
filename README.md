@@ -1,6 +1,8 @@
 # Askora
 
-Askora 是一个**私人自用、不公开发布**的本地 AI 学习 App。仓库包含 FastAPI 后端和 React/Vite 前端；当前开发路径为 Web-first / Web-only，默认运行边界是单用户、单设备、本地优先，而不是多租户 SaaS 或公共互联网服务。
+Askora 是一个**私人自用、不公开发布的本地单机 AI 学习 App**。目标产品形态是最终用户可在单台设备上直接运行的本地 App；当前 Web-first / Web-only 只是开发与验证路径，不代表目标部署形态。默认运行边界是单用户、单设备、本地执行、本地数据，而不是多租户 SaaS 或依赖公共互联网服务才能运行的产品。
+
+最终单机形态不应要求用户手工安装、启动或维护 Docker、Redis、PostgreSQL 或远程后端等基础设施；这些组件可以用于当前开发、测试或可选服务模式，但不得被默认为目标产品的强制运行前置条件。具体约束见 [System Architecture](docs/specs/architecture/system-architecture.md) 的 `ARCH-006`。
 
 私人使用不等于可以忽略安全。本地数据库、上传资料、LLM 密钥、JWT/加密密钥和备份均应按敏感数据处理；不得提交 `.env`、数据库、用户资料或构建产物。
 
