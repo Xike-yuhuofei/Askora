@@ -37,6 +37,7 @@ from app.contracts.learning import LearningActivity, LearningPlan
 from app.contracts.planning import LearningGoalV1
 from app.core.exceptions import BusinessError, ResourceNotFoundError
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
+from app.infrastructure.goal_management import GoalManagementRepository
 from app.infrastructure.ledger import LearningEventRepository
 from app.infrastructure.outbox import OutboxProducer
 from app.models.book_learning import BookLearningTranscriptTurnRecord
@@ -83,6 +84,7 @@ class ActivityLifecycleService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._states = ActivityLifecycleRepository(session)
+        self._goals = GoalManagementRepository(session)
 
     async def get(
         self, *, user: User, activity_id: UUID, correlation_id: UUID
@@ -115,6 +117,7 @@ class ActivityLifecycleService:
             return replay
 
         goal = await self._latest_goal(user=user, goal_id=goal_id)
+        await self._require_goal_active(user=user, goal_id=goal_id)
         plan_record = await self._session.scalar(
             select(LearningPlanRecord)
             .where(
@@ -198,6 +201,22 @@ class ActivityLifecycleService:
             digest=self._digest({"command": "SelectNextLearningActivity", "goal_id": str(goal_id)}),
         )
 
+    async def _require_goal_active(self, *, user: User, goal_id: UUID) -> None:
+        """Prevent SYS06 activity commands while a versioned goal is not active.
+
+        Legacy goals without a V2 state remain executable through the compatibility
+        path; once migrated, the append-only goal state is authoritative.
+        """
+        state = await self._goals.latest_state(
+            goal_id=goal_id,
+            user_id=canonical_user_id(user.id),
+        )
+        if state is None or state.status == "active":
+            return
+        if state.status == "paused":
+            raise _error("ACTIVITY_NOT_AVAILABLE", "目标已暂停，请先恢复目标")
+        raise _error("ACTIVITY_STALE_OR_SUPERSEDED", "目标已结束，当前活动不可执行")
+
     async def start(
         self,
         *,
@@ -214,12 +233,13 @@ class ActivityLifecycleService:
         if replay is not None:
             return replay
         context = await self._context(user=user, activity_id=command.activity_id, lock=True)
+        await self._require_goal_active(user=user, goal_id=context.goal.goal_id)
         state = await self._require_state(command.activity_id, lock=True)
         self._require_current_plan(context)
         if state.version != command.expected_state_version:
-            # A matching command can commit after the preflight receipt lookup but
-            # before this locked state read. Replay that winner instead of turning a
-            # successful idempotent duplicate into a version conflict.
+            # A concurrent duplicate may have advanced state while its receipt is
+            # not yet visible in this transaction snapshot. Refresh and use the
+            # same bounded replay window as the optimistic append path.
             await self._session.rollback()
             replay = await self._replay_after_concurrent_conflict(
                 user_id=owner_id,
@@ -283,6 +303,7 @@ class ActivityLifecycleService:
         if replay is not None:
             return replay
         context = await self._context(user=user, activity_id=command.activity_id, lock=True)
+        await self._require_goal_active(user=user, goal_id=context.goal.goal_id)
         state = await self._require_state(command.activity_id, lock=True)
         self._require_current_plan(context)
         if state.version != command.expected_state_version:
@@ -335,6 +356,34 @@ class ActivityLifecycleService:
         await self._publish_transition(
             user=user, context=context, state=completed, event_type="ActivityCompleted"
         )
+
+        # P1-01A: an approved replan is applied at the activity boundary before
+        # any next activity from the superseded plan becomes available.
+        from app.services.goal_management import GoalManagementService
+
+        replanned_activity_ref = await GoalManagementService(
+            self._session
+        ).apply_pending_at_boundary(
+            user=user,
+            completed_activity_id=command.activity_id,
+            correlation_id=correlation_id,
+            now=completed_at,
+        )
+        if replanned_activity_ref is not None:
+            response = self._response(
+                context,
+                completed,
+                correlation_id=correlation_id,
+                next_activity_ref=replanned_activity_ref,
+            )
+            return await self._receipt(
+                user_id=owner_id,
+                activity_id=command.activity_id,
+                command_type="CompleteLearningActivityV1",
+                idempotency_key=command.idempotency_key,
+                digest=digest,
+                response=response,
+            )
 
         next_ref: VersionedRef | None = None
         definitions = await self._ordered_definitions(context.plan)

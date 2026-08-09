@@ -282,3 +282,9 @@ Policy replay MUST 使用 event-time exact object/policy versions；缺失版本
 ## 13. Forbidden Implementations
 
 禁止：修改旧 event row；聊天消息表替代 event ledger；non-idempotent consumer 重复 mastery/review；policy replay 重新调用 LLM；完整用户文档复制进每个 payload；重复 EvidenceAccepted；仅记录 correct 而不记录 actual assistance/exposure；ledger host 取得 domain ownership；unknown diagnosis 强制分类；assignment probability 写成 action propensity；Outcome event 改写 DecisionTrace。
+
+## 14. P1-01 Goal Events
+
+SYS06 至少产生 `GoalDraftCreated/Previewed/Applied`、`GoalStateChanged`、`GoalFocusChanged`、
+`GoalAchievementEvaluated/Confirmed`。payload 只保存 exact refs、reason codes 与 policy version；不得复制
+全文资料、grader-only rubric 或把 plan/activity completion 写成 achievement。

@@ -1,4 +1,4 @@
-"""P1-07 and onboarding integration must leave one deployable migration head."""
+"""P1 integrations must leave one deployable migration head."""
 
 from pathlib import Path
 
@@ -6,11 +6,11 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-INTEGRATED_HEAD = "p107f36c1a03"
-EXPECTED_PARENTS = {"p107f1061a02", "f36c91b807d3"}
+INTEGRATED_HEAD = "p107d2f1a04"
+EXPECTED_PARENTS = {"p107f36c1a03", "d2f1010b38b2"}
 
 
-def test_p1_07_and_onboarding_migrations_have_one_integrated_head() -> None:
+def test_p1_migrations_have_one_integrated_head() -> None:
     config = Config(BACKEND_ROOT / "alembic.ini")
     scripts = ScriptDirectory.from_config(config)
 

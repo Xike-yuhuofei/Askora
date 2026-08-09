@@ -19,6 +19,8 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | Book-to-Adaptive-Learning | [Completion Report](book-to-adaptive-learning.md) | Engineering, Contract PASS / Policy, Ownership PASS / Learning Evidence Insufficient |
 | P1-03 Data Control and Recovery | [Completion Report](p1-03-data-control-recovery.md) | Engineering PASS / Policy, Ownership, Security PASS / Desktop Recovery E2E PASS / Learning Evidence Insufficient |
 | P1-04 Library Management | [Completion Report](p1-04-library-management.md) | Engineering PASS / Contract, Ownership, Security PASS / Real Browser, Local OCR PASS / Learning Evidence Insufficient |
+| P1-01A Goal Definition, Draft and Safe Replan | [Completion Report](p1-01a-goal-definition-draft-replan.md) | Engineering PASS / Contract, Ownership, Security, Real Browser PASS / Learning Evidence Insufficient |
+| P1-01B Goal Lifecycle and Evidence-gated Achievement | [Completion Report](p1-01b-goal-lifecycle-achievement.md) | Engineering PASS / Contract, Ownership, Security, Real Model, Real Browser PASS / Learning Evidence Insufficient |
 | P1-05 Account Lifecycle | [Completion Report](p1-05-account-lifecycle.md) | Engineering PASS / Policy, Ownership PASS / Learning Evidence Not Applicable |
 | P1-07 Error Recovery Center | [Completion Report](p1-07-error-recovery-center.md) | Engineering PASS / Policy, Ownership, Security, Product Usability PASS / Learning Evidence Insufficient |
 

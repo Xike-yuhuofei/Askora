@@ -42,4 +42,17 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/settings/models').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
   })
+
+  it('routes goal creation, draft, detail and edit without exposing ids as labels', () => {
+    expect(resolveRoute('/goals/new')).toMatchObject({ type: 'goal-editor' })
+    expect(resolveRoute('/goals/drafts/draft%201')).toMatchObject({
+      type: 'goal-editor', draftId: 'draft 1',
+    })
+    expect(resolveRoute('/goals/goal%201')).toMatchObject({
+      type: 'goal-detail', goalId: 'goal 1',
+    })
+    expect(resolveRoute('/goals/goal%201/edit')).toMatchObject({
+      type: 'goal-editor', editGoalId: 'goal 1',
+    })
+  })
 })

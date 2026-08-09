@@ -45,6 +45,8 @@
 | `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
 | `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN | P1-04 SYS01 metadata/search/dedup/OCR governance |
 | `docs/adr/ADR-0009-local-first-identity-privacy-lifecycle.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、privacy erasure 与 restore barrier 决策 |
+| `docs/adr/ADR-0010-goal-definition-state-draft-and-replan.md` | CANONICAL-RETAIN | P1-01A Definition/State/Draft/Replan 决策 |
+| `docs/adr/ADR-0011-goal-achievement-measurement-and-evidence-gate.md` | CANONICAL-RETAIN | P1-01B evidence-gated achievement 决策 |
 | `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN | P1-07 统一恢复控制面与 bootstrap diagnostics 决策 |
 | `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | P1-02 desktop credential、probe、activation、rollback 与 clear 决策 |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
@@ -59,6 +61,8 @@
 | `docs/releases/p1-03-data-control-recovery.md` | CURRENT-UPDATED | P1-03 Engineering、Policy/Ownership/Security、真实桌面恢复与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | UI-02B2 guided learning completion evidence snapshot |
 | `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN | P1-04 search、organization、deduplication 与 local OCR completion evidence |
+| `docs/releases/p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A Definition/Draft/Replan completion evidence |
+| `docs/releases/p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B Lifecycle/Achievement completion evidence |
 
 ## 3. Canonical Design 与 Research
 
@@ -132,6 +136,7 @@
 | `docs/specs/systems/05-teaching-policy.md` | CANONICAL-RETAIN | SYS05 contract |
 | `docs/specs/systems/06-learning-planner.md` | CANONICAL-RETAIN | SYS06 contract |
 | `docs/specs/systems/06-activity-lifecycle.md` | CANONICAL-RETAIN | SYS06 versioned activity start/resume/completion contract |
+| `docs/specs/systems/06-goal-management.md` | CANONICAL-RETAIN | SYS06 P1-01 goal definition/lifecycle/achievement contract |
 | `docs/specs/systems/06-goal-knowledge-mapping.md` | CANONICAL-RETAIN | SPEC-D04；LearningGoal→Knowledge mapping 冻结合同 |
 | `docs/specs/systems/06-prerequisite-diagnostic-bootstrap.md` | CANONICAL-RETAIN | SPEC-D05；prerequisite diagnostic bootstrap 冻结合同 |
 | `docs/specs/systems/07-review-scheduler.md` | CANONICAL-RETAIN | SYS07 contract |
@@ -164,12 +169,14 @@
 | `docs/specs/vertical-slices/p1-03-data-control-recovery.md` | CANONICAL-RETAIN | 冻结 P1-03 backup/restore/export/erasure Slice |
 | `docs/specs/vertical-slices/p1-02-model-settings.md` | CANONICAL-RETAIN | 冻结 P1-02 configure→probe→activate→relaunch 产品闭环 |
 | `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
+| `docs/specs/vertical-slices/p1-01a-goal-definition-draft-replan.md` | CANONICAL-RETAIN | 冻结 P1-01A Definition/Draft/Replan Slice；EXEC-038 |
+| `docs/specs/vertical-slices/p1-01b-goal-lifecycle-achievement.md` | CANONICAL-RETAIN | 冻结 P1-01B Lifecycle/Achievement Slice；EXEC-039 |
 
 ## 5. EXEC 历史合同
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～037、EXEC-040、EXEC-1031～1034、EXEC-1061 已完成；EXEC-041、EXEC-1062 active |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～040、EXEC-1031～1034、EXEC-1061 已完成；EXEC-041、EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -207,6 +214,8 @@
 | `docs/exec-plans/completed/EXEC-034-identity-session-foundation.md` | HISTORICAL-RETAIN | P1-05 durable session/password completed EXEC |
 | `docs/exec-plans/completed/EXEC-035-local-account-recovery.md` | HISTORICAL-RETAIN | P1-05 local recovery completed EXEC |
 | `docs/exec-plans/completed/EXEC-036-account-deletion-erasure.md` | HISTORICAL-RETAIN | P1-05 account deletion/erasure completed EXEC |
+| `docs/exec-plans/completed/EXEC-038-p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A completed execution contract |
+| `docs/exec-plans/completed/EXEC-039-p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B completed execution contract |
 | `docs/exec-plans/completed/EXEC-040-p1-02a-model-configuration-foundation.md` | HISTORICAL-RETAIN | P1-02A secure model configuration foundation completed contract |
 | `docs/exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md` | HISTORICAL-RETAIN | P1-07 completed execution contract |
 | `docs/exec-plans/completed/EXEC-1031-p1-03-recovery-foundation.md` | HISTORICAL-RETAIN | P1-03 recovery foundation completed EXEC |

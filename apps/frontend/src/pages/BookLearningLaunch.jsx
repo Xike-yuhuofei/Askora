@@ -300,25 +300,26 @@ export default function BookLearningLaunch({ documentId }) {
     )
   }
 
-  const createGoal = () => run(
-    () => bookLearningApi.createGoal(documentId, {
-      schema_version: '1.0',
-      intent: intent.trim(),
-      application_context: applicationContext.trim() || null,
-      deadline_at: deadline ? new Date(`${deadline}T23:59:59`).toISOString() : null,
-      weekly_time_budget_minutes: weeklyBudget ? Number(weeklyBudget) : null,
-      idempotency_key: operationKey(documentId, 'goal-create'),
-    }),
-    '学习目标没有保存成功，请检查输入后重试。',
-  )
+  const openCanonicalGoalDraft = (goal = null) => {
+    const params = new URLSearchParams({ source_document_id: documentId })
+    const title = goal?.title || intent.trim()
+    if (title) params.set('title', title)
+    if (title) params.set('topic', goal?.topic || title)
+    const context = goal?.application_context || applicationContext.trim()
+    if (context) params.set('application_context', context)
+    const budget = goal?.weekly_time_budget_minutes || weeklyBudget
+    if (budget) params.set('weekly_time_budget_minutes', String(budget))
+    if (deadline) params.set('deadline', deadline)
+    window.location.hash = `#/goals/new?${params.toString()}`
+  }
 
-  const confirmGoal = () => run(
+  const confirmLegacyGoal = () => run(
     () => bookLearningApi.confirmGoal(goalId, {
       schema_version: '1.0',
       confirmed_by_user: true,
       idempotency_key: operationKey(documentId, 'goal-confirm', goalId),
     }),
-    '学习目标没有确认成功，请重试。',
+    '旧版学习目标没有确认成功，请迁移到新版草稿后重试。',
   )
 
   const submitDiagnostic = async () => {
@@ -463,7 +464,7 @@ export default function BookLearningLaunch({ documentId }) {
     }
     if (readiness.state === 'READY_FOR_GOAL') {
       return (
-        <form className="learning-form" onSubmit={(event) => { event.preventDefault(); createGoal() }}>
+        <form className="learning-form" onSubmit={(event) => { event.preventDefault(); openCanonicalGoalDraft() }}>
           <div className="learning-form__intro"><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
           <label><span>我的学习目标</span><textarea value={intent} onChange={(event) => setIntent(event.target.value)} rows={4} maxLength={2000} placeholder="例如：掌握这本书的核心方法，并能用它分析一个新的案例。" required autoFocus /></label>
           <label><span>我准备用在（可选）</span><input value={applicationContext} onChange={(event) => setApplicationContext(event.target.value)} maxLength={500} placeholder="例如：工作中的数据分析" /></label>
@@ -483,8 +484,9 @@ export default function BookLearningLaunch({ documentId }) {
         <div className="goal-confirmation">
           <div><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
           <GoalSummary goal={details.goal} />
-          <button type="button" className="button button--primary button--prominent" onClick={confirmGoal} disabled={busy || !details.goal}><CheckCircle2 size={17} />确认并准备学习</button>
-          <p className="goal-confirmation__note">只有你能确认学习目标；系统不会替你作这个决定。</p>
+          <button type="button" className="button button--primary button--prominent" onClick={confirmLegacyGoal} disabled={busy || !details.goal}><CheckCircle2 size={17} />确认并准备学习</button>
+          <button type="button" className="button button--secondary" onClick={() => openCanonicalGoalDraft(details.goal)} disabled={busy || !details.goal}>迁移到新版目标草稿</button>
+          <p className="goal-confirmation__note">新目标默认进入新版草稿；这里仅保留已有旧候选的兼容确认。</p>
         </div>
       )
     }

@@ -425,3 +425,12 @@ FeedbackSignal
 - 激活失败后仍把新 revision 显示为已生效；
 - clear 仅删除内存值而允许 `.env` 重启恢复；
 - 用户点击“我会了”直接把 mastery label 改成 stable_mastery。
+
+## 19. P1-01 Definition, Draft and Goal State
+
+Definition immutable version stream；draft：`draft → preview_ready → applying → applied`，active activity
+时 `preview_ready → approved_pending_boundary → applying`；任意未应用状态可 `blocked|cancelled`。
+
+Goal State：`confirmed → active ↔ paused`、`active → achieved`、
+`confirmed|active|paused → archived`；achieved/archived terminal。Plan State：
+`active ↔ paused`、`active|paused → superseded`、`active → completed`。所有转换由 SYS06 写新 row。
