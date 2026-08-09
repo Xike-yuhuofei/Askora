@@ -58,6 +58,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [SYS04 Assessment](systems/04-assessment.md)
 - [SYS05 Teaching Policy](systems/05-teaching-policy.md)
 - [SYS06 Learning Planner](systems/06-learning-planner.md)
+- [SYS06 Goal Management](systems/06-goal-management.md) — versioned definition/state/draft/replan 与 evidence-gated achievement
 - [SYS06 Activity Lifecycle and Completion](systems/06-activity-lifecycle.md) — versioned start/resume/completion 与 next-activity progression
 - [SYS07 Review Scheduler](systems/07-review-scheduler.md)
 - [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
@@ -82,6 +83,8 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 ### Vertical Slices
 
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
+- [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-038 frozen
+- [P1-01A Goal Definition, Draft and Safe Replan](vertical-slices/p1-01a-goal-definition-draft-replan.md) — multi-source/explicit target/preview/boundary apply；EXEC-037 DONE
 - [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
 - [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
 - [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成

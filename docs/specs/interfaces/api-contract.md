@@ -182,3 +182,9 @@ state 或从 HTTP/free text 决定 recovery action。
 两端点 current-user scoped、strict v1、`private, no-store`。Preference command MUST 携带 expected
 version 与 idempotency key；response 不得包含 secret、Prompt、grader-only、raw provider body、绝对
 路径或其他用户 resource ref。
+
+## 14. P1-01 Goal API
+
+`/api/v1/goals` 提供 draft/query/preview/apply/state/evaluation command。每个 write body 必须携带
+expected aggregate version 与 idempotency key，correlation id 由 header/middleware 传播。legacy
+Book Learning goal writes 只能调用同一 SYS06 application service；前端迁移完成后停止旧合同写入。

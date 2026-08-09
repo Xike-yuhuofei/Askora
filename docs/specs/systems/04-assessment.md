@@ -226,3 +226,9 @@ v0.2 ErrorType 与整数帮助/暴露字段只允许 read adapter/audit。Canoni
 - system failure 算作 learner failure；
 - 未校准题库直接上 complex CAT；
 - v0.3 Offline/Online RL assessment control。
+
+## P1-01 Criterion Measurement
+
+SYS04 对 exact/numeric/structured criterion 优先确定性评分；开放回答必须使用 versioned rubric、
+exact source evidence、strict schema grader 与独立复核。grader-only input 不得泄漏 learner-visible。
+低置信、分歧、provider failure 或 Prompt Injection 标记 `needs_review/scoring_failed`，不得记 0 分。

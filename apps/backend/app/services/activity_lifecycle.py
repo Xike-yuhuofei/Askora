@@ -331,6 +331,34 @@ class ActivityLifecycleService:
             user=user, context=context, state=completed, event_type="ActivityCompleted"
         )
 
+        # P1-01A: an approved replan is applied at the activity boundary before
+        # any next activity from the superseded plan becomes available.
+        from app.services.goal_management import GoalManagementService
+
+        replanned_activity_ref = await GoalManagementService(
+            self._session
+        ).apply_pending_at_boundary(
+            user=user,
+            completed_activity_id=command.activity_id,
+            correlation_id=correlation_id,
+            now=completed_at,
+        )
+        if replanned_activity_ref is not None:
+            response = self._response(
+                context,
+                completed,
+                correlation_id=correlation_id,
+                next_activity_ref=replanned_activity_ref,
+            )
+            return await self._receipt(
+                user_id=owner_id,
+                activity_id=command.activity_id,
+                command_type="CompleteLearningActivityV1",
+                idempotency_key=command.idempotency_key,
+                digest=digest,
+                response=response,
+            )
+
         next_ref: VersionedRef | None = None
         definitions = await self._ordered_definitions(context.plan)
         states = await self._states.latest_for_plan(

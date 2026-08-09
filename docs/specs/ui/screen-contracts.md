@@ -369,3 +369,10 @@ reopen。配置/资料/Goal/activity 事实回退时页面必须撤销旧勾选�
 
 数据/模型说明必须准确引用 P1-02/P1-03 当前边界；不得展示 Key、路径或绝对隐私承诺。v1 不显示
 样例入口。360px/200% zoom/keyboard/focus/live status 下主动作和信任信息均可访问。
+
+## P1-01 Goal Management Screens
+
+`/goals/new`、`/goals/drafts/:draftId`、`/goals/:goalId`、`/goals/:goalId/edit` 必须展示资料状态、
+measurable criteria、target name/source/evidence/reason、definition/state/plan version 和 apply boundary。
+内部 target id 不作为主要文案。错误保留用户输入并提供刷新 preview/replan/retry；360/768/1024/1440、
+200% zoom、键盘与 focus 可操作。

@@ -226,3 +226,10 @@ row 的新用户首次查询创建 active v1，并发创建通过唯一约束 fe
 
 Preference 必须随 ALL_PERSONAL_DATA 删除，并在 logout/user switch/schema major change 清除 frontend
 read cache。localStorage/sessionStorage 不得成为 preference、journey 或 step truth。
+
+## 16. P1-01 Goal Persistence
+
+Definition/Goal State/Plan State/Draft/Preview/Focus/Evaluation/Policy 与 command receipt 使用
+SQLite/PostgreSQL compatible tables。状态、预览和 receipt 只能追加；effective refs 原子切换。
+Legacy Goal/Plan payload status 降为 initial snapshot，新写不得长期双写。迁移保留全部 legacy 历史并
+提供 semantic-fingerprint reconciliation、representative fixture、downgrade 或 forward-fix。

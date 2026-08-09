@@ -47,6 +47,7 @@
 
 .empty-panel h2, .empty-panel p { margin: 0; }
 .empty-panel p { max-width: 620px; color: var(--text-secondary); line-height: 1.6; }
+.goal-header-actions, .goal-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 
 @media (max-width: 680px) {
   .page-header--split, .product-row { align-items: stretch; flex-direction: column; }

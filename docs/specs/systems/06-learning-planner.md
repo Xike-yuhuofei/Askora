@@ -289,3 +289,9 @@ Plan 必须保存：
 ## Legacy Mapping
 
 当前仓库尚未形成明确独立 planner bounded context。与规划有关的逻辑若散落在 orchestrator/state_graph/dialog/strategy 中，迁移时 MUST 抽到 SYS06，而不是继续由 SYS08 或 SYS05 兼任。
+
+## P1-01 Goal Management Addendum
+
+ADR-0010/0011 与 `06-goal-management.md` additive supersede Deferred Goal Command。SYS06 分离
+Definition/State，维护 draft/preview/focus，活动边界安全 replan，并且只在证据门禁通过和用户最终确认
+后写 achieved。Book Learning 只保留 compatibility adapter。

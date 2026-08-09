@@ -169,3 +169,10 @@ ONBOARDING_DEPENDENCY_UNAVAILABLE
 
 依赖 owner error MUST 保留原 stable code 和服务端允许的 P1-07 recovery action。partial/stale source 可
 返回 read view，但不得映射为 READY；provider/document/activity failure 不得写 learner negative evidence。
+
+## 11. P1-01 Goal Errors
+
+Stable codes：`GOAL_VERSION_CONFLICT`、`GOAL_PREVIEW_STALE`、`GOAL_SOURCE_NOT_EXECUTABLE`、
+`GOAL_TARGET_CONFIRMATION_REQUIRED`、`GOAL_CRITERION_UNMEASURABLE`、
+`GOAL_WAITING_ACTIVITY_BOUNDARY`、`GOAL_REPLAN_REQUIRED`、`GOAL_EVIDENCE_INSUFFICIENT`、
+`GOAL_MEASUREMENT_UNAVAILABLE`。冲突/门禁失败不得终止当前活动或写 learner failure。

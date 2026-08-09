@@ -46,6 +46,15 @@ from app.models.document import (
     ProcessingStatus,
     UserDocument,
 )
+from app.models.goal_management import (
+    FocusedGoalStateRecord,
+    GoalChangePreviewRecord,
+    GoalDefinitionRecord,
+    GoalDraftRecord,
+    GoalManagementCommandReceiptRecord,
+    GoalPlanStateRecord,
+    GoalStateRecord,
+)
 from app.models.knowledge import KnowledgePoint, LearningMaterial
 from app.models.ledger import (
     DecisionTraceInputRecord,
@@ -116,6 +125,13 @@ __all__ = [
     "LearningPlanRecord",
     "ReviewObservationRecord",
     "ReviewScheduleRecord",
+    "GoalDefinitionRecord",
+    "GoalStateRecord",
+    "GoalPlanStateRecord",
+    "GoalDraftRecord",
+    "GoalChangePreviewRecord",
+    "FocusedGoalStateRecord",
+    "GoalManagementCommandReceiptRecord",
     "UserDocument",
     "DocumentChunk",
     "DocumentCollectionAssignment",
