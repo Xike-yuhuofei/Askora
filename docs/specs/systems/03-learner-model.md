@@ -224,3 +224,9 @@ Retirement condition：所有 active writers/readers 切至 v0.3 schema，旧记
 - answer-exposed correct 直接提升 stable mastery；
 - `missing assistance = independent`；
 - SYS03 预先完成 SYS05 validation obligation。
+
+## P1-01 Achievement Evidence Boundary
+
+SYS03 只从 SYS04 `accepted` AssessmentResult 接纳 criterion evidence。`needs_review/scoring_failed`、
+低置信、grader disagreement、provider failure 或 Prompt Injection 风险不得形成 learner failure 或
+achievement evidence。SYS03 不把 Goal state 写为 achieved。

@@ -11,6 +11,8 @@ import BookLearningLaunch from './pages/BookLearningLaunch'
 import ActivityLearning from './pages/ActivityLearning'
 import Evidence from './pages/Evidence'
 import Goals from './pages/Goals'
+import GoalDetail from './pages/GoalDetail'
+import GoalEditor from './pages/GoalEditor'
 import LearningPath from './pages/LearningPath'
 import Settings from './pages/Settings'
 import AccountDeletion from './pages/AccountDeletion'
@@ -54,6 +56,14 @@ export function resolveRoute(pathname) {
     }
   }
 
+  if (pathname === '/goals/new') return { type: 'goal-editor', shell: 'standard' }
+  const goalDraftMatch = pathname.match(/^\/goals\/drafts\/([^/]+)$/)
+  if (goalDraftMatch) return { type: 'goal-editor', draftId: decodeRouteParam(goalDraftMatch[1]), shell: 'standard' }
+  const goalEditMatch = pathname.match(/^\/goals\/([^/]+)\/edit$/)
+  if (goalEditMatch) return { type: 'goal-editor', editGoalId: decodeRouteParam(goalEditMatch[1]), shell: 'standard' }
+  const goalDetailMatch = pathname.match(/^\/goals\/([^/]+)$/)
+  if (goalDetailMatch) return { type: 'goal-detail', goalId: decodeRouteParam(goalDetailMatch[1]), shell: 'standard' }
+
   const activityMatch = pathname.match(/^\/learn\/([^/]+)$/)
   if (activityMatch) {
     return {
@@ -86,6 +96,8 @@ function AppRoutes() {
   else if (route.type === 'workspace') content = <TutorWorkspace sessionId={route.sessionId} />
   else if (route.type === 'book-learning') content = <BookLearningLaunch documentId={route.documentId} />
   else if (route.type === 'activity-learning') content = <ActivityLearning activityId={route.activityId} />
+  else if (route.type === 'goal-editor') content = <GoalEditor draftId={route.draftId} editGoalId={route.editGoalId} />
+  else if (route.type === 'goal-detail') content = <GoalDetail goalId={route.goalId} />
   else if (route.type === 'unavailable') content = <Unavailable kind={route.kind} />
   else content = <Unavailable kind="not-found" />
 

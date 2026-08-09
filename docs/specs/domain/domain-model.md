@@ -786,3 +786,10 @@ v0.3 canonical runtime MUST NOT 实现 Contextual Bandit、Offline/Online RL、D
 ## 23. Forbidden Domain Shortcuts
 
 禁止长期公共 `TutorState` 同时塞 mastery/plan/review/action；`AIJudgement` 同时承担 scoring+mastery；`KnowledgeChunk` 同时表示 retrieval chunk+KnowledgeUnit；无 provenance 的 `UserSkillScore`；不区分 LearningActivity/TeachingAction 的 `NextAction`；同时表示 retrievability/mastery 的 `MemoryScore`；LLM/Agent 持久化 LearnerState、Assessment truth、TeachingAction、LearningPlan、ReviewSchedule。
+
+## 24. P1-01 Goal Management Additions
+
+`LearningGoalDefinitionV2` 是不含 current status 的 immutable semantic version；
+`LearningGoalStateV1` 与 `LearningPlanStateV1` 是 append-only current truth；draft/preview/focus 是
+SYS06-owned control records。`LearningObjectiveV1` 把 criterion、cognitive process、target refs 与
+evidence requirements 结构化。`GoalAchievementEvaluationV1` 是证据门禁决定，不是 mastery truth。

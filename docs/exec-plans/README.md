@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：EXEC-030、P1-03、P1-04、P1-05 与 P1-05/P1-03 merge integration DONE；P1-06 独立推进
+> 状态：EXEC-030、P1-01、P1-03、P1-04、P1-05 与 P1-05/P1-03 merge integration DONE；P1-06 独立推进
 > Active：EXEC-1062（P1-06 product closure）
-> 已完成：EXEC-001～EXEC-037、EXEC-1031～1034、EXEC-1061
+> 已完成：EXEC-001～EXEC-039、EXEC-1031～1034、EXEC-1061
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -20,7 +20,7 @@ Accepted ADR / Canonical Design
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
 | `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06 product closure dependency-gated 队列；不得越过已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～037、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
+| [`completed/`](completed/README.md) | EXEC-001～039、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -60,6 +60,8 @@ P1-03 使用任务域保留编号，避免与并行 P1 工作流的普通连续�
 | P1-05 Local Account Recovery | EXEC-035 | DONE |
 | P1-05 Account Deletion and Erasure | EXEC-036 | DONE |
 | P1-05 / P1-03 Canonical Erasure Integration | [EXEC-037](completed/EXEC-037-p1-05-p1-03-erasure-integration.md) | DONE |
+| P1-01A Goal Definition, Draft and Safe Replan | [EXEC-038](completed/EXEC-038-p1-01a-goal-definition-draft-replan.md) | DONE |
+| P1-01B Goal Lifecycle and Evidence-gated Achievement | [EXEC-039](completed/EXEC-039-p1-01b-goal-lifecycle-achievement.md) | DONE |
 | P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
 | P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
 

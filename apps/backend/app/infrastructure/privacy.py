@@ -289,6 +289,46 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "goal_formation_inferences": _entry(
         "SYS06", _E, "model_inference", refs=("goal_id",), json=("payload",)
     ),
+    "focused_learning_goal_state_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload",),
+    ),
+    "goal_achievement_evaluation_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload",),
+    ),
+    "goal_achievement_policy_versions": _entry("SYS06", _G, "global_policy", json=("payload",)),
+    "goal_assessment_activity_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload", "grader_payload"),
+    ),
+    "goal_change_preview_versions": _entry(
+        "SYS06",
+        _E,
+        "candidate",
+        subject=("user_id",),
+        refs=("draft_id",),
+        json=("payload",),
+    ),
+    "goal_management_command_receipts": _entry(
+        "SYS06",
+        _E,
+        "command_receipt",
+        subject=("user_id",),
+        json=("response_payload",),
+    ),
     "goal_knowledge_mapping_versions": _entry(
         "SYS06", _E, "canonical", refs=("goal_id",), json=("payload",), propagate=("mapping_id",)
     ),
@@ -344,6 +384,31 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "learning_goal_versions": _entry(
         "SYS06", _E, "canonical", subject=("user_id",), json=("payload",), propagate=("goal_id",)
     ),
+    "learning_goal_definition_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        json=("payload",),
+        propagate=("goal_id",),
+    ),
+    "learning_goal_draft_versions": _entry(
+        "SYS06",
+        _E,
+        "candidate",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload",),
+        propagate=("draft_id",),
+    ),
+    "learning_goal_state_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload",),
+    ),
     "learning_materials": _entry("SYS01", _G, "global_canonical"),
     "library_collections": _entry(
         "SYS01", _E, "canonical", subject=("pseudonym_id",), propagate=("id",), within_order=15
@@ -375,6 +440,17 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         refs=("learning_goal_id",),
         json=("payload",),
         propagate=("plan_id",),
+    ),
+    "learning_plan_state_versions": _entry(
+        "SYS06", _E, "canonical", refs=("plan_id",), json=("payload",)
+    ),
+    "learning_objective_versions": _entry(
+        "SYS06",
+        _E,
+        "canonical",
+        subject=("user_id",),
+        refs=("goal_id",),
+        json=("payload",),
     ),
     "learning_trajectories": _entry(
         "SYS08_LEDGER",
