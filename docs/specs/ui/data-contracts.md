@@ -61,9 +61,9 @@ observed_at: datetime|null
 | `GET /api/v1/workspace/activities/{activity_id}` | future activity-link slice | DEFERRED_BY_ACTIVITY_LINK_CONTRACT |
 | `GET /api/v1/workspace/library` | UI-02A | REQUIRED |
 | `GET /api/v1/workspace/knowledge-map` | UI-02A | REQUIRED |
-| `GET /api/v1/workspace/goals` | UI-02B | NOT_STARTED |
-| `GET /api/v1/workspace/path` | UI-02B | NOT_STARTED |
-| `GET /api/v1/workspace/evidence` | UI-02B | NOT_STARTED |
+| `GET /api/v1/workspace/goals` | UI-02B / EXEC-029 | REQUIRED |
+| `GET /api/v1/workspace/path` | UI-02B / EXEC-029 | REQUIRED |
+| `GET /api/v1/workspace/evidence` | UI-02B / EXEC-029 | REQUIRED |
 
 这些 endpoint MUST 由 application/query layer 调用 owner query ports；API handler 只做 auth、validation、serialization 与 error mapping。
 
@@ -211,10 +211,11 @@ learning_path:
   reason_codes: [string]
   objectives:
     - objective_ref: versioned_ref
-      capability: string
-      cognitive_process: string
-      status: string
+      capability: string|null
+      cognitive_process: string|null
+      status: string|null
       activity_refs: [versioned_ref]
+      reason_codes: [string]
   activities:
     - activity_ref: versioned_ref
       objective_ref: versioned_ref
@@ -227,6 +228,18 @@ learning_path:
 ```
 
 前端不得根据 priority 重新排序并称为 canonical plan；服务端 response order 是展示基线。
+
+### UI-DATA-042 — Path Scope and Missing Objective Metadata
+
+`GET /workspace/path` MAY 接受 `goal_id` scope。未提供 scope 时：零个 current plan 返回 EMPTY；
+恰好一个可返回该 plan；多个 current plan MUST 返回
+`MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE`，不得以创建时间、priority 或前端选择
+隐式定义业务上的唯一 current plan。
+
+当前 SYS06 未发布 durable LearningObjective metadata stream。Query MUST 保留 exact objective ref，
+并将 capability/cognitive_process/status 返回为 null，附
+`OBJECTIVE_METADATA_UNAVAILABLE`。不得从 Goal title、Activity type、KnowledgeUnit 或 legacy
+字段推断。未来 SYS06 发布 versioned Objective 时 MAY additive 填充这些 nullable 字段。
 
 ## 6. ActivityWorkspaceViewV1
 
