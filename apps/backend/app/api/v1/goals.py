@@ -10,15 +10,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.goal_management import (
     ApplyGoalDraftCommandV1,
+    ConfirmGoalAchievementCommandV1,
     CreateEditGoalDraftCommandV1,
     CreateGoalDraftCommandV1,
+    EvaluateGoalAchievementCommandV1,
     FocusedLearningGoalStateV1,
+    GoalAchievementEvaluationV1,
+    GoalAchievementWorkspaceV1,
     GoalApplyResultV1,
+    GoalAssessmentActivityV1,
     GoalChangePreviewV1,
     GoalDetailV1,
+    GoalLifecycleCommandV1,
+    GoalLifecycleResultV1,
     GoalTargetCardsResponseV1,
     LearningGoalDraftV1,
     PreviewGoalDraftCommandV1,
+    ScheduleGoalAssessmentsCommandV1,
+    SubmitGoalAssessmentCommandV1,
     SuggestSuccessCriteriaRequestV1,
     SuggestSuccessCriteriaResponseV1,
     UpdateGoalDraftCommandV1,
@@ -185,6 +194,177 @@ async def get_focused_goal(
 ) -> FocusedLearningGoalStateV1:
     result = await GoalManagementService(db).get_focused_goal(user=current_user)
     response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.post("/{goal_id}/pause", response_model=GoalLifecycleResultV1)
+async def pause_goal(
+    goal_id: UUID,
+    body: GoalLifecycleCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalLifecycleResultV1:
+    result = await GoalManagementService(db).pause_goal(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/resume", response_model=GoalLifecycleResultV1)
+async def resume_goal(
+    goal_id: UUID,
+    body: GoalLifecycleCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalLifecycleResultV1:
+    result = await GoalManagementService(db).resume_goal(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/archive", response_model=GoalLifecycleResultV1)
+async def archive_goal(
+    goal_id: UUID,
+    body: GoalLifecycleCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalLifecycleResultV1:
+    result = await GoalManagementService(db).archive_goal(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/copy", response_model=GoalLifecycleResultV1)
+async def copy_archived_goal(
+    goal_id: UUID,
+    body: GoalLifecycleCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalLifecycleResultV1:
+    result = await GoalManagementService(db).copy_archived_goal(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/assessments", response_model=GoalAchievementWorkspaceV1)
+async def schedule_goal_assessments(
+    goal_id: UUID,
+    body: ScheduleGoalAssessmentsCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalAchievementWorkspaceV1:
+    result = await GoalManagementService(db).schedule_goal_assessments(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.get("/{goal_id}/achievement", response_model=GoalAchievementWorkspaceV1)
+async def get_goal_achievement_workspace(
+    goal_id: UUID,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalAchievementWorkspaceV1:
+    result = await GoalManagementService(db).get_achievement_workspace(
+        user=current_user, goal_id=goal_id, now=_now()
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.post(
+    "/{goal_id}/assessments/{activity_id}/submit",
+    response_model=GoalAssessmentActivityV1,
+)
+async def submit_goal_assessment(
+    goal_id: UUID,
+    activity_id: UUID,
+    body: SubmitGoalAssessmentCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalAssessmentActivityV1:
+    result = await GoalManagementService(db).submit_goal_assessment(
+        user=current_user,
+        goal_id=goal_id,
+        activity_id=activity_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/achievement/evaluate", response_model=GoalAchievementEvaluationV1)
+async def evaluate_goal_achievement(
+    goal_id: UUID,
+    body: EvaluateGoalAchievementCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalAchievementEvaluationV1:
+    result = await GoalManagementService(db).evaluate_goal_achievement(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
+    return result
+
+
+@router.post("/{goal_id}/achieve", response_model=GoalLifecycleResultV1)
+async def confirm_goal_achievement(
+    goal_id: UUID,
+    body: ConfirmGoalAchievementCommandV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GoalLifecycleResultV1:
+    result = await GoalManagementService(db).confirm_goal_achievement(
+        user=current_user,
+        goal_id=goal_id,
+        command=body,
+        correlation_id=_correlation_id(request),
+        now=_now(),
+    )
+    await db.commit()
     return result
 
 

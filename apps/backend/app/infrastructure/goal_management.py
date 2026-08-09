@@ -11,18 +11,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.goal_management import (
     FocusedLearningGoalStateV1,
+    GoalAchievementEvaluationV1,
+    GoalAchievementPolicyV1,
+    GoalAssessmentActivityV1,
     GoalChangePreviewV1,
     LearningGoalDefinitionV2,
     LearningGoalDraftV1,
     LearningGoalStateV1,
+    LearningObjectiveV1,
     LearningPlanStateV1,
 )
+from app.core.exceptions import BusinessError
 from app.models.goal_management import (
     FocusedGoalStateRecord,
+    GoalAchievementEvaluationRecord,
+    GoalAchievementPolicyRecord,
+    GoalAssessmentActivityRecord,
     GoalChangePreviewRecord,
     GoalDefinitionRecord,
     GoalDraftRecord,
     GoalManagementCommandReceiptRecord,
+    GoalObjectiveRecord,
     GoalPlanStateRecord,
     GoalStateRecord,
 )
@@ -51,7 +60,11 @@ class GoalManagementRepository:
         if record is None:
             return None
         if record.payload_digest != payload_digest:
-            raise ValueError("GOAL_IDEMPOTENCY_CONFLICT")
+            raise BusinessError(
+                message="该幂等键已用于不同命令内容",
+                error_code="GOAL_IDEMPOTENCY_CONFLICT",
+                status_code=409,
+            )
         return response_model.model_validate(record.response_payload)
 
     async def receipt(
@@ -221,6 +234,23 @@ class GoalManagementRepository:
         )
         await self.session.flush()
 
+    async def latest_plan_state(
+        self, *, plan_id: UUID, plan_version: int, lock: bool = False
+    ) -> LearningPlanStateV1 | None:
+        query = (
+            select(GoalPlanStateRecord)
+            .where(
+                GoalPlanStateRecord.plan_id == str(plan_id),
+                GoalPlanStateRecord.plan_version == plan_version,
+            )
+            .order_by(GoalPlanStateRecord.state_version.desc())
+            .limit(1)
+        )
+        if lock:
+            query = query.with_for_update()
+        record = await self.session.scalar(query)
+        return LearningPlanStateV1.model_validate(record.payload) if record else None
+
     async def latest_focus(self, *, user_id: UUID) -> FocusedLearningGoalStateV1 | None:
         record = await self.session.scalar(
             select(FocusedGoalStateRecord)
@@ -241,3 +271,145 @@ class GoalManagementRepository:
             )
         )
         await self.session.flush()
+
+    async def get_policy(self, *, policy_id: UUID, version: int) -> GoalAchievementPolicyV1 | None:
+        record = await self.session.scalar(
+            select(GoalAchievementPolicyRecord).where(
+                GoalAchievementPolicyRecord.policy_id == str(policy_id),
+                GoalAchievementPolicyRecord.policy_version == version,
+            )
+        )
+        return GoalAchievementPolicyV1.model_validate(record.payload) if record else None
+
+    async def save_policy(self, policy: GoalAchievementPolicyV1) -> None:
+        self.session.add(
+            GoalAchievementPolicyRecord(
+                id=f"{policy.policy_id}:{policy.policy_version}",
+                policy_id=str(policy.policy_id),
+                policy_version=policy.policy_version,
+                payload=policy.model_dump(mode="json"),
+            )
+        )
+        await self.session.flush()
+
+    async def save_objective(self, objective: LearningObjectiveV1, *, user_id: UUID) -> None:
+        self.session.add(
+            GoalObjectiveRecord(
+                id=f"{objective.objective_id}:{objective.objective_version}",
+                objective_id=str(objective.objective_id),
+                goal_id=str(objective.goal_id),
+                user_id=str(user_id),
+                objective_version=objective.objective_version,
+                criterion_id=str(objective.criterion_id),
+                payload=objective.model_dump(mode="json"),
+            )
+        )
+        await self.session.flush()
+
+    async def list_objectives(
+        self, *, goal_id: UUID, user_id: UUID, definition_version: int
+    ) -> tuple[LearningObjectiveV1, ...]:
+        records = (
+            await self.session.scalars(
+                select(GoalObjectiveRecord)
+                .where(
+                    GoalObjectiveRecord.goal_id == str(goal_id),
+                    GoalObjectiveRecord.user_id == str(user_id),
+                )
+                .order_by(GoalObjectiveRecord.criterion_id, GoalObjectiveRecord.objective_version.desc())
+            )
+        ).all()
+        latest: dict[str, GoalObjectiveRecord] = {}
+        for record in records:
+            objective = LearningObjectiveV1.model_validate(record.payload)
+            if objective.definition_version == definition_version:
+                latest.setdefault(record.criterion_id, record)
+        return tuple(LearningObjectiveV1.model_validate(item.payload) for item in latest.values())
+
+    async def save_assessment(
+        self, activity: GoalAssessmentActivityV1, *, grader_payload: dict[str, object]
+    ) -> None:
+        self.session.add(
+            GoalAssessmentActivityRecord(
+                id=f"{activity.assessment_activity_id}:{activity.activity_version}",
+                assessment_activity_id=str(activity.assessment_activity_id),
+                goal_id=str(activity.goal_id),
+                user_id=str(activity.user_id),
+                criterion_id=str(activity.criterion_id),
+                activity_version=activity.activity_version,
+                status=activity.status,
+                payload=activity.model_dump(mode="json"),
+                grader_payload=grader_payload,
+            )
+        )
+        await self.session.flush()
+
+    async def latest_assessment(
+        self, *, activity_id: UUID, user_id: UUID, lock: bool = False
+    ) -> tuple[GoalAssessmentActivityV1, dict[str, object]] | None:
+        query = (
+            select(GoalAssessmentActivityRecord)
+            .where(
+                GoalAssessmentActivityRecord.assessment_activity_id == str(activity_id),
+                GoalAssessmentActivityRecord.user_id == str(user_id),
+            )
+            .order_by(GoalAssessmentActivityRecord.activity_version.desc())
+            .limit(1)
+        )
+        if lock:
+            query = query.with_for_update()
+        record = await self.session.scalar(query)
+        if record is None:
+            return None
+        return GoalAssessmentActivityV1.model_validate(record.payload), record.grader_payload
+
+    async def list_assessments(
+        self, *, goal_id: UUID, user_id: UUID, definition_version: int
+    ) -> tuple[GoalAssessmentActivityV1, ...]:
+        records = (
+            await self.session.scalars(
+                select(GoalAssessmentActivityRecord)
+                .where(
+                    GoalAssessmentActivityRecord.goal_id == str(goal_id),
+                    GoalAssessmentActivityRecord.user_id == str(user_id),
+                )
+                .order_by(
+                    GoalAssessmentActivityRecord.assessment_activity_id,
+                    GoalAssessmentActivityRecord.activity_version.desc(),
+                )
+            )
+        ).all()
+        latest: dict[str, GoalAssessmentActivityV1] = {}
+        for record in records:
+            item = GoalAssessmentActivityV1.model_validate(record.payload)
+            if item.definition_version == definition_version:
+                latest.setdefault(record.assessment_activity_id, item)
+        return tuple(latest.values())
+
+    async def save_evaluation(self, evaluation: GoalAchievementEvaluationV1) -> None:
+        self.session.add(
+            GoalAchievementEvaluationRecord(
+                id=f"{evaluation.evaluation_id}:{evaluation.evaluation_version}",
+                evaluation_id=str(evaluation.evaluation_id),
+                goal_id=str(evaluation.goal_id),
+                user_id=str(evaluation.user_id),
+                evaluation_version=evaluation.evaluation_version,
+                eligible=evaluation.eligible_for_achievement,
+                payload=evaluation.model_dump(mode="json"),
+            )
+        )
+        await self.session.flush()
+
+    async def latest_evaluation(
+        self, *, goal_id: UUID, user_id: UUID
+    ) -> GoalAchievementEvaluationV1 | None:
+        record = await self.session.scalar(
+            select(GoalAchievementEvaluationRecord)
+            .where(
+                GoalAchievementEvaluationRecord.goal_id == str(goal_id),
+                GoalAchievementEvaluationRecord.user_id == str(user_id),
+            )
+            .order_by(GoalAchievementEvaluationRecord.evaluation_version.desc())
+            .limit(1)
+        )
+        return GoalAchievementEvaluationV1.model_validate(record.payload) if record else None

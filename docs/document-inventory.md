@@ -59,6 +59,7 @@
 | `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | UI-02B2 guided learning completion evidence snapshot |
 | `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN | P1-04 search、organization、deduplication 与 local OCR completion evidence |
 | `docs/releases/p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A Definition/Draft/Replan completion evidence |
+| `docs/releases/p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B Lifecycle/Achievement completion evidence |
 
 ## 3. Canonical Design 与 Research
 
@@ -164,8 +165,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033、EXEC-037、EXEC-1031～1034、EXEC-1061 已完成；P1-01B/P1-06 active queues |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-037、EXEC-1031～1034、EXEC-1061 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～033、EXEC-037～038、EXEC-1031～1034、EXEC-1061 已完成；P1-06 active queue |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～033、EXEC-037～038、EXEC-1031～1034、EXEC-1061 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -204,6 +205,7 @@
 | `docs/exec-plans/completed/EXEC-032-p1-04b-library-deduplication.md` | HISTORICAL-RETAIN | P1-04B completed execution contract |
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
 | `docs/exec-plans/completed/EXEC-037-p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A completed execution contract |
+| `docs/exec-plans/completed/EXEC-038-p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B completed execution contract |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 

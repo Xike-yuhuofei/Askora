@@ -2,7 +2,7 @@
 
 > 状态：Current Product Gap Register
 > 校准日期：2026-08-09
-> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-03、P1-04 已关闭
+> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-01、P1-03、P1-04 已关闭
 > 用途：记录产品完整性审计中仍未关闭的 P1、P2 问题
 > 权威边界：本文件是产品优先级与验收清单，不是 Spec、ADR 或 EXEC；实现前仍须按 `AGENTS.md` 完成治理闭环
 
@@ -10,7 +10,7 @@
 
 | 优先级 | 总数 | 完全未修复 | 部分改善 | 已关闭 |
 |---|---:|---:|---:|---:|
-| P1 — 可靠的私人产品 | 7 | 4 | 1 | 2 |
+| P1 — 可靠的私人产品 | 7 | 4 | 0 | 3 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
 本清单不包含已经通过发布门禁并归档的 P0；UI-02C“开始 → 恢复 → 完成 → 下一项”闭环已完成。
@@ -25,17 +25,18 @@
 
 ### P1-01 目标管理
 
-**状态：PARTIAL**
+**状态：DONE（2026-08-09）**
 
-P1-01A 已进入实现门禁：跨资料草稿、可测成功标准候选、显式 target 卡片、版本化预览、活动边界切换和 Focus 合同已经冻结并实现；P1-01B 生命周期与证据门禁达成仍待完成。
+P1-01A 与 P1-01B 已分别完成独立治理、实现、验证和本地提交门禁。用户现在可以跨资料创建与修订目标、显式确认学习重点、安全切换计划，并管理暂停、恢复、归档、复制和证据门禁达成的完整生命周期。
 
-仍缺：
+关闭证据：
 
-- 暂停、恢复和归档目标；
-- criterion-specific 测量、accepted evidence 与用户最终达成确认；
-- 归档后复制为新目标，以及暂停恢复时的输入过期 replan。
+- SYS06 append-only Goal/Plan state、expected version、幂等、Focus 清理、exact-plan resume 和输入过期 replan；
+- SYS04 criterion-specific 确定性/开放题双重评分，以及低置信、grader 分歧、provider failure 和 Prompt Injection fail-closed；
+- SYS03 只接纳 accepted AssessmentResult，达成评估逐条引用 exact result/evidence，最终由用户确认；
+- SQLite/PostgreSQL representative migration、replay/restart、owner/security、真实配置模型和真实浏览器闭环。
 
-完成标准：用户可在不理解内部 ID 的前提下管理完整目标生命周期；所有写入由 SYS06 owner command 完成，版本、幂等、replan 和 rollback/forward-fix 语义明确。
+完整证据见 [P1-01A Completion Report](releases/p1-01a-goal-definition-draft-replan.md) 与 [P1-01B Completion Report](releases/p1-01b-goal-lifecycle-achievement.md)。`goal achieved` 只表示该个人目标在相应 policy 版本下满足，不等于一般化 mastery 或真人学习效果证明。
 
 ### P1-02 模型设置体验
 

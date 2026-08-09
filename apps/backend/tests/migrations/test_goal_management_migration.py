@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 PREVIOUS_HEAD = "f1061a0b9c01"
-GOAL_HEAD = "d2f1010a37a1"
+GOAL_A_HEAD = "d2f1010a37a1"
+GOAL_HEAD = "d2f1010b38b2"
+POSTGRES_TEST_URL = os.environ.get("ASKORA_POSTGRES_TEST_URL")
 
 
 def _alembic(database_url: str, *arguments: str) -> None:
@@ -123,3 +125,64 @@ async def test_goal_migration_backfills_definition_state_and_candidate_draft(tmp
         assert legacy_count == 2
     await rolled_back.dispose()
     _alembic(url, "upgrade", GOAL_HEAD)
+
+
+@pytest.mark.asyncio
+async def test_goal_achievement_migration_rolls_back_without_touching_goal_history(tmp_path) -> None:
+    url = f"sqlite+aiosqlite:///{tmp_path / 'goal-achievement-migration.db'}"
+    _alembic(url, "upgrade", GOAL_HEAD)
+    engine = create_async_engine(url)
+    async with engine.connect() as connection:
+        tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
+        assert {
+            "goal_achievement_policy_versions",
+            "learning_objective_versions",
+            "goal_assessment_activity_versions",
+            "goal_achievement_evaluation_versions",
+        }.issubset(tables)
+    await engine.dispose()
+
+    _alembic(url, "downgrade", GOAL_A_HEAD)
+    rolled_back = create_async_engine(url)
+    async with rolled_back.connect() as connection:
+        tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
+        assert "goal_achievement_policy_versions" not in tables
+        assert "learning_goal_definition_versions" in tables
+    await rolled_back.dispose()
+    _alembic(url, "upgrade", GOAL_HEAD)
+
+
+def _postgres_async_url(value: str) -> str:
+    if value.startswith("postgresql+asyncpg://"):
+        return value
+    if value.startswith("postgresql://"):
+        return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+    raise ValueError("ASKORA_POSTGRES_TEST_URL must use PostgreSQL")
+
+
+@pytest.mark.skipif(
+    not POSTGRES_TEST_URL,
+    reason="ASKORA_POSTGRES_TEST_URL is required for PostgreSQL goal migration evidence",
+)
+@pytest.mark.asyncio
+async def test_postgres_head_contains_goal_achievement_constraints() -> None:
+    assert POSTGRES_TEST_URL is not None
+    engine = create_async_engine(_postgres_async_url(POSTGRES_TEST_URL))
+    async with engine.connect() as connection:
+        tables = await connection.run_sync(lambda sync: set(inspect(sync).get_table_names()))
+        assert {
+            "goal_achievement_policy_versions",
+            "learning_objective_versions",
+            "goal_assessment_activity_versions",
+            "goal_achievement_evaluation_versions",
+        } <= tables
+        unique_constraints = await connection.run_sync(
+            lambda sync: {
+                item["name"]
+                for item in inspect(sync).get_unique_constraints(
+                    "goal_assessment_activity_versions"
+                )
+            }
+        )
+        assert "uq_goal_assessment_activity_version" in unique_constraints
+    await engine.dispose()
