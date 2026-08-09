@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 from uuid import NAMESPACE_URL, UUID, uuid5
+from weakref import WeakValueDictionary
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.activity_lifecycle import StartLearningActivityV1
 from app.contracts.adaptive import (
     AvailabilityStatus,
     TeachingActionV03,
@@ -24,6 +27,9 @@ from app.contracts.book_learning import (
     BookLearningOwnerRefV1,
     BookLearningReadinessV1,
     BookLearningTeachingResponseV1,
+    BookLearningTranscriptEvidenceV1,
+    BookLearningTranscriptTurnV1,
+    BookLearningTranscriptV1,
     LearnerVisibleDiagnosticItemV1,
 )
 from app.contracts.events import (
@@ -31,32 +37,35 @@ from app.contracts.events import (
     EventActor,
     EventContext,
     EventPrivacy,
-    EventProvenance,
     EventProvenanceV03,
     EventTrace,
-    LearningEventEnvelope,
     LearningEventEnvelopeV03,
 )
 from app.contracts.learning import LearningActivity, LearningPlan, MasteryEstimate
+from app.contracts.model_execution import ModelExecutionV1
 from app.contracts.planning import LearningGoalV1
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.infrastructure.adaptive_records import (
     AdaptiveContractRepository,
     DecisionTraceV03Repository,
     LearningEventV03Repository,
 )
+from app.infrastructure.book_learning_transcript import BookLearningTranscriptRepository
 from app.infrastructure.learning_records import LearnerModelRepository
-from app.infrastructure.ledger import LearningEventRepository
 from app.infrastructure.planning_records import (
     DiagnosticNeedRepository,
     GoalPlanningRepository,
     LearningPlanRepository,
 )
 from app.models.adaptive import TeachingContextRecord
-from app.models.ledger import LearningEventRecord
+from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
+from app.models.planning import LearningActivityRecord, LearningPlanRecord
 from app.models.user import User
 from app.orchestration.learning_facade import CanonicalTurnRequest, LearningOrchestrationFacade
+from app.orchestration.model_rendering import ModelRenderingError
 from app.queries.book_learning import BookLearningReadinessQuery
 from app.queries.diagnostic_assessment import DiagnosticAssessmentItemQuery
+from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.assessment.diagnostic_bootstrap import (
     DiagnosticBootstrapResult,
     PrerequisiteDiagnosticService,
@@ -70,6 +79,18 @@ from app.services.policy_runtime import (
     PolicyRuntimeSelection,
 )
 from app.services.rag_service import PublishedKnowledgeRAGService
+
+_BOOK_TURN_LOCKS: WeakValueDictionary[tuple[int, str], asyncio.Lock] = WeakValueDictionary()
+
+
+def _book_turn_lock(key: str) -> asyncio.Lock:
+    loop = asyncio.get_running_loop()
+    scoped_key = (id(loop), key)
+    lock = _BOOK_TURN_LOCKS.get(scoped_key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _BOOK_TURN_LOCKS[scoped_key] = lock
+    return lock
 
 
 class BookLearningApplicationError(ValueError):
@@ -102,6 +123,7 @@ class BookLearningApplication:
         self._goal_repo = GoalPlanningRepository(db)
         self._need_repo = DiagnosticNeedRepository(db)
         self._plan_repo = LearningPlanRepository(db)
+        self._transcript_repo = BookLearningTranscriptRepository(db)
         self._learner_repo = LearnerModelRepository(db)
         self._readiness = BookLearningReadinessQuery(db)
         self._diagnostic_items = DiagnosticAssessmentItemQuery(db)
@@ -177,6 +199,166 @@ class BookLearningApplication:
         )
         return self._operation(
             "GetCurrentLearningPlan", correlation_id, plan=plan, activities=activities
+        )
+
+    async def advance(
+        self,
+        *,
+        user: User,
+        document_id: UUID,
+        idempotency_key: str,
+        correlation_id: UUID,
+        now: datetime | None = None,
+    ) -> BookLearningOperationResponseV1:
+        """Execute exactly one readiness-authorized, non-user-input owner command."""
+
+        user_id = str(canonical_user_id(user.id))
+        existing_advance = await self._transcript_repo.get_advance_by_idempotency(
+            user_id=user_id, idempotency_key=idempotency_key
+        )
+        if existing_advance is not None:
+            if existing_advance.document_id != str(document_id):
+                raise BookLearningApplicationError("BOOK_ADVANCE_IDEMPOTENCY_SCOPE_CONFLICT")
+            return BookLearningOperationResponseV1.model_validate(existing_advance.response_payload)
+        readiness = await self.readiness(
+            user=user,
+            document_id=document_id,
+            correlation_id=str(correlation_id),
+        )
+        allowed = {
+            "MapGoalToKnowledge",
+            "BuildGoalKnowledgeSubgraph",
+            "GeneratePrerequisiteDiagnosis",
+            "GenerateLearningPlan",
+            "SelectNextLearningActivity",
+        }
+        commands = tuple(command for command in readiness.next_commands if command in allowed)
+        if len(commands) != 1:
+            raise BookLearningApplicationError("BOOK_LEARNING_USER_INPUT_REQUIRED")
+        command = commands[0]
+        command_key = (
+            f"book-advance:{command}:{hashlib.sha256(idempotency_key.encode('utf-8')).hexdigest()}"
+        )
+        goal_id = self._readiness_ref_id(readiness, "LearningGoal")
+        if goal_id is None:
+            raise BookLearningApplicationError("BOOK_LEARNING_GOAL_REF_MISSING")
+
+        if command in {"MapGoalToKnowledge", "BuildGoalKnowledgeSubgraph"}:
+            await self.map_goal(
+                user=user,
+                goal_id=goal_id,
+                idempotency_key=command_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+        elif command == "GeneratePrerequisiteDiagnosis":
+            mapping = await self._goal_repo.latest_mapping(goal_id)
+            if mapping is None or not mapping.selected_target_ids:
+                raise BookLearningApplicationError("PRIMARY_DIAGNOSTIC_TARGET_MISSING")
+            subgraph = await self._goal_repo.latest_subgraph_for_mapping(mapping.mapping_id)
+            if subgraph is None:
+                raise BookLearningApplicationError("GOAL_SUBGRAPH_REQUIRED")
+            await self.start_diagnostic(
+                user=user,
+                mapping_id=mapping.mapping_id,
+                mapping_version=mapping.mapping_version,
+                subgraph_id=subgraph.subgraph_id,
+                subgraph_version=subgraph.version,
+                target_knowledge_unit_id=mapping.selected_target_ids[0],
+                max_attempts=3,
+                idempotency_key=command_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+        elif command == "GenerateLearningPlan":
+            mapping = await self._goal_repo.latest_mapping(goal_id)
+            if mapping is None:
+                raise BookLearningApplicationError("GOAL_KNOWLEDGE_MAPPING_NOT_FOUND")
+            need = await self._need_repo.latest_for_mapping(
+                mapping_id=mapping.mapping_id,
+                user_id=canonical_user_id(user.id),
+            )
+            if need is None:
+                raise BookLearningApplicationError("DIAGNOSTIC_NEED_NOT_FOUND")
+            await self.generate_plan(
+                user=user,
+                need_id=need.need_id,
+                idempotency_key=command_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+        else:
+            await self.select_next_activity(
+                user=user,
+                goal_id=goal_id,
+                idempotency_key=command_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+
+        next_readiness = await self.readiness(
+            user=user,
+            document_id=document_id,
+            correlation_id=str(correlation_id),
+        )
+        response = BookLearningOperationResponseV1(
+            operation="AdvanceBookLearning",
+            owner_refs=next_readiness.owner_refs,
+            payload={
+                "applied_command": command,
+                "readiness": next_readiness.model_dump(mode="json"),
+            },
+            correlation_id=str(correlation_id),
+        )
+        await self._transcript_repo.append_advance(
+            BookLearningAdvanceRecord(
+                advance_record_id=str(
+                    uuid5(
+                        NAMESPACE_URL,
+                        f"askora:book-advance:{user_id}:{idempotency_key}",
+                    )
+                ),
+                schema_version="1.0",
+                user_id=user_id,
+                document_id=str(document_id),
+                idempotency_key=idempotency_key,
+                applied_command=command,
+                response_payload=response.model_dump(mode="json"),
+                created_at=now or datetime.now(timezone.utc),
+            )
+        )
+        return response
+
+    async def get_transcript(
+        self,
+        *,
+        user: User,
+        activity_id: UUID,
+        correlation_id: UUID,
+    ) -> BookLearningTranscriptV1:
+        _goal, _plan, activity = await self._require_activity_for_user(
+            user=user, activity_id=activity_id
+        )
+        user_id = str(canonical_user_id(user.id))
+        records = await self._transcript_repo.list_for_activity(
+            user_id=user_id, activity_id=str(activity.activity_id)
+        )
+        session_id = self._transcript_session_id(user=user, activity=activity)
+        if records:
+            session_ids = {record.session_id for record in records}
+            if len(session_ids) != 1 or session_ids != {str(session_id)}:
+                raise BookLearningApplicationError("BOOK_TRANSCRIPT_SESSION_CONFLICT")
+        turns = tuple(self._transcript_turn(record) for record in records)
+        return BookLearningTranscriptV1(
+            session_id=session_id,
+            activity_ref=VersionedRef(
+                entity_type="LearningActivity",
+                entity_id=str(activity.activity_id),
+                version=activity.plan_version,
+            ),
+            turns=turns,
+            next_turn_number=(turns[-1].turn_number + 1 if turns else 1),
+            correlation_id=str(correlation_id),
         )
 
     async def create_goal_candidate(
@@ -350,34 +532,28 @@ class BookLearningApplication:
         )
         if activity is None:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_AVAILABLE")
-        event_repo = LearningEventRepository(self._db)
-        existing = await event_repo.get_by_idempotency_key(
-            f"book-activity-selected:{idempotency_key}"
-        )
-        if existing is not None:
-            expected_plan_ref = f"learning_plan:{plan.plan_id}:v{plan.version}"
-            if (
-                existing.context.user_id != canonical_user_id(user.id)
-                or existing.context.goal_id != goal.goal_id
-                or existing.aggregate_id != str(activity.activity_id)
-                or existing.payload.get("plan_ref") != expected_plan_ref
-            ):
-                raise BookLearningApplicationError("ACTIVITY_SELECTION_IDEMPOTENCY_CONFLICT")
-            return self._operation(
-                "SelectNextActivity", correlation_id, goal=goal, plan=plan, activity=activity
-            )
-        await self._require_book_state(user=user, goal=goal, expected="PLAN_READY")
-        selected_at = now or datetime.now(timezone.utc)
-        event = self._activity_selected_event(
+        lifecycle_service = ActivityLifecycleService(self._db)
+        lifecycle = await lifecycle_service.replay_select_next(
             user=user,
-            goal=goal,
-            plan=plan,
-            activity=activity,
+            goal_id=goal.goal_id,
             idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-            selected_at=selected_at,
         )
-        await event_repo.append(event)
+        if lifecycle is None:
+            await self._require_book_state(user=user, goal=goal, expected="PLAN_READY")
+            lifecycle = await lifecycle_service.select_next(
+                user=user,
+                goal_id=goal.goal_id,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+        selected_id = lifecycle.data.state.activity_id
+        activity = next(
+            (item for item in activities if item.activity_id == selected_id),
+            None,
+        )
+        if activity is None:
+            raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_AVAILABLE")
         return self._operation(
             "SelectNextActivity", correlation_id, goal=goal, plan=plan, activity=activity
         )
@@ -390,9 +566,43 @@ class BookLearningApplication:
         plan_id: UUID,
         plan_version: int,
         activity_id: UUID,
-        session_id: UUID,
+        session_id: UUID | None,
         turn_id: str,
-        learner_text: str,
+        learner_text: str | None,
+        idempotency_key: str,
+        correlation_id: UUID,
+        turn_kind: Literal["learner", "system_start"] = "learner",
+        now: datetime | None = None,
+    ) -> BookLearningTeachingResponseV1:
+        lock_key = f"{canonical_user_id(user.id)}:{idempotency_key}"
+        async with _book_turn_lock(lock_key):
+            return await self._start_teaching_round_locked(
+                user=user,
+                goal_id=goal_id,
+                plan_id=plan_id,
+                plan_version=plan_version,
+                activity_id=activity_id,
+                session_id=session_id,
+                turn_id=turn_id,
+                turn_kind=turn_kind,
+                learner_text=learner_text,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+
+    async def _start_teaching_round_locked(
+        self,
+        *,
+        user: User,
+        goal_id: UUID,
+        plan_id: UUID,
+        plan_version: int,
+        activity_id: UUID,
+        session_id: UUID | None,
+        turn_id: str,
+        turn_kind: Literal["learner", "system_start"],
+        learner_text: str | None,
         idempotency_key: str,
         correlation_id: UUID,
         now: datetime | None = None,
@@ -403,8 +613,53 @@ class BookLearningApplication:
             plan_id=plan_id,
             plan_version=plan_version,
             activity_id=activity_id,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            now=now,
         )
+        user_id = str(canonical_user_id(user.id))
+        transcript_session_id = self._transcript_session_id(user=user, activity=activity)
+        existing_turn = await self._transcript_repo.get_by_idempotency(
+            user_id=user_id, idempotency_key=idempotency_key
+        )
+        if existing_turn is not None:
+            expected_learner_text = learner_text.strip() if learner_text else None
+            if (
+                existing_turn.goal_id != str(goal.goal_id)
+                or existing_turn.plan_id != str(plan.plan_id)
+                or existing_turn.plan_version != plan.version
+                or existing_turn.activity_id != str(activity.activity_id)
+                or existing_turn.session_id != str(transcript_session_id)
+                or existing_turn.turn_id != turn_id
+                or existing_turn.turn_kind != turn_kind
+                or existing_turn.learner_text != expected_learner_text
+            ):
+                raise BookLearningApplicationError("BOOK_TRANSCRIPT_IDEMPOTENCY_CONFLICT")
+            return BookLearningTeachingResponseV1.model_validate(existing_turn.response_payload)
+
         await self._require_book_state(user=user, goal=goal, expected="READY_TO_LEARN")
+        existing_activity_turns = await self._transcript_repo.list_for_activity(
+            user_id=user_id, activity_id=str(activity.activity_id)
+        )
+        if turn_kind == "system_start" and existing_activity_turns:
+            raise BookLearningApplicationError("BOOK_SYSTEM_START_ALREADY_ACCEPTED")
+        if turn_kind == "system_start":
+            resolved_text = (
+                f"请开始本次学习活动。学习主题：{goal.topic}；"
+                f"目标能力：{goal.target_capabilities[0]}。"
+                "依据资料先提出一个聚焦的引导问题，"
+                "不要假设学习者已经掌握，也不要把这个系统指令当作学习者回答。"
+            )
+            stored_learner_text = None
+        else:
+            resolved_text = (learner_text or "").strip()
+            if not resolved_text:
+                raise BookLearningApplicationError("BOOK_LEARNER_TEXT_REQUIRED")
+            stored_learner_text = resolved_text
+        accepted_at = now or datetime.now(timezone.utc)
+        turn_number = await self._transcript_repo.next_turn_number(
+            session_id=str(transcript_session_id)
+        )
         try:
             runtime = await self._policy_runtime.resolve()
         except PolicyRuntimeResolutionError as exc:
@@ -416,7 +671,7 @@ class BookLearningApplication:
             plan=plan,
             activity=activity,
             idempotency_key=idempotency_key,
-            decision_time=now or datetime.now(timezone.utc),
+            decision_time=accepted_at,
         )
         inputs = await self._retrieval.load_adaptive_input(
             pseudonym_id=user.pseudonym_id,
@@ -425,25 +680,33 @@ class BookLearningApplication:
         records = AdaptiveContractRepository(self._db)
         await records.publish_policy_bundle(runtime.bundle)
         await records.save_context(context)
-        result = await self._teaching.run_turn(
-            CanonicalTurnRequest(
-                session_id=str(session_id),
-                user_id=user.id,
-                text=learner_text,
-                turn_id=turn_id,
-                subject=goal.topic,
-                knowledge_point_id=(
-                    str(activity.knowledge_unit_ids[0]) if activity.knowledge_unit_ids else None
-                ),
-                correlation_id=str(correlation_id),
-                teaching_context_v03=context,
-                policy_bundle_v03=runtime.bundle,
-                policy_profile_v03=runtime.profile,
-                adaptive_retrieval_candidates=inputs.candidates,
-                adaptive_source_scope=inputs.source_scope,
-                adaptive_index_versions=inputs.index_versions,
-            )
+        inference_id = uuid5(
+            NAMESPACE_URL,
+            f"askora:book-model-inference:{user_id}:{idempotency_key}",
         )
+        try:
+            result = await self._teaching.run_turn(
+                CanonicalTurnRequest(
+                    session_id=str(transcript_session_id),
+                    user_id=user.id,
+                    text=resolved_text,
+                    turn_id=turn_id,
+                    subject=goal.topic,
+                    knowledge_point_id=(
+                        str(activity.knowledge_unit_ids[0]) if activity.knowledge_unit_ids else None
+                    ),
+                    correlation_id=str(correlation_id),
+                    model_inference_id=str(inference_id),
+                    teaching_context_v03=context,
+                    policy_bundle_v03=runtime.bundle,
+                    policy_profile_v03=runtime.profile,
+                    adaptive_retrieval_candidates=inputs.candidates,
+                    adaptive_source_scope=inputs.source_scope,
+                    adaptive_index_versions=inputs.index_versions,
+                )
+            )
+        except ModelRenderingError as exc:
+            raise BookLearningApplicationError(str(exc)) from exc
         if (
             result.teaching_action_v03 is None
             or result.decision_trace_v03 is None
@@ -454,6 +717,34 @@ class BookLearningApplication:
             raise BookLearningApplicationError("CANONICAL_TEACHING_HANDOFF_INCOMPLETE")
         await records.save_action(result.teaching_action_v03)
         await DecisionTraceV03Repository(self._db).append(result.decision_trace_v03)
+        model_execution = result.adaptive_execution_v03.model_execution
+        event_records = LearningEventV03Repository(self._db)
+        model_event: LearningEventEnvelopeV03 | None = None
+        if model_execution is not None and model_execution.mode == "real_model":
+            model_event = self._model_inference_event(
+                user=user,
+                goal=goal,
+                activity=activity,
+                teaching_action=result.teaching_action_v03,
+                evidence_bundle_id=result.evidence_bundle_v03.bundle_id,
+                evidence_bundle_version=result.evidence_bundle_v03.bundle_schema_version,
+                model_execution=model_execution,
+                response_length=len(result.reply_text),
+                session_id=transcript_session_id,
+                correlation_id=correlation_id,
+                occurred_at=context.decision_time,
+            )
+            existing_model_event = await event_records.get(model_event.event_id)
+            if existing_model_event is not None:
+                if (
+                    existing_model_event.aggregate_id != model_event.aggregate_id
+                    or existing_model_event.payload != model_event.payload
+                    or existing_model_event.context.user_id != model_event.context.user_id
+                ):
+                    raise BookLearningApplicationError("MODEL_INFERENCE_IDEMPOTENCY_CONFLICT")
+                model_event = existing_model_event
+            else:
+                await event_records.append(model_event)
         assistance_event = self._actual_assistance_event(
             user=user,
             goal=goal,
@@ -462,11 +753,10 @@ class BookLearningApplication:
             event_payload=result.actual_assistance_event_v03,
             response_id=result.adaptive_execution_v03.response_id,
             policy_version=runtime.bundle.policy_version,
-            session_id=session_id,
+            session_id=transcript_session_id,
             correlation_id=correlation_id,
             occurred_at=context.decision_time,
         )
-        event_records = LearningEventV03Repository(self._db)
         existing_assistance_event = await event_records.get(assistance_event.event_id)
         if existing_assistance_event is not None:
             if (
@@ -478,7 +768,7 @@ class BookLearningApplication:
             assistance_event = existing_assistance_event
         else:
             await event_records.append(assistance_event)
-        refs = (
+        refs = [
             self._owner_ref("SYS06", "LearningGoal", goal.goal_id, goal.version, goal.status),
             self._owner_ref("SYS06", "LearningPlan", plan.plan_id, plan.version, plan.status),
             self._owner_ref(
@@ -509,13 +799,134 @@ class BookLearningApplication:
                 assistance_event.schema_version,
                 "recorded",
             ),
-        )
-        return BookLearningTeachingResponseV1(
+        ]
+        if model_event is not None and model_execution is not None:
+            refs.append(
+                self._owner_ref(
+                    "SYS08",
+                    "ModelInference",
+                    model_execution.inference_id,
+                    model_execution.schema_version,
+                    "completed",
+                )
+            )
+        response = BookLearningTeachingResponseV1(
             reply_text=result.reply_text,
             teaching_action=result.teaching_action_v03,
             evidence_bundle=result.evidence_bundle_v03,
-            owner_refs=refs,
+            owner_refs=tuple(refs),
+            session_id=transcript_session_id,
+            turn_id=turn_id,
+            turn_number=turn_number,
+            turn_kind=turn_kind,
+            accepted_at=accepted_at,
             correlation_id=str(correlation_id),
+            model_execution=model_execution,
+        )
+        await self._transcript_repo.append(
+            BookLearningTranscriptTurnRecord(
+                turn_record_id=str(
+                    uuid5(
+                        NAMESPACE_URL,
+                        f"askora:book-transcript-turn:{transcript_session_id}:{turn_number}",
+                    )
+                ),
+                schema_version="1.0",
+                user_id=user_id,
+                goal_id=str(goal.goal_id),
+                plan_id=str(plan.plan_id),
+                plan_version=plan.version,
+                activity_id=str(activity.activity_id),
+                session_id=str(transcript_session_id),
+                turn_id=turn_id,
+                turn_number=turn_number,
+                turn_kind=turn_kind,
+                idempotency_key=idempotency_key,
+                learner_text=stored_learner_text,
+                response_payload=response.model_dump(mode="json"),
+                created_at=accepted_at,
+            )
+        )
+        return response
+
+    @staticmethod
+    def _model_inference_event(
+        *,
+        user: User,
+        goal: LearningGoalV1,
+        activity: LearningActivity,
+        teaching_action: TeachingActionV03,
+        evidence_bundle_id: UUID,
+        evidence_bundle_version: str,
+        model_execution: ModelExecutionV1,
+        response_length: int,
+        session_id: UUID,
+        correlation_id: UUID,
+        occurred_at: datetime,
+    ) -> LearningEventEnvelopeV03:
+        event_id = uuid5(
+            NAMESPACE_URL,
+            f"askora:model-inference-completed:{model_execution.inference_id}",
+        )
+        return LearningEventEnvelopeV03(
+            event_id=event_id,
+            event_type="ModelInferenceCompleted",
+            aggregate_type="ModelInference",
+            aggregate_id=model_execution.inference_id,
+            aggregate_version=1,
+            sequence=1,
+            occurred_at=occurred_at,
+            recorded_at=occurred_at,
+            idempotency_key=f"book-model-inference:{model_execution.inference_id}",
+            correlation_id=correlation_id,
+            causation_id=teaching_action.action_id,
+            actor=EventActor(
+                actor_type="model",
+                actor_id=f"{model_execution.provider}:{model_execution.model}",
+            ),
+            context=EventContext(
+                user_id=canonical_user_id(user.id),
+                session_id=session_id,
+                goal_id=goal.goal_id,
+                knowledge_unit_ids=list(activity.knowledge_unit_ids),
+                content_revision_ids=[],
+            ),
+            producer_system="SYS08",
+            payload={
+                "task_type": "policy_bound_language_realization",
+                "workflow_version": "book-learning-teaching/1.0",
+                "teaching_action_ref": {
+                    "entity_type": "TeachingAction",
+                    "entity_id": str(teaching_action.action_id),
+                    "version": teaching_action.action_schema_version,
+                },
+                "evidence_bundle_ref": {
+                    "entity_type": "EvidenceBundle",
+                    "entity_id": str(evidence_bundle_id),
+                    "version": evidence_bundle_version,
+                },
+                "response_length": response_length,
+                "latency_ms": model_execution.latency_ms,
+                "token_usage": {
+                    "input": model_execution.input_tokens,
+                    "output": model_execution.output_tokens,
+                    "total": model_execution.total_tokens,
+                },
+            },
+            provenance=EventProvenanceV03(
+                source="orchestrator",
+                model_provider=model_execution.provider,
+                model_name=model_execution.model,
+                prompt_id="policy-bound-real-render",
+                prompt_version=model_execution.prompt_version,
+                policy_bundle_ref=teaching_action.policy_bundle_ref,
+            ),
+            trace=EventTrace(trace_id=f"book-model-inference:{model_execution.inference_id}"),
+            privacy=EventPrivacy(
+                classification="personal",
+                external_processing=True,
+                retention_class="core_learning",
+            ),
         )
 
     @staticmethod
@@ -571,6 +982,90 @@ class BookLearningApplication:
             ),
         )
 
+    @staticmethod
+    def _readiness_ref_id(readiness: BookLearningReadinessV1, entity_type: str) -> UUID | None:
+        ref = next(
+            (item.ref for item in readiness.owner_refs if item.ref.entity_type == entity_type),
+            None,
+        )
+        if ref is None:
+            return None
+        try:
+            return UUID(ref.entity_id)
+        except ValueError as exc:
+            raise BookLearningApplicationError(
+                f"BOOK_LEARNING_{entity_type.upper()}_REF_INVALID"
+            ) from exc
+
+    @staticmethod
+    def _transcript_session_id(*, user: User, activity: LearningActivity) -> UUID:
+        return uuid5(
+            NAMESPACE_URL,
+            f"askora:book-transcript:{canonical_user_id(user.id)}:{activity.activity_id}",
+        )
+
+    @staticmethod
+    def _transcript_turn(
+        record: BookLearningTranscriptTurnRecord,
+    ) -> BookLearningTranscriptTurnV1:
+        response = BookLearningTeachingResponseV1.model_validate(record.response_payload)
+        if any(item.allowed_use != "learner_visible" for item in response.evidence_bundle.items):
+            raise BookLearningApplicationError("BOOK_TRANSCRIPT_EVIDENCE_VISIBILITY_DENIED")
+        evidence = tuple(
+            BookLearningTranscriptEvidenceV1(
+                evidence_id=item.evidence_id,
+                source_span_ids=item.source_span_ids,
+                pedagogical_role=item.pedagogical_role,
+                excerpt=item.content.strip()[:2000],
+            )
+            for item in response.evidence_bundle.items
+            if item.content.strip()
+        )
+        return BookLearningTranscriptTurnV1(
+            turn_id=response.turn_id,
+            turn_number=response.turn_number,
+            turn_kind=response.turn_kind,
+            learner_text=record.learner_text,
+            reply_text=response.reply_text,
+            teaching_action_ref=VersionedRef(
+                entity_type="TeachingAction",
+                entity_id=str(response.teaching_action.action_id),
+                version=response.teaching_action.action_schema_version,
+            ),
+            evidence_bundle_ref=VersionedRef(
+                entity_type="EvidenceBundle",
+                entity_id=str(response.evidence_bundle.bundle_id),
+                version=response.evidence_bundle.bundle_schema_version,
+            ),
+            evidence=evidence,
+            accepted_at=response.accepted_at,
+            model_execution=response.model_execution,
+        )
+
+    async def _require_activity_for_user(
+        self, *, user: User, activity_id: UUID
+    ) -> tuple[LearningGoalV1, LearningPlan, LearningActivity]:
+        activity_record = await self._db.get(LearningActivityRecord, str(activity_id))
+        if activity_record is None:
+            raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_FOUND")
+        activity = LearningActivity.model_validate(activity_record.payload)
+        plan_record = await self._db.scalar(
+            select(LearningPlanRecord).where(
+                LearningPlanRecord.plan_id == activity_record.plan_id,
+                LearningPlanRecord.version == activity_record.plan_version,
+            )
+        )
+        if plan_record is None:
+            raise BookLearningApplicationError("LEARNING_PLAN_NOT_FOUND")
+        plan = LearningPlan.model_validate(plan_record.payload).model_copy(
+            update={"status": plan_record.status}
+        )
+        goal = await self._require_goal(user, plan.learning_goal_id)
+        state = await ActivityLifecycleRepository(self._db).latest(activity.activity_id)
+        if state is None or state.status not in {"available", "active", "completed"}:
+            raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_SELECTED")
+        return goal, plan, activity
+
     async def _require_goal(self, user: User, goal_id: UUID) -> LearningGoalV1:
         goal = await self._goal_repo.latest_goal(
             goal_id=goal_id, user_id=canonical_user_id(user.id)
@@ -600,6 +1095,9 @@ class BookLearningApplication:
         plan_id: UUID,
         plan_version: int,
         activity_id: UUID,
+        idempotency_key: str,
+        correlation_id: UUID,
+        now: datetime | None,
     ) -> tuple[LearningGoalV1, LearningPlan, LearningActivity]:
         goal = await self._require_goal(user, goal_id)
         plans = await self._plan_repo.list_versions(goal_id)
@@ -619,13 +1117,25 @@ class BookLearningApplication:
         activity = next((item for item in activities if item.activity_id == activity_id), None)
         if activity is None:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_STALE_OR_UNAUTHORIZED")
-        selected = await self._db.scalar(
-            select(LearningEventRecord.event_id).where(
-                LearningEventRecord.event_type == "ActivitySelected",
-                LearningEventRecord.aggregate_id == str(activity_id),
+        state = await ActivityLifecycleRepository(self._db).latest(activity_id)
+        if state is not None and state.status == "available":
+            await ActivityLifecycleService(self._db).start(
+                user=user,
+                command=StartLearningActivityV1(
+                    activity_id=activity_id,
+                    expected_state_version=state.version,
+                    idempotency_key=str(
+                        uuid5(
+                            NAMESPACE_URL,
+                            f"askora:book-compat-start:{user.id}:{idempotency_key}",
+                        )
+                    ),
+                ),
+                correlation_id=correlation_id,
+                now=now,
             )
-        )
-        if selected is None:
+            state = await ActivityLifecycleRepository(self._db).latest(activity_id)
+        if state is None or state.status != "active":
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_SELECTED")
         return goal, plan, activity
 
@@ -896,47 +1406,4 @@ class BookLearningApplication:
             owner_system=owner,
             ref=VersionedRef(entity_type=entity_type, entity_id=str(entity_id), version=version),
             status=status,
-        )
-
-    @staticmethod
-    def _activity_selected_event(
-        *,
-        user: User,
-        goal: LearningGoalV1,
-        plan: LearningPlan,
-        activity: LearningActivity,
-        idempotency_key: str,
-        correlation_id: UUID,
-        selected_at: datetime,
-    ) -> LearningEventEnvelope:
-        return LearningEventEnvelope(
-            event_id=uuid5(NAMESPACE_URL, f"askora:activity-selected:{user.id}:{idempotency_key}"),
-            event_type="ActivitySelected",
-            aggregate_type="LearningActivity",
-            aggregate_id=activity.activity_id,
-            aggregate_version=activity.plan_version,
-            sequence=activity.plan_version,
-            occurred_at=selected_at,
-            recorded_at=selected_at,
-            idempotency_key=f"book-activity-selected:{idempotency_key}",
-            correlation_id=correlation_id,
-            actor=EventActor(actor_type="learner", actor_id=user.id),
-            context=EventContext(
-                user_id=canonical_user_id(user.id),
-                goal_id=goal.goal_id,
-                knowledge_unit_ids=activity.knowledge_unit_ids,
-                content_revision_ids=[],
-            ),
-            payload={
-                "goal_ref": f"learning_goal:{goal.goal_id}:v{goal.version}",
-                "plan_ref": f"learning_plan:{plan.plan_id}:v{plan.version}",
-                "activity_ref": f"learning_activity:{activity.activity_id}:v{activity.plan_version}",
-            },
-            provenance=EventProvenance(source="api", algorithm_version="sys06-select-v1"),
-            trace=EventTrace(trace_id=f"book-learning:{correlation_id}"),
-            privacy=EventPrivacy(
-                classification="personal",
-                external_processing=False,
-                retention_class="core_learning",
-            ),
         )

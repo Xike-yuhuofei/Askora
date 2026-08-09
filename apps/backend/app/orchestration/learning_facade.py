@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.contracts.adaptive import (
     EvidenceBundleV03,
@@ -21,6 +21,7 @@ from app.contracts.decisions import DecisionTraceV03
 from app.contracts.events import ActualAssistanceRecordedPayloadV03
 from app.contracts.learning import EvidenceBundle, MasteryEstimate, TeachingAction
 from app.contracts.rendering import RenderPayloadV1, markdown_render_payload
+from app.core.config import settings
 from app.domains.retrieval.adaptive_evidence_service import (
     AdaptiveEvidenceRetriever,
     AdaptiveRetrievalCandidate,
@@ -33,6 +34,7 @@ from app.orchestration.adaptive_execution import (
     AdaptiveRenderer,
     PolicyBoundTemplateRenderer,
 )
+from app.orchestration.model_rendering import PolicyBoundModelRenderer
 
 
 @dataclass(frozen=True)
@@ -100,7 +102,9 @@ class LearningOrchestrationFacade:
         self._policy_kernel = policy_kernel or TeachingPolicyKernel()
         self._adaptive_retriever = adaptive_retriever or AdaptiveEvidenceRetriever()
         self._adaptive_executor = adaptive_executor or AdaptiveExecutionService()
-        self._adaptive_renderer = adaptive_renderer or PolicyBoundTemplateRenderer()
+        self._adaptive_renderer = adaptive_renderer or (
+            PolicyBoundTemplateRenderer() if settings.is_test else PolicyBoundModelRenderer()
+        )
 
     async def run_turn(self, request: CanonicalTurnRequest) -> CanonicalTurnResult:
         """Execute one canonical teaching turn for a non-streaming transport."""
@@ -158,6 +162,13 @@ class LearningOrchestrationFacade:
             teaching_action=decision.action,
             evidence_bundle=evidence.bundle,
             renderer=self._adaptive_renderer,
+            subject=request.subject,
+            target_capability=(
+                str(context.target_capability.value)
+                if context.target_capability.value is not None
+                else None
+            ),
+            inference_id=(UUID(request.model_inference_id) if request.model_inference_id else None),
         )
         trace_table = [
             {

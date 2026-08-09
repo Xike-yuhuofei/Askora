@@ -107,6 +107,8 @@ export default function Today() {
   const currentActivity = data.current_activity
   const planSource = sourceStatus.find((item) => item.source_system === 'SYS06')
   const multiplePlans = planSource?.reason_codes?.includes('MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE')
+  const currentActivityId = currentActivity?.activity_ref?.split(':')[1]
+  const activityAction = currentActivity?.launch_state === 'RESUMABLE' ? '继续学习' : currentActivity?.launch_state === 'REQUIRES_START_COMMAND' ? '开始学习' : ''
 
   return (
     <div className="today-page page-stack">
@@ -127,9 +129,13 @@ export default function Today() {
             <p className="eyebrow">当前目标 · {activeGoal.title}</p>
             <h2 id="canonical-next-title">{currentActivity.title}</h2>
             <p>{currentActivity.estimated_duration_minutes ? `预计 ${currentActivity.estimated_duration_minutes} 分钟` : '预计时间尚未提供'} · {activityStatusLabels[currentActivity.status] || currentActivity.status}</p>
-            <small>活动已进入 canonical 计划；启动/恢复关联仍未冻结，因此这里不提供虚假的“继续学习”。</small>
+            <small>活动状态来自 SYS06；完成本项不等于已经掌握。</small>
           </div>
-          <button type="button" className="button button--primary" onClick={() => navigate('/path')}>查看路径<ArrowRight size={16} /></button>
+          {activityAction && currentActivityId ? (
+            <button type="button" className="button button--primary" onClick={() => navigate(`/learn/${encodeURIComponent(currentActivityId)}`)}>{activityAction}<ArrowRight size={16} /></button>
+          ) : (
+            <button type="button" className="button button--secondary" onClick={() => navigate('/path')}>查看路径<ArrowRight size={16} /></button>
+          )}
         </section>
       ) : (
         <section className="plan-notice" aria-labelledby="plan-notice-title">

@@ -40,7 +40,7 @@ apps/frontend/src/test/Settings.test.jsx
 
 ## Tasks
 
-1. erasure schema/migration；2. subject-binding registry/coverage gate；3. preview/token/confirm/workflow；4. four scope steps/receipts/checkpoint；5. old backup invalidation + POST_ERASURE；6. complete Settings states/a11y；7. full L0～L5/Electron E2E；8. release report/index/product gap DONE。
+1. erasure schema/migration（含 frozen manifest 中 `consent_records` 的 Alembic additive coverage 与旧版预建表兼容校验）；2. subject-binding registry/coverage gate；3. preview/token/confirm/workflow；4. four scope steps/receipts/checkpoint；5. old backup invalidation + POST_ERASURE；6. complete Settings states/a11y；7. full L0～L5/Electron E2E；8. release report/index/product gap DONE。
 
 ## Acceptance Criteria
 

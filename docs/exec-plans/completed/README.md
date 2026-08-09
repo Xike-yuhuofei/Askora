@@ -6,10 +6,14 @@
 > UI-01 收口日期：2026-08-08
 > UI-02A 收口日期：2026-08-08
 > UI-02B1 收口日期：2026-08-08
+> UI-02B2 收口日期：2026-08-08
+> UI-02B3 收口日期：2026-08-08
 > UI-02B Goals/Path/Evidence 收口日期：2026-08-09
+> UI-02C 收口日期：2026-08-09
+> P1-04 Library Management 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
 > P1-03 收口日期：2026-08-09
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B Goals/Path/Evidence FROZEN BASELINES；Book-to-Learning EXEC-017～024 与 P1-03 EXEC-1031～1034 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033 DONE
 
 ## Completion Matrix
 
@@ -40,11 +44,18 @@
 | EXEC-023 — Book-to-Adaptive Orchestration, Readiness & Additive API | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-024 — Book-to-Learning E2E, Replay, Security & Release Gate | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-025 — UI-02B1 Material-to-Learning Launch | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-026 — UI-02B2 Guided Book Learning | DONE | local atomic implementation；commit pending |
+| EXEC-027 — UI-02B3 Real-model Guided Learning E2E | DONE | Zhipu UI E2E + DeepSeek real-model gate PASS；local implementation |
+| EXEC-028 — Zhipu Development Model Integration | DONE | `zhipu/glm-4.7-flash` unit + real-model canonical gate PASS；local configuration only |
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-1031 — P1-03 Recovery Foundation | DONE | `23e2c51` |
 | EXEC-1032 — P1-03 Verified Offline Restore | DONE | `cfed3e6` |
 | EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |
 | EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
+| EXEC-030 — UI-02C Canonical Activity Lifecycle | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-031 — P1-04A Library Search and Organization | DONE | canonical P1-04 dependency baseline |
+| EXEC-032 — P1-04B Library Deduplication | DONE | canonical P1-04 dependency baseline |
+| EXEC-033 — P1-04C Scanned PDF OCR Review | DONE | canonical P1-04 dependency baseline |
 
 ## Release Gate
 
@@ -113,6 +124,30 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 UI-02A 交付 current-user Canonical 资料库、durable document processing、source-bound KnowledgeUnit candidates、范围化 Knowledge Map 与 SourceSpan Inspector；无证据时关系保持为空。详细证据见 `docs/releases/ui-02a-library-knowledge-map.md`。
+
+## UI-02B2 Release Gates
+
+```text
+Engineering Gate: PASS
+UI / Contract / Ownership / Security Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+UI-02B2 交付 system-guided safe auto-advance、rank-1 primary diagnostic target、system-start 与 durable activity transcript；其当次报告记录的本地数据库状态为 pending migration。详细证据见 `docs/releases/ui-02b2-guided-book-learning.md`。
+
+## UI-02B3 Release Gates
+
+```text
+Engineering Gate: PASS
+Policy / Ownership / Security Gate: PASS
+Real Browser + Provider + PostgreSQL E2E Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+UI-02B3 交付 production policy-bound real-model renderer、model execution/transcript/event
+可追踪性、千级 EPUB retrieval 放大修复，并完成 Zhipu 真实 UI、PostgreSQL、刷新和 duplicate audit。
+当前本地数据库已迁移至 `a80d4f9c2b61 (head)`；UI-02B2 报告中的 pending migration 是其生成时快照。
+详细证据见 `docs/releases/ui-02b3-real-model-guided-learning.md`。
 
 ## UI-02B Goals, Learning Path and Evidence Release Gates
 

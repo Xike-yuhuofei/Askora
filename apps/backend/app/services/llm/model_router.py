@@ -1,6 +1,6 @@
 """
 模型路由层 - 多模型供应商统一接入
-支持通义千问、DeepSeek、豆包等国产模型
+支持通义千问、DeepSeek、豆包、智谱等国产模型
 根据学科、成本、质量自动路由
 """
 
@@ -540,6 +540,154 @@ class DoubaoProvider(BaseLLMProvider):
         return [0.0] * 1536
 
 
+class ZhipuProvider(BaseLLMProvider):
+    """智谱 BigModel OpenAI-compatible provider。"""
+
+    def __init__(self) -> None:
+        self.api_key = settings.llm_zhipu_api_key
+        self.model = settings.llm_zhipu_model
+        self.base_url = settings.llm_zhipu_base_url.rstrip("/")
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                timeout=httpx.Timeout(settings.llm_timeout),
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        return self._client
+
+    async def chat_completion(
+        self,
+        messages: list[ChatMessage],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs,
+    ) -> LLMResponse:
+        start_time = time.time()
+        if not self.api_key:
+            logger.warning("zhipu_api_key_missing_using_mock", model=self.model)
+            return self._mock_response(messages)
+
+        client = await self._get_client()
+        payload: dict[str, object] = {
+            "model": self.model,
+            "messages": [
+                {"role": message.role, "content": message.content} for message in messages
+            ],
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "thinking": {"type": "enabled" if settings.llm_zhipu_thinking_enabled else "disabled"},
+            "stream": False,
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+        try:
+            response = await client.post(f"{self.base_url}/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+            usage = data.get("usage", {})
+            return LLMResponse(
+                content=content,
+                model=self.model,
+                provider="zhipu",
+                input_tokens=usage.get("prompt_tokens", 0),
+                output_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        except Exception as exc:
+            logger.exception("zhipu_chat_failed", error_type=type(exc).__name__)
+            raise
+
+    async def stream_chat_completion(
+        self,
+        messages: list[ChatMessage],
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs,
+    ) -> AsyncGenerator[StreamChunk, None]:
+        if not self.api_key:
+            logger.warning("zhipu_stream_api_key_missing_using_mock", model=self.model)
+            mock_content = "[模拟响应 - 智谱] 让我们一起分析这个问题。"
+            for index, character in enumerate(mock_content):
+                await asyncio.sleep(0.02)
+                yield StreamChunk(
+                    content=character,
+                    is_final=index == len(mock_content) - 1,
+                    finish_reason="stop" if index == len(mock_content) - 1 else None,
+                )
+            return
+
+        client = await self._get_client()
+        payload: dict[str, object] = {
+            "model": self.model,
+            "messages": [
+                {"role": message.role, "content": message.content} for message in messages
+            ],
+            "temperature": temperature if temperature is not None else settings.llm_temperature,
+            "thinking": {"type": "enabled" if settings.llm_zhipu_thinking_enabled else "disabled"},
+            "stream": True,
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+        try:
+            async with client.stream(
+                "POST", f"{self.base_url}/chat/completions", json=payload
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if data_str == "[DONE]":
+                        yield StreamChunk(content="", is_final=True, finish_reason="stop")
+                        return
+                    try:
+                        import json
+
+                        data = json.loads(data_str)
+                        delta = data["choices"][0].get("delta", {}).get("content", "")
+                    except (KeyError, IndexError, TypeError, ValueError) as exc:
+                        logger.warning(
+                            "zhipu_stream_chunk_invalid",
+                            error_type=type(exc).__name__,
+                        )
+                        continue
+                    if delta:
+                        yield StreamChunk(content=delta)
+                yield StreamChunk(content="", is_final=True, finish_reason="eof")
+        except Exception as exc:
+            logger.exception("zhipu_stream_failed", error_type=type(exc).__name__)
+            raise
+
+    async def embedding(self, text: str) -> list[float]:
+        # RAG 继续使用独立 EmbeddingService；chat provider 不建立第二 embedding route。
+        return [0.0] * 1536
+
+    def _mock_response(self, messages: list[ChatMessage]) -> LLMResponse:
+        last_user_message = next(
+            (message for message in reversed(messages) if message.role == "user"), None
+        )
+        user_content = last_user_message.content if last_user_message else ""
+        response_content = (
+            f"[模拟响应 - 智谱] 我理解你的问题是：{user_content[:50]}...\n\n"
+            "让我们先梳理已知条件，再逐步分析。"
+        )
+        return LLMResponse(
+            content=response_content,
+            model=f"{self.model}-mock",
+            provider="zhipu",
+            input_tokens=len(user_content) // 2,
+            output_tokens=len(response_content) // 2,
+            total_tokens=(len(user_content) + len(response_content)) // 2,
+            latency_ms=150,
+        )
+
+
 class ModelRouter:
     """
     模型路由器
@@ -551,6 +699,7 @@ class ModelRouter:
             "qwen": QwenProvider(),
             "deepseek": DeepSeekProvider(),
             "doubao": DoubaoProvider(),
+            "zhipu": ZhipuProvider(),
         }
         self._default_provider = settings.llm_default_provider.value
 
@@ -565,13 +714,13 @@ class ModelRouter:
     def route_for_subject(self, subject: str) -> BaseLLMProvider:
         """
         根据学科路由模型
-        - 数学 → DeepSeek（数学推理专项）
-        - 其他 → 通义千问（主力模型）
+        - 数学 → 配置的数学模型（可用时）
+        - 其他 → 配置的默认模型
         """
         if subject and subject.lower() in {"math", "mathematics", "数学", "shuxue"}:
-            # 数学优先用 DeepSeek
-            if settings.llm_deepseek_api_key:
-                return self._providers["deepseek"]
+            math_provider = self._providers[settings.llm_math_provider.value]
+            if getattr(math_provider, "api_key", ""):
+                return math_provider
 
         return self._providers[self._default_provider]
 

@@ -24,3 +24,11 @@ def test_exec020_projection_service_does_not_write_knowledge_truth() -> None:
     assert "KnowledgeUnit(" not in source
     assert "KnowledgeRelation(" not in source
     assert "db.commit" not in source
+
+
+def test_exec027_projection_query_does_not_repeat_document_metadata_per_chunk() -> None:
+    """UI02B3-013: large publication metadata is loaded once, outside the chunk query."""
+    source = (APP_ROOT / "services" / "rag_service.py").read_text(encoding="utf-8")
+    assert "select(DocumentChunk, UserDocument)" not in source
+    assert "select(DocumentChunk).where" in source
+    assert "documents_by_id" in source

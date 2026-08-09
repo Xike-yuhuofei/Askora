@@ -6,7 +6,7 @@ import { RouterProvider } from '../router'
 
 vi.mock('../api/workspace', () => ({ getLearningPath: vi.fn(), getGoalsWorkspace: vi.fn() }))
 
-const pathPayload = { schema_version: '1.0', data: { view_state: 'PARTIAL', selected_goal_ref: 'learning_goal:g1:v2', available_goal_refs: ['learning_goal:g1:v2'], reason_codes: ['CURRENT_PLAN_AVAILABLE', 'OBJECTIVE_METADATA_UNAVAILABLE'], learning_path: { plan_ref: 'learning_plan:p1:v1', goal_ref: 'learning_goal:g1:v2', status: 'active', created_from_learner_state_version: 3, knowledge_graph_version: 'graph:1', review_schedule_version: null, assumptions: {}, reason_codes: ['PLAN_INITIAL_GENERATION'], objectives: [{ objective_ref: 'learning_objective:o1:v1', capability: null, cognitive_process: null, status: null, activity_refs: ['learning_activity:a2:v1'], reason_codes: ['OBJECTIVE_METADATA_UNAVAILABLE'] }], activities: [{ activity_ref: 'learning_activity:a2:v1', objective_ref: 'learning_objective:o1:v1', type: 'diagnostic', title: '检查当前基础', estimated_duration_minutes: 5, priority: 1, reason_codes: ['PLAN_TARGET_STATE_UNKNOWN'], status: 'available' }, { activity_ref: 'learning_activity:a1:v1', objective_ref: 'learning_objective:o1:v1', type: 'learn_new', title: '学习新内容', estimated_duration_minutes: 15, priority: 10, reason_codes: ['PLAN_MASTERY_GAP'], status: 'planned' }] } }, source_status: [{ source_system: 'SYS06', availability: 'AVAILABLE', reason_codes: [] }] }
+const pathPayload = { schema_version: '1.0', data: { view_state: 'PARTIAL', selected_goal_ref: 'learning_goal:g1:v2', available_goal_refs: ['learning_goal:g1:v2'], reason_codes: ['CURRENT_PLAN_AVAILABLE', 'OBJECTIVE_METADATA_UNAVAILABLE'], learning_path: { plan_ref: 'learning_plan:p1:v1', goal_ref: 'learning_goal:g1:v2', status: 'active', created_from_learner_state_version: 3, knowledge_graph_version: 'graph:1', review_schedule_version: null, assumptions: {}, reason_codes: ['PLAN_INITIAL_GENERATION'], objectives: [{ objective_ref: 'learning_objective:o1:v1', capability: null, cognitive_process: null, status: null, activity_refs: ['learning_activity:a2:v1'], reason_codes: ['OBJECTIVE_METADATA_UNAVAILABLE'] }], activities: [{ activity_ref: 'learning_activity:a2:v1', objective_ref: 'learning_objective:o1:v1', type: 'diagnostic', title: '检查当前基础', estimated_duration_minutes: 5, priority: 1, reason_codes: ['PLAN_TARGET_STATE_UNKNOWN'], status: 'available', launch_state: 'REQUIRES_START_COMMAND' }, { activity_ref: 'learning_activity:a1:v1', objective_ref: 'learning_objective:o1:v1', type: 'learn_new', title: '学习新内容', estimated_duration_minutes: 15, priority: 10, reason_codes: ['PLAN_MASTERY_GAP'], status: 'planned', launch_state: 'UNAVAILABLE' }] } }, source_status: [{ source_system: 'SYS06', availability: 'AVAILABLE', reason_codes: [] }] }
 
 describe('UI02B-VSLICE-AC-003/004/008 LearningPath', () => {
   beforeEach(() => { window.location.hash = '#/path'; workspaceApi.getLearningPath.mockReset() })
@@ -18,6 +18,8 @@ describe('UI02B-VSLICE-AC-003/004/008 LearningPath', () => {
     const headings = screen.getAllByRole('heading', { level: 3 })
     expect(headings.map((item) => item.textContent)).toEqual(['检查当前基础', '学习新内容'])
     expect(screen.getByText(/不做推断/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /开始学习/ }))
+    await waitFor(() => expect(window.location.hash).toBe('#/learn/a2'))
   })
 
   it('requires explicit scope when multiple current plans exist', async () => {

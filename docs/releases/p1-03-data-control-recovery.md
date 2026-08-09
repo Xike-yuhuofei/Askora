@@ -49,11 +49,13 @@ P1-03 已交付 macOS 私人桌面 SQLite 的加密恢复点、完整重开校�
 |---|---|
 | P1-03 backend targeted suite | 38 passed；12 个 Alembic legacy config deprecation warnings |
 | Erasure-focused suite | 15 passed |
-| backend full pytest | 378 passed，2 skipped，16 个既有 deprecation warnings |
+| backend full pytest（合入当前 main 后） | 439 passed，4 skipped，16 个既有 deprecation warnings |
+| Alembic migration gate | PASS；单一 head `m103f1061a01`，upgrade/check/downgrade base/upgrade 往返通过 |
+| legacy schema adoption regression | 4 passed；`consent_records` 与 P1-03/Book Learning 预建表均严格兼容迁移 |
 | Ruff `app tests` | PASS |
-| mypy `app` | PASS；168 source files，仅既有 untyped-body notes |
-| Black repository baseline | PASS；300 files unchanged |
-| frontend Vitest | 15 files / 59 tests PASS；含四范围 UI preview 与 packaged startup serialization regression |
+| mypy `app` | PASS；仅既有 untyped-body notes |
+| Black repository baseline | PASS；332 files unchanged |
+| frontend Vitest | 16 files / 66 tests PASS；含四范围 UI preview 与 packaged startup serialization regression |
 | frontend production build / Node syntax | PASS |
 | npm audit high | PASS；0 vulnerabilities |
 | packaged macOS arm64 build | PASS；App、DMG、ZIP 生成；本地签名身份不可用，因此产物未签名 |
@@ -64,6 +66,8 @@ P1-03 已交付 macOS 私人桌面 SQLite 的加密恢复点、完整重开校�
 | `git diff --check` | PASS |
 
 首次 PR CI 暴露两个合并门禁债务：知识发布事件未复用已冻结的 deterministic legacy user identity adapter，以及 3 个工作区文件未满足 Black。最终合并门禁提交复用 `canonical_user_id()` 并只执行机械格式化；全仓 pytest、Ruff、mypy 和 Black repository baseline 随后全部通过，没有扩大 ignore 或建立第二 identity truth。
+
+PR 与更新后的 `main` 汇合时，两边均从 `9b4c2d7e1a60` 新增 Alembic 分支。最终以 no-op merge revision `m103f1061a01` 保留两条历史并形成单一 head。合并验证同时发现 frozen erasure manifest 中的 legacy `consent_records` 过去只靠本地 `create_all` 建表；P1-03 migration 现已提供 additive schema coverage，并对旧版预建同结构表严格校验后 forward-adopt。该治理不改变 Identity/Privacy owner 或 Data Control 的普通写入边界。
 
 ## 5. 真实桌面验收
 

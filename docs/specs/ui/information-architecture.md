@@ -200,3 +200,16 @@ Context Inspector 在窄屏 MUST 变为可访问的 sheet/section，不得永久
 - 在 Inspector 内提供直接修改 mastery、TeachingAction 或 next_due_at 的控件；
 - 为适应小屏把引用、帮助状态、错误或独立验证义务完全隐藏；
 - 用前端 route/session state 充当 LearningActivity、LearningPlan 或 ReviewSchedule truth。
+
+## 9. P1-06 Welcome Entry
+
+### UI-IA-060
+
+`/welcome` 是 protected supporting route，不新增一级导航。只有 intended `/` 或 `/today` 在服务端
+`should_enter_welcome=true` 时可 replace；`/library`、`/book-learning/:documentId`、
+`/learn/:activityId` 及其他 explicit deep link MUST 保留。
+
+### UI-IA-061
+
+Settings 固定提供“重新打开首次引导”。Dismiss 后返回 `/today`；query failure 保留 intended route 并
+提供非阻断恢复提示，不得造成 redirect loop。

@@ -246,3 +246,17 @@ Threshold/weights/dwell/switch margin 等 MUST 以 fixture/profile version 固�
 ## 17. Forbidden Implementations
 
 禁止：happy-path only；Mock-only E2E；为 CI 删除/弱化测试；实时网络内容作为无版本关键 fixture；AI full-string brittle match；provider timeout 被记 learner incorrect；把 OPVE 称 causal RL OPE；synthetic learner 宣称学习效果；G1 强制唯一 gold；online LLM 参与 policy replay；engagement/turn count 替代 learning outcome；Engineering Correct 推导 Learning Effective。
+
+## 18. P1-06 Onboarding Gates
+
+### TEST-320
+
+必须覆盖 strict schema/source/version、四步所有状态、single next action、ambiguous selection、first
+completion negative inference、backfill/new-user、SQLite/PostgreSQL migration、preference concurrency/
+idempotency/restart、cross-user/cache/leakage、default/deep-link、dismiss/reopen 与 P1-07 action mapping。
+
+### TEST-321
+
+产品 gate 必须同时包含 deterministic browser E2E、真实 provider 的 clean-profile 主路径、App restart
+无重复副作用、360/768/1024/1440、200% zoom、keyboard/focus/live region，以及无内部知识首次用户
+体验。Mock-only、模型连接成功或单元测试均不能单独关闭 P1-06。

@@ -490,3 +490,16 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 - 为知识地图读取 vector index/graph projection 后当作唯一 truth；
 - 用 current mutable state 补齐历史 plan/action/evidence refs；
 - 为了 UI 完整直接开放未定义的 SetMastery/SetNextReviewAt/SetTeachingAction。
+
+## 13. OnboardingJourneyViewV1
+
+### UI-DATA-100
+
+`GET /api/v1/onboarding/journey` MUST 复用 `ONBOARD-*` strict view。前端只呈现四个 steps 与一个
+`next_action`，不得依据 owner arrays、localStorage、message、duration 或 model result 重算完成、排序
+业务对象或生成恢复动作。
+
+### UI-DATA-101
+
+Preference 与 journey cache 必须 current-user scoped 且可失效；logout/switch/dismiss/reopen/owner
+mutation 后重查。MISSING/STALE/PARTIAL 不得转换为 false/READY；dismissed 不得转换为 completed。

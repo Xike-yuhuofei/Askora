@@ -1,7 +1,7 @@
 # EXEC-030 — UI-02C Canonical Activity Lifecycle
 
 > Priority：P0 Product Completion
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY
+> Status：DONE
 > Depends on：UI-02B DONE；durable activity transcript / policy-bound Book Learning baseline committed
 > Governing decision：ADR-0007
 
@@ -36,6 +36,12 @@
 
 执行前必须确认 durable activity transcript / policy-bound Book Learning 的代码、migration 与 tests 已形成独立可引用 commit。当前工作区存在相关未提交改动，因此本 EXEC 仅冻结，不授权在依赖未落地时修改产品代码。
 
+Gate accepted：`0f4ebb6`（decision trace persistence prerequisite）与 `6172928`
+（durable transcript / policy-bound Book Learning baseline）已作为可引用 commits 落地；
+EXEC-030 自此进入实现阶段。为完成 cutover，Allowed Files 显式增加 plan 创建 adapter
+与现有 Book Learning selection/read adapters，旧 `ActivitySelected` event reader 必须退休，
+不得与 lifecycle 形成双 truth。
+
 ## Allowed Files
 
 ```text
@@ -48,22 +54,30 @@ docs/specs/systems/06-activity-lifecycle.md
 docs/specs/ui/data-contracts.md
 docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md
 docs/exec-plans/README.md
+docs/exec-plans/completed/README.md
 docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md
 docs/exec-plans/completed/EXEC-030-ui-02c-canonical-activity-lifecycle.md
 docs/releases/ui-02c-canonical-activity-lifecycle.md
+docs/releases/README.md
 apps/backend/alembic/versions/<exec030_activity_lifecycle>.py
 apps/backend/app/contracts/activity_lifecycle.py
 apps/backend/app/models/planning.py
 apps/backend/app/models/__init__.py
 apps/backend/app/infrastructure/activity_lifecycle.py
+apps/backend/app/infrastructure/planning_records.py
 apps/backend/app/services/activity_lifecycle.py
+apps/backend/app/application/book_learning.py
 apps/backend/app/api/v1/workspace.py
 apps/backend/app/contracts/workspace.py
 apps/backend/app/queries/workspace.py
+apps/backend/app/queries/book_learning.py
 apps/backend/tests/architecture/test_activity_lifecycle_boundary.py
 apps/backend/tests/contracts/test_activity_lifecycle_contract.py
 apps/backend/tests/integration/test_activity_lifecycle.py
 apps/backend/tests/integration/test_activity_lifecycle_migration.py
+apps/backend/tests/integration/test_book_learning_orchestration.py
+apps/backend/tests/integration/test_workspace_product_views.py
+apps/backend/tests/e2e/test_book_to_adaptive_learning.py
 apps/backend/tests/recovery/test_activity_lifecycle_recovery.py
 apps/frontend/src/App.jsx
 apps/frontend/src/api/workspace.js
@@ -71,10 +85,12 @@ apps/frontend/src/pages/Today.jsx
 apps/frontend/src/pages/LearningPath.jsx
 apps/frontend/src/pages/ActivityLearning.jsx
 apps/frontend/src/pages/ActivityLearning.css
+apps/frontend/src/pages/BookLearningLaunch.jsx
 apps/frontend/src/test/AppRoutes.test.jsx
 apps/frontend/src/test/Today.test.jsx
 apps/frontend/src/test/LearningPath.test.jsx
 apps/frontend/src/test/ActivityLearning.test.jsx
+apps/frontend/src/test/BookLearningLaunch.test.jsx
 ```
 
 ## Forbidden Changes
@@ -129,4 +145,6 @@ git diff --check
 
 ## Completion Report
 
-必须分别报告 Engineering、Policy/Ownership、Learning Evidence；列出 dependency commit、migration/backfill/reconciliation、测试、真实浏览器、未完成项、SPEC GAP 与未提交用户改动保持情况。
+实现提交以前的候选证据见 `docs/releases/ui-02c-canonical-activity-lifecycle.md`。
+Engineering、Policy/Ownership 均为 PASS；Learning Evidence 保持
+`LEARNING_EVIDENCE_INSUFFICIENT`。Blocking SPEC GAP：none。

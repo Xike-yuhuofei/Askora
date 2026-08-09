@@ -1,6 +1,6 @@
 # UI-02C Canonical Activity Lifecycle Vertical Slice
 
-> 状态：Frozen / BLOCKED_BY_DEPENDENCY
+> 状态：Frozen / DONE
 > 实现入口：EXEC-030
 > 冻结日期：2026-08-09
 > 用户授权：采纳产品完整性审计建议并继续执行
@@ -13,6 +13,8 @@
 ## 2. Dependency Gate
 
 实现前 MUST 先把当前工作区已有的 durable activity transcript / policy-bound Book Learning baseline 作为独立已审查 commit 落地，或提供语义等价的冻结依赖。UI-02C 治理可以先冻结；依赖未提交前 EXEC-030 不得修改产品代码。
+
+依赖已由 `0f4ebb6` 与 `6172928` 满足；实现与 release gate 由 `EXEC-030` 完成。
 
 ## 3. End-to-End Path
 
@@ -70,4 +72,6 @@ OUT：
 
 ## 7. Gate
 
-依赖未提交时状态为 `BLOCKED_BY_DEPENDENCY`，不是 `SPEC GAP`。只有依赖 commit 明确、`SYS06-ACT-AC-001..007` 与 `UI02C-AC-001..009` 全部满足后才能标 DONE。
+依赖未提交时状态为 `BLOCKED_BY_DEPENDENCY`，不是 `SPEC GAP`。依赖 commit 已明确，
+`SYS06-ACT-AC-001..007` 与 `UI02C-AC-001..009` 已由 EXEC-030 release evidence
+覆盖；本 Slice 标记为 DONE。

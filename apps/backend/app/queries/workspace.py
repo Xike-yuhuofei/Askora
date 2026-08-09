@@ -47,8 +47,9 @@ from app.contracts.workspace import (
     WorkspaceSourceStatusV1,
     WorkspaceSourceSystem,
 )
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import BusinessError, ResourceNotFoundError
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.assessment import MasteryEstimateRecord
 from app.models.dialog import DialogSession, SessionStatus
 from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
@@ -502,11 +503,22 @@ class WorkspaceTodayQueryService:
             )
         ).all()
         by_id: dict[UUID, LearningActivity] = {}
+        states = await ActivityLifecycleRepository(self._db).latest_for_plan(
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+        )
         for record in records:
             activity = LearningActivity.model_validate(record.payload)
             if activity.plan_id != plan.plan_id or activity.plan_version != plan.version:
                 raise ValueError("learning activity plan mismatch")
-            by_id[activity.activity_id] = activity
+            state = states.get(activity.activity_id)
+            if state is None:
+                raise BusinessError(
+                    message="学习活动尚未完成生命周期迁移",
+                    error_code="LEGACY_ACTIVITY_STATE_UNMIGRATED",
+                    status_code=409,
+                )
+            by_id[activity.activity_id] = activity.model_copy(update={"status": state.status})
         return tuple(by_id[item] for item in plan.activity_ids if item in by_id)
 
     def _path_view(self, selection: _PathSelection) -> LearningPathViewV1 | None:
@@ -551,11 +563,12 @@ class WorkspaceTodayQueryService:
             priority=activity.priority,
             reason_codes=tuple(activity.reason_codes),
             status=activity.status,
+            launch_state=self._launch_state(activity.status),
         )
 
     def _activity_summary(self, activity: LearningActivity) -> ActivitySummaryV1:
         launch_state: Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"] = (
-            "UNAVAILABLE" if activity.status == "active" else "REQUIRES_START_COMMAND"
+            self._launch_state(activity.status)
         )
         return ActivitySummaryV1(
             activity_ref=self._activity_ref(activity),
@@ -567,6 +580,16 @@ class WorkspaceTodayQueryService:
             status=activity.status,
             launch_state=launch_state,
         )
+
+    @staticmethod
+    def _launch_state(
+        status: str,
+    ) -> Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"]:
+        if status == "active":
+            return "RESUMABLE"
+        if status == "available":
+            return "REQUIRES_START_COMMAND"
+        return "UNAVAILABLE"
 
     @staticmethod
     def _current_activity(activities: tuple[LearningActivity, ...]) -> LearningActivity | None:

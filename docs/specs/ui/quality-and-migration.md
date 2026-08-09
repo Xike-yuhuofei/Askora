@@ -334,3 +334,17 @@ UI-01 使用显式 compatibility workspace，避免把 session 伪装为 Learnin
 - Profile 看起来更漂亮但仍误导 mastery；
 - RichMessage 或 Focus 绕过已有安全与 canonical execution；
 - UI 指标改善被描述为人类学习效果改善。
+
+## 11. P1-06 Migration and Quality Gate
+
+### UI-MIG-040
+
+P1-06 在 UI-02C DONE 后，通过 EXEC-1061→1062 串行实施。P1-02/P1-03/P1-07 未形成真实 owner
+capability/action 前不得以 placeholder/disabled button 关闭集成 gate；shared dirty worktree 继续按
+UI-MIG-002 保护。
+
+### UI-QUAL-040
+
+除现有 frontend/build/audit/backend/docs gates 外，必须验证 default route/deep-link/reload/relogin/App
+restart、dismiss/reopen、owner-fact rollback、P1-07 action、360/768/1024/1440、200% zoom、keyboard/
+focus/live region、deterministic/real-provider E2E 与首次用户体验。

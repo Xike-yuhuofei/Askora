@@ -11,6 +11,7 @@ from app.contracts.book_learning import (
     BookLearningOwnerRefV1,
     BookLearningReadinessV1,
     LearnerVisibleDiagnosticItemV1,
+    StartBookTeachingRequestV1,
 )
 
 
@@ -88,3 +89,34 @@ def test_exec025_learner_visible_diagnostic_contract_has_no_grader_fields() -> N
     assert payload["prompt"].startswith("Which")
     assert payload["options"] == ["A", "B"]
     assert not {"answer_key", "correct_answer", "rubric", "explanation"} & payload.keys()
+
+
+def test_exec026_system_start_has_no_client_owned_hidden_text() -> None:
+    common = {
+        "goal_id": uuid4(),
+        "plan_id": uuid4(),
+        "plan_version": 1,
+        "activity_id": uuid4(),
+        "turn_id": "system-start-1",
+        "turn_kind": "system_start",
+        "idempotency_key": "exec026:system-start",
+    }
+    request = StartBookTeachingRequestV1(**common)
+    assert request.learner_text is None
+
+    with pytest.raises(ValidationError, match="system_start text is server-owned"):
+        StartBookTeachingRequestV1(**common, learner_text="hidden prompt")
+
+
+def test_exec026_learner_turn_requires_real_text() -> None:
+    with pytest.raises(ValidationError, match="learner turn requires learner_text"):
+        StartBookTeachingRequestV1(
+            goal_id=uuid4(),
+            plan_id=uuid4(),
+            plan_version=1,
+            activity_id=uuid4(),
+            turn_id="learner-1",
+            turn_kind="learner",
+            learner_text="  ",
+            idempotency_key="exec026:learner-empty",
+        )

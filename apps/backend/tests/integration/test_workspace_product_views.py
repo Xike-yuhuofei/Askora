@@ -15,7 +15,12 @@ from app.core.database import Base
 from app.core.exceptions import ResourceNotFoundError
 from app.models.assessment import MasteryEstimateRecord
 from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
-from app.models.planning import LearningActivityRecord, LearningGoalRecord, LearningPlanRecord
+from app.models.planning import (
+    LearningActivityRecord,
+    LearningActivityStateRecord,
+    LearningGoalRecord,
+    LearningPlanRecord,
+)
 from app.models.user import User
 from app.queries.workspace import WorkspaceTodayQueryService
 from app.services.auth.canonical_identity import canonical_user_id
@@ -135,6 +140,23 @@ def _persist_activity(activity: LearningActivity) -> LearningActivityRecord:
     )
 
 
+def _persist_activity_state(activity: LearningActivity) -> LearningActivityStateRecord:
+    return LearningActivityStateRecord(
+        id=f"{activity.activity_id}:1",
+        activity_id=str(activity.activity_id),
+        version=1,
+        plan_id=str(activity.plan_id),
+        plan_version=activity.plan_version,
+        status=activity.status,
+        previous_status=None,
+        transition_reason="TEST_CANONICAL_INITIAL_STATE",
+        source_refs=[],
+        actor_type="system",
+        correlation_id=str(uuid4()),
+        created_at=NOW,
+    )
+
+
 @pytest.mark.asyncio
 async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_path) -> None:
     """UI02B-AC-001..005: latest/owner/order/missing/label semantics are exact."""
@@ -164,6 +186,8 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
                 _persist_plan(plan),
                 _persist_activity(first),
                 _persist_activity(second),
+                _persist_activity_state(first),
+                _persist_activity_state(second),
             ]
         )
         session.add_all(
@@ -286,7 +310,13 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
         session.add_all([_persist_goal(goal) for goal in goals])
         for plan, first, second in plan_groups:
             session.add_all(
-                [_persist_plan(plan), _persist_activity(first), _persist_activity(second)]
+                [
+                    _persist_plan(plan),
+                    _persist_activity(first),
+                    _persist_activity(second),
+                    _persist_activity_state(first),
+                    _persist_activity_state(second),
+                ]
             )
         await session.commit()
 

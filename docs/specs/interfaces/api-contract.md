@@ -150,3 +150,35 @@ Legacy endpoint MAY 暂时存在，但必须：
 - `/dialog` 绕过 orchestrator 直接调用 LLM 作为默认路径；
 - HTTP status/free text 作为唯一错误合同；
 - API response 暴露内部 reference answer/rubric secret。
+
+## 13. P1-05 Identity and Privacy Additions
+
+### API-200
+
+Identity/session/recovery/account-deletion API MUST 调用 `IDP-*` application ports。API handler 只负责 auth 或 deletion-control scope、strict schema validation、command/query、serialization 与 stable error mapping；MUST NOT 直接更新 credential/session lifecycle 或跨 owner 删除数据。
+
+### API-201
+
+修改密码、session revoke、recovery、deletion preview/request/cancel MUST 使用 strict v1 schema。关键写入必须携带 idempotency key；删除 request 还必须 pin preview digest 与 policy version。
+
+### API-202
+
+账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token 只能访问该 deletion request 的 status/cancel，MUST NOT 访问任何学习或账号普通数据。
+
+### API-203
+
+删除 preview/status、session list 与 recovery/deletion response MUST 使用 `Cache-Control: private, no-store`，不得返回 password/hash/recovery digest、完整 phone、原始 device fingerprint、内部文件路径或删除内容正文。
+
+## 14. P1-06 Onboarding API
+
+### API-300
+
+`GET /api/v1/onboarding/journey` 与 `POST /api/v1/onboarding/preferences` MUST 调用 `ONBOARD-*`
+query/command port。API handler 不得计算 step completion、挑选业务对象、执行 provider probe、写领域
+state 或从 HTTP/free text 决定 recovery action。
+
+### API-301
+
+两端点 current-user scoped、strict v1、`private, no-store`。Preference command MUST 携带 expected
+version 与 idempotency key；response 不得包含 secret、Prompt、grader-only、raw provider body、绝对
+路径或其他用户 resource ref。

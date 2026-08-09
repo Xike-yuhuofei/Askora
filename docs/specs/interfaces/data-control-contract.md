@@ -214,6 +214,11 @@ LEARNING_RECORDS 必须处理 dialog/transcript、Attempt/AssessmentResult、Lea
 
 ALL_PERSONAL_DATA 还必须处理 profile/auth/session/document storage；P1-05 负责账号入口与认证撤销，但必须调用同一 workflow。
 
+`consent_records` 等已进入 frozen subject-binding manifest 的 legacy privacy 表 MUST 具有正式
+Alembic schema coverage，不得只依赖本地 `create_all` 偶然建表。P1-03 migration 对已由旧版应用
+预建的同结构表 MUST 校验兼容并 forward-adopt；结构不兼容时 fail closed。该兼容只补齐持久化与
+删除覆盖，不改变 Identity/Privacy owner，也不授权 Data Control 成为该表的普通业务写入者。
+
 ### DATA-076 — Tombstone and No Resurrection
 
 成功后写不含内容的 `ErasureReceiptV1` 与单调 `ErasureCheckpointV1`。Restore/rebuild MUST 应用 checkpoint，MUST NOT 引用或重新生成被删事实。早于 checkpoint 且无法安全过滤的 managed recovery points 必须 INVALIDATED/PURGED；随后创建 VERIFIED POST_ERASURE baseline。

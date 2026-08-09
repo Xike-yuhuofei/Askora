@@ -63,6 +63,22 @@ DATA_EXPORT_EXPIRED
 DATA_ERASURE_PREVIEW_EXPIRED
 DATA_ERASURE_CONFIRMATION_INVALID
 DATA_ERASURE_PARTIAL
+AUTH_CURRENT_PASSWORD_INVALID
+AUTH_PASSWORD_POLICY_REJECTED
+AUTH_SESSION_REQUIRED
+AUTH_SESSION_NOT_FOUND
+AUTH_SESSION_REVOKED
+AUTH_REFRESH_REPLAY_DETECTED
+AUTH_RECOVERY_INVALID
+AUTH_RECOVERY_RATE_LIMITED
+ACCOUNT_DELETION_PREVIEW_STALE
+ACCOUNT_DELETION_CONFIRMATION_INVALID
+ACCOUNT_DELETION_IN_PROGRESS
+ACCOUNT_DELETION_NOT_CANCELLABLE
+ACCOUNT_DELETION_BLOCKED
+PRIVACY_SUBJECT_AMBIGUOUS
+PRIVACY_RECONCILIATION_FAILED
+PRIVACY_RESTORE_BLOCKED
 ```
 
 P1-03 data-control errors 的 category/retryability 由 `data-control-contract.md` 冻结：wrong key、unsafe package、future schema 与 invalid confirmation non-retryable；maintenance busy、temporary storage 与未完成 owner step MAY retryable。任何 error details 不得包含 key、内容原文或完整本地路径。
@@ -136,3 +152,20 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 - 模型超时给 AssessmentResult 记失败；
 - 依赖自由文本判断错误类型；
 - 把 stack trace/密钥直接返回前端。
+
+## 10. P1-06 Onboarding Errors
+
+### ERROR-100
+
+Onboarding stable codes 至少包括：
+
+```text
+ONBOARDING_SCHEMA_UNSUPPORTED
+ONBOARDING_PREFERENCE_VERSION_CONFLICT
+ONBOARDING_PREFERENCE_NOT_FOUND
+ONBOARDING_COMPLETION_PRECONDITION_FAILED
+ONBOARDING_DEPENDENCY_UNAVAILABLE
+```
+
+依赖 owner error MUST 保留原 stable code 和服务端允许的 P1-07 recovery action。partial/stale source 可
+返回 read view，但不得映射为 READY；provider/document/activity failure 不得写 learner negative evidence。

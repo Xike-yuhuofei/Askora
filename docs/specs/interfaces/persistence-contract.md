@@ -118,6 +118,18 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 
 用户删除长期数据时，必须能定位相关 content、learning events、inferences、states 和 projections；删除后重建不应重新生成已删除事实。
 
+### PERSIST-081 — Durable Identity and Privacy State
+
+`AuthSession`、`RecoveryCredential`、`AccountDeletionRequest`、subject manifest、owner step receipt 与 privacy tombstone MUST 持久化于 SQLite/PostgreSQL compatible store。Redis、renderer local state 或只存在内存的 token blacklist MUST NOT 成为唯一 truth。
+
+### PERSIST-082 — Privacy Erasure
+
+隐私删除 MUST 使用 frozen manifest、per-owner idempotent step 与 reconciliation。普通 immutable repository 继续拒绝 delete；只有携带 deletion request/manifest 的 privacy-only repository MAY 按 `EVENT-071` 删除受保护 ledger。
+
+### PERSIST-083 — Restore Barrier
+
+账号删除完成后的 restore barrier MUST 位于普通数据库快照之外并使用原子文件替换或等价 durable adapter；启动/认证必须在接受旧 snapshot 数据前检查 barrier。
+
 ## 11. Migration
 
 ### PERSIST-090
@@ -152,6 +164,13 @@ Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite
 ### PERSIST-103 — Erasure Checkpoint
 
 明确删除后，managed recovery catalog 与 projection rebuild MUST 消费单调 erasure checkpoint；无法证明不会复活被删事实的旧恢复点不得激活。
+
+### PERSIST-104 — Legacy Privacy Schema Adoption
+
+进入 P1-03 frozen subject-binding manifest 的 legacy personal-data 表 MUST 由 Alembic migration
+覆盖，不得只依赖本地 `create_all`。`consent_records` 由 P1-03 migration additive 建立；若旧版应用已
+预建同名表，migration MUST 校验 required columns/indexes 后 forward-adopt，不兼容时 fail closed。
+该 schema adoption 不改变 Identity/Privacy owner、记录语义或普通写入边界。
 
 ## 12. Failure Semantics
 
@@ -188,3 +207,22 @@ Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite
 - SQLite 本地版依赖 Kafka 才能启动；
 - migration 丢弃历史版本/证据而无显式设计批准。
 - 恢复直接覆盖 active path、明文/自包含 key recovery package、删除后继续激活不安全旧恢复点。
+
+## 15. P1-06 Presentation Preference Persistence
+
+### PERSIST-300
+
+`onboarding_preferences` MUST 使用 SQLite/PostgreSQL compatible schema，唯一键
+`(user_id, journey_id)`、optimistic `preference_version`、timezone-aware timestamps 与幂等 command
+receipt。表中 MUST NOT 出现 step completion 或 document/goal/plan/activity/transcript refs。
+
+### PERSIST-301
+
+Migration MUST 在同一事务把当时 existing users backfill 为 dismissed/legacy-existing-user；迁移后无
+row 的新用户首次查询创建 active v1，并发创建通过唯一约束 fetch existing。Rollback/forward-fix 不得
+改写任何 SYS01～SYS08 state。
+
+### PERSIST-302
+
+Preference 必须随 ALL_PERSONAL_DATA 删除，并在 logout/user switch/schema major change 清除 frontend
+read cache。localStorage/sessionStorage 不得成为 preference、journey 或 step truth。

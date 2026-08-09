@@ -160,7 +160,7 @@ async def test_epub_processing_persists_scan_record_and_exposes_safe_reason_code
         valid = await service.upload_document(user.pseudonym_id, "sql.epub", _epub_bytes())
         await service.process_document(valid.id)
         assert valid.processing_status == "completed"
-        assert valid.moderation_details["security_scan"]["scanner_version"] == "document-safety-v2"
+        assert valid.moderation_details["security_scan"]["scanner_version"] == "document-safety-v3"
         assert valid.moderation_details["security_scan"]["verdict"] == "allow"
         assert valid.moderation_details["security_scan"]["reason_codes"] == []
         assert valid.chunk_count > 0

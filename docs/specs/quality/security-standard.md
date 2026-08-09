@@ -157,3 +157,16 @@ P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platfor
 ## 16. Forbidden Implementations
 
 禁止：Prompt 作为唯一权限层；autonomous agent 任意 shell/network；reference answer 与 learner prompt 无隔离混放；外部模型默认接收全部个人资料；日志打印 secret/完整敏感 Prompt；parser 信任扩展名；恶意 retrieval content 提升为 system instruction；继续写 `answer_exposure_max` 为 canonical security truth；SYS08/LLM 自动扩大 TeachingAction envelope。
+
+## 17. P1-06 Onboarding Security
+
+### SEC-320
+
+Onboarding view/preference/log MUST NOT 包含 Key/fragment、Prompt、grader-only、raw provider body、
+absolute path 或其他用户 ref。Boundary copy 只能引用 P1-02/P1-03 已验证事实，不得承诺完全离线或
+绝对隐私。
+
+### SEC-321
+
+Onboarding MUST NOT 自动 probe provider、加载未经选择的私人文档、创建样例/Goal/Activity 或执行
+recovery command。所有导航后的副作用仍由原 owner command 的 auth/idempotency/security gate 控制。

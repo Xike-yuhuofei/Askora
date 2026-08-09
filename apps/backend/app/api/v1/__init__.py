@@ -7,6 +7,7 @@ from app.api.v1.book_learning import router as book_learning_router
 from app.api.v1.data_control import router as data_control_router
 from app.api.v1.dialog import router as dialog_router
 from app.api.v1.documents import router as documents_router
+from app.api.v1.onboarding import router as onboarding_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.users import router as users_router
 from app.api.v1.workspace import router as workspace_router
@@ -19,6 +20,7 @@ __all__ = [
     "dialog_router",
     "users_router",
     "orchestrator_router",
+    "onboarding_router",
     "documents_router",
     "ws_router",
     "workspace_router",

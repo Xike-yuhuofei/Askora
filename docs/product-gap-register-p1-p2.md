@@ -76,7 +76,7 @@ Gate：`Engineering PASS`；`Policy / Ownership / Security PASS`；`Desktop Reco
 
 [Library 页面](../apps/frontend/src/pages/Library.jsx) 已完成 current-user 标题/正文搜索、标签、集合、元数据编辑、显式批量整理、可恢复归档、versioned 重复建议，以及本地扫描 PDF OCR 人工复核与新 revision 发布。重复建议不会自动合并 canonical knowledge；未接受 OCR 候选不会进入普通搜索、检索或知识地图；原文件和旧 revision 均保留。
 
-关闭证据：EXEC-031～033 已完成并归档；PostgreSQL migration、rollback/forward-fix、幂等/owner/security/recovery 测试、真实 Tesseract 扫描 PDF、隔离数据库真实浏览器闭环、前端全量测试与构建均通过。P1-04 的独立 Release Report 不属于当前 P1-03 隔离分支。
+关闭证据：EXEC-031～033 已完成并归档；PostgreSQL migration、rollback/forward-fix、幂等/owner/security/recovery 测试、真实 Tesseract 扫描 PDF、隔离数据库真实浏览器闭环、前端全量测试与构建均通过。完整证据见 [P1-04 Library Management Completion Report](releases/p1-04-library-management.md)。
 
 Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Browser + Local OCR PASS`；`Learning Evidence LEARNING_EVIDENCE_INSUFFICIENT`（本项不声称改善真人学习效果）。
 
