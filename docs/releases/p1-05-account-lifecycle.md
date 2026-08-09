@@ -87,6 +87,7 @@ Frontend full: 78 passed
 Frontend build: PASS
 npm audit --audit-level=high: 0 vulnerabilities
 Documentation check: 174 files / 0 broken local links
+PR #5 Askora CI: 10/10 jobs PASS (run 31302663091)
 Real browser console: 0 error / 0 warning
 360x800: innerWidth 360 / scrollWidth 360
 Redis unavailable startup/deletion journey: PASS
@@ -114,6 +115,6 @@ NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE
 
 ## 未完成项与 SPEC GAP
 
-- P1-05 产品范围内未完成项：无；EXEC-037 在 PR CI 通过前保持 active，作为发布流程状态而非产品缺口。
+- P1-05 产品范围内未完成项：无；EXEC-037 已在 PR CI 通过后归档为 DONE。
 - Blocking SPEC GAP：无。
 - `codex/p1-05-account-lifecycle` 已建立 PR #5；EXEC-034～036 保留独立提交边界，EXEC-037 以合并提交吸收当前 `main` 的 P1-03 migration graph 并完成擦除事实源收敛。

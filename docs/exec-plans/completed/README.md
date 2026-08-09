@@ -12,9 +12,10 @@
 > UI-02C 收口日期：2026-08-09
 > P1-04 Library Management 收口日期：2026-08-09
 > P1-05 Account Lifecycle 收口日期：2026-08-09
+> P1-05 / P1-03 Canonical Erasure Integration 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
 > P1-03 收口日期：2026-08-09
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037 DONE
 
 ## Completion Matrix
 
@@ -60,6 +61,7 @@
 | EXEC-034 — Identity Credential and Durable Sessions | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-035 — Local Account Recovery Kit | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-036 — Account Deletion, Owner Erasure and Restore Barrier | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-037 — P1-05 / P1-03 Canonical Erasure Integration | DONE | `aea603e0e77afcbbd855330e4c1e715fb25c9aab`；PR #5 CI run `31302663091` PASS |
 
 ## Release Gate
 

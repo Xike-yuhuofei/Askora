@@ -163,8 +163,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～036、EXEC-1031～1034、EXEC-1061 已完成；EXEC-037 与 EXEC-1062 active |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～036、EXEC-1031～1034、EXEC-1061 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～037、EXEC-1031～1034、EXEC-1061 已完成；EXEC-1062 active |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～037、EXEC-1031～1034、EXEC-1061 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -207,7 +207,7 @@
 | `docs/exec-plans/completed/EXEC-036-account-deletion-erasure.md` | HISTORICAL-RETAIN | P1-05 account deletion/erasure completed EXEC |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
-| `docs/exec-plans/active/EXEC-037-p1-05-p1-03-erasure-integration.md` | CURRENT-UPDATED | P1-05/P1-03 canonical erasure integration merge gate |
+| `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 canonical erasure integration completed contract |
 
 ## 6. Release Evidence
 

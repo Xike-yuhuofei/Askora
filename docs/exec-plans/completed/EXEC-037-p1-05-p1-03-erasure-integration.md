@@ -1,7 +1,7 @@
 # EXEC-037 — P1-05 / P1-03 Canonical Erasure Integration
 
 > Priority：P1-05 merge readiness
-> Status：FROZEN / ACTIVE
+> Status：DONE
 > Governing：ADR-0107、`IDP-*`、`DATA-070..078`
 
 ## Objective
@@ -68,3 +68,13 @@ Merge-conflict-only index/import composition outside this list is allowed when i
 - `E037-AC-003`：representative all-table fixture erases target data while retaining other-user/global/governance records.
 - `E037-AC-004`：partial or incomplete post-erasure maintenance never reports `DELETED`.
 - `E037-AC-005`：SQLite/PostgreSQL migration, backend/frontend/security/docs and PR CI pass.
+
+## Completion Evidence
+
+- Primary integration commit：`aea603e0e77afcbbd855330e4c1e715fb25c9aab`；
+- local backend：474 passed / 5 skipped；ruff、Black baseline、mypy PASS；
+- local frontend：78 passed；build 与 high-severity dependency audit PASS；
+- Alembic：single head `f36c91b807d3`；SQLite 与真实 PostgreSQL upgrade/check PASS；
+- real PostgreSQL representative account-deletion fixture：PASS；
+- documentation：174 files / 0 broken local links；
+- PR #5 Askora CI run `31302663091`：10/10 jobs PASS，含双 Python coverage、container build 与 dependency audits。
