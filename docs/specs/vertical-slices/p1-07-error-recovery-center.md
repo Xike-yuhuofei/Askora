@@ -59,7 +59,8 @@ backend startup failure
 - command 执行中禁用重复点击，刷新后按同 idempotency result 恢复；
 - rate limit 显示服务端 next eligible time，Key 无效只导航到模型设置；
 - quarantined 只在新策略存在时允许复检；OCR 候选只导航人工复核；
-- file missing 不承诺自动找回，提供重新选择或数据恢复入口；
+- file missing 不承诺自动找回；只有 SYS01 已实现替换 command 才提供重新选择，否则只提供真实
+  数据恢复入口；provider issue 可返回关联的 canonical activity，但导航本身不重放调用；
 - 没有问题时显示最近一次检查时间，不制造“系统绝对安全”的承诺；
 - 技术详情折叠展示 code/correlation/ref，不显示 stack/path/secret。
 

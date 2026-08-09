@@ -148,13 +148,6 @@ class RecoveryQueryService:
                                 enabled=True,
                                 route="/settings/data",
                             ),
-                            RecoveryActionV1(
-                                action_code="reselect_file",
-                                label="重新选择原文件",
-                                kind="navigate",
-                                enabled=True,
-                                route=f"/library?reselect={document.id}",
-                            ),
                         ),
                         opened_at=created,
                         updated_at=updated,
@@ -405,6 +398,19 @@ class RecoveryQueryService:
 
     @staticmethod
     def _operational_actions(event: RecoveryEventRecord) -> tuple[RecoveryActionV1, ...]:
+        activity_actions: tuple[RecoveryActionV1, ...] = ()
+        if event.resource_ref and event.resource_ref.startswith("activity:"):
+            activity_id = event.resource_ref.removeprefix("activity:")
+            if activity_id and "/" not in activity_id:
+                activity_actions = (
+                    RecoveryActionV1(
+                        action_code="open_activity",
+                        label="返回学习活动",
+                        kind="navigate",
+                        enabled=True,
+                        route=f"/learn/{activity_id}",
+                    ),
+                )
         if event.code in {"AI_PROVIDER_KEY_INVALID", "AI_PROVIDER_KEY_MISSING"}:
             return (
                 RecoveryActionV1(
@@ -414,6 +420,7 @@ class RecoveryQueryService:
                     enabled=True,
                     route="/settings/models",
                 ),
+                *activity_actions,
             )
         if event.code == "AI_MODEL_UNAVAILABLE":
             return (
@@ -424,9 +431,10 @@ class RecoveryQueryService:
                     enabled=True,
                     route="/settings/models",
                 ),
+                *activity_actions,
             )
         if event.retry_budget is not None and event.attempt_count >= event.retry_budget:
-            return (diagnostic_action(),)
+            return (diagnostic_action(), *activity_actions)
         if event.next_eligible_at is not None:
-            return (wait_action("等待后再试"),)
-        return (diagnostic_action(),)
+            return (wait_action("等待后再试"), *activity_actions)
+        return (diagnostic_action(), *activity_actions)

@@ -91,7 +91,19 @@ async def test_provider_error_envelope_links_the_persisted_recovery_issue(tmp_pa
                     "route": None,
                     "requires_idempotency_key": False,
                     "requires_confirmation": False,
-                }
+                },
+                {
+                    "action_code": "open_activity",
+                    "label": "返回学习活动",
+                    "kind": "navigate",
+                    "enabled": True,
+                    "disabled_reason_code": None,
+                    "endpoint": None,
+                    "method": None,
+                    "route": f"/learn/{activity_id}",
+                    "requires_idempotency_key": False,
+                    "requires_confirmation": False,
+                },
             ],
         }
     await engine.dispose()

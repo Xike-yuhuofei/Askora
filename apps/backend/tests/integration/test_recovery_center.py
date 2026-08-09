@@ -152,7 +152,8 @@ async def test_missing_file_has_no_server_retry_and_provider_failure_is_not_lear
         listing = await RecoveryQueryService(session).list_issues(owner, correlation_id="missing")
         issue = next(item for item in listing.issues if item.issue_ref.endswith(":file"))
         assert issue.data_safety == "preserved_but_unavailable"
-        assert all(action.kind != "command" for action in issue.actions)
+        assert [action.action_code for action in issue.actions] == ["open_data_recovery"]
+        assert issue.actions[0].route == "/settings/data"
 
         incidents = RecoveryIncidentService(session)
         await incidents.record_model_failure(
@@ -172,6 +173,10 @@ async def test_missing_file_has_no_server_retry_and_provider_failure_is_not_lear
         )
         assert provider_issue.code == "AI_PROVIDER_TIMEOUT"
         assert provider_issue.status == "waiting"
+        activity_action = next(
+            action for action in provider_issue.actions if action.action_code == "open_activity"
+        )
+        assert activity_action.route == "/learn/activity-1"
         assert await session.scalar(select(func.count()).select_from(LearningEventRecord)) == 0
 
         await incidents.resolve_model_issue(

@@ -101,7 +101,8 @@ apps/frontend/src/test/client.test.js
 2. 新增 append-only operational incident/action audit migration、repository/query。
 3. 分类 provider failure，并在失败事务外安全记录/成功后 resolve；证明无 learning side effect。
 4. 投影 document/outbox issues，实现 SYS01 allowlisted retry/reinspect 与 immutable DLQ lineage。
-5. 接入 P1-02/03/04 owner actions，无实现时保持 gate 未完成。
+5. 接入 P1-02/03/04 owner actions，无实现时保持 gate 未完成；provider issue 必须回到关联的
+   canonical activity，missing-file 不得用 query string 冒充 owner replacement command。
 6. 实现 `/settings/recovery`、Settings 入口、全局 indicator 和无障碍状态。
 7. 实现 Electron bootstrap diagnostic channel、single-flight retry 与 startup shell。
 8. 覆盖 contract/architecture/migration/SQLite/PostgreSQL/restart/security/frontend/browser/desktop tests。

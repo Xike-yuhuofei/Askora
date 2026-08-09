@@ -53,7 +53,9 @@ issue 是 deterministic latest-event projection。它只保存稳定 code、分�
 - `retry_owner_command`：必须有 handler allowlist、current-user scope、expected version（适用时）、
   idempotency key、最大次数和 next eligible time；
 - `reinspect_document`：只允许已隔离资料且部署了更新策略，成功前持续隔离；
-- `open_model_settings`、`open_data_recovery`、`reselect_file`：仅导航，不声称已恢复；
+- `open_model_settings`、`open_data_recovery`、`open_activity`：仅导航到已存在的 owner 页面，
+  不声称已恢复；`reselect_file` 只有在 SYS01 提供 versioned owner command 时才能启用，
+  不得用无语义的 query string 冒充替换动作；
 - `wait_until`：无副作用，必须返回服务端时间；
 - `copy_diagnostics`：只含脱敏字段；
 - `acknowledge`：只改变提示可见性，不解决 owner failure；
