@@ -46,9 +46,13 @@ Source fact、Measurement、Learner inference、Policy/planning decision、Execu
 
 关键 event、TeachingAction、TeachingContext、DecisionTrace、PolicyBundle refs 与 OutcomeObservation SHOULD immutable/versioned。状态更正通过 new version/supersede/reprojection；MUST NOT 静默覆盖历史。
 
-### ARCH-006 — Local-first
+### ARCH-006 — Local Standalone App Target
 
-当前阶段继续优先单用户、单设备、本地优先、SQLite 可运行、PostgreSQL 兼容；MUST NOT 为未来多租户提前强制微服务/2PC/复杂消息基础设施。
+Askora 的目标产品形态 MUST 是**私人自用、本地单机 App**，而不是多租户 SaaS 或依赖公共互联网服务才能运行的产品。当前 Web-first / Web-only 仅是开发与验证路径，MUST NOT 被解释为目标部署形态。
+
+目标运行边界继续优先单用户、单设备、本地执行、本地数据；SQLite、本地文件和进程内状态 MUST 保持为可行的单机运行基础。PostgreSQL、Redis、Docker Compose 或远程后端 MAY 用于开发、测试或可选服务模式，但未经新的 Canonical Design + ADR + Spec，MUST NOT 成为最终用户启动 Askora 所必须手工安装、启动或维护的前置基础设施。
+
+MUST NOT 为未来多租户提前强制微服务、2PC、复杂消息基础设施或其他 SaaS-first 架构。
 
 ### ARCH-007 — Baseline Before Advanced Algorithms
 
