@@ -156,6 +156,7 @@ function buildBackendEnvironment(profile, localSecrets, databasePath, controlTok
     PORT: String(BACKEND_PORT),
     DATABASE_URL: `sqlite+aiosqlite:///${databasePath}`,
     LOCAL_STORAGE_BASE_PATH: path.join(userDataPath, 'documents'),
+    PRIVACY_RESTORE_BARRIER_PATH: path.join(userDataPath, 'privacy', 'restore-barriers.json'),
     REDIS_URL: 'redis://127.0.0.1:6379/0',
     JWT_SECRET_KEY: localSecrets.jwtSecret,
     KEK_MASTER_KEY: localSecrets.kekSecret,

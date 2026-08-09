@@ -6,8 +6,8 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-INTEGRATED_HEAD = "p107f1061a02"
-EXPECTED_PARENTS = {"m103f1061a01", "p103c5a0d003"}
+INTEGRATED_HEAD = "p107f36c1a03"
+EXPECTED_PARENTS = {"p107f1061a02", "f36c91b807d3"}
 
 
 def test_p1_07_and_onboarding_migrations_have_one_integrated_head() -> None:

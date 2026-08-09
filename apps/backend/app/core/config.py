@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # 开发/本地调试：允许免登录直接进入系统（仅非生产环境生效，默认关闭）
     enable_dev_auto_login: bool = False
     cors_allowed_origins: str = (
-        "http://localhost:5173,http://127.0.0.1:5173," "http://localhost:4173,http://127.0.0.1:4173"
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
     )
     websocket_allowed_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,"
@@ -137,6 +137,12 @@ class Settings(BaseSettings):
     worker_max_concurrent: int = 5
     worker_poll_interval: float = 1.0
 
+    # 账号删除与数据库外恢复屏障
+    privacy_restore_barrier_path: str = "./data/privacy/restore-barriers.json"
+    account_deletion_poll_interval: float = 5.0
+    account_deletion_max_attempts: int = 3
+    account_deletion_grace_hours: float = 24.0
+
     @model_validator(mode="after")
     def validate_production_keys(self) -> "Settings":
         """生产环境强制校验密钥强度，防止使用默认/示例密钥"""
@@ -151,8 +157,7 @@ class Settings(BaseSettings):
                 raise ValueError("KEK_MASTER_KEY must not use the default value in production")
         if self.local_storage_chunk_min_tokens >= self.local_storage_chunk_max_tokens:
             raise ValueError(
-                "LOCAL_STORAGE_CHUNK_MIN_TOKENS must be smaller than "
-                "LOCAL_STORAGE_CHUNK_MAX_TOKENS"
+                "LOCAL_STORAGE_CHUNK_MIN_TOKENS must be smaller than LOCAL_STORAGE_CHUNK_MAX_TOKENS"
             )
         if self.local_storage_archive_max_entries < 1:
             raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_ENTRIES must be positive")
@@ -162,6 +167,12 @@ class Settings(BaseSettings):
             raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_UNCOMPRESSED_SIZE_MB must be positive")
         if self.local_storage_archive_max_compression_ratio <= 1:
             raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_COMPRESSION_RATIO must be greater than 1")
+        if self.account_deletion_poll_interval <= 0:
+            raise ValueError("ACCOUNT_DELETION_POLL_INTERVAL must be positive")
+        if self.account_deletion_max_attempts < 1:
+            raise ValueError("ACCOUNT_DELETION_MAX_ATTEMPTS must be positive")
+        if self.account_deletion_grace_hours < 0:
+            raise ValueError("ACCOUNT_DELETION_GRACE_HOURS must not be negative")
         return self
 
     @property

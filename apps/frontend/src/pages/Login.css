@@ -45,7 +45,7 @@
 
 .login-tabs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin-bottom: 22px;
   padding: 4px;
@@ -140,6 +140,61 @@
   height: 17px;
   border-color: rgba(255, 255, 255, .45);
   border-top-color: white;
+}
+
+.password-policy {
+  margin: -4px 0 14px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.recovery-result {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.recovery-result h2,
+.recovery-result p {
+  margin: 0;
+}
+
+.recovery-result p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.recovery-code {
+  width: 100%;
+  padding: 14px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-container-high);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  user-select: all;
+}
+
+.recovery-version {
+  font-variant-numeric: tabular-nums;
+}
+
+.recovery-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.recovery-secret-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (max-width: 430px) {

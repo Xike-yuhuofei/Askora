@@ -20,6 +20,7 @@ from math import log2
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -37,6 +38,7 @@ from app.api.v1 import (
     workspace_router,
     ws_router,
 )
+from app.api.v1.account import router as account_router
 from app.contracts.model_configuration import (
     ModelConfigErrorCode,
     ModelConfigErrorV1,
@@ -114,10 +116,24 @@ async def lifespan(app: FastAPI):
         raise
     logger.info("database_initialized")
 
+    # 恢复屏障与到期删除必须先于 Redis、模型和文档后台处理。
+    from app.core.database import get_session_factory
+    from app.services.privacy.runtime import start_account_deletion_runtime
+
+    recovered = await start_account_deletion_runtime(get_session_factory())
+    logger.info("account_deletion_runtime_initialized", recovered_subjects=recovered)
+
     # 初始化 Redis
     try:
         await init_redis()
         logger.info("redis_initialized")
+        from app.services.privacy.cache import reconcile_cache_barriers
+        from app.services.privacy.restore_barrier import RestoreBarrierStore
+
+        cache_deleted = await reconcile_cache_barriers(
+            RestoreBarrierStore(Path(settings.privacy_restore_barrier_path))
+        )
+        logger.info("privacy_cache_reconciled", deleted_keys=cache_deleted)
     except Exception as e:
         if settings.auto_create_tables:
             logger.info("redis_optional_unavailable", error_type=type(e).__name__)
@@ -133,7 +149,6 @@ async def lifespan(app: FastAPI):
 
     # 初始化文档服务组件
     try:
-        from app.core.database import get_session_factory
         from app.services.documents import get_tokenizer
         from app.services.documents.processing_worker import start_document_processing_runtime
 
@@ -167,6 +182,11 @@ async def lifespan(app: FastAPI):
 
     await stop_document_processing_runtime()
     logger.info("document_tasks_drained")
+
+    from app.services.privacy.runtime import stop_account_deletion_runtime
+
+    await stop_account_deletion_runtime()
+    logger.info("account_deletion_tasks_drained")
 
     # 关闭数据库
     await close_db()
@@ -238,6 +258,7 @@ async def app_error_handler(request: Request, exc: AppError):
 
     return JSONResponse(
         status_code=exc.status_code,
+        headers=exc.headers,
         content={
             "error": {
                 "code": exc.error_code,
@@ -265,7 +286,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         request_id=request_id,
         exc_info=True,
     )
-
     return JSONResponse(
         status_code=500,
         content={
@@ -281,6 +301,19 @@ async def global_exception_handler(request: Request, exc: Exception):
             }
         },
     )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(request: Request, exc: RequestValidationError):
+    """Keep the destructive confirmation failure stable without echoing submitted secrets."""
+    if request.url.path.endswith("/account/deletion/request") and any(
+        error.get("loc", ())[-1:] == ("confirmation_phrase",) for error in exc.errors()
+    ):
+        from app.core.exceptions import AccountDeletionConfirmationInvalidError
+
+        error = AccountDeletionConfirmationInvalidError()
+        return await app_error_handler(request, error)
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 # ========== 健康检查 ==========
@@ -431,6 +464,8 @@ app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
 app.include_router(onboarding_router, prefix="/api/v1")
 app.include_router(recovery_router, prefix="/api/v1")
+
+app.include_router(account_router, prefix="/api/v1")
 
 # Orchestrator TEI v1 调试端点
 if settings.enable_orchestrator_debug_api:

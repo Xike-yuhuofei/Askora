@@ -49,6 +49,10 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [System Architecture](architecture/system-architecture.md)
 - [Dependency Rules](architecture/dependency-rules.md)
 
+### Platform
+
+- [Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — P1-05 本地优先账号、durable session、离线恢复、owner-safe 删除与 restore barrier
+
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
@@ -90,6 +94,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 已完成
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
 - [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
+- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — 修改密码、会话管理、本地恢复与账号删除完整闭环；EXEC-034～036 已完成
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040 active，EXEC-041 blocked
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成

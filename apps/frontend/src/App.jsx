@@ -80,6 +80,7 @@ export function resolveRoute(pathname) {
 function AppRoutes() {
   const { pathname } = useLocation()
   if (pathname === '/login') return <Login />
+  if (pathname === '/settings/delete-account') return <AccountDeletion />
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />

@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：UI-02C、P1-03、P1-04、P1-07 DONE；P1-02B 与 P1-06B 按独立冻结队列推进
+> 状态：UI-02C、P1-03、P1-04、P1-05、P1-07 DONE；P1-02B 与 P1-06B 按独立冻结队列推进
 > Active：EXEC-041（P1-02B）、EXEC-1062（P1-06B）
-> 已完成：EXEC-001～EXEC-033、EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061
+> 已完成：EXEC-001～EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -20,7 +20,7 @@ Accepted ADR / Canonical Design
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
 | `active/` | [EXEC-041](active/EXEC-041-p1-02b-model-settings-product-closure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 两项均不得越过真实依赖或已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～033、EXEC-037、EXEC-040、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
+| [`completed/`](completed/README.md) | EXEC-001～037、EXEC-040、EXEC-1031～1034、EXEC-1061 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -43,6 +43,10 @@ Accepted ADR / Canonical Design
 | P1-04A Library Search and Organization | [EXEC-031](completed/EXEC-031-p1-04a-library-organization.md) | DONE |
 | P1-04B Library Deduplication | [EXEC-032](completed/EXEC-032-p1-04b-library-deduplication.md) | DONE |
 | P1-04C Scanned PDF OCR Review | [EXEC-033](completed/EXEC-033-p1-04c-library-ocr-review.md) | DONE |
+| P1-05 Identity Credential and Durable Sessions | EXEC-034 | DONE |
+| P1-05 Local Account Recovery | EXEC-035 | DONE |
+| P1-05 Account Deletion and Erasure | EXEC-036 | DONE |
+| P1-05 / P1-03 Canonical Erasure Integration | [EXEC-037](completed/EXEC-037-p1-05-p1-03-erasure-integration.md) | DONE |
 | P1-07 Error Recovery Center | [EXEC-037](completed/EXEC-037-p1-07-error-recovery-center.md) | DONE |
 | P1-02A Secure Model Configuration Foundation | [EXEC-040](completed/EXEC-040-p1-02a-model-configuration-foundation.md) | DONE |
 | P1-02B Model Settings Product Closure | EXEC-041 | FROZEN / ACTIVE |
@@ -106,6 +110,23 @@ EXEC-020 ──────────────────────┤
 ```
 
 EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有 active Book-to-Learning EXEC。
+
+P1-05 dependency graph：
+
+```text
+ADR-0009 + IDP Spec
+        ↓
+    EXEC-034
+        ↓
+    EXEC-035
+        ↓
+    EXEC-036 → P1-05 DONE
+```
+
+用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。EXEC-034～036 已在冻结的 Allowed Files/owner 边界内串行完成；EXEC-037 已将账号删除收敛到 P1-03 canonical erasure single truth 并通过 PR CI。P1-05 当前为 DONE，证据见 `docs/releases/p1-05-account-lifecycle.md`。
+
+P1-05/P1-03 integration 与 P1-07 在并行历史中都使用了 `EXEC-037`；两份已归档合同以完整文件路径
+区分，禁止据此重写已接受的合同或提交历史。
 
 P1-06 dependency graph：
 

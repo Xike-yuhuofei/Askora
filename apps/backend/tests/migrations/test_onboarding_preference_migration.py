@@ -10,6 +10,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy import func, inspect, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -19,7 +20,6 @@ from app.models.onboarding import (
     OnboardingPreferenceCommandReceiptRecord,
     OnboardingPreferenceRecord,
 )
-from app.models.user import User
 from app.repositories.onboarding_preferences import OnboardingPreferenceRepository
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -41,21 +41,32 @@ def _alembic(database_url: str, *arguments: str) -> None:
     )
 
 
+async def _insert_revision_compatible_user(engine) -> str:
+    user_id = str(uuid4())
+    async with engine.begin() as connection:
+        users = await connection.run_sync(
+            lambda sync: sa.Table("users", sa.MetaData(), autoload_with=sync)
+        )
+        await connection.execute(
+            users.insert().values(
+                id=user_id,
+                role="USER",
+                status="ACTIVE",
+                phone_hash=uuid4().hex,
+                password_hash="hash",
+                is_verified=False,
+                pseudonym_id=uuid4().hex,
+            )
+        )
+    return user_id
+
+
 @pytest.mark.asyncio
 async def test_existing_user_is_backfilled_dismissed_without_completion_guess(tmp_path) -> None:
     database_url = f"sqlite+aiosqlite:///{tmp_path / 'onboarding.db'}"
     _alembic(database_url, "upgrade", PREVIOUS_HEAD)
     engine = create_async_engine(database_url)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    user = User(
-        id=str(uuid4()),
-        pseudonym_id=uuid4().hex,
-        phone_hash=uuid4().hex,
-        password_hash="hash",
-    )
-    async with factory() as session:
-        session.add(user)
-        await session.commit()
+    user_id = await _insert_revision_compatible_user(engine)
     await engine.dispose()
 
     _alembic(database_url, "upgrade", ONBOARDING_REVISION)
@@ -66,7 +77,7 @@ async def test_existing_user_is_backfilled_dismissed_without_completion_guess(tm
                 select(
                     OnboardingPreferenceRecord.visibility,
                     OnboardingPreferenceRecord.dismissed_reason,
-                ).where(OnboardingPreferenceRecord.user_id == user.id)
+                ).where(OnboardingPreferenceRecord.user_id == user_id)
             )
         ).one()
         assert row.visibility == "DISMISSED"
@@ -87,18 +98,10 @@ async def test_user_created_after_migration_starts_active_and_survives_restart(
     _alembic(database_url, "upgrade", ONBOARDING_REVISION)
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    user = User(
-        id=str(uuid4()),
-        pseudonym_id=uuid4().hex,
-        phone_hash=uuid4().hex,
-        password_hash="hash",
-    )
-    async with factory() as session:
-        session.add(user)
-        await session.commit()
+    user_id = await _insert_revision_compatible_user(engine)
     async with factory() as session:
         record = await OnboardingPreferenceRepository(session).get_or_create_active(
-            user_id=user.id,
+            user_id=user_id,
             journey_id="first-learning-v1",
             now=datetime(2026, 8, 9, 13, 0, tzinfo=timezone.utc),
         )
@@ -108,7 +111,7 @@ async def test_user_created_after_migration_starts_active_and_survives_restart(
     async with factory() as restarted:
         count = await restarted.scalar(
             select(func.count(OnboardingPreferenceRecord.preference_id)).where(
-                OnboardingPreferenceRecord.user_id == user.id
+                OnboardingPreferenceRecord.user_id == user_id
             )
         )
         assert count == 1

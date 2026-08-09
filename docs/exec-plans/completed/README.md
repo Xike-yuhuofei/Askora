@@ -11,12 +11,14 @@
 > UI-02B Goals/Path/Evidence 收口日期：2026-08-09
 > UI-02C 收口日期：2026-08-09
 > P1-04 Library Management 收口日期：2026-08-09
+> P1-05 Account Lifecycle 收口日期：2026-08-09
+> P1-05 / P1-03 Canonical Erasure Integration 收口日期：2026-08-09
 > P1-02A Secure Model Configuration Foundation 收口日期：2026-08-09
 > P1-07 Error Recovery Center 收口日期：2026-08-09
 > P1-03 收口日期：2026-08-09
 > P1-06A Onboarding Readiness Foundation 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
 
 ## Completion Matrix
 
@@ -55,6 +57,10 @@
 | EXEC-031 — P1-04A Library Search and Organization | DONE | canonical P1-04 dependency baseline |
 | EXEC-032 — P1-04B Library Deduplication | DONE | canonical P1-04 dependency baseline |
 | EXEC-033 — P1-04C Scanned PDF OCR Review | DONE | canonical P1-04 dependency baseline |
+| EXEC-034 — Identity Credential and Durable Sessions | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-035 — Local Account Recovery Kit | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-036 — Account Deletion, Owner Erasure and Restore Barrier | DONE | 独立 implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-037 — P1-05 / P1-03 Canonical Erasure Integration | DONE | `aea603e0e77afcbbd855330e4c1e715fb25c9aab`；PR #5 CI run `31302663091` PASS |
 | EXEC-037 — P1-07 Error Recovery Center | DONE | `c4a5928` / integration and release fixes through candidate HEAD |
 | EXEC-040 — P1-02A Secure Model Configuration Foundation | DONE | `0da63a7` / `7964ebd` / `d59837d` |
 | EXEC-1031 — P1-03 Recovery Foundation | DONE | `23e2c51` |

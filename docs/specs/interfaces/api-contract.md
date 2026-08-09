@@ -172,6 +172,37 @@ Legacy endpoint MAY 暂时存在，但必须：
 - API response 暴露内部 reference answer/rubric secret。
 - 用公开 `/api/v1` endpoint 接收、保存或返回模型 credential。
 
+## 13. P1-05 Identity and Privacy Additions
+
+### API-200
+
+Identity/session/recovery/account-deletion API MUST 调用 `IDP-*` application ports。API handler 只负责 auth
+或 deletion-control scope、strict schema validation、command/query、serialization 与 stable error mapping；
+MUST NOT 直接更新 credential/session lifecycle 或跨 owner 删除数据。
+
+### API-201
+
+修改密码、session revoke、recovery、deletion preview/request/cancel MUST 使用 strict v1 schema。关键写入
+必须携带 idempotency key；删除 request 还必须 pin preview digest 与 policy version。
+
+### API-202
+
+账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token
+只能访问该 deletion request 的 status/cancel/retry，MUST NOT 访问任何学习或账号普通数据。status MAY
+返回 canonical P1-03 workflow/receipt/checkpoint refs 与 `requires_post_erasure_maintenance`，不得返回
+manifest/content。
+
+### API-204
+
+公共 P1-03 erasure preview API MUST NOT 直接接受 `ALL_PERSONAL_DATA` 作为绕过账号安全流程的入口；
+该 scope 只能由 P1-05 已完成 password re-auth、精确短语和 grace 的内部 authorization bridge 调用。
+普通 Settings 必须路由到账号删除页。
+
+### API-203
+
+删除 preview/status、session list 与 recovery/deletion response MUST 使用 `Cache-Control: private, no-store`，
+不得返回 password/hash/recovery digest、完整 phone、原始 device fingerprint、内部文件路径或删除内容正文。
+
 ## 14. P1-06 Onboarding API
 
 ### API-300

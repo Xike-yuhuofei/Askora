@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.contracts.data_control import ErasureScope
 from app.data_control.erasure import SUBJECT_BINDINGS, erasure_fail_closed
 
 
@@ -33,6 +34,7 @@ def test_every_user_data_table_has_explicit_export_and_erasure_disposition() -> 
         "decision_traces",
         "decision_trace_inputs",
         "outbox_tasks",
+        "recovery_events",
         "teaching_contexts",
         "teaching_action_versions",
         "experiment_assignments",
@@ -41,6 +43,8 @@ def test_every_user_data_table_has_explicit_export_and_erasure_disposition() -> 
         "outcome_observations",
     }
     by_table = {binding.table_name: binding for binding in SUBJECT_BINDINGS}
+    assert by_table["recovery_events"].subject_binding == "pseudonym_id"
+    assert by_table["recovery_events"].erasure_scopes == (ErasureScope.ALL_PERSONAL_DATA,)
 
     assert set(by_table) == expected
     assert all(binding.owner_system for binding in by_table.values())

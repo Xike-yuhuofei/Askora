@@ -95,6 +95,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const recover = async (phone, recoverySecret, newPassword, idempotencyKey) => {
+    try {
+      return await authApi.recoverPassword(phone, recoverySecret, newPassword, idempotencyKey)
+    } catch (err) {
+      const code = err.response?.data?.error?.code
+      if (code === 'AUTH_RECOVERY_RATE_LIMITED') {
+        throw new Error('尝试次数过多，请稍后再试')
+      }
+      if (code === 'AUTH_PASSWORD_POLICY_REJECTED') {
+        throw new Error('新密码需为 15～128 个字符，且不能与原密码相同')
+      }
+      throw new Error('恢复信息无效或已使用')
+    }
+  }
+
   const logout = async () => {
     try {
       await authApi.logout()
@@ -116,8 +131,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const replaceSessionTokens = (tokens) => {
+    if (!tokens?.access_token || !tokens?.refresh_token) {
+      throw new Error('新的会话令牌缺失，请重新登录')
+    }
+    localStorage.setItem('access_token', tokens.access_token)
+    localStorage.setItem('refresh_token', tokens.refresh_token)
+  }
+
+  const clearForDeletion = () => {
+    clearTokens()
+    setUser(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, login, register, recover, logout, fetchMe, replaceSessionTokens, clearForDeletion }}>
       {children}
     </AuthContext.Provider>
   )
