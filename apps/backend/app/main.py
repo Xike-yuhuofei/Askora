@@ -22,6 +22,7 @@ from app.api.v1 import (
     book_learning_router,
     dialog_router,
     documents_router,
+    goals_router,
     onboarding_router,
     orchestrator_router,
     users_router,
@@ -270,6 +271,7 @@ app.include_router(book_learning_router, prefix="/api/v1")
 app.include_router(dialog_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(goals_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
 app.include_router(onboarding_router, prefix="/api/v1")
