@@ -1,7 +1,7 @@
 # EXEC-037 — P1-07 Error Recovery Center
 
 > Priority: P1 Reliable Private Product
-> Status: FROZEN / ACTIVE
+> Status: DONE / ARCHIVED 2026-08-09
 > Governing decision: ADR-0012
 > Vertical Slice: P1-07 Error Recovery Center
 
@@ -163,3 +163,7 @@ reload/restart；至少一次实际配置 provider 的 controlled recovery。Moc
 必须分别报告 Engineering、Policy/Ownership、Security/Privacy、Product Usability、Learning Evidence；
 列出 dependency commits、migration/forward-fix、稳定 code、owner action、自动/真实测试、未完成项、
 SPEC GAP 与并发工作区保护情况。
+
+最终证据见 `docs/releases/p1-07-error-recovery-center.md`。`P107-AC-001..009` 全部 PASS；
+Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。P1-02B 与 P1-03 的独立 EXEC 不随本
+EXEC 归档，继续按各自更宽的完成门禁管理。

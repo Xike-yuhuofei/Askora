@@ -186,11 +186,12 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 
 ### P1-07 错误恢复中心
 
-**状态：OPEN（治理已冻结，EXEC-037 实施中）**
+**状态：DONE（2026-08-09，EXEC-037）**
 
-当前已有部分页面级错误、资料隔离复检和重试能力，但没有统一恢复入口。
+已交付 `/settings/recovery` 与 Electron bootstrap recovery shell。运行期问题由统一机器合同投影，
+恢复动作只调用真实 owner command；启动期后端缺失、数据库损坏与 migration 问题不依赖业务 API。
 
-仍缺：
+当前覆盖：
 
 - provider 超时、限流、Key 无效和模型不可用；
 - 资料解析失败、隔离、OCR 低置信；
@@ -199,7 +200,10 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 - 重试预算、等待状态、恢复结果和审计信息；
 - 防止把系统失败记录成学习者错误或负向证据。
 
-完成标准：用户可以看到“发生了什么、数据是否安全、现在能做什么、重试是否会重复副作用”，并能从统一入口完成恢复。
+用户可以看到“发生了什么、数据是否安全、现在能做什么、重试是否会重复副作用”，并能从统一
+入口完成恢复。Engineering、Policy/Ownership、Security/Privacy 与 Product Usability 门禁均通过；
+Learning Evidence 继续为 `LEARNING_EVIDENCE_INSUFFICIENT`。验收边界和当前命令见
+[P1-07 Completion Report](releases/p1-07-error-recovery-center.md)。
 
 #### 已采纳方案：双入口、单合同、Owner Command
 
@@ -219,8 +223,9 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 冻结合同见 [ADR-0012](adr/ADR-0012-unified-recovery-control-plane.md)、
 [Recovery Contract](specs/interfaces/recovery-contract.md)、
 [P1-07 Vertical Slice](specs/vertical-slices/p1-07-error-recovery-center.md) 与
-[EXEC-037](exec-plans/active/EXEC-037-p1-07-error-recovery-center.md)。只有 owner actions、全量自动
-门禁和真实桌面/浏览器恢复路径均有当前证据后，状态才可改为 `DONE`。
+[EXEC-037](exec-plans/completed/EXEC-037-p1-07-error-recovery-center.md)。owner actions、全量自动门禁
+与真实桌面/浏览器恢复路径均已有当前证据，因此本项关闭。P1-02B 与 P1-03 各自更宽的独立产品
+门禁仍按其 active EXEC 管理，不由 P1-07 状态代替。
 
 ## 3. P2 — Apple 级体验精修
 
