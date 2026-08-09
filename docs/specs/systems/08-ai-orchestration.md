@@ -210,6 +210,23 @@ Trace MUST 覆盖：API request → WorkflowRun → TeachingAction → retrieval
 
 至少记录 action envelope、actual envelope、tightening reason、violation/block、model/tool versions、citation、fallback、event delivery、cost/latency。
 
+### SYS08-220 — Operational recovery projection
+
+SYS08 MAY publish provider/tool/workflow/persistence operational incidents for Recovery Center. This
+projection is operational evidence only: it MUST NOT write learner state, assessment, plan, review,
+content truth or activity completion. Successful execution MAY append a resolved event for the same
+issue key; it MUST NOT rewrite the failure event.
+
+Provider failures MUST preserve typed categories for timeout, rate limit, missing/invalid key, model
+unavailable and invalid output. Raw provider bodies, keys and full prompts MUST NOT enter recovery rows
+or user-visible diagnostics.
+
+### SYS08-221 — Recovery command routing
+
+SYS08 recovery routing may create a replacement execution only when the registered handler declares
+owner scope and idempotent replay. Unknown task/schema/unscoped side effects are diagnostic-only. The
+router MUST NOT mutate an original dead-letter record to conceal history.
+
 ## 8. Security
 
 Security 进一步遵循 `quality/security-standard.md`。SYS08 的 tool、external model、citation、prompt injection 与 exposure guard 均 MUST fail conservative。
@@ -233,6 +250,8 @@ Security 进一步遵循 `quality/security-standard.md`。SYS08 的 tool、exter
 - `SYS08-AC-007`：应用重启后 durable workflow/task 能恢复或明确失败。
 - `SYS08-AC-008`：关键事件账本写失败不静默忽略。
 - `SYS08-AC-009`：真实 E2E 至少一次通过实际配置模型，不以 Mock 替代。
+- `SYS08-AC-010`：provider/system failures 可恢复且不产生 learner negative evidence。
+- `SYS08-AC-011`：manual recovery preserves original failure and is idempotent across restart。
 
 新增 v0.3 AC：
 

@@ -143,6 +143,24 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - outbox delivery failure → durable retry；
 - projection failure → mark stale, canonical truth preserved。
 
+### PERSIST-092 — Operational recovery ledger
+
+Recovery incident/action audit MAY 由 SYS08 以 append-only ledger 持久化，但它不是文档、计划、
+learner state 或原 outbox task 的 current truth。至少保存 stable code、safe resource ref、status
+event、attempt/budget、correlation、idempotency 与 timestamps；MUST NOT 保存 secret、完整 Prompt、
+绝对路径、SQL/traceback 或 provider 原始 body。
+
+同一 issue 的 current projection必须 deterministic fold append-only events。Manual replay 必须创建
+带 `recovery_of` 的 replacement task/run，原 dead-letter row/history 不得重置或删除。重复 action
+idempotency key 返回同一 result。
+
+### PERSIST-093 — Startup compatibility gate
+
+Local desktop startup MUST verify database connectivity and migration compatibility before `/ready`。
+Mismatch/failure must fail readiness and publish a sanitized bootstrap diagnostic. Migration recovery
+MUST route to P1-03 verified snapshot/restore/forward-fix capability; startup code MUST NOT silently run
+destructive repair or continue against an unknown schema.
+
 ## 13. Tests
 
 必须覆盖：
@@ -156,6 +174,8 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - migration upgrade on representative fixture；
 - rollback/forward-fix path；
 - Redis unavailable degradation（相关功能）。
+- recovery event fold、action idempotency、replacement lineage 与 restart；
+- startup migration mismatch/forward-fix and sanitized diagnostic。
 
 ## 14. Forbidden Implementations
 

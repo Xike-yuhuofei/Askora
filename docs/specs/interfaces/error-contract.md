@@ -4,6 +4,9 @@
 > 状态：Canonical Implementation Contract  
 > 版本：v0.1
 
+ADR-0012 / P1-07 adds the recovery presentation fields below without changing
+the meaning of existing stable codes.
+
 ## 1. 原则
 
 ### ERROR-001
@@ -22,7 +25,15 @@ error:
   retryable: boolean
   correlation_id: string|null
   details: object|null
+  recovery:
+    issue_ref: string|null
+    retry_after_seconds: integer|null
+    actions: [RecoveryActionV1]
 ```
+
+`request_id` MAY remain as an additive compatibility alias, but
+`correlation_id` is canonical. API adapters MUST emit `category`, `retryable`
+and `correlation_id` for every `AppError` and unhandled error.
 
 ## 2. 稳定错误码
 
@@ -44,11 +55,28 @@ TEACH_NO_ELIGIBLE_ACTION
 PLAN_NO_FEASIBLE_ACTIVITY
 REVIEW_INVALID_OBSERVATION
 AI_MODEL_UNAVAILABLE
+AI_PROVIDER_TIMEOUT
+AI_PROVIDER_RATE_LIMITED
+AI_PROVIDER_KEY_INVALID
+AI_PROVIDER_KEY_MISSING
 AI_OUTPUT_VALIDATION_FAILED
 TOOL_NOT_AUTHORIZED
 CONCURRENT_VERSION_CONFLICT
 SCHEMA_VERSION_UNSUPPORTED
+CONTENT_PROCESSING_FAILED
+CONTENT_FILE_MISSING
+CONTENT_OCR_REVIEW_REQUIRED
+DATABASE_UNAVAILABLE
+DATABASE_MIGRATION_REQUIRED
+DATABASE_INTEGRITY_FAILED
+OUTBOX_RETRY_WAITING
+OUTBOX_RETRY_EXHAUSTED
+OUTBOX_HANDLER_UNAVAILABLE
 ```
+
+上述错误的 category、retryability、data safety、retry budget 与允许动作由
+`recovery-contract.md` 的单一目录冻结。Provider adapter MUST 根据 typed exception/HTTP status
+分类，不得把 provider message 文本作为主分支。
 
 ## 3. Retry
 
@@ -59,6 +87,17 @@ SCHEMA_VERSION_UNSUPPORTED
 ### ERROR-011
 
 自动 retry 必须有上限、退避、trace，并对副作用操作保证幂等。
+
+### ERROR-012
+
+`retryable=true` 只表示该错误类别允许重试，不表示现在立即重试。若存在 rate limit、lease、
+backoff 或预算，响应 MUST 同时给出 `next_eligible_at/retry_after` 与剩余预算。预算耗尽后同一
+run/task 不得继续自动重试。
+
+### ERROR-013
+
+Manual recovery MUST append audit and create an owner-approved replacement task/run when replay is
+safe. It MUST NOT erase or reset the original dead-letter/exhausted history.
 
 ## 4. Domain vs Transport
 
@@ -109,6 +148,8 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 - `ERROR-AC-002`：同一稳定领域错误在 HTTP/WS/streaming 都保留同一 error code。
 - `ERROR-AC-003`：非 retryable 业务错误不会进入自动重试循环。
 - `ERROR-AC-004`：副作用 retry 不产生重复操作。
+- `ERROR-AC-005`：全部 HTTP application/unhandled errors 实现完整 `ERROR-002` envelope。
+- `ERROR-AC-006`：provider timeout/rate/key/model/output errors 使用稳定 code 且不依赖自由文本。
 
 ## 9. Forbidden Implementations
 

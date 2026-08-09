@@ -89,6 +89,16 @@ Assistant message MAY additive 返回 `render_payload`，其 canonical contract 
 
 遵循 `error-contract.md`。HTTP/WS/streaming 必须保留稳定 domain error code。
 
+### API-040 — Recovery query and command
+
+- `GET /api/v1/recovery/issues` 只返回 current-user 可见的 owner projection 与 operational issues；
+- `POST /api/v1/recovery/actions` 只接受 strict `RecoveryCommandV1`，并路由到服务端允许的 owner
+  command；
+- API adapter MUST NOT 直接修改 document/outbox/model/data-control state；
+- unknown issue/action/version 返回稳定 non-retryable error；
+- successful command 返回 `RecoveryResultV1` 后，客户端 MUST re-query owner projection；
+- endpoint response 使用 `Cache-Control: private, no-store`。
+
 ## 7. Versioning
 
 公共 API schema 遵循 `schema-versioning.md`。破坏性变化需要新 major/API version，不得静默改变 `/api/v1` 语义。
@@ -123,6 +133,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - legacy endpoint adapter equivalence；
 - grader-only/private fields 不泄漏。
 - quarantined reinspection ownership、idempotency、same-policy conflict 与 durable recovery；
+- recovery issue ownership、action allowlist、expected version、idempotency、budget 与 audit；
 
 ## 11. Acceptance Criteria
 
@@ -132,6 +143,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - `API-AC-004`：WS/stream reconnect 不重复学习事件。
 - `API-AC-005`：legacy dialog endpoint 如保留，只是 canonical facade adapter。
 - `API-AC-006`：复检 API 只 enqueue 显式 SYS01 command；重复请求不产生第二个 run/task。
+- `API-AC-007`：Recovery API 仅是 query/transport adapter，不形成跨 owner writer。
 
 ## 12. Forbidden Implementations
 

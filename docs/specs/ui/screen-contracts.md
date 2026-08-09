@@ -34,6 +34,22 @@ UI MUST 优先使用稳定 `error.code`、`category`、`retryable` 与 `correlat
 
 Empty state 必须说明“目前没有什么”和“用户下一步能做什么”。不得用假数据、模拟掌握度或默认 activity 填充空白。
 
+### UI-SCREEN-005 — Recovery Card Anatomy
+
+每张 recovery issue card MUST 明确呈现：发生了什么、数据是否安全、现在能做什么、重试/重复
+副作用语义。UI MUST 使用服务端 `RecoveryActionV1`；可以格式化 label，但不得自行发明 enabled
+command。技术详情默认折叠，且只显示 stable code、correlation 与 safe resource ref。
+
+Command 必须有 accessible pending/succeeded/failed live region，提交期间禁用重复点击，完成后
+恢复 focus 并 re-query。`waiting` 显示服务端时间且不伪造进度。空态显示最近检查时间，但不得
+声称系统绝对安全。
+
+### UI-SCREEN-006 — Bootstrap Recovery Shell
+
+Electron backend status 为 `failed` 时 MUST 显示不依赖业务 API 的恢复壳，包含数据安全状态、
+stable diagnostic code、single-flight retry 和复制脱敏诊断。不得显示 raw stderr、traceback、
+绝对路径或环境变量值。
+
 ## 2. 今天 / 学习驾驶舱
 
 ### UI-SCREEN-010 — Purpose
@@ -286,6 +302,12 @@ UI MUST NOT 使用单一 probability threshold 生成“已掌握/未掌握”�
 
 “清除本地登录信息”“删除服务端学习数据”“删除本地文档”必须使用不同动作和文案。不存在服务端删除合同的控件不得声称删除了学习数据。
 
+### UI-SCREEN-094 — Recovery Station
+
+`/settings/recovery` 按 blocking、waiting、warning 排序 owner-scoped issues；rate limit 显示 next
+eligible time，Key invalid 导航模型设置，quarantine 仅在新策略存在时允许复检，OCR 候选只
+进入人工复核。File missing 不承诺自动找回。Resolved 不得写成学习成功或资料正确。
+
 ## 11. Accessibility
 
 ### UI-SCREEN-100
@@ -313,6 +335,7 @@ UI MUST NOT 使用单一 probability threshold 生成“已掌握/未掌握”�
 - `UI-SCREEN-AC-008`：正式登录、开发自动登录和本地退出语义清晰分离。
 - `UI-SCREEN-AC-009`：360px 与 200% zoom 下关键任务、错误、引用和帮助状态可访问。
 - `UI-SCREEN-AC-011`：兼容工作台保留 RichMessage、ownership 与 canonical dialog path，同时不伪造 activity/policy/evidence 数据。
+- `UI-SCREEN-AC-012`：Recovery Center 和 bootstrap shell 满足 UI-SCREEN-005/006/094。
 
 ## 13. Forbidden Implementations
 

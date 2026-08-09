@@ -63,6 +63,8 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Interfaces
 
+- [Recovery Contract](interfaces/recovery-contract.md) — P1-07 统一 issue/action/result 与 bootstrap diagnostic
+
 - [API Contract](interfaces/api-contract.md)
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
@@ -77,6 +79,8 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only security boundary
 
 ### Vertical Slices
+
+- [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 active
 
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
