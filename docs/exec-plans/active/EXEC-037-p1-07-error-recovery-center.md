@@ -71,6 +71,7 @@ apps/backend/tests/integration/test_library_workspace_query.py
 apps/frontend/electron/main.cjs
 apps/frontend/electron/preload.cjs
 apps/frontend/electron/bootstrap-diagnostics.cjs
+apps/frontend/index.html
 apps/frontend/src/App.jsx
 apps/frontend/src/api/client.js
 apps/frontend/src/api/recovery.js
@@ -89,6 +90,7 @@ apps/frontend/src/test/BootstrapDiagnostics.test.js
 apps/frontend/src/test/Settings.test.jsx
 apps/frontend/src/test/*Recovery*.test.jsx
 apps/frontend/src/test/Library.test.jsx
+apps/frontend/src/test/Csp.test.js
 apps/frontend/src/test/client.test.js
 ```
 

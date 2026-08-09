@@ -59,6 +59,8 @@ backend startup failure
 - command 执行中禁用重复点击，刷新后按同 idempotency result 恢复；
 - rate limit 显示服务端 next eligible time，Key 无效只导航到模型设置；
 - quarantined 只在新策略存在时允许复检；OCR 候选只导航人工复核；
+- OCR 恢复导航必须打开同 owner、同 document/run 的真实复核区，并显示本机渲染原页；为该预览
+  生成的 `blob:` 只允许进入 CSP `img-src`，不得放宽 script/object/connect 等执行或网络边界；
 - file missing 不承诺自动找回；只有 SYS01 已实现替换 command 才提供重新选择，否则只提供真实
   数据恢复入口；provider issue 可返回关联的 canonical activity，但导航本身不重放调用；
 - 没有问题时显示最近一次检查时间，不制造“系统绝对安全”的承诺；
@@ -82,6 +84,7 @@ backend startup failure
 - `P107-AC-005`：migration/database/backend unavailable 不依赖 API 也能显示和 single-flight retry；
 - `P107-AC-006`：刷新、重登、App 重启后 issue/result 一致，不重复 task/run/transition；
 - `P107-AC-007`：真实浏览器覆盖至少 provider failure recovery、document recovery、bootstrap recovery；
+  OCR recovery 必须验证原页图像成功解码，不得只断言 `<img>` 或候选文字存在；
 - `P107-AC-008`：360px、200% zoom、keyboard/focus/live region 通过；
 - `P107-AC-009`：Engineering、Policy/Ownership、Security/Privacy PASS；Learning Evidence 保持
   `LEARNING_EVIDENCE_INSUFFICIENT`。
