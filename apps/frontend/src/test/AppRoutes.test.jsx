@@ -31,7 +31,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     })
   })
 
-  it('exposes the seven canonical standard destinations', () => {
+  it('exposes canonical standard and owner-recovery destinations', () => {
     expect(resolveRoute('/today').type).toBe('page')
     expect(resolveRoute('/goals').type).toBe('page')
     expect(resolveRoute('/path').type).toBe('page')
@@ -39,6 +39,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/evidence').type).toBe('page')
     expect(resolveRoute('/history').type).toBe('page')
     expect(resolveRoute('/settings').type).toBe('page')
+    expect(resolveRoute('/settings/models').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
   })
 })

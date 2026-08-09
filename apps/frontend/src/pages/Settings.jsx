@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CircleAlert,
@@ -13,12 +13,305 @@ import {
 import * as usersApi from '../api/users'
 import * as dataControlApi from '../api/dataControl'
 import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from '../router'
+import { useLocation, useNavigate } from '../router'
 import './Settings.css'
+
+const MODEL_OPTIONS = {
+  qwen: { label: '通义千问', models: ['qwen-turbo'] },
+  deepseek: { label: 'DeepSeek', models: ['deepseek-chat'] },
+  doubao: { label: '豆包', models: ['doubao-pro-32k'] },
+  zhipu: { label: '智谱', models: ['glm-4.7-flash'] },
+}
+
+const MODEL_SOURCE_LABELS = {
+  DESKTOP_VAULT: 'App 安全存储',
+  EXTERNAL_ENVIRONMENT: '外部只读配置',
+  NONE: '未配置',
+}
+
+function modelStatusLabel(model) {
+  if (model.phase === 'loading') return '正在读取'
+  if (model.phase === 'validating') return '正在验证'
+  if (model.phase === 'applying') return '正在应用'
+  if (model.phase === 'unavailable') return '未配置'
+  if (model.phase === 'apply_recovered') return '应用失败已恢复'
+  if (model.phase === 'rollback_failed') return '恢复失败'
+  const summary = model.summary
+  if (summary?.state === 'ACTIVE' && summary.runtime_ready) return '已验证'
+  if (summary?.state === 'EXTERNAL_READ_ONLY') return '外部只读配置'
+  if (summary?.state === 'DISABLED') return '已停用'
+  if (summary?.state === 'DEGRADED') return '恢复失败'
+  return '未配置'
+}
+
+function formatVerifiedAt(value) {
+  if (!value) return '尚未验证'
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function ModelSettingsPanel({ sectionRef }) {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const [model, setModel] = useState({ phase: 'loading', summary: null, error: null, message: '' })
+  const [provider, setProvider] = useState('qwen')
+  const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS.qwen.models[0])
+  const [credential, setCredential] = useState('')
+  const [clearArmed, setClearArmed] = useState(false)
+  const bridgeAvailable = Boolean(window.electronAPI?.getModelSettings)
+  const canApply = Boolean(window.electronAPI?.applyModelSettings)
+  const canClear = Boolean(window.electronAPI?.clearModelSettings)
+
+  const acceptSummary = useCallback((summary, nextPhase = 'ready') => {
+    setModel({ phase: nextPhase, summary, error: null, message: '' })
+    if (summary?.provider && MODEL_OPTIONS[summary.provider]) {
+      setProvider(summary.provider)
+      setSelectedModel(summary.model || MODEL_OPTIONS[summary.provider].models[0])
+    }
+  }, [])
+
+  const loadModelSettings = useCallback(async () => {
+    if (!bridgeAvailable) {
+      setModel({ phase: 'unavailable', summary: null, error: null, message: '' })
+      return null
+    }
+    setModel((current) => ({ ...current, phase: 'loading', error: null, message: '' }))
+    try {
+      const result = await window.electronAPI.getModelSettings()
+      if (!result?.ok || !result.settings) {
+        setModel({ phase: 'rollback_failed', summary: null, error: result?.error || {
+          code: 'MODEL_CONFIG_STORAGE_UNAVAILABLE',
+          message: '模型配置状态暂时无法读取。',
+        }, message: '' })
+        return null
+      }
+      acceptSummary(result.settings)
+      return result.settings
+    } catch {
+      setModel({ phase: 'rollback_failed', summary: null, error: {
+        code: 'MODEL_PROVIDER_UNAVAILABLE',
+        message: '模型配置状态暂时无法读取。',
+      }, message: '' })
+      return null
+    }
+  }, [acceptSummary, bridgeAvailable])
+
+  useEffect(() => {
+    loadModelSettings()
+  }, [loadModelSettings])
+
+  useEffect(() => {
+    if (pathname !== '/settings/models') return undefined
+    const frame = window.requestAnimationFrame(() => sectionRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [pathname, sectionRef])
+
+  const changeProvider = (event) => {
+    const nextProvider = event.target.value
+    setProvider(nextProvider)
+    setSelectedModel(MODEL_OPTIONS[nextProvider].models[0])
+    setClearArmed(false)
+  }
+
+  const applySettings = async (event) => {
+    event.preventDefault()
+    if (!canApply || ['validating', 'applying'].includes(model.phase)) return
+    const candidateKey = credential
+    setCredential('')
+    setClearArmed(false)
+    if (candidateKey.length < 8) {
+      setModel((current) => ({
+        ...current,
+        phase: 'ready',
+        error: { code: 'MODEL_CREDENTIAL_REJECTED', message: '请输入有效的模型 Key。' },
+        message: '',
+      }))
+      return
+    }
+    setModel((current) => ({ ...current, phase: 'validating', error: null, message: '' }))
+    try {
+      const result = await window.electronAPI.applyModelSettings({
+        schema_version: '1.0',
+        provider,
+        model: selectedModel,
+        api_key: candidateKey,
+        expected_revision: model.summary?.revision ?? null,
+      })
+      if (result?.ok && result.settings) {
+        setModel({ phase: 'ready', summary: result.settings, error: null, message: '模型配置已验证并应用。' })
+        return
+      }
+      let summary = result?.settings || model.summary
+      if (result?.error?.code === 'MODEL_CONFIG_REVISION_CONFLICT') {
+        summary = await loadModelSettings() || summary
+      }
+      setModel({
+        phase: result?.rollback_succeeded === true
+          ? 'apply_recovered'
+          : result?.rollback_succeeded === false || result?.error?.code === 'MODEL_CONFIG_ROLLBACK_FAILED'
+            ? 'rollback_failed'
+            : 'ready',
+        summary,
+        error: result?.error || { code: 'MODEL_PROVIDER_UNAVAILABLE', message: '模型连接测试失败。' },
+        message: '',
+      })
+    } catch {
+      setModel((current) => ({
+        ...current,
+        phase: 'ready',
+        error: { code: 'MODEL_PROVIDER_UNAVAILABLE', message: '模型连接测试失败。' },
+        message: '',
+      }))
+    }
+  }
+
+  const clearSettings = async () => {
+    if (!canClear || model.phase === 'applying') return
+    setClearArmed(false)
+    setCredential('')
+    setModel((current) => ({ ...current, phase: 'applying', error: null, message: '' }))
+    try {
+      const result = await window.electronAPI.clearModelSettings({
+        schema_version: '1.0',
+        expected_revision: model.summary?.revision ?? null,
+      })
+      if (result?.ok && result.settings) {
+        setModel({ phase: 'ready', summary: result.settings, error: null, message: 'App 模型配置已停用；外部配置未被编辑。' })
+        return
+      }
+      setModel({
+        phase: result?.rollback_succeeded === true ? 'apply_recovered' : 'rollback_failed',
+        summary: result?.settings || model.summary,
+        error: result?.error || { code: 'MODEL_CONFIG_APPLY_FAILED', message: '模型配置未能停用。' },
+        message: '',
+      })
+    } catch {
+      setModel((current) => ({
+        ...current,
+        phase: 'rollback_failed',
+        error: { code: 'MODEL_CONFIG_ROLLBACK_FAILED', message: '模型配置恢复失败。' },
+        message: '',
+      }))
+    }
+  }
+
+  const busy = ['validating', 'applying'].includes(model.phase)
+  const summary = model.summary
+  const stateLabel = modelStatusLabel(model)
+
+  return (
+    <section
+      className="surface settings-section settings-section--wide model-settings"
+      ref={sectionRef}
+      tabIndex={-1}
+      aria-labelledby="model-settings-title"
+    >
+      <div className="section-heading section-heading--compact">
+        <div>
+          <p className="eyebrow">SYS08 · 本机安全存储</p>
+          <h2 id="model-settings-title">模型与密钥</h2>
+          <p>配置 Askora 实际使用的单一 provider/model；已保存的 Key 永不回显。</p>
+        </div>
+        <KeyRound size={18} />
+      </div>
+
+      <div className="model-settings-status" role="status" aria-live="polite">
+        <strong>{stateLabel}</strong>
+        {model.phase === 'loading' && <span>正在读取脱敏配置…</span>}
+        {model.phase === 'unavailable' && (
+          <span>仅在 macOS 桌面 App 中提供安全写入；浏览器视图不会接收或保存 Key。</span>
+        )}
+        {summary && (
+          <dl className="model-settings-summary">
+            <div><dt>Provider</dt><dd>{MODEL_OPTIONS[summary.provider]?.label || '未配置'}</dd></div>
+            <div><dt>Model</dt><dd>{summary.model || '未配置'}</dd></div>
+            <div><dt>来源</dt><dd>{MODEL_SOURCE_LABELS[summary.source] || summary.source || '未配置'}</dd></div>
+            <div><dt>Revision</dt><dd>{summary.revision ?? '无'}</dd></div>
+            <div><dt>最后验证</dt><dd>{formatVerifiedAt(summary.verified_at)}</dd></div>
+            <div><dt>运行一致性</dt><dd>{summary.runtime_ready && summary.runtime_revision === summary.revision ? '一致' : '未就绪'}</dd></div>
+          </dl>
+        )}
+      </div>
+
+      {canApply && (
+        <form className="model-settings-form" onSubmit={applySettings}>
+          <label>
+            <span>Provider</span>
+            <select value={provider} onChange={changeProvider} disabled={busy}>
+              {Object.entries(MODEL_OPTIONS).map(([value, option]) => (
+                <option value={value} key={value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Model</span>
+            <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={busy}>
+              {MODEL_OPTIONS[provider].models.map((value) => <option value={value} key={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className="model-settings-key">
+            <span>API Key</span>
+            <input
+              type="password"
+              value={credential}
+              onChange={(event) => setCredential(event.target.value)}
+              autoComplete="new-password"
+              spellCheck="false"
+              disabled={busy}
+              placeholder="提交后立即清空，不会回显"
+            />
+          </label>
+          <div className="model-settings-disclosure">
+            <strong>验证边界</strong>
+            <p>测试只发送固定合成文本，不发送个人资料，但可能产生极少量 provider 调用费用。</p>
+            <p>真实 Book Learning 会发送当前学习意图与一份 learner-visible evidence；兼容 quick flow 最多发送最近 20 条消息。Askora 不读取余额，实际费用以 provider 账户为准。</p>
+          </div>
+          <div className="model-settings-actions">
+            <button type="submit" className="button button--primary" disabled={busy || credential.length < 8}>
+              {model.phase === 'validating' ? '正在验证…' : '验证并应用'}
+            </button>
+            {canClear && summary?.source === 'DESKTOP_VAULT' && summary.state !== 'DISABLED' && !clearArmed && (
+              <button type="button" className="button button--secondary" disabled={busy} onClick={() => setClearArmed(true)}>
+                停用 App 模型配置
+              </button>
+            )}
+          </div>
+          {clearArmed && (
+            <div className="model-settings-confirm" role="alert">
+              <p>停用会写入 DISABLED revision 并重启本地服务；不会编辑 `.env` 或 provider 账户。</p>
+              <div>
+                <button type="button" className="button button--danger" onClick={clearSettings}>确认停用</button>
+                <button type="button" className="button button--secondary" onClick={() => setClearArmed(false)}>取消</button>
+              </div>
+            </div>
+          )}
+        </form>
+      )}
+
+      {model.message && <p className="settings-success" role="status">{model.message}</p>}
+      {model.error && (
+        <div className="inline-error model-settings-error" role="alert">
+          <strong>{model.error.message}</strong>
+          <span>错误码：{model.error.code}</span>
+          <span>{model.phase === 'apply_recovered' ? '旧配置仍可用；本次候选已丢弃。' : model.phase === 'rollback_failed' ? '当前模型不可用，请进入恢复中心处理。' : '候选配置没有写入；当前 owner 状态未被覆盖。'}</span>
+          {model.phase === 'rollback_failed' && (
+            <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>打开恢复中心</button>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
 
 export default function Settings() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const modelSectionRef = useRef(null)
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [clearing, setClearing] = useState(false)
   const [exportScopes, setExportScopes] = useState({
@@ -119,11 +412,13 @@ export default function Settings() {
               <div><dt>运行模式</dt><dd>{system.data.mode === 'private' ? '私人使用' : '服务模式'}</dd></div>
               <div>
                 <dt>AI 模型</dt>
-                <dd>{system.data.llm_ready ? '已配置' : '未配置，将使用模拟回复'}</dd>
+                <dd>{system.data.llm_ready ? '已配置' : '未配置'}</dd>
               </div>
             </dl>
           )}
         </section>
+
+        <ModelSettingsPanel sectionRef={modelSectionRef} />
 
         <section className="surface settings-section settings-section--wide">
           <div className="section-heading section-heading--compact">

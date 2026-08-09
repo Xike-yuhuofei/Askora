@@ -34,6 +34,7 @@ const standardPages = {
   '/evidence': Evidence,
   '/history': History,
   '/settings': Settings,
+  '/settings/models': Settings,
   '/settings/recovery': RecoveryCenter,
 }
 
