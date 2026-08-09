@@ -116,6 +116,29 @@ class RecoveryVerificationV1(ContractModel):
     reason_codes: tuple[str, ...] = ()
 
 
+class RecoveryReportV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    report_id: UUID
+    transaction_id: UUID
+    backup_id: UUID
+    rescue_backup_id: UUID
+    status: Literal[
+        "AWAITING_READINESS",
+        "COMPLETED",
+        "FAILED_ROLLED_BACK",
+    ]
+    schema_before: str | None = None
+    schema_after: str | None = None
+    file_count: int = Field(ge=1)
+    size_bytes: int = Field(ge=0)
+    document_refs_checked: int = Field(ge=0)
+    projection_actions: tuple[str, ...] = ()
+    erasure_checkpoint: int = Field(ge=0)
+    started_at: datetime
+    completed_at: datetime | None = None
+    reason_codes: tuple[str, ...] = ()
+
+
 class AutomaticBackupStatusV1(ContractModel):
     enabled: bool
     next_due_at: datetime | None = None

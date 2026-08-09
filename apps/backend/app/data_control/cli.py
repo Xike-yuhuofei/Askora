@@ -8,6 +8,7 @@ import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from app.contracts.data_control import BackupReason, DataControlErrorCode
 from app.data_control.crypto import ContainerError, parse_recovery_key
@@ -31,6 +32,13 @@ def _parser() -> argparse.ArgumentParser:
     subparsers.add_parser("status")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--path", required=True, type=Path)
+    restore = subparsers.add_parser("restore")
+    restore.add_argument("--path", required=True, type=Path)
+    finalize = subparsers.add_parser("finalize-restore")
+    finalize.add_argument("--transaction-id", required=True, type=UUID)
+    rollback = subparsers.add_parser("rollback-restore")
+    rollback.add_argument("--transaction-id", required=True, type=UUID)
+    subparsers.add_parser("recover-interrupted-restore")
     return parser
 
 
@@ -67,10 +75,40 @@ def run(
             )
         elif args.command == "verify":
             result_payload = manager.verify_backup(args.path).model_dump(mode="json")
+        elif args.command in {
+            "restore",
+            "finalize-restore",
+            "rollback-restore",
+            "recover-interrupted-restore",
+        }:
+            from app.data_control.restore import RestoreCoordinator
+
+            coordinator = RestoreCoordinator(manager)
+            if args.command == "restore":
+                result_payload = coordinator.restore(args.path).model_dump(mode="json")
+            elif args.command == "finalize-restore":
+                result_payload = coordinator.finalize(args.transaction_id).model_dump(mode="json")
+            elif args.command == "rollback-restore":
+                result_payload = coordinator.rollback(args.transaction_id).model_dump(mode="json")
+            else:
+                result_payload = {"action": coordinator.recover_interrupted_activation()}
         else:
             result_payload = manager.status().model_dump(mode="json")
     except RecoveryError as exc:
         return _error(exc.code, exc.message)
+    except Exception:
+        code = (
+            DataControlErrorCode.RESTORE_FAILED_ROLLED_BACK
+            if args.command
+            in {
+                "restore",
+                "finalize-restore",
+                "rollback-restore",
+                "recover-interrupted-restore",
+            }
+            else DataControlErrorCode.BACKUP_INTEGRITY_FAILED
+        )
+        return _error(code, "数据维护任务失败")
     return 0, {"ok": True, "result": result_payload}
 
 
