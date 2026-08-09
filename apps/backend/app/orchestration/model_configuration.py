@@ -11,13 +11,13 @@ import httpx
 
 from app.contracts.model_configuration import (
     ModelConfigCandidateV1,
-    ModelConfigErrorCategory,
     ModelConfigErrorCode,
     ModelConfigProvider,
     ModelConfigSource,
     ModelConfigState,
     ModelProbeResultV1,
     ModelRouteProfileSummaryV1,
+    model_config_error_semantics,
 )
 from app.core.config import settings
 from app.services.llm.model_router import ChatMessage, create_explicit_provider
@@ -30,61 +30,53 @@ PROBE_MAX_TOKENS = 32
 @dataclass(frozen=True)
 class ModelConfigurationProbeError(Exception):
     code: ModelConfigErrorCode
-    category: ModelConfigErrorCategory
     message: str
-    retryable: bool
+
+    @property
+    def category(self) -> str:
+        return model_config_error_semantics(self.code)[0].value
+
+    @property
+    def retryable(self) -> bool:
+        return model_config_error_semantics(self.code)[1]
 
 
 def _map_provider_error(exc: Exception) -> ModelConfigurationProbeError:
     if isinstance(exc, (httpx.TimeoutException, TimeoutError, asyncio.TimeoutError)):
         return ModelConfigurationProbeError(
             ModelConfigErrorCode.MODEL_PROVIDER_TIMEOUT,
-            ModelConfigErrorCategory.TRANSIENT,
             "模型连接测试超时",
-            True,
         )
     if isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code
         if status in {401, 403}:
             return ModelConfigurationProbeError(
                 ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED,
-                ModelConfigErrorCategory.AUTHORIZATION,
                 "API Key 未获 provider 接受",
-                False,
             )
         if status == 404:
             return ModelConfigurationProbeError(
                 ModelConfigErrorCode.MODEL_NOT_AVAILABLE,
-                ModelConfigErrorCategory.DEPENDENCY,
                 "所选模型不可用或账户无访问权限",
-                False,
             )
         if status == 429:
             return ModelConfigurationProbeError(
                 ModelConfigErrorCode.MODEL_RATE_LIMITED,
-                ModelConfigErrorCategory.TRANSIENT,
                 "Provider 暂时限制了请求频率",
-                True,
             )
         if status >= 500:
             return ModelConfigurationProbeError(
                 ModelConfigErrorCode.MODEL_PROVIDER_UNAVAILABLE,
-                ModelConfigErrorCategory.DEPENDENCY,
                 "Provider 服务暂时不可用",
-                True,
             )
     if isinstance(exc, (httpx.NetworkError, OSError)):
         return ModelConfigurationProbeError(
             ModelConfigErrorCode.MODEL_PROVIDER_UNAVAILABLE,
-            ModelConfigErrorCategory.DEPENDENCY,
             "无法连接到 provider",
-            True,
         )
     return ModelConfigurationProbeError(
         ModelConfigErrorCode.MODEL_PROVIDER_UNAVAILABLE,
-        ModelConfigErrorCategory.DEPENDENCY,
         "模型连接测试失败",
-        True,
     )
 
 
@@ -119,9 +111,7 @@ async def probe_model_configuration(
         ):
             raise ModelConfigurationProbeError(
                 ModelConfigErrorCode.MODEL_PROVIDER_UNAVAILABLE,
-                ModelConfigErrorCategory.DEPENDENCY,
                 "Provider 未返回可验证的真实模型响应",
-                True,
             )
         return ModelProbeResultV1(
             provider=candidate.provider,

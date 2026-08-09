@@ -9,6 +9,8 @@ from pydantic import ValidationError
 
 from app.contracts.model_configuration import (
     ModelConfigCandidateV1,
+    ModelConfigErrorCategory,
+    ModelConfigErrorCode,
     ModelConfigErrorV1,
     ModelProbeResultV1,
 )
@@ -77,6 +79,41 @@ def test_model_configuration_error_uses_stable_code_and_category_enums() -> None
             code="MODEL_SOMETHING_NEW",
             category="unexpected",
             message="not used",
+            retryable=False,
+        )
+
+
+@pytest.mark.parametrize(
+    ("code", "category", "retryable"),
+    [
+        (ModelConfigErrorCode.MODEL_PROVIDER_TIMEOUT, "transient", True),
+        (ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED, "authorization", False),
+        (ModelConfigErrorCode.MODEL_RATE_LIMITED, "transient", True),
+        (ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED, "validation", False),
+        (ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE, "security", False),
+    ],
+)
+def test_model_configuration_error_enforces_code_semantics(
+    code: ModelConfigErrorCode, category: str, retryable: bool
+) -> None:
+    """MODEL-CONFIG-080: each stable code owns its category and retry semantics."""
+    error = ModelConfigErrorV1(
+        code=code,
+        category=category,
+        message="sanitized",
+        retryable=retryable,
+    )
+
+    assert error.category.value == category
+    assert error.retryable is retryable
+
+
+def test_model_configuration_error_rejects_illegal_code_semantics() -> None:
+    with pytest.raises(ValidationError):
+        ModelConfigErrorV1(
+            code=ModelConfigErrorCode.MODEL_PROVIDER_TIMEOUT,
+            category=ModelConfigErrorCategory.SECURITY,
+            message="sanitized",
             retryable=False,
         )
 

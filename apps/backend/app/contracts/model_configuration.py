@@ -62,6 +62,39 @@ class ModelConfigErrorCategory(str, Enum):
     INTERNAL = "internal"
 
 
+MODEL_CONFIG_ERROR_SEMANTICS: dict[
+    ModelConfigErrorCode, tuple[ModelConfigErrorCategory, bool]
+] = {
+    ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE: (ModelConfigErrorCategory.SECURITY, False),
+    ModelConfigErrorCode.MODEL_CONFIG_STORAGE_UNAVAILABLE: (
+        ModelConfigErrorCategory.DEPENDENCY,
+        False,
+    ),
+    ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED: (
+        ModelConfigErrorCategory.VALIDATION,
+        False,
+    ),
+    ModelConfigErrorCode.MODEL_CONFIG_REVISION_CONFLICT: (ModelConfigErrorCategory.CONFLICT, False),
+    ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED: (
+        ModelConfigErrorCategory.AUTHORIZATION,
+        False,
+    ),
+    ModelConfigErrorCode.MODEL_NOT_AVAILABLE: (ModelConfigErrorCategory.DEPENDENCY, False),
+    ModelConfigErrorCode.MODEL_RATE_LIMITED: (ModelConfigErrorCategory.TRANSIENT, True),
+    ModelConfigErrorCode.MODEL_PROVIDER_TIMEOUT: (ModelConfigErrorCategory.TRANSIENT, True),
+    ModelConfigErrorCode.MODEL_PROVIDER_UNAVAILABLE: (ModelConfigErrorCategory.DEPENDENCY, True),
+    ModelConfigErrorCode.MODEL_CONFIG_APPLY_FAILED: (ModelConfigErrorCategory.INTERNAL, True),
+    ModelConfigErrorCode.MODEL_CONFIG_ROLLBACK_FAILED: (ModelConfigErrorCategory.INTERNAL, False),
+}
+
+
+def model_config_error_semantics(
+    code: ModelConfigErrorCode,
+) -> tuple[ModelConfigErrorCategory, bool]:
+    """Return the one stable category/retryable tuple for a public error code."""
+    return MODEL_CONFIG_ERROR_SEMANTICS[code]
+
+
 class ModelConfigCandidateV1(BaseModel):
     """Transient candidate. Its secret must never appear in a response or log."""
 
@@ -107,6 +140,30 @@ class ModelConfigErrorV1(BaseModel):
     message: str
     retryable: bool
     correlation_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_semantics(self) -> "ModelConfigErrorV1":
+        category, retryable = model_config_error_semantics(self.code)
+        if (self.category, self.retryable) != (category, retryable):
+            raise ValueError("code/category/retryable combination is not supported")
+        return self
+
+    @classmethod
+    def for_code(
+        cls,
+        *,
+        code: ModelConfigErrorCode,
+        message: str,
+        correlation_id: str | None = None,
+    ) -> "ModelConfigErrorV1":
+        category, retryable = model_config_error_semantics(code)
+        return cls(
+            code=code,
+            category=category,
+            message=message,
+            retryable=retryable,
+            correlation_id=correlation_id,
+        )
 
 
 class ModelRouteProfileSummaryV1(BaseModel):

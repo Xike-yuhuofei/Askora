@@ -14,7 +14,9 @@ from __future__ import annotations
 import base64
 import hmac
 import re
+from collections import Counter
 from contextlib import asynccontextmanager
+from math import log2
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +36,6 @@ from app.api.v1 import (
     ws_router,
 )
 from app.contracts.model_configuration import (
-    ModelConfigErrorCategory,
     ModelConfigErrorCode,
     ModelConfigErrorV1,
 )
@@ -287,17 +288,38 @@ async def config_health_check():
 
 
 _DESKTOP_CONTROL_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{64}")
+_DESKTOP_CONTROL_TOKEN_BYTES = 48
+_DESKTOP_CONTROL_TOKEN_MIN_UNIQUE_BYTES = 24
+_DESKTOP_CONTROL_TOKEN_MIN_SHANNON_ENTROPY = 4.75
+
+
+def _shannon_entropy(data: bytes) -> float:
+    counts = Counter(data)
+    total = len(data)
+    return -sum((count / total) * log2(count / total) for count in counts.values())
+
+
+def _has_repeated_block(data: bytes) -> bool:
+    for block_size in range(1, len(data) // 2 + 1):
+        if len(data) % block_size == 0 and data == data[:block_size] * (len(data) // block_size):
+            return True
+    return False
 
 
 def _is_high_entropy_desktop_control_token(token: str) -> bool:
-    """Accept Electron's 48-byte base64url token and reject obvious low-entropy values."""
+    """Validate Electron's 48-byte token against explicit statistical quality limits."""
     if not _DESKTOP_CONTROL_TOKEN_PATTERN.fullmatch(token):
         return False
     try:
         decoded = base64.urlsafe_b64decode(token + "==")
     except (ValueError, UnicodeEncodeError):
         return False
-    return len(decoded) == 48 and len(set(decoded)) >= 16
+    return (
+        len(decoded) == _DESKTOP_CONTROL_TOKEN_BYTES
+        and len(set(decoded)) >= _DESKTOP_CONTROL_TOKEN_MIN_UNIQUE_BYTES
+        and _shannon_entropy(decoded) >= _DESKTOP_CONTROL_TOKEN_MIN_SHANNON_ENTROPY
+        and not _has_repeated_block(decoded)
+    )
 
 
 def _model_config_error_response(
@@ -322,11 +344,9 @@ async def _desktop_model_probe(request: Request) -> JSONResponse:
     ):
         return _model_config_error_response(
             status_code=404,
-            error=ModelConfigErrorV1(
+            error=ModelConfigErrorV1.for_code(
                 code=ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE,
-                category=ModelConfigErrorCategory.SECURITY,
                 message="本地模型控制面不可用",
-                retryable=False,
                 correlation_id=correlation_id,
             ),
         )
@@ -334,19 +354,11 @@ async def _desktop_model_probe(request: Request) -> JSONResponse:
         payload = await request.json()
         candidate = ModelConfigCandidateV1.model_validate(payload)
     except (ValidationError, ValueError, TypeError):
-        code = ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED
-        try:
-            if isinstance(payload, dict) and payload.get("schema_version") == "1.0":
-                code = ModelConfigErrorCode.MODEL_NOT_AVAILABLE
-        except UnboundLocalError:
-            pass
         return _model_config_error_response(
             status_code=422,
-            error=ModelConfigErrorV1(
-                code=code,
-                category=ModelConfigErrorCategory.VALIDATION,
+            error=ModelConfigErrorV1.for_code(
+                code=ModelConfigErrorCode.MODEL_CONFIG_SCHEMA_UNSUPPORTED,
                 message="模型配置格式或 provider/model 组合不受支持",
-                retryable=False,
                 correlation_id=correlation_id,
             ),
         )
@@ -354,20 +366,19 @@ async def _desktop_model_probe(request: Request) -> JSONResponse:
         result = await probe_model_configuration(candidate, correlation_id=correlation_id)
         return JSONResponse(status_code=200, content=result.model_dump(mode="json"))
     except ModelConfigurationProbeError as exc:
-        status_code = 503 if exc.retryable else 400
+        error = ModelConfigErrorV1.for_code(
+            code=exc.code,
+            message=exc.message,
+            correlation_id=correlation_id,
+        )
+        status_code = 503 if error.retryable else 400
         if exc.code == ModelConfigErrorCode.MODEL_CREDENTIAL_REJECTED:
             status_code = 401
         elif exc.code == ModelConfigErrorCode.MODEL_RATE_LIMITED:
             status_code = 429
         return _model_config_error_response(
             status_code=status_code,
-            error=ModelConfigErrorV1(
-                code=exc.code,
-                category=exc.category,
-                message=exc.message,
-                retryable=exc.retryable,
-                correlation_id=correlation_id,
-            ),
+            error=error,
         )
 
 

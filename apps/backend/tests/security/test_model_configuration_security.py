@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 import pytest
@@ -12,6 +13,7 @@ from app.core.config import settings
 from app.main import _desktop_model_probe, app
 
 CONTROL_TOKEN = "iBES5Q6GuksaCWeXzMV2aaybqxeTeM0OW8QVvJYddvzhhzzvqr15qIEPxKeMdfO9"
+SHORT_CYCLE_TOKEN = base64.urlsafe_b64encode(b"0123456789ABCDEF" * 3).decode().rstrip("=")
 
 
 def _request(payload: dict, token: str, host: str = "127.0.0.1") -> Request:
@@ -101,4 +103,5 @@ def test_desktop_control_token_rejects_low_entropy_and_accepts_electron_format()
 
     assert validator("a" * 32) is False
     assert validator("a" * 64) is False
+    assert validator(SHORT_CYCLE_TOKEN) is False
     assert validator(CONTROL_TOKEN) is True
