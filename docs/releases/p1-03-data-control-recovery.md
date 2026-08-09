@@ -49,9 +49,10 @@ P1-03 已交付 macOS 私人桌面 SQLite 的加密恢复点、完整重开校�
 |---|---|
 | P1-03 backend targeted suite | 38 passed；12 个 Alembic legacy config deprecation warnings |
 | Erasure-focused suite | 15 passed |
+| backend full pytest | 378 passed，2 skipped，16 个既有 deprecation warnings |
 | Ruff `app tests` | PASS |
 | mypy `app` | PASS；168 source files，仅既有 untyped-body notes |
-| Black change-scope | PASS；15 files unchanged |
+| Black repository baseline | PASS；300 files unchanged |
 | frontend Vitest | 15 files / 59 tests PASS；含四范围 UI preview 与 packaged startup serialization regression |
 | frontend production build / Node syntax | PASS |
 | npm audit high | PASS；0 vulnerabilities |
@@ -62,7 +63,7 @@ P1-03 已交付 macOS 私人桌面 SQLite 的加密恢复点、完整重开校�
 | private permissions | PASS；data root `0700`，local secrets/recovery key `0600` |
 | `git diff --check` | PASS |
 
-全仓 `pytest` 当前为 377 passed、2 skipped、1 个与 P1-03 无关的既有失败：`test_exec025_legacy_local_user_id_uses_stable_canonical_owner` 在未改动的 `document_service.py` 对测试用非 UUID user id 执行 `UUID(...)`。仓库 Black baseline gate另有 3 个未改动文件的既有格式债务：`tests/contracts/test_workspace_contract.py`、`app/queries/workspace.py`、`tests/integration/test_workspace_product_views.py`。本次没有越权修改或扩大 ignore；P1-03 变更范围的 Ruff、mypy、Black 和相关测试均通过。
+首次 PR CI 暴露两个合并门禁债务：知识发布事件未复用已冻结的 deterministic legacy user identity adapter，以及 3 个工作区文件未满足 Black。最终合并门禁提交复用 `canonical_user_id()` 并只执行机械格式化；全仓 pytest、Ruff、mypy 和 Black repository baseline 随后全部通过，没有扩大 ignore 或建立第二 identity truth。
 
 ## 5. 真实桌面验收
 
