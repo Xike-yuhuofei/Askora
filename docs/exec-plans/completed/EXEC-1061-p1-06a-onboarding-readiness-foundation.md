@@ -1,6 +1,6 @@
 # EXEC-1061 — P1-06A Onboarding Readiness Foundation
 
-> Status：FROZEN / ACTIVE
+> Status：DONE（2026-08-09）
 > Priority：P1 Reliable Private Product
 > Governing：ADR-0106、`ONBOARD-*`、P1-06 Vertical Slice
 > Decision authority：user-delegated Codex
@@ -107,5 +107,39 @@ git diff --check
 
 ## Completion Report
 
-归档时记录 migration/backfill、preference owner、每步 source、completion negative evidence、测试、commit、
-未完成依赖和 SPEC GAP。EXEC-1061 DONE 不得单独关闭 P1-06。
+### Delivered
+
+- migration `f1061a0b9c01` 新增 presentation-only preference 与 command receipt；迁移时 existing
+  users backfill 为 `DISMISSED / LEGACY_EXISTING_USER_BACKFILL`，迁移后新用户首次读取为
+  `ACTIVE v1`；唯一约束、条件版本更新与 receipt 防止并发 last-write-wins 和重复副作用；
+- `Platform Experience Preference` repository/service 是唯一 writer；表和公共 preference 均不含
+  document/goal/plan/activity/transcript ref 或 step completion；
+- journey 的 MODEL/MATERIAL/GOAL/FIRST_ACTIVITY 分别读取 SYS08、SYS01、SYS06 与 SYS06 exact
+  lifecycle/transcript owner facts；依赖 query 不可用返回 PARTIAL 且不强制 welcome；
+- first completion 只接纳 `active -> completed`、
+  `LEARNER_FINISHED_TRANSCRIPT_BACKED_ACTIVITY`、learner actor 与同 owner/activity 的 exact
+  `BookLearningTranscriptTurn`；ModelInference、错误 transition、缺失/跨 owner transcript 均不能完成；
+- API 已 current-user scoped、strict v1、`private, no-store`，并有 cross-user、secret、path、prompt、
+  domain-ref leakage 负面证据。
+
+### Verification
+
+- 定向 P1-06A：原 20 项通过；追加 SQLite migration/new-user restart 与 PostgreSQL DDL compatibility
+  用例后为 22 passed / 1 live-PostgreSQL skipped；
+- commit `604144c` 的隔离工作树完整后端：398 passed / 3 skipped；新增 migration tests 只扩展测试，
+  产品实现未变化；
+- 隔离工作树：`ruff check app tests` PASS；`mypy app` PASS；
+  `alembic upgrade head` PASS；`alembic check` = No new upgrade operations detected；
+- PostgreSQL schema 使用原生 `TIMESTAMP WITH TIME ZONE`、FK cascade 与 frozen unique constraints
+  编译通过；当前机器未提供 `ASKORA_POSTGRES_TEST_URL`，live PostgreSQL gate 显式 skip，未伪报执行；
+- 治理提交的隔离 docs check：154 files / 0 broken links；candidate 与 staged diff check PASS；
+- 实现 commit：`4747000`（amend 后最终 hash）。
+
+### Remaining outside this EXEC
+
+- P1-02、P1-03、P1-07 的 owner contracts/queries/actions 仍须在 EXEC-1062 精确集成；
+- `/welcome`、默认入口 guard、deep-link 保留、Settings REOPEN、responsive/a11y/browser/real-provider/
+  App restart 产品门禁属于 EXEC-1062；
+- shared worktree 的未提交 P1-01 migration 与本 migration 暂时形成两个 Alembic heads；本提交的隔离
+  单-head 全量 migration 已通过，集成 P1-01 时必须线性化或增加治理后的 merge revision；
+- `SPEC GAP`：无。依赖尚未完成不等于 P1-06 完成，EXEC-1061 DONE 不得单独关闭 P1-06。
