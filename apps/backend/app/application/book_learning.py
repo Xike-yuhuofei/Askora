@@ -36,15 +36,14 @@ from app.contracts.events import (
     EventActor,
     EventContext,
     EventPrivacy,
-    EventProvenance,
     EventProvenanceV03,
     EventTrace,
-    LearningEventEnvelope,
     LearningEventEnvelopeV03,
 )
 from app.contracts.learning import LearningActivity, LearningPlan, MasteryEstimate
 from app.contracts.model_execution import ModelExecutionV1
 from app.contracts.planning import LearningGoalV1
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.infrastructure.adaptive_records import (
     AdaptiveContractRepository,
     DecisionTraceV03Repository,
@@ -52,7 +51,6 @@ from app.infrastructure.adaptive_records import (
 )
 from app.infrastructure.book_learning_transcript import BookLearningTranscriptRepository
 from app.infrastructure.learning_records import LearnerModelRepository
-from app.infrastructure.ledger import LearningEventRepository
 from app.infrastructure.planning_records import (
     DiagnosticNeedRepository,
     GoalPlanningRepository,
@@ -60,13 +58,13 @@ from app.infrastructure.planning_records import (
 )
 from app.models.adaptive import TeachingContextRecord
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
-from app.models.ledger import LearningEventRecord
 from app.models.planning import LearningActivityRecord, LearningPlanRecord
 from app.models.user import User
 from app.orchestration.learning_facade import CanonicalTurnRequest, LearningOrchestrationFacade
 from app.orchestration.model_rendering import ModelRenderingError
 from app.queries.book_learning import BookLearningReadinessQuery
 from app.queries.diagnostic_assessment import DiagnosticAssessmentItemQuery
+from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.assessment.diagnostic_bootstrap import (
     DiagnosticBootstrapResult,
     PrerequisiteDiagnosticService,
@@ -547,34 +545,28 @@ class BookLearningApplication:
         )
         if activity is None:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_AVAILABLE")
-        event_repo = LearningEventRepository(self._db)
-        existing = await event_repo.get_by_idempotency_key(
-            f"book-activity-selected:{idempotency_key}"
-        )
-        if existing is not None:
-            expected_plan_ref = f"learning_plan:{plan.plan_id}:v{plan.version}"
-            if (
-                existing.context.user_id != canonical_user_id(user.id)
-                or existing.context.goal_id != goal.goal_id
-                or existing.aggregate_id != str(activity.activity_id)
-                or existing.payload.get("plan_ref") != expected_plan_ref
-            ):
-                raise BookLearningApplicationError("ACTIVITY_SELECTION_IDEMPOTENCY_CONFLICT")
-            return self._operation(
-                "SelectNextActivity", correlation_id, goal=goal, plan=plan, activity=activity
-            )
-        await self._require_book_state(user=user, goal=goal, expected="PLAN_READY")
-        selected_at = now or datetime.now(timezone.utc)
-        event = self._activity_selected_event(
+        lifecycle_service = ActivityLifecycleService(self._db)
+        lifecycle = await lifecycle_service.replay_select_next(
             user=user,
-            goal=goal,
-            plan=plan,
-            activity=activity,
+            goal_id=goal.goal_id,
             idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-            selected_at=selected_at,
         )
-        await event_repo.append(event)
+        if lifecycle is None:
+            await self._require_book_state(user=user, goal=goal, expected="PLAN_READY")
+            lifecycle = await lifecycle_service.select_next(
+                user=user,
+                goal_id=goal.goal_id,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+        selected_id = lifecycle.data.state.activity_id
+        activity = next(
+            (item for item in activities if item.activity_id == selected_id),
+            None,
+        )
+        if activity is None:
+            raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_AVAILABLE")
         return self._operation(
             "SelectNextActivity", correlation_id, goal=goal, plan=plan, activity=activity
         )
@@ -1084,13 +1076,8 @@ class BookLearningApplication:
             update={"status": plan_record.status}
         )
         goal = await self._require_goal(user, plan.learning_goal_id)
-        selected = await self._db.scalar(
-            select(LearningEventRecord.event_id).where(
-                LearningEventRecord.event_type == "ActivitySelected",
-                LearningEventRecord.aggregate_id == str(activity.activity_id),
-            )
-        )
-        if selected is None:
+        state = await ActivityLifecycleRepository(self._db).latest(activity.activity_id)
+        if state is None or state.status not in {"available", "active", "completed"}:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_SELECTED")
         return goal, plan, activity
 
@@ -1142,13 +1129,8 @@ class BookLearningApplication:
         activity = next((item for item in activities if item.activity_id == activity_id), None)
         if activity is None:
             raise BookLearningApplicationError("LEARNING_ACTIVITY_STALE_OR_UNAUTHORIZED")
-        selected = await self._db.scalar(
-            select(LearningEventRecord.event_id).where(
-                LearningEventRecord.event_type == "ActivitySelected",
-                LearningEventRecord.aggregate_id == str(activity_id),
-            )
-        )
-        if selected is None:
+        state = await ActivityLifecycleRepository(self._db).latest(activity_id)
+        if state is None or state.status != "active":
             raise BookLearningApplicationError("LEARNING_ACTIVITY_NOT_SELECTED")
         return goal, plan, activity
 
@@ -1419,47 +1401,4 @@ class BookLearningApplication:
             owner_system=owner,
             ref=VersionedRef(entity_type=entity_type, entity_id=str(entity_id), version=version),
             status=status,
-        )
-
-    @staticmethod
-    def _activity_selected_event(
-        *,
-        user: User,
-        goal: LearningGoalV1,
-        plan: LearningPlan,
-        activity: LearningActivity,
-        idempotency_key: str,
-        correlation_id: UUID,
-        selected_at: datetime,
-    ) -> LearningEventEnvelope:
-        return LearningEventEnvelope(
-            event_id=uuid5(NAMESPACE_URL, f"askora:activity-selected:{user.id}:{idempotency_key}"),
-            event_type="ActivitySelected",
-            aggregate_type="LearningActivity",
-            aggregate_id=activity.activity_id,
-            aggregate_version=activity.plan_version,
-            sequence=activity.plan_version,
-            occurred_at=selected_at,
-            recorded_at=selected_at,
-            idempotency_key=f"book-activity-selected:{idempotency_key}",
-            correlation_id=correlation_id,
-            actor=EventActor(actor_type="learner", actor_id=user.id),
-            context=EventContext(
-                user_id=canonical_user_id(user.id),
-                goal_id=goal.goal_id,
-                knowledge_unit_ids=activity.knowledge_unit_ids,
-                content_revision_ids=[],
-            ),
-            payload={
-                "goal_ref": f"learning_goal:{goal.goal_id}:v{goal.version}",
-                "plan_ref": f"learning_plan:{plan.plan_id}:v{plan.version}",
-                "activity_ref": f"learning_activity:{activity.activity_id}:v{activity.plan_version}",
-            },
-            provenance=EventProvenance(source="api", algorithm_version="sys06-select-v1"),
-            trace=EventTrace(trace_id=f"book-learning:{correlation_id}"),
-            privacy=EventPrivacy(
-                classification="personal",
-                external_processing=False,
-                retention_class="core_learning",
-            ),
         )

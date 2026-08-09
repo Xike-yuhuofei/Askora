@@ -91,7 +91,7 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     expect(screen.queryByText('已掌握')).not.toBeInTheDocument()
   })
 
-  it('shows a canonical next activity without inventing a resumable session link', async () => {
+  it('launches the exact canonical activity from its lifecycle capability', async () => {
     workspaceApi.getTodayWorkspace.mockResolvedValueOnce({
       ...todayPayload,
       data: {
@@ -107,8 +107,8 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     render(<RouterProvider><Today /></RouterProvider>)
 
     expect(await screen.findByRole('heading', { name: '检查当前基础' })).toBeInTheDocument()
-    expect(screen.getByText(/启动\/恢复关联仍未冻结/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '继续学习' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /查看路径/ })).toBeInTheDocument()
+    expect(screen.getByText(/完成本项不等于已经掌握/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /开始学习/ }))
+    await waitFor(() => expect(window.location.hash).toBe('#/learn/a1'))
   })
 })

@@ -12,6 +12,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
 from app.application.book_learning import BookLearningApplication, BookLearningApplicationError
+from app.contracts.activity_lifecycle import (
+    CompleteLearningActivityV1,
+    StartLearningActivityV1,
+)
+from app.contracts.adaptive import VersionedRef
 from app.contracts.assessment import AssistanceSnapshot
 from app.core.database import Base
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
@@ -22,6 +27,7 @@ from app.models.ledger import LearningEventRecord
 from app.models.user import User, UserRole, UserStatus
 from app.orchestration.learning_facade import LearningOrchestrationFacade
 from app.orchestration.model_rendering import PolicyBoundModelRenderer
+from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.document_service import DocumentService
 from app.services.llm.model_router import ChatMessage, LLMResponse
@@ -371,6 +377,22 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         for item in ready.owner_refs
     )
 
+    lifecycle = await ActivityLifecycleService(db).get(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    await ActivityLifecycleService(db).start(
+        user=user,
+        command=StartLearningActivityV1(
+            activity_id=UUID(activity["activity_id"]),
+            expected_state_version=lifecycle.data.state.version,
+            idempotency_key="canonical:lifecycle:start",
+        ),
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+
     system_start = await app.start_teaching_round(
         user=user,
         goal_id=goal_id,
@@ -503,6 +525,36 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         correlation_id=uuid4(),
     )
     assert len(after_failure.turns) == 2
+    active_lifecycle = await ActivityLifecycleService(db).get(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    await ActivityLifecycleService(db).complete(
+        user=user,
+        command=CompleteLearningActivityV1(
+            activity_id=UUID(activity["activity_id"]),
+            expected_state_version=active_lifecycle.data.state.version,
+            completion_intent="learner_finished",
+            transcript_turn_refs=tuple(
+                VersionedRef(
+                    entity_type="BookLearningTranscriptTurn",
+                    entity_id=turn.turn_id,
+                    version=turn.turn_number,
+                )
+                for turn in after_failure.turns
+            ),
+            idempotency_key="canonical:lifecycle:complete",
+        ),
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    completed_transcript = await app.get_transcript(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    assert len(completed_transcript.turns) == 2
     assert (
         len(
             (

@@ -34,11 +34,13 @@ from app.models.ledger import (
     RecoveryEventRecord,
 )
 from app.models.planning import (
+    ActivityLifecycleCommandReceiptRecord,
     DiagnosticNeedRecord,
     GoalFormationInferenceRecord,
     GoalKnowledgeMappingRecord,
     GoalKnowledgeSubgraphRecord,
     LearningActivityRecord,
+    LearningActivityStateRecord,
     LearningGoalRecord,
     LearningPlanRecord,
     ReviewObservationRecord,
@@ -75,6 +77,8 @@ __all__ = [
     "BookLearningTranscriptTurnRecord",
     "BookLearningAdvanceRecord",
     "LearningActivityRecord",
+    "LearningActivityStateRecord",
+    "ActivityLifecycleCommandReceiptRecord",
     "DiagnosticNeedRecord",
     "LearningGoalRecord",
     "GoalKnowledgeMappingRecord",

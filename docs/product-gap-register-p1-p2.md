@@ -2,7 +2,7 @@
 
 > 状态：Current Product Gap Register
 > 校准日期：2026-08-09
-> 当前实现基线：UI-02B Goals / Path / Evidence 已完成；UI-02C Activity Lifecycle 已冻结但被依赖阻塞
+> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成
 > 用途：记录产品完整性审计中仍未关闭的 P1、P2 问题
 > 权威边界：本文件是产品优先级与验收清单，不是 Spec、ADR 或 EXEC；实现前仍须按 `AGENTS.md` 完成治理闭环
 
@@ -13,7 +13,7 @@
 | P1 — 可靠的私人产品 | 7 | 5 | 2 | 0 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
-本清单不包含仍在推进的 P0。当前 P0 仍包括：提交 durable activity transcript / policy-bound Book Learning 依赖，并实施 [EXEC-030](exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md)，闭合“开始 → 恢复 → 完成 → 下一项”。
+本清单不包含 P0；durable activity transcript、policy-bound Book Learning 与 [EXEC-030](exec-plans/completed/EXEC-030-ui-02c-canonical-activity-lifecycle.md) 已闭合“开始 → 恢复 → 完成 → 下一项”。
 
 状态词：
 

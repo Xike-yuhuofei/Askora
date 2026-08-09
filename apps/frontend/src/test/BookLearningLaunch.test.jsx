@@ -163,32 +163,18 @@ describe('UI02B2 guided book learning', () => {
     expect(screen.getByText('不计分 · 用于调整学习起点')).toBeInTheDocument()
   })
 
-  it('starts with a server-owned system turn and restores the accepted reply with evidence', async () => {
+  it('hands the selected activity to the canonical lifecycle route before teaching', async () => {
     bookLearningApi.getReadiness.mockResolvedValue(
       readiness('READY_TO_LEARN', ['StartCanonicalTeachingRound'], ['LEARNING_ACTIVITY_SELECTED'], [goalRef, selectedActivityRef]),
     )
-    bookLearningApi.getTranscript
-      .mockResolvedValueOnce(transcript())
-      .mockResolvedValue(transcript([assistantTurn]))
+    bookLearningApi.getTranscript.mockResolvedValue(transcript())
 
     render(<BookLearningLaunch documentId={documentId} />)
 
     fireEvent.click(await screen.findByRole('button', { name: '开始本次学习' }))
 
-    expect(await screen.findByText('先想一想：比例中的两个量表达了什么关系？')).toBeInTheDocument()
-    fireEvent.click(screen.getByText('技术详情'))
-    expect(screen.getByText(/模型执行：real_model · deepseek · deepseek-chat/)).toBeInTheDocument()
-    expect(bookLearningApi.startTeachingRound).toHaveBeenCalledWith(
-      activityId,
-      expect.objectContaining({
-        turn_kind: 'system_start',
-        learner_text: null,
-        session_id: sessionId,
-      }),
-    )
-    expect(screen.getByText('依据资料 · 1 处')).toBeInTheDocument()
-    expect(screen.getByText(/刷新页面也可以继续/)).toBeInTheDocument()
-    expect(within(screen.getByRole('main')).queryByText(/canonical|SYS08|READY_TO_LEARN/)).not.toBeInTheDocument()
+    await waitFor(() => expect(window.location.hash).toBe(`#\/learn/${activityId}`))
+    expect(bookLearningApi.startTeachingRound).not.toHaveBeenCalled()
   })
 
   it('submits the next learner turn against the durable transcript number', async () => {

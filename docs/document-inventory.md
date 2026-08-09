@@ -141,7 +141,7 @@
 | `docs/specs/vertical-slices/ui-02b2-guided-book-learning.md` | CANONICAL-RETAIN | 冻结 UI-02B2 system-guided launch 与 durable transcript Slice |
 | `docs/specs/vertical-slices/ui-02b3-real-model-guided-learning.md` | CANONICAL-RETAIN | 冻结 production real-model guided learning 与真实 E2E Slice |
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结并完成 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 DONE |
-| `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 冻结 UI-02C activity start/resume/complete/next Slice；等待依赖提交 |
+| `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | UI-02C activity start/resume/complete/next Slice；EXEC-030 DONE |
 | `docs/specs/vertical-slices/p1-07-error-recovery-center.md` | CANONICAL-RETAIN | P1-07 双入口统一恢复 Vertical Slice |
 | `docs/specs/vertical-slices/p1-03-data-control-recovery.md` | CANONICAL-RETAIN | 冻结 P1-03 backup/restore/export/erasure Slice |
 
@@ -149,8 +149,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～029 已完成；EXEC-030 frozen/blocked |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～029 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～030 已完成；P1-07 与 P1-03 EXEC active |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～030 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -180,7 +180,7 @@
 | `docs/exec-plans/completed/EXEC-027-ui-02b3-real-model-e2e.md` | HISTORICAL-RETAIN | production real-model rendering 与真实 E2E 完成合同 |
 | `docs/exec-plans/completed/EXEC-028-zhipu-development-model.md` | HISTORICAL-RETAIN | 智谱开发模型接入、真实模型验证与本机配置边界 |
 | `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
-| `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
+| `docs/exec-plans/completed/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | UI-02C lifecycle 已完成归档 |
 | `docs/exec-plans/active/EXEC-037-p1-07-error-recovery-center.md` | CURRENT-UPDATED | P1-07 active execution contract |
 | `docs/exec-plans/active/EXEC-1031-p1-03-recovery-foundation.md` | CANONICAL-RETAIN | P1-03 recovery foundation ready |
 | `docs/exec-plans/active/EXEC-1032-p1-03-verified-restore.md` | CANONICAL-RETAIN | P1-03 restore blocked by EXEC-1031 |
@@ -197,6 +197,7 @@
 | `docs/releases/ui-02b2-guided-book-learning.md` | CURRENT-UPDATED | UI-02B2 Engineering/UI/Contract/Ownership/Security 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b3-real-model-guided-learning.md` | CURRENT-UPDATED | UI-02B3 真实浏览器/provider/PostgreSQL 与 Learning Evidence 分离报告 |
 | `docs/releases/ui-02b-goals-path-evidence.md` | CURRENT-UPDATED | UI-02B Goals/Path/Evidence Engineering、Ownership 与 Learning Evidence 分离报告 |
+| `docs/releases/ui-02c-canonical-activity-lifecycle.md` | CURRENT-UPDATED | UI-02C Engineering、Ownership、浏览器 lifecycle 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

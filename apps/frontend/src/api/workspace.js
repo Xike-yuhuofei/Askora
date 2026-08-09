@@ -27,3 +27,15 @@ export const getLibraryWorkspace = ({ status, subject, page = 1, pageSize = 20 }
 export const getKnowledgeMap = (documentId) =>
   api.get('/workspace/knowledge-map', { params: { document_id: documentId } })
     .then((response) => response.data)
+
+export const getActivityLifecycle = (activityId) =>
+  api.get(`/workspace/activities/${encodeURIComponent(activityId)}`)
+    .then((response) => response.data)
+
+export const startActivity = (activityId, body) =>
+  api.post(`/workspace/activities/${encodeURIComponent(activityId)}/start`, body)
+    .then((response) => response.data)
+
+export const completeActivity = (activityId, body) =>
+  api.post(`/workspace/activities/${encodeURIComponent(activityId)}/complete`, body)
+    .then((response) => response.data)

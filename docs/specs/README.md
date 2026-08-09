@@ -83,7 +83,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 active
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
-- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
+- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
 - [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
 - [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成

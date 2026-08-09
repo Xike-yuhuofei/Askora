@@ -348,24 +348,8 @@ export default function BookLearningLaunch({ documentId }) {
 
   const startLesson = () => {
     const activity = details.selection?.activity
-    const plan = details.selection?.plan
-    const transcript = details.transcript
-    if (!activity || !plan || !transcript) return
-    run(
-      () => bookLearningApi.startTeachingRound(activity.activity_id, {
-        schema_version: '1.0',
-        goal_id: goalId,
-        plan_id: plan.plan_id,
-        plan_version: plan.version,
-        activity_id: activity.activity_id,
-        session_id: transcript.session_id,
-        turn_id: 'system-start-1',
-        turn_kind: 'system_start',
-        learner_text: null,
-        idempotency_key: operationKey(documentId, 'teaching-system-start', activity.activity_id),
-      }),
-      '本次学习暂时没有开始。你的计划已经保留，可以重试。',
-    )
+    if (!activity) return
+    window.location.hash = `#/learn/${encodeURIComponent(activity.activity_id)}`
   }
 
   const sendTeaching = async () => {

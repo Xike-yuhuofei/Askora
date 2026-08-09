@@ -9,8 +9,9 @@
 > UI-02B2 收口日期：2026-08-08
 > UI-02B3 收口日期：2026-08-08
 > UI-02B Goals/Path/Evidence 收口日期：2026-08-09
+> UI-02C 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024 DONE
 
 ## Completion Matrix
 
@@ -45,6 +46,7 @@
 | EXEC-027 — UI-02B3 Real-model Guided Learning E2E | DONE | Zhipu UI E2E + DeepSeek real-model gate PASS；local implementation |
 | EXEC-028 — Zhipu Development Model Integration | DONE | `zhipu/glm-4.7-flash` unit + real-model canonical gate PASS；local configuration only |
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-030 — UI-02C Canonical Activity Lifecycle | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 
 ## Release Gate
 

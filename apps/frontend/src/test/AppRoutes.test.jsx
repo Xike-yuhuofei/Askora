@@ -18,7 +18,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
       sessionId: 'session-1',
     })
     expect(resolveRoute('/learn/activity-1')).toMatchObject({
-      type: 'activity-unavailable',
+      type: 'activity-learning',
       activityId: 'activity-1',
     })
   })
