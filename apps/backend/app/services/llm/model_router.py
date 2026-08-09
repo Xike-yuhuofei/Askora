@@ -89,41 +89,6 @@ class BaseLLMProvider(ABC):
             await client.aclose()
 
 
-class ModelRouteUnavailableError(RuntimeError):
-    """Stable SYS08 dependency failure for a non-runnable desktop route."""
-
-    code = "MODEL_NOT_AVAILABLE"
-
-    def __init__(self) -> None:
-        super().__init__(self.code)
-
-
-class UnavailableModelProvider(BaseLLMProvider):
-    """Fail closed instead of letting a disabled desktop route use a mock response."""
-
-    async def chat_completion(
-        self,
-        messages: list[ChatMessage],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        **kwargs,
-    ) -> LLMResponse:
-        raise ModelRouteUnavailableError()
-
-    async def stream_chat_completion(
-        self,
-        messages: list[ChatMessage],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        **kwargs,
-    ) -> AsyncGenerator[StreamChunk, None]:
-        raise ModelRouteUnavailableError()
-        yield StreamChunk(content="")
-
-    async def embedding(self, text: str) -> list[float]:
-        raise ModelRouteUnavailableError()
-
-
 class QwenProvider(BaseLLMProvider):
     """通义千问（阿里云）- 主力模型"""
 
@@ -745,25 +710,10 @@ class ModelRouter:
             "zhipu": ZhipuProvider(),
         }
         self._default_provider = settings.llm_default_provider.value
-        self._desktop_single_route = (
-            settings.model_config_source.upper() == "DESKTOP_VAULT"
-            or settings.model_config_state.upper() == "DISABLED"
-        )
-        desktop_route_provider = self._providers[self._default_provider]
-        self._desktop_route_unavailable = self._desktop_single_route and (
-            settings.model_config_state.upper() != "ACTIVE"
-            or not getattr(desktop_route_provider, "api_key", "")
-        )
-        self._unavailable_provider = UnavailableModelProvider()
 
     def get_provider(self, provider_name: Optional[str] = None) -> BaseLLMProvider:
         """获取指定供应商，默认使用配置的默认模型"""
-        if self._desktop_route_unavailable:
-            return self._unavailable_provider
         name = provider_name or self._default_provider
-        if self._desktop_single_route and name != self._default_provider:
-            logger.warning("desktop_provider_override_blocked", provider=name)
-            name = self._default_provider
         if name not in self._providers:
             logger.warning("unknown_provider_fallback", provider=name)
             name = self._default_provider
@@ -775,8 +725,6 @@ class ModelRouter:
         - 数学 → 配置的数学模型（可用时）
         - 其他 → 配置的默认模型
         """
-        if self._desktop_single_route:
-            return self.get_provider()
         if subject and subject.lower() in {"math", "mathematics", "数学", "shuxue"}:
             math_provider = self._providers[settings.llm_math_provider.value]
             if getattr(math_provider, "api_key", ""):
@@ -791,8 +739,6 @@ class ModelRouter:
         - normal: 通义千问
         - low: DeepSeek（高质量）
         """
-        if self._desktop_single_route:
-            return self.get_provider()
         if cost_sensitivity == "high":
             return self._providers["doubao"]
         elif cost_sensitivity == "low":
@@ -810,12 +756,9 @@ class ModelRouter:
         主模型失败时自动切换到备选模型
         """
         providers_to_try = [self.route_for_subject(subject or "general")]
-
-        # Desktop vault intentionally has one exact external route (MODEL-CONFIG-070).
-        if not self._desktop_single_route:
-            for p in self._providers.values():
-                if p not in providers_to_try:
-                    providers_to_try.append(p)
+        for p in self._providers.values():
+            if p not in providers_to_try:
+                providers_to_try.append(p)
 
         last_error = None
         for provider in providers_to_try:
@@ -833,8 +776,6 @@ class ModelRouter:
                 continue
 
         # 所有供应商都失败了
-        if isinstance(last_error, ModelRouteUnavailableError):
-            raise last_error
         error_type = type(last_error).__name__ if last_error else "unknown"
         raise RuntimeError(f"所有 LLM 供应商均不可用（{error_type}）")
 
@@ -842,31 +783,6 @@ class ModelRouter:
         """关闭所有供应商的连接"""
         for provider in self._providers.values():
             await provider.close()
-
-
-def create_explicit_provider(
-    provider_name: str,
-    *,
-    api_key: str,
-    model: str,
-    timeout: float,
-) -> BaseLLMProvider:
-    """Build an isolated candidate provider without mutating process-global settings."""
-
-    provider_types: dict[str, type[BaseLLMProvider]] = {
-        "qwen": QwenProvider,
-        "deepseek": DeepSeekProvider,
-        "doubao": DoubaoProvider,
-        "zhipu": ZhipuProvider,
-    }
-    provider_type = provider_types.get(provider_name)
-    if provider_type is None:
-        raise ValueError("unsupported provider")
-    provider = provider_type()
-    provider.api_key = api_key  # type: ignore[attr-defined]
-    provider.model = model  # type: ignore[attr-defined]
-    provider.timeout_seconds = timeout  # type: ignore[attr-defined]
-    return provider
 
 
 # 全局单例

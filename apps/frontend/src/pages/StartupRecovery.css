@@ -1,6 +1,0 @@
-.startup-recovery { min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; background: #f3f1eb; }
-.startup-recovery__card { background: #fff; border: 1px solid #ded9ce; border-radius: 20px; box-shadow: 0 18px 50px rgb(49 43 32 / 10%); max-width: 620px; padding: clamp(1.4rem, 5vw, 2.5rem); width: 100%; }
-.startup-recovery__icon { align-items: center; background: #fff1df; border-radius: 14px; color: #9a5b13; display: flex; height: 52px; justify-content: center; margin-bottom: 1rem; width: 52px; }
-.startup-recovery__safety { align-items: flex-start; background: #eef6f0; border-radius: 12px; color: #285b35; display: flex; gap: .55rem; margin: 1.2rem 0; padding: .85rem; }
-.startup-recovery__actions { display: flex; flex-wrap: wrap; gap: .7rem; }
-@media (max-width: 480px) { .startup-recovery__actions .button { width: 100%; } }

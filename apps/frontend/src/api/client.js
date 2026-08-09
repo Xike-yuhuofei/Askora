@@ -6,16 +6,6 @@ let refreshPromise = null
 export const getApiBaseURL = async () => {
   if (cachedBaseURL) return cachedBaseURL
 
-  if (window.electronAPI?.getBackendURL) {
-    try {
-      const localURL = await window.electronAPI.getBackendURL()
-      if (localURL) {
-        cachedBaseURL = `${localURL}/api/v1`
-        return cachedBaseURL
-      }
-    } catch {}
-  }
-
   const envURL = import.meta.env.VITE_API_BASE_URL
   if (!import.meta.env.PROD && envURL) {
     cachedBaseURL = envURL
