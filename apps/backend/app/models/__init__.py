@@ -46,6 +46,12 @@ from app.models.document import (
     ProcessingStatus,
     UserDocument,
 )
+from app.models.identity import (
+    AuthSessionRecord,
+    IdentityCommandReceiptRecord,
+    RecoveryCredentialRecord,
+    RecoveryThrottleRecord,
+)
 from app.models.knowledge import KnowledgePoint, LearningMaterial
 from app.models.ledger import (
     DecisionTraceInputRecord,
@@ -70,6 +76,11 @@ from app.models.planning import (
     ReviewObservationRecord,
     ReviewScheduleRecord,
 )
+from app.models.privacy import (
+    AccountDeletionPreviewRecord,
+    AccountDeletionRequestRecord,
+    PrivacyTombstoneRecord,
+)
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
@@ -89,6 +100,13 @@ __all__ = [
     "User",
     "UserRole",
     "UserStatus",
+    "AuthSessionRecord",
+    "IdentityCommandReceiptRecord",
+    "RecoveryCredentialRecord",
+    "RecoveryThrottleRecord",
+    "AccountDeletionPreviewRecord",
+    "AccountDeletionRequestRecord",
+    "PrivacyTombstoneRecord",
     "UserProfile",
     "DialogSession",
     "DialogMessage",

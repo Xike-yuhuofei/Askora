@@ -3,15 +3,18 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
-from app.contracts.data_control import ErasureScope, ErasureWorkflowStatus
+from app.contracts.data_control import DataControlErrorCode, ErasureScope, ErasureWorkflowStatus
 from app.core.database import Base
 from app.data_control.erasure import ErasureCoordinator, ErasurePreviewRegistry
+from app.data_control.recovery import RecoveryError
+from app.infrastructure.privacy import PrivacyInventoryRepository
 from app.models.adaptive import (
     ExperimentAssignmentRecord,
     PolicyBundleRecord,
@@ -642,22 +645,25 @@ async def test_all_personal_data_erasure_removes_identity_but_keeps_tombstone(
             ]
         )
         await session.commit()
+        manifest = await PrivacyInventoryRepository(session).build_manifest(
+            user_id=current.id,
+            pseudonym_id=current.pseudonym_id,
+            subject_digest="account-subject-current",
+            storage_base_path=tmp_path / "documents",
+        )
         coordinator = ErasureCoordinator(
             session,
             registry=ErasurePreviewRegistry(),
             documents_dir=tmp_path / "documents",
             fail_closed_marker=tmp_path / "recovery" / "erasure-pending.json",
+            account_manifest=manifest,
         )
-        preview = await coordinator.preview(
+        with pytest.raises(RecoveryError) as direct_preview:
+            await coordinator.preview(user=current, scope=ErasureScope.ALL_PERSONAL_DATA)
+        assert direct_preview.value.code == DataControlErrorCode.ERASURE_CONFIRMATION_INVALID
+        report = await coordinator.execute_authorized_account_deletion(
             user=current,
-            scope=ErasureScope.ALL_PERSONAL_DATA,
-        )
-        report = await coordinator.confirm(
-            user=current,
-            preview_id=preview.preview_id,
-            token=preview.confirmation_token,
-            confirmation_phrase=preview.confirmation_phrase,
-            idempotency_key="erase-all-current",
+            account_request_id=uuid4(),
         )
 
         assert await _count(session, User, User.id == "user-current") == 0

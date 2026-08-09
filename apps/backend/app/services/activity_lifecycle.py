@@ -217,7 +217,7 @@ class ActivityLifecycleService:
         state = await self._require_state(command.activity_id, lock=True)
         self._require_current_plan(context)
         if state.version != command.expected_state_version:
-            replay = await self._replay(
+            replay = await self._replay_after_concurrent_conflict(
                 user_id=owner_id,
                 idempotency_key=command.idempotency_key,
                 digest=digest,
@@ -282,7 +282,7 @@ class ActivityLifecycleService:
         state = await self._require_state(command.activity_id, lock=True)
         self._require_current_plan(context)
         if state.version != command.expected_state_version:
-            replay = await self._replay(
+            replay = await self._replay_after_concurrent_conflict(
                 user_id=owner_id,
                 idempotency_key=command.idempotency_key,
                 digest=digest,

@@ -19,6 +19,43 @@ export const logout = () => api.post('/auth/logout').then((r) => r.data)
 // 获取当前用户
 export const getMe = () => api.get('/auth/me').then((r) => r.data)
 
+export const changePassword = (command) =>
+  api.post('/auth/password/change', command).then((r) => r.data)
+
+export const listSessions = () => api.get('/auth/sessions').then((r) => r.data)
+
+export const revokeSession = (sessionId, idempotencyKey) =>
+  api.post(`/auth/sessions/${encodeURIComponent(sessionId)}/revoke`, {
+    schema_version: '1.0',
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
+export const revokeOtherSessions = (idempotencyKey) =>
+  api.post('/auth/sessions/revoke-others', {
+    schema_version: '1.0',
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
+export const getRecoveryStatus = () =>
+  api.get('/auth/recovery/status').then((r) => r.data)
+
+export const issueRecoveryKit = (currentPassword, idempotencyKey) =>
+  api.post('/auth/recovery/issue', {
+    schema_version: '1.0',
+    current_password: currentPassword,
+    idempotency_key: idempotencyKey,
+  }).then((r) => r.data)
+
+export const recoverPassword = (phone, recoverySecret, newPassword, idempotencyKey) =>
+  api.post('/auth/recovery/password', {
+    schema_version: '1.0',
+    phone,
+    recovery_secret: recoverySecret,
+    new_password: newPassword,
+    client_instance: getOrCreateDeviceFingerprint(),
+    idempotency_key: idempotencyKey,
+  }, { skipAuth: true, _skipRefresh: true }).then((r) => r.data)
+
 // 刷新 token
 export const refreshToken = (refresh_token) =>
   api.post('/auth/refresh', {

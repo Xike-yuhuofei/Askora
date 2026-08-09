@@ -49,6 +49,10 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [System Architecture](architecture/system-architecture.md)
 - [Dependency Rules](architecture/dependency-rules.md)
 
+### Platform
+
+- [Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — P1-05 本地优先账号、durable session、离线恢复、owner-safe 删除与 restore barrier
+
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
@@ -83,6 +87,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
 - [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
+- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — 修改密码、会话管理、本地恢复与账号删除完整闭环；EXEC-034～036 已完成
 - [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
 - [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
 - [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成

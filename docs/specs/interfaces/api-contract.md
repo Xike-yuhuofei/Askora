@@ -163,7 +163,11 @@ Identity/session/recovery/account-deletion API MUST 调用 `IDP-*` application p
 
 ### API-202
 
-账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token 只能访问该 deletion request 的 status/cancel，MUST NOT 访问任何学习或账号普通数据。
+账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token 只能访问该 deletion request 的 status/cancel/retry，MUST NOT 访问任何学习或账号普通数据。status MAY 返回 canonical P1-03 workflow/receipt/checkpoint refs 与 `requires_post_erasure_maintenance`，不得返回 manifest/content。
+
+### API-204
+
+公共 P1-03 erasure preview API MUST NOT 直接接受 `ALL_PERSONAL_DATA` 作为绕过账号安全流程的入口；该 scope 只能由 P1-05 已完成 password re-auth、精确短语和 grace 的内部 authorization bridge 调用。普通 Settings 必须路由到账号删除页。
 
 ### API-203
 
