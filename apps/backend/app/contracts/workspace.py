@@ -147,6 +147,7 @@ class LearningPathActivityV1(ContractModel):
     priority: float
     reason_codes: tuple[str, ...]
     status: str
+    launch_state: Literal["ACTIVE", "RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"]
 
 
 class LearningPathViewV1(ContractModel):

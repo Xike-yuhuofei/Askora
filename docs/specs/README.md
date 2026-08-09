@@ -78,7 +78,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
-- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
+- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
 - [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
 - [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成

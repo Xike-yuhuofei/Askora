@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：UI-02C EXEC-030 FROZEN / BLOCKED_BY_DEPENDENCY
-> Active：EXEC-030（等待 durable transcript / policy-bound Book Learning baseline commit）
-> 已完成：EXEC-001～EXEC-025、EXEC-029
+> 状态：UI-02C EXEC-030 DONE
+> Active：none
+> 已完成：EXEC-001～EXEC-030
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md) | 已冻结；依赖提交前不得修改产品代码 |
-| [`completed/`](completed/README.md) | EXEC-001～025、EXEC-029 | 保留执行任务合同及其显式决策记录 |
+| `active/` | — | 当前无 active EXEC |
+| [`completed/`](completed/README.md) | EXEC-001～030 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -36,7 +36,10 @@ Accepted ADR / Canonical Design
 | Book-to-Learning SPEC-D01～D06 | EXEC-017～024 | DONE |
 | UI-02B1 Material-to-Learning Launch | EXEC-025 | DONE |
 | UI-02B Goals, Learning Path and Evidence | EXEC-029 | DONE |
-| UI-02C Canonical Activity Lifecycle | EXEC-030 | FROZEN / BLOCKED_BY_DEPENDENCY |
+| UI-02B2 Guided Book Learning | EXEC-026 | DONE |
+| UI-02B3 Real-model Guided Learning | EXEC-027 | DONE |
+| Zhipu Development Model Integration | EXEC-028 | DONE |
+| UI-02C Canonical Activity Lifecycle | EXEC-030 | DONE |
 
 v0.3 最终状态：
 

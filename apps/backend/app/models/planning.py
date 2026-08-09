@@ -67,6 +67,55 @@ class LearningActivityRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class LearningActivityStateRecord(Base):
+    """SYS06 append-only current lifecycle truth."""
+
+    __tablename__ = "learning_activity_state_versions"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    activity_id: Mapped[str] = mapped_column(String(36), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    plan_id: Mapped[str] = mapped_column(String(36), index=True)
+    plan_version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    previous_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    transition_reason: Mapped[str] = mapped_column(String(200))
+    source_refs: Mapped[list[dict]] = mapped_column(JSON)
+    actor_type: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    correlation_id: Mapped[str] = mapped_column(String(36), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("activity_id", "version", name="uq_activity_state_version"),
+        Index("ix_activity_state_latest", "activity_id", "version"),
+        Index("ix_activity_state_plan", "plan_id", "plan_version", "status"),
+    )
+
+
+class ActivityLifecycleCommandReceiptRecord(Base):
+    """Immutable idempotency receipt scoped to the canonical current user."""
+
+    __tablename__ = "activity_lifecycle_command_receipts"
+
+    receipt_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    activity_id: Mapped[str] = mapped_column(String(36), index=True)
+    command_type: Mapped[str] = mapped_column(String(40))
+    idempotency_key: Mapped[str] = mapped_column(String(200))
+    command_digest: Mapped[str] = mapped_column(String(64))
+    response_payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "idempotency_key", name="uq_activity_lifecycle_user_idempotency"
+        ),
+        Index("ix_activity_lifecycle_receipt_activity", "user_id", "activity_id"),
+    )
+
+
 class LearningGoalRecord(Base):
     """SYS06 immutable LearningGoal version stream."""
 

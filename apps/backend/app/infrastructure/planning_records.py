@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from app.contracts.planning import (
     ReviewObservation,
 )
 from app.domains.learning_planner import PlannerDecision
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.planning import (
     DiagnosticNeedRecord,
     GoalFormationInferenceRecord,
@@ -445,6 +446,17 @@ class LearningPlanRepository:
                     priority=activity.priority,
                     payload=activity.model_dump(mode="json"),
                 )
+            )
+            await ActivityLifecycleRepository(self._session).initialize(
+                activity_id=activity.activity_id,
+                plan_id=activity.plan_id,
+                plan_version=activity.plan_version,
+                status=activity.status,
+                correlation_id=uuid5(
+                    NAMESPACE_URL,
+                    f"askora:plan:{plan.plan_id}:v{plan.version}:activity-lifecycle",
+                ),
+                created_at=datetime.now(timezone.utc),
             )
         await self._session.flush()
         return plan

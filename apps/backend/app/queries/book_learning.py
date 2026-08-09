@@ -22,9 +22,9 @@ from app.contracts.planning import (
     LearningGoalV1,
 )
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
+from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.assessment import LearnerStateRecord
 from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
-from app.models.ledger import LearningEventRecord
 from app.models.planning import (
     DiagnosticNeedRecord,
     GoalKnowledgeMappingRecord,
@@ -551,29 +551,16 @@ class BookLearningReadinessQuery:
     async def _selected_activity_id(
         self, plan: LearningPlan, user_id: UUID
     ) -> tuple[bool, UUID | None]:
-        records = (
-            await self._session.scalars(
-                select(LearningEventRecord)
-                .where(LearningEventRecord.event_type == "ActivitySelected")
-                .order_by(LearningEventRecord.recorded_at.desc())
-            )
-        ).all()
-        plan_ref = f"learning_plan:{plan.plan_id}:v{plan.version}"
-        selected = next(
-            (
-                item
-                for item in records
-                if str(item.context.get("user_id")) == str(user_id)
-                and item.payload.get("plan_ref") == plan_ref
-            ),
-            None,
+        del user_id  # owner scope was already proven through goal -> plan.
+        states = await ActivityLifecycleRepository(self._session).latest_for_plan(
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
         )
-        if selected is None:
-            return False, None
-        try:
-            return True, UUID(selected.aggregate_id)
-        except ValueError:
-            return True, None
+        for activity_id in plan.activity_ids:
+            state = states.get(activity_id)
+            if state is not None and state.status in {"available", "active"}:
+                return True, activity_id
+        return False, None
 
     @staticmethod
     def _owner_ref(

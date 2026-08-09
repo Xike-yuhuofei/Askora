@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
 from app.application.book_learning import BookLearningApplication
+from app.contracts.activity_lifecycle import StartLearningActivityV1
 from app.contracts.adaptive import TeachingContextV03
 from app.contracts.assessment import AssessmentItemV1, AssistanceSnapshot
 from app.core.database import Base
@@ -22,6 +23,7 @@ from app.models.adaptive import TeachingContextRecord
 from app.models.assessment import AssessmentItem
 from app.models.ledger import LearningEventRecord
 from app.models.user import User, UserRole, UserStatus
+from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.assessment.canonical_service import CanonicalAssessmentService
 from app.services.assessment.diagnostic_bootstrap import PrerequisiteDiagnosticService
 from app.services.documents.document_service import DocumentService
@@ -253,6 +255,21 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
     assert plan["knowledge_graph_version"] == ",".join(mapping["knowledge_graph_versions"])
 
     # G4: first and second turns share the existing SYS05/SYS02/SYS08 path.
+    lifecycle = await ActivityLifecycleService(db).get(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=correlation_id,
+    )
+    await ActivityLifecycleService(db).start(
+        user=user,
+        command=StartLearningActivityV1(
+            activity_id=UUID(activity["activity_id"]),
+            expected_state_version=lifecycle.data.state.version,
+            idempotency_key="exec024:activity:start",
+        ),
+        correlation_id=correlation_id,
+        now=NOW,
+    )
     session_id = uuid4()
     first = await app.start_teaching_round(
         user=user,
