@@ -24,7 +24,21 @@ from app.models.assessment import (
 )
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
-from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import (
+    DocumentChunk,
+    DocumentCollectionAssignment,
+    DocumentOcrCandidate,
+    DocumentOcrRun,
+    DocumentTagAssignment,
+    DuplicateSuggestion,
+    LibraryCollection,
+    LibraryCommandReceipt,
+    LibrarySearchProjection,
+    LibraryTag,
+    ModerationStatus,
+    ProcessingStatus,
+    UserDocument,
+)
 from app.models.knowledge import KnowledgePoint, LearningMaterial
 from app.models.ledger import (
     DecisionTraceInputRecord,
@@ -89,6 +103,15 @@ __all__ = [
     "ReviewScheduleRecord",
     "UserDocument",
     "DocumentChunk",
+    "DocumentCollectionAssignment",
+    "DocumentOcrCandidate",
+    "DocumentOcrRun",
+    "DocumentTagAssignment",
+    "DuplicateSuggestion",
+    "LibraryCollection",
+    "LibraryCommandReceipt",
+    "LibrarySearchProjection",
+    "LibraryTag",
     "ProcessingStatus",
     "ModerationStatus",
     "LearningEventRecord",

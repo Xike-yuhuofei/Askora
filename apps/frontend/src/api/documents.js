@@ -14,3 +14,43 @@ export const deleteDocument = (documentId) =>
 export const reinspectDocument = (documentId) =>
   api.post(`/documents/${encodeURIComponent(documentId)}/reinspect`)
     .then((response) => response.data)
+
+export const createLibraryTag = (name, idempotencyKey) =>
+  api.post('/documents/library/tags', { name, idempotency_key: idempotencyKey })
+    .then((response) => response.data)
+
+export const createLibraryCollection = (name, idempotencyKey) =>
+  api.post('/documents/library/collections', { name, idempotency_key: idempotencyKey })
+    .then((response) => response.data)
+
+export const updateDocumentMetadata = (documentId, payload) =>
+  api.patch(`/documents/${encodeURIComponent(documentId)}/metadata`, payload)
+    .then((response) => response.data)
+
+export const batchOrganizeDocuments = (payload) =>
+  api.post('/documents/batch/organize', payload).then((response) => response.data)
+
+export const getDuplicateSuggestions = (status = 'pending') =>
+  api.get('/documents/duplicates', { params: { status } }).then((response) => response.data)
+
+export const resolveDuplicateSuggestion = (suggestionId, payload) =>
+  api.post(`/documents/duplicates/${encodeURIComponent(suggestionId)}/resolve`, payload)
+    .then((response) => response.data)
+
+export const requestDocumentOcr = (documentId, payload) =>
+  api.post(`/documents/${encodeURIComponent(documentId)}/ocr-runs`, payload)
+    .then((response) => response.data)
+
+export const getDocumentOcrRun = (runId) =>
+  api.get(`/documents/ocr-runs/${encodeURIComponent(runId)}`)
+    .then((response) => response.data)
+
+export const reviewDocumentOcrRun = (runId, payload) =>
+  api.post(`/documents/ocr-runs/${encodeURIComponent(runId)}/review`, payload)
+    .then((response) => response.data)
+
+export const getOcrPageImage = (runId, pageNumber) =>
+  api.get(
+    `/documents/ocr-runs/${encodeURIComponent(runId)}/pages/${encodeURIComponent(pageNumber)}`,
+    { responseType: 'blob' },
+  ).then((response) => response.data)

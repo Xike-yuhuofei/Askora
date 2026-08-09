@@ -52,6 +52,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
+- [SYS01 Library Management, Deduplication and OCR](systems/01-library-management.md) — P1-04 metadata/search/organization/dedup/OCR additive contract
 - [SYS02 Retrieval](systems/02-retrieval.md)
 - [SYS03 Learner Model](systems/03-learner-model.md)
 - [SYS04 Assessment](systems/04-assessment.md)
@@ -82,6 +83,9 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
+- [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
+- [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
+- [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 active
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成

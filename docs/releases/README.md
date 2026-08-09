@@ -17,5 +17,6 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | UI-02B Goals, Learning Path and Evidence | [Completion Report](ui-02b-goals-path-evidence.md) | Engineering PASS / Policy, Ownership, Security PASS / Learning Evidence Insufficient |
 | UI-02C Canonical Activity Lifecycle | [Completion Report](ui-02c-canonical-activity-lifecycle.md) | Engineering PASS / Policy, Ownership, Security PASS / Learning Evidence Insufficient |
 | Book-to-Adaptive-Learning | [Completion Report](book-to-adaptive-learning.md) | Engineering, Contract PASS / Policy, Ownership PASS / Learning Evidence Insufficient |
+| P1-04 Library Management | [Completion Report](p1-04-library-management.md) | Engineering PASS / Contract, Ownership, Security PASS / Real Browser, Local OCR PASS / Learning Evidence Insufficient |
 
 任何新的发布声明都必须基于候选 SHA 的当前测试、迁移、构建和必要外部检查，不能只引用本目录中的历史结果。

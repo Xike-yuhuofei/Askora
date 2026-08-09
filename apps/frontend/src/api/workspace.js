@@ -14,11 +14,26 @@ export const getLearningPath = (goalId) =>
 export const getEvidenceWorkspace = () =>
   api.get('/workspace/evidence').then((response) => response.data)
 
-export const getLibraryWorkspace = ({ status, subject, page = 1, pageSize = 20 } = {}) =>
+export const getLibraryWorkspace = ({
+  status,
+  subject,
+  query,
+  tagId,
+  collectionId,
+  archived = false,
+  sort = 'created_desc',
+  page = 1,
+  pageSize = 20,
+} = {}) =>
   api.get('/workspace/library', {
     params: {
       ...(status ? { status } : {}),
       ...(subject ? { subject } : {}),
+      ...(query ? { q: query } : {}),
+      ...(tagId ? { tag_id: tagId } : {}),
+      ...(collectionId ? { collection_id: collectionId } : {}),
+      archived,
+      sort,
       page,
       page_size: pageSize,
     },

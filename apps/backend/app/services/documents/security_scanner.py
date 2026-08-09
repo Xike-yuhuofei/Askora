@@ -32,6 +32,75 @@ logger = get_logger(__name__)
 
 SCANNER_VERSION = SAFETY_SCANNER_VERSION
 
+_ENTITY_DECLARATION_PATTERN = re.compile(r"<!\s*ENTITY\b", re.IGNORECASE)
+_EXTERNAL_DOCTYPE_PATTERN = re.compile(
+    r"<!\s*DOCTYPE\b[^>]*\b(?:SYSTEM|PUBLIC)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_PUBLIC_DOCTYPE_PATTERN = re.compile(
+    r"""
+    <!\s*DOCTYPE\s+
+    (?P<root>[A-Za-z_][\w:.-]*)\s+
+    PUBLIC\s+
+    (?P<public_quote>["'])(?P<public_id>.*?)(?P=public_quote)\s+
+    (?P<system_quote>["'])(?P<system_id>.*?)(?P=system_quote)\s*>
+    """,
+    re.IGNORECASE | re.DOTALL | re.VERBOSE,
+)
+
+# These identifiers are legacy EPUB format declarations, not permission to
+# fetch a remote DTD. Downstream XML parsing remains configured with entity
+# resolution and network access disabled.
+_ALLOWED_PUBLIC_DOCTYPES = {
+    (
+        "html",
+        "-//W3C//DTD XHTML 1.0 Strict//EN",
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
+    ),
+    (
+        "html",
+        "-//W3C//DTD XHTML 1.0 Transitional//EN",
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd",
+    ),
+    (
+        "html",
+        "-//W3C//DTD XHTML 1.0 Frameset//EN",
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd",
+    ),
+    (
+        "html",
+        "-//W3C//DTD XHTML 1.1//EN",
+        "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd",
+    ),
+    (
+        "ncx",
+        "-//NISO//DTD ncx 2005-1//EN",
+        "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd",
+    ),
+}
+
+
+def _contains_unsafe_external_declaration(text: str) -> bool:
+    """Allow exact legacy EPUB DTD identifiers while rejecting all variants."""
+    external_markers = list(_EXTERNAL_DOCTYPE_PATTERN.finditer(text))
+    if not external_markers:
+        return False
+
+    public_doctypes = list(_PUBLIC_DOCTYPE_PATTERN.finditer(text))
+    if len(external_markers) != 1 or len(public_doctypes) != 1:
+        return True
+
+    declaration = public_doctypes[0]
+    if declaration.start() != external_markers[0].start():
+        return True
+
+    identity = (
+        declaration.group("root").casefold(),
+        " ".join(declaration.group("public_id").split()),
+        declaration.group("system_id").strip(),
+    )
+    return identity not in _ALLOWED_PUBLIC_DOCTYPES
+
 
 class ScanReasonCode:
     """Stable internal reason codes persisted with a document processing run."""
@@ -53,6 +122,7 @@ class ScanReasonCode:
     EPUB_COMPRESSION_RATIO_EXCEEDED = "EPUB_COMPRESSION_RATIO_EXCEEDED"
     EPUB_NESTED_ARCHIVE = "EPUB_NESTED_ARCHIVE_BLOCKED"
     EPUB_EXTERNAL_ENTITY = "EPUB_EXTERNAL_ENTITY_BLOCKED"
+    EPUB_ENTITY_DECLARATION = "EPUB_ENTITY_DECLARATION_BLOCKED"
     EPUB_ACTIVE_CONTENT = "EPUB_ACTIVE_CONTENT_STRIPPED"
     EPUB_EXTERNAL_RESOURCE = "EPUB_EXTERNAL_RESOURCE_IGNORED"
 
@@ -92,6 +162,7 @@ class ScanResult:
             ScanReasonCode.EPUB_COMPRESSION_RATIO_EXCEEDED,
             ScanReasonCode.EPUB_NESTED_ARCHIVE,
             ScanReasonCode.EPUB_EXTERNAL_ENTITY,
+            ScanReasonCode.EPUB_ENTITY_DECLARATION,
         }
         return self.should_block and bool(quarantine_reasons.intersection(self.reason_codes))
 
@@ -251,7 +322,16 @@ class SecurityScanner:
     MAX_ARCHIVE_COMPRESSION_RATIO = settings.local_storage_archive_max_compression_ratio
     COMPRESSION_RATIO_MIN_SIZE = 1024 * 1024
 
-    EPUB_TEXT_EXTENSIONS = {".xhtml", ".html", ".htm", ".xml", ".opf", ".ncx", ".css"}
+    EPUB_TEXT_EXTENSIONS = {
+        ".xhtml",
+        ".html",
+        ".htm",
+        ".xml",
+        ".opf",
+        ".ncx",
+        ".svg",
+        ".css",
+    }
     NESTED_ARCHIVE_EXTENSIONS = {".zip", ".rar", ".7z", ".tar", ".gz"}
 
     def scan(
@@ -521,8 +601,6 @@ class SecurityScanner:
     def _valid_epub_container(archive: zipfile.ZipFile, names: set[str]) -> bool:
         try:
             raw = archive.read("META-INF/container.xml")
-            if re.search(rb"<!\s*(DOCTYPE|ENTITY)\b", raw, re.IGNORECASE):
-                return False
             raw_paths = re.findall(
                 rb"<(?:[A-Za-z_][\w.-]*:)?rootfile\b[^>]*\bfull-path\s*=\s*['\"]([^'\"]+)['\"]",
                 raw,
@@ -556,7 +634,14 @@ class SecurityScanner:
                 )
                 return
             text = raw.decode("utf-8", errors="ignore")
-            if re.search(r"<!\s*(DOCTYPE|ENTITY)\b[^>]*(SYSTEM|PUBLIC)", text, re.IGNORECASE):
+            if _ENTITY_DECLARATION_PATTERN.search(text):
+                report(
+                    ScanReasonCode.EPUB_ENTITY_DECLARATION,
+                    "EPUB 包含不安全的实体声明",
+                    "high",
+                    "external_resources",
+                )
+            if _contains_unsafe_external_declaration(text):
                 report(
                     ScanReasonCode.EPUB_EXTERNAL_ENTITY,
                     "EPUB 包含外部实体声明",

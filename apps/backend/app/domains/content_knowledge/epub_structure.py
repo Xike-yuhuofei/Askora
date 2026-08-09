@@ -357,7 +357,8 @@ def parse_epub_structure(file_content: bytes) -> dict[str, Any]:
 def _matching_elements(content: bytes) -> list[tuple[str, str]]:
     root = _parse_xhtml(content)
     result: list[tuple[str, str]] = []
-    for element in _body(root).iter():
+    body = _body(root)
+    for element in body.iter():
         if not isinstance(element.tag, str):
             continue
         if _local_name(element) not in _BLOCK_TAGS or _is_nested_in_container(element):
@@ -365,7 +366,81 @@ def _matching_elements(content: bytes) -> list[tuple[str, str]]:
         text = _element_text(element)
         if text:
             result.append((_dom_path(element), _content_hash(text)))
+    if not result:
+        fallback_text = _element_text(body)
+        if fallback_text:
+            result.append((_dom_path(body), _content_hash(fallback_text)))
     return result
+
+
+EpubReplayResult = tuple[Literal["EXACT", "RECOVERED", "FAILED"], str | None]
+
+
+def _resolve_epub_locator(
+    candidates: list[tuple[str, str]] | None,
+    *,
+    locator: dict[str, Any],
+    expected_content_hash: str,
+) -> EpubReplayResult:
+    dom_path = locator.get("dom_path")
+    if candidates is None or not isinstance(dom_path, str):
+        return "FAILED", None
+    for candidate_path, candidate_hash in candidates:
+        if candidate_path == dom_path and candidate_hash == expected_content_hash:
+            return "EXACT", candidate_path
+    recovered = [path for path, value in candidates if value == expected_content_hash]
+    if len(recovered) == 1:
+        return "RECOVERED", recovered[0]
+    return "FAILED", None
+
+
+def replay_epub_locators(
+    file_content: bytes,
+    *,
+    requests: Iterable[tuple[dict[str, Any], str]],
+) -> list[EpubReplayResult]:
+    """Replay many locators with one archive parse and one XHTML parse per resource.
+
+    A book commonly has thousands of SourceSpans but only tens of spine resources.
+    Reopening the archive and reparsing the same XHTML once per span turns startup
+    recovery into an event-loop-blocking O(spans * document) operation.  This batch
+    form preserves the D01-051 result semantics while bounding repeated parse work
+    by the number of unique referenced resources.
+    """
+    from ebooklib import epub
+
+    pending = list(requests)
+    if not pending:
+        return []
+    try:
+        book = epub.read_epub(io.BytesIO(file_content), options={"ignore_ncx": False})
+    except (etree.XMLSyntaxError, ValueError, OSError):
+        return [("FAILED", None) for _request in pending]
+
+    candidates_by_href: dict[str, list[tuple[str, str]] | None] = {}
+    results: list[EpubReplayResult] = []
+    for locator, expected_content_hash in pending:
+        href = locator.get("href")
+        dom_path = locator.get("dom_path")
+        if not isinstance(href, str) or not href or not isinstance(dom_path, str):
+            results.append(("FAILED", None))
+            continue
+        if href not in candidates_by_href:
+            try:
+                item = book.get_item_with_href(href)
+                candidates_by_href[href] = (
+                    _matching_elements(item.get_content()) if item is not None else None
+                )
+            except (etree.XMLSyntaxError, ValueError, OSError):
+                candidates_by_href[href] = None
+        results.append(
+            _resolve_epub_locator(
+                candidates_by_href[href],
+                locator=locator,
+                expected_content_hash=expected_content_hash,
+            )
+        )
+    return results
 
 
 def replay_epub_locator(
@@ -375,24 +450,7 @@ def replay_epub_locator(
     expected_content_hash: str,
 ) -> tuple[Literal["EXACT", "RECOVERED", "FAILED"], str | None]:
     """Validate a persisted EPUB locator without guessing across resources (D01-051)."""
-    from ebooklib import epub
-
-    href = locator.get("href")
-    dom_path = locator.get("dom_path")
-    if not isinstance(href, str) or not href or not isinstance(dom_path, str):
-        return "FAILED", None
-    try:
-        book = epub.read_epub(io.BytesIO(file_content), options={"ignore_ncx": False})
-        item = book.get_item_with_href(href)
-        if item is None:
-            return "FAILED", None
-        candidates = _matching_elements(item.get_content())
-    except (etree.XMLSyntaxError, ValueError, OSError):
-        return "FAILED", None
-    for candidate_path, candidate_hash in candidates:
-        if candidate_path == dom_path and candidate_hash == expected_content_hash:
-            return "EXACT", candidate_path
-    recovered = [path for path, value in candidates if value == expected_content_hash]
-    if len(recovered) == 1:
-        return "RECOVERED", recovered[0]
-    return "FAILED", None
+    return replay_epub_locators(
+        file_content,
+        requests=[(locator, expected_content_hash)],
+    )[0]

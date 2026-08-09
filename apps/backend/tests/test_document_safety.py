@@ -25,6 +25,7 @@ from app.services.storage.local_storage import LocalFileStorage
 def _epub_bytes(
     chapter: str = "<h1>示例章节</h1><p>正文。</p>",
     *,
+    chapter_document: str | None = None,
     extras: dict[str, bytes] | None = None,
 ) -> bytes:
     stream = io.BytesIO()
@@ -57,7 +58,7 @@ def _epub_bytes(
         )
         archive.writestr(
             "OEBPS/chapter.xhtml",
-            f"""<?xml version="1.0" encoding="UTF-8"?>
+            chapter_document or f"""<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml"><body>{chapter}</body></html>""",
             compress_type=zipfile.ZIP_DEFLATED,
         )
@@ -208,6 +209,69 @@ def test_epub_scanner_records_active_content_without_executing_it():
     parsed = get_parser("epub").parse(epub, ".epub")
     assert "never execute" not in parsed.full_text
     assert "正文" in parsed.full_text
+
+
+def test_epub_scanner_allows_standard_xhtml_11_doctype_without_resolving_it():
+    epub = _epub_bytes(chapter_document="""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><body><p>标准 EPUB 正文。</p></body></html>""")
+
+    result = SecurityScanner().scan(epub, ".epub", "legacy-xhtml.epub")
+
+    assert result.should_block is False
+    assert ScanReasonCode.EPUB_EXTERNAL_ENTITY not in result.reason_codes
+    assert "标准 EPUB 正文" in get_parser("epub").parse(epub, ".epub").full_text
+
+
+@pytest.mark.parametrize(
+    "doctype",
+    [
+        '<!DOCTYPE html SYSTEM "file:///etc/passwd">',
+        (
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" '
+            '"https://attacker.invalid/xhtml11.dtd">'
+        ),
+        (
+            '<!DOCTYPE html PUBLIC "-//UNKNOWN//DTD XHTML 1.1//EN" '
+            '"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">'
+        ),
+    ],
+)
+def test_epub_scanner_quarantines_unapproved_external_doctypes(doctype):
+    epub = _epub_bytes(
+        chapter_document=(
+            f'<?xml version="1.0" encoding="UTF-8"?>\n{doctype}\n'
+            '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>正文。</p></body></html>'
+        )
+    )
+
+    result = SecurityScanner().scan(epub, ".epub", "external-doctype.epub")
+
+    assert result.should_quarantine is True
+    assert ScanReasonCode.EPUB_EXTERNAL_ENTITY in result.reason_codes
+
+
+@pytest.mark.parametrize(
+    "entity",
+    [
+        '<!ENTITY local "expanded text">',
+        '<!ENTITY xxe SYSTEM "file:///etc/passwd">',
+    ],
+)
+def test_epub_scanner_quarantines_all_entity_declarations(entity):
+    epub = _epub_bytes(
+        chapter_document=(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            f"<!DOCTYPE html [{entity}]>\n"
+            '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>&xxe;</p></body></html>'
+        )
+    )
+
+    result = SecurityScanner().scan(epub, ".epub", "entity-declaration.epub")
+
+    assert result.should_quarantine is True
+    assert ScanReasonCode.EPUB_ENTITY_DECLARATION in result.reason_codes
 
 
 def test_corrupted_epub_is_rejected_instead_of_security_quarantined():

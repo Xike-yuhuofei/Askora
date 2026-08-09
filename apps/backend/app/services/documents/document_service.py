@@ -15,7 +15,7 @@ import copy
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID, uuid5
 
 from sqlalchemy import delete, func, select
@@ -50,7 +50,10 @@ from app.domains.content_knowledge import (
     build_publication_events,
     publish_revision_knowledge,
 )
-from app.domains.content_knowledge.epub_structure import replay_epub_locator
+from app.domains.content_knowledge.epub_structure import (
+    replay_epub_locator,
+    replay_epub_locators,
+)
 from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepository
 from app.infrastructure.outbox import OutboxProducer, OutboxRepository, OutboxStatus, OutboxTask
 from app.models.document import (
@@ -61,6 +64,7 @@ from app.models.document import (
 )
 from app.models.user import User
 from app.services.auth.canonical_identity import canonical_user_id
+from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
@@ -126,13 +130,17 @@ class DocumentService:
             file_extension=file_ext,
         )
 
+        created_at = datetime.now(timezone.utc)
         document = UserDocument(
             id=document_id,
             pseudonym_id=pseudonym_id,
             original_filename=original_filename,
+            display_title=original_filename,
+            metadata_version=1,
             file_extension=file_ext,
             file_size_bytes=file_size,
             storage_path=storage_path,
+            raw_asset_checksum=hashlib.sha256(file_content).hexdigest(),
             processing_status=ProcessingStatus.PENDING,
             moderation_status=ModerationStatus.PENDING,
             subject=subject,
@@ -140,10 +148,13 @@ class DocumentService:
             moderation_details={
                 RAW_ASSET_CHECKSUM_KEY: hashlib.sha256(file_content).hexdigest(),
             },
+            created_at=created_at,
+            updated_at=created_at,
         )
 
         self.db.add(document)
         await self.db.flush()
+        await LibraryManagementService(self.db).rebuild_search_projection(document)
         await OutboxProducer(self.db).enqueue(
             task_type=DOCUMENT_PROCESS_TASK_TYPE,
             schema_version=DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
@@ -491,8 +502,11 @@ class DocumentService:
             await self.db.commit()
 
             # 1. 安全扫描（本地轻量扫描）
-            scan_result = self.scanner.scan(
-                file_content, document.file_extension, document.original_filename
+            scan_result = await asyncio.to_thread(
+                self.scanner.scan,
+                file_content,
+                document.file_extension,
+                document.original_filename,
             )
             scan_details = self._with_scan_record(document, scan_result, checksum)
 
@@ -524,7 +538,11 @@ class DocumentService:
                 return document
 
             # 2. 解析文档
-            parsed: ParsedContent = parser.parse(file_content, document.file_extension)
+            parsed: ParsedContent = await asyncio.to_thread(
+                parser.parse,
+                file_content,
+                document.file_extension,
+            )
             canonical_chunks = (
                 parsed.chunks
                 if parsed.document_nodes is not None
@@ -532,7 +550,8 @@ class DocumentService:
             )
 
             # 3. 建立不可变 revision/SourceSpan，并执行 SYS01 候选验证与发布。
-            content_record = build_content_revision(
+            content_record = await asyncio.to_thread(
+                build_content_revision,
                 document_id=UUID(document.id),
                 original_filename=document.original_filename,
                 file_content=file_content,
@@ -548,19 +567,22 @@ class DocumentService:
             current_revision = self._current_revision(content_record)
             if current_revision is None:
                 raise ValueError("canonical content revision missing")
-            anchor_statuses = self._current_revision_anchor_statuses(
+            anchor_statuses = await asyncio.to_thread(
+                self._current_revision_anchor_statuses,
                 current_revision,
                 file_content=file_content,
                 full_text=parsed.full_text,
                 file_extension=document.file_extension,
             )
-            published_revision = publish_revision_knowledge(
+            published_revision = await asyncio.to_thread(
+                self._publish_revision_knowledge,
                 current_revision,
-                anchor_status_by_span=anchor_statuses,
+                anchor_statuses,
             )
             publication_result = published_revision["knowledge_publication_result"]
             published_revision.update(
-                build_multi_granularity_projections(
+                await asyncio.to_thread(
+                    build_multi_granularity_projections,
                     revision_id=UUID(published_revision["revision_id"]),
                     source_spans=published_revision.get("source_spans", []),
                     document_nodes=published_revision.get("document_nodes", []),
@@ -608,7 +630,15 @@ class DocumentService:
             document.chunk_count = chunks_created
             document.total_tokens = parsed.metadata.get("estimated_tokens", 0)
             document.processing_status = ProcessingStatus.COMPLETED
+            document.processing_error = None
             document.processing_completed_at = datetime.now(timezone.utc)
+
+            library_management = LibraryManagementService(self.db)
+            search_projection = await library_management.rebuild_search_projection(document)
+            await library_management.refresh_duplicate_suggestions(
+                document,
+                normalized_body=search_projection.normalized_body,
+            )
 
             await self._append_knowledge_publication_audit(document, published_revision)
 
@@ -642,6 +672,17 @@ class DocumentService:
             raise
 
     @staticmethod
+    def _publish_revision_knowledge(
+        revision: dict,
+        anchor_statuses: dict[str, str],
+    ) -> dict:
+        """Keep the sole SYS01 publication call visible behind the worker thread boundary."""
+        return publish_revision_knowledge(
+            revision,
+            anchor_status_by_span=anchor_statuses,
+        )
+
+    @staticmethod
     def _current_revision_anchor_statuses(
         revision: dict,
         *,
@@ -652,16 +693,14 @@ class DocumentService:
         """Verify current-revision evidence without trusting candidate/model assertions."""
         nodes = {item["node_id"]: item for item in revision.get("document_nodes", [])}
         statuses: dict[str, str] = {}
+        epub_span_ids: list[str] = []
+        epub_requests: list[tuple[dict[str, Any], str]] = []
         for span in revision.get("source_spans", []):
             span_id = span["span_id"]
             node = nodes.get(span.get("node_id"))
             if file_extension == "epub" and node is not None:
-                status, _resolved = replay_epub_locator(
-                    file_content,
-                    locator=node["source_locator"],
-                    expected_content_hash=node["content_hash"],
-                )
-                statuses[span_id] = status
+                epub_span_ids.append(span_id)
+                epub_requests.append((node["source_locator"], node["content_hash"]))
                 continue
             start = span.get("start_offset")
             end = span.get("end_offset")
@@ -675,6 +714,14 @@ class DocumentService:
                 statuses[span_id] = "RECOVERED"
             else:
                 statuses[span_id] = "FAILED"
+        if epub_requests:
+            replay_results = replay_epub_locators(file_content, requests=epub_requests)
+            statuses.update(
+                {
+                    span_id: result[0]
+                    for span_id, result in zip(epub_span_ids, replay_results, strict=True)
+                }
+            )
         return statuses
 
     async def _append_knowledge_publication_audit(

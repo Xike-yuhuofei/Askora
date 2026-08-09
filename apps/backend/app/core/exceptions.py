@@ -413,3 +413,93 @@ class ContentReinspectionUnavailableError(BusinessError):
             error_code="CONTENT_REINSPECTION_UNAVAILABLE",
             status_code=status.HTTP_409_CONFLICT,
         )
+
+
+class LibraryMetadataVersionConflictError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料信息已被更新，请刷新后重试",
+            error_code="LIBRARY_METADATA_VERSION_CONFLICT",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class LibraryIdempotencyConflictError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="重复请求使用了不同内容",
+            error_code="LIBRARY_IDEMPOTENCY_CONFLICT",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class LibraryBatchScopeInvalidError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="批量操作必须明确选择 1 到 100 份资料",
+            error_code="LIBRARY_BATCH_SCOPE_INVALID",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class DuplicateSuggestionNotActionableError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="重复资料建议已处理或版本已变化",
+            error_code="DUPLICATE_SUGGESTION_NOT_ACTIONABLE",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class OcrNotApplicableError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="当前资料不是可进行文字识别的 PDF",
+            error_code="OCR_NOT_APPLICABLE",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class OcrEngineUnavailableError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="本地文字识别引擎不可用",
+            error_code="OCR_ENGINE_UNAVAILABLE",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class OcrTimeoutError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="本地文字识别超时，原资料未发生变化",
+            error_code="OCR_TIMEOUT",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class OcrOutputInvalidError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="本地文字识别没有产生可复核文本",
+            error_code="OCR_OUTPUT_INVALID",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class OcrRunNotReadyError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="文字识别结果尚未准备好",
+            error_code="OCR_RUN_NOT_READY",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class OcrReviewVersionConflictError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="识别候选已被修改，请刷新后重试",
+            error_code="OCR_REVIEW_VERSION_CONFLICT",
+            status_code=status.HTTP_409_CONFLICT,
+        )

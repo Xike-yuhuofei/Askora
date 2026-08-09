@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import AvailabilityStatus, KnowledgeUnit
@@ -32,8 +33,20 @@ from app.domains.content_knowledge import (
     SAFETY_SCAN_CURRENT_KEY,
     SAFETY_SCANNER_VERSION,
 )
-from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import (
+    DocumentCollectionAssignment,
+    DocumentTagAssignment,
+    LibrarySearchProjection,
+    ModerationStatus,
+    ProcessingStatus,
+    UserDocument,
+)
 from app.models.user import User
+from app.services.documents.library_management import (
+    SEARCH_INDEX_VERSION,
+    LibraryManagementService,
+    normalize_library_text,
+)
 
 NODE_CAP = 100
 EDGE_CAP = 200
@@ -75,33 +88,111 @@ class WorkspaceLibraryQueryService:
         *,
         status: str | None,
         subject: str | None,
+        query_text: str | None = None,
+        tag_id: UUID | None = None,
+        collection_id: UUID | None = None,
+        archived: bool = False,
+        sort: str = "created_desc",
         page: int,
         page_size: int,
         correlation_id: str,
     ) -> LibraryWorkspaceResponseV1:
         if status is not None and status not in _PROCESSING_STATUSES:
             raise ValidationInputError("status 不是受支持的文档处理状态")
-        query = select(UserDocument).where(
-            UserDocument.pseudonym_id == current_user.pseudonym_id,
-            UserDocument.is_deleted.is_(False),
+        if sort not in {"created_desc", "updated_desc", "title_asc"}:
+            raise ValidationInputError("sort 不是受支持的资料排序")
+        normalized_query = normalize_library_text(query_text or "")
+        query = (
+            select(UserDocument, LibrarySearchProjection)
+            .outerjoin(
+                LibrarySearchProjection,
+                LibrarySearchProjection.document_id == UserDocument.id,
+            )
+            .where(
+                UserDocument.pseudonym_id == current_user.pseudonym_id,
+                UserDocument.is_deleted.is_(archived),
+            )
         )
         if status:
             query = query.where(UserDocument.processing_status == status)
         if subject:
             query = query.where(UserDocument.subject == subject)
+        if tag_id is not None:
+            query = query.where(
+                UserDocument.id.in_(
+                    select(DocumentTagAssignment.document_id).where(
+                        DocumentTagAssignment.tag_id == str(tag_id)
+                    )
+                )
+            )
+        if collection_id is not None:
+            query = query.where(
+                UserDocument.id.in_(
+                    select(DocumentCollectionAssignment.document_id).where(
+                        DocumentCollectionAssignment.collection_id == str(collection_id)
+                    )
+                )
+            )
+        if normalized_query:
+            query = query.where(
+                or_(
+                    LibrarySearchProjection.normalized_title.contains(normalized_query),
+                    LibrarySearchProjection.normalized_body.contains(normalized_query),
+                )
+            )
         total = await self._db.scalar(select(func.count()).select_from(query.subquery())) or 0
-        documents = (
-            await self._db.scalars(
-                query.order_by(UserDocument.created_at.desc(), UserDocument.id)
+        order_by: tuple[Any, ...]
+        if normalized_query:
+            order_by = (
+                case(
+                    (
+                        LibrarySearchProjection.normalized_title.contains(normalized_query),
+                        0,
+                    ),
+                    else_=1,
+                ),
+                UserDocument.updated_at.desc(),
+                UserDocument.id,
+            )
+        elif sort == "updated_desc":
+            order_by = (UserDocument.updated_at.desc(), UserDocument.id)
+        elif sort == "title_asc":
+            order_by = (
+                func.lower(func.coalesce(UserDocument.display_title, UserDocument.original_filename)),
+                UserDocument.id,
+            )
+        else:
+            order_by = (UserDocument.created_at.desc(), UserDocument.id)
+        rows = (
+            await self._db.execute(
+                query.order_by(*order_by)
                 .offset((page - 1) * page_size)
                 .limit(page_size)
             )
         ).all()
-        items = tuple(self._document_view(document) for document in documents)
+        documents = [row[0] for row in rows]
+        management = LibraryManagementService(self._db)
+        tag_map, collection_map = await management.assignment_views(
+            [document.id for document in documents]
+        )
+        available_tags, available_collections = await management.available_labels(
+            current_user.pseudonym_id
+        )
+        items = tuple(
+            self._document_view(
+                document,
+                projection=projection,
+                tags=tag_map.get(document.id, ()),
+                collections=collection_map.get(document.id, ()),
+                normalized_query=normalized_query,
+            )
+            for document, projection in rows
+        )
+        projection_missing = any(projection is None for _, projection in rows)
         view_state: Literal["READY", "PARTIAL", "STALE", "EMPTY"]
         if not items:
             view_state = "EMPTY"
-        elif any(
+        elif projection_missing or any(
             item.knowledge_status == "LEGACY_COMPATIBILITY"
             or item.processing_status in {"failed", "rejected", "quarantined"}
             for item in items
@@ -118,14 +209,25 @@ class WorkspaceLibraryQueryService:
                 page=page,
                 page_size=page_size,
                 documents=items,
+                available_tags=available_tags,
+                available_collections=available_collections,
             ),
             source_status=(
                 WorkspaceSourceStatusV1(
                     source_system=WorkspaceSourceSystem.SYS01,
-                    availability=AvailabilityStatus.AVAILABLE,
-                    reason_codes=("CURRENT_USER_DOCUMENTS",),
+                    availability=(
+                        AvailabilityStatus.STALE
+                        if projection_missing
+                        else AvailabilityStatus.AVAILABLE
+                    ),
+                    reason_codes=(
+                        "CURRENT_USER_DOCUMENTS",
+                        SEARCH_INDEX_VERSION,
+                        *(("SEARCH_PROJECTION_MISSING",) if projection_missing else ()),
+                    ),
                 ),
             ),
+            schema_version="1.1",
         )
 
     async def get_knowledge_map(
@@ -215,7 +317,15 @@ class WorkspaceLibraryQueryService:
             ),
         )
 
-    def _document_view(self, document: UserDocument) -> LibraryDocumentViewV1:
+    def _document_view(
+        self,
+        document: UserDocument,
+        *,
+        projection: LibrarySearchProjection | None = None,
+        tags=(),
+        collections=(),
+        normalized_query: str = "",
+    ) -> LibraryDocumentViewV1:
         revision = self._current_revision(document)
         reasons: list[str] = []
         units: list[dict] = []
@@ -237,6 +347,8 @@ class WorkspaceLibraryQueryService:
                 knowledge_status = "CANDIDATES"
             else:
                 reasons.append("NO_KNOWLEDGE_CANDIDATES")
+        if projection is None:
+            reasons.append("SEARCH_PROJECTION_MISSING")
 
         processing_status = cast(
             Literal["pending", "processing", "completed", "failed", "rejected", "quarantined"],
@@ -281,13 +393,35 @@ class WorkspaceLibraryQueryService:
                 ):
                     reasons.append("CONTENT_REINSPECTION_AVAILABLE")
 
+        match_field: Literal["title", "body"] | None = None
+        match_excerpt = None
+        match_source_span_ref = None
+        title = document.display_title or document.original_filename
+        if normalized_query and normalize_library_text(title).find(normalized_query) >= 0:
+            match_field = "title"
+            match_excerpt = title
+        elif normalized_query and projection is not None:
+            match_field, match_excerpt, match_source_span_ref = self._body_match(
+                document,
+                revision,
+                normalized_query,
+            )
+
         return LibraryDocumentViewV1(
             document_ref=self._document_ref(document, revision),
             document_id=UUID(document.id),
-            title=document.original_filename,
+            title=title,
+            metadata_version=document.metadata_version,
             media_type=_MEDIA_TYPES.get(document.file_extension, "application/octet-stream"),
             file_size_bytes=document.file_size_bytes,
             subject=document.subject,
+            author=document.author,
+            language=document.language,
+            tags=tags,
+            collections=collections,
+            match_field=match_field,
+            match_excerpt=match_excerpt,
+            match_source_span_ref=match_source_span_ref,
             processing_status=processing_status,
             moderation_status=cast(
                 Literal["pending", "approved", "requires_review", "rejected"],
@@ -303,6 +437,32 @@ class WorkspaceLibraryQueryService:
             created_at=self._as_utc(document.created_at),
             updated_at=self._as_utc(document.updated_at),
         )
+
+    @classmethod
+    def _body_match(
+        cls,
+        document: UserDocument,
+        revision: dict | None,
+        normalized_query: str,
+    ) -> tuple[Literal["body"] | None, str | None, str | None]:
+        if revision is None:
+            return None, None, None
+        for span in revision.get("source_spans", []):
+            if not isinstance(span, dict):
+                continue
+            text = span.get("text", "")
+            if not cls._learner_visible(text):
+                continue
+            normalized = normalize_library_text(text)
+            if normalized_query not in normalized:
+                continue
+            excerpt = re.sub(r"\s+", " ", text).strip()[:500]
+            return (
+                "body",
+                excerpt,
+                f"source_span:{span['span_id']}:revision:{revision['revision_id']}",
+            )
+        return None, None, None
 
     def _build_map(
         self,

@@ -164,6 +164,29 @@ def _explicit_relation_direction(
     return any(re.search(pattern, statement) for statement in statements for pattern in patterns)
 
 
+def _mentioned_unit_pairs(
+    text: str,
+    units: list[dict[str, Any]],
+) -> Iterable[tuple[dict[str, Any], dict[str, Any]]]:
+    """Yield only pairs that can possibly match an explicit relation statement.
+
+    ``_explicit_relation_direction`` requires both canonical names to occur in
+    the normalized source text.  Filtering on that necessary condition avoids
+    the previous ``semantic_units * knowledge_units**2`` scan without changing
+    which pair can satisfy the deterministic publication rule.
+    """
+    normalized_text = _normalized(text)
+    mentioned = [
+        unit
+        for unit in units
+        if (name := _normalized(unit.get("canonical_name", ""))) and name in normalized_text
+    ]
+    for prerequisite in mentioned:
+        for target in mentioned:
+            if prerequisite["knowledge_unit_id"] != target["knowledge_unit_id"]:
+                yield prerequisite, target
+
+
 def build_deterministic_candidates(
     revision: dict[str, Any],
     *,
@@ -249,51 +272,48 @@ def build_deterministic_candidates(
 
     for semantic in revision.get("semantic_units", []):
         text = semantic.get("text", "")
-        for prerequisite in units:
-            for target in units:
-                if prerequisite["knowledge_unit_id"] == target["knowledge_unit_id"]:
-                    continue
-                if not _explicit_relation_direction(
-                    text,
-                    prerequisite["canonical_name"],
-                    target["canonical_name"],
-                ):
-                    continue
-                relation_id = uuid5(
-                    revision_id,
-                    f"hard-prerequisite:{prerequisite['knowledge_unit_id']}:"
-                    f"{target['knowledge_unit_id']}",
-                )
-                candidate_id = uuid5(run_id, f"relation:{relation_id}:v1")
-                relation_span_ids = [UUID(item) for item in semantic.get("source_span_ids", [])]
-                candidates.append(
-                    RelationCandidate(
-                        candidate_id=candidate_id,
-                        revision_id=revision_id,
-                        source_span_ids=relation_span_ids,
-                        semantic_unit_ids=[UUID(semantic["semantic_unit_id"])],
-                        extraction_run_id=run_id,
-                        proposed_payload={
-                            "relation": {
-                                "relation_id": str(relation_id),
-                                "revision": 1,
-                                "prerequisite_id": prerequisite["knowledge_unit_id"],
-                                "target_knowledge_unit_id": target["knowledge_unit_id"],
-                                "strength": "hard",
-                                "evidence_span_ids": [str(item) for item in relation_span_ids],
-                                "inference_method": "explicit",
-                                "confidence": None,
-                                "status": "candidate",
-                            },
-                            "reverse_verification": {
-                                "method": "deterministic_explicit_text",
-                                "rule_id": EXPLICIT_PREREQUISITE_RULE_VERSION,
-                            },
+        for prerequisite, target in _mentioned_unit_pairs(text, units):
+            if not _explicit_relation_direction(
+                text,
+                prerequisite["canonical_name"],
+                target["canonical_name"],
+            ):
+                continue
+            relation_id = uuid5(
+                revision_id,
+                f"hard-prerequisite:{prerequisite['knowledge_unit_id']}:"
+                f"{target['knowledge_unit_id']}",
+            )
+            candidate_id = uuid5(run_id, f"relation:{relation_id}:v1")
+            relation_span_ids = [UUID(item) for item in semantic.get("source_span_ids", [])]
+            candidates.append(
+                RelationCandidate(
+                    candidate_id=candidate_id,
+                    revision_id=revision_id,
+                    source_span_ids=relation_span_ids,
+                    semantic_unit_ids=[UUID(semantic["semantic_unit_id"])],
+                    extraction_run_id=run_id,
+                    proposed_payload={
+                        "relation": {
+                            "relation_id": str(relation_id),
+                            "revision": 1,
+                            "prerequisite_id": prerequisite["knowledge_unit_id"],
+                            "target_knowledge_unit_id": target["knowledge_unit_id"],
+                            "strength": "hard",
+                            "evidence_span_ids": [str(item) for item in relation_span_ids],
+                            "inference_method": "explicit",
+                            "confidence": None,
+                            "status": "candidate",
                         },
-                        provenance_type="source_explicit",
-                        confidence=None,
-                    )
+                        "reverse_verification": {
+                            "method": "deterministic_explicit_text",
+                            "rule_id": EXPLICIT_PREREQUISITE_RULE_VERSION,
+                        },
+                    },
+                    provenance_type="source_explicit",
+                    confidence=None,
                 )
+            )
     return candidates
 
 
