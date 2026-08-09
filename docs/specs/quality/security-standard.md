@@ -145,3 +145,21 @@ Legacy Socratic selector/state graph MUST NOT 成为 final TeachingAction owner 
 ## 16. Forbidden Implementations
 
 禁止：Prompt 作为唯一权限层；autonomous agent 任意 shell/network；reference answer 与 learner prompt 无隔离混放；外部模型默认接收全部个人资料；日志打印 secret/完整敏感 Prompt；parser 信任扩展名；恶意 retrieval content 提升为 system instruction；继续写 `answer_exposure_max` 为 canonical security truth；SYS08/LLM 自动扩大 TeachingAction envelope。
+
+## 17. Identity and Privacy Security
+
+### SEC-300
+
+Password/recovery/deletion secret MUST 使用适用的 slow hash 或 keyed digest，MUST NOT 明文持久化、日志记录、进入 Prompt、普通 export 或 frontend user cache。新密码使用 Argon2id；历史 bcrypt 只作兼容读取/rehash。
+
+### SEC-301
+
+access/refresh token MUST 绑定 durable AuthSession/token family；refresh replay 必须 revoke family。Redis outage、进程重启或前端 localStorage 清理不得恢复 revoked session。
+
+### SEC-302
+
+修改密码、恢复和账号删除必须重新认证并 server-side rate limit。unknown/existing identifier response 不得泄漏账号存在性。
+
+### SEC-303
+
+账号删除必须 cross-user fail closed、manifest scoped、reconciliation zero-residual。tombstone/receipt 不得保存 PII/content/secret；restore barrier 必须在普通认证和后台处理前生效。

@@ -49,6 +49,10 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [System Architecture](architecture/system-architecture.md)
 - [Dependency Rules](architecture/dependency-rules.md)
 
+### Platform
+
+- [Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — P1-05 本地优先账号、durable session、离线恢复、owner-safe 删除与 restore barrier
+
 ### Systems
 
 - [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
@@ -77,6 +81,8 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only security boundary
 
 ### Vertical Slices
+
+- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — 修改密码、会话管理、本地恢复与账号删除完整闭环；EXEC-034～036 frozen
 
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 frozen，等待依赖提交
 

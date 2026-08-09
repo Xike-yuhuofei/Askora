@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
-> 状态：UI-02C EXEC-030 FROZEN / BLOCKED_BY_DEPENDENCY
-> Active：EXEC-030（等待 durable transcript / policy-bound Book Learning baseline commit）
+> 状态：EXEC-030 blocked；P1-05 identity/privacy 队列已冻结
+> Active：EXEC-034（credential/session）；EXEC-035～036 按依赖串行等待
 > 已完成：EXEC-001～EXEC-025、EXEC-029
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -19,7 +19,7 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md) | 已冻结；依赖提交前不得修改产品代码 |
+| `active/` | [EXEC-030](active/EXEC-030-ui-02c-canonical-activity-lifecycle.md)、[EXEC-034](active/EXEC-034-identity-session-foundation.md)、[EXEC-035](active/EXEC-035-local-account-recovery.md)、[EXEC-036](active/EXEC-036-account-deletion-erasure.md) | EXEC-030 blocked；P1-05 按 034→036 串行推进 |
 | [`completed/`](completed/README.md) | EXEC-001～025、EXEC-029 | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
@@ -37,6 +37,9 @@ Accepted ADR / Canonical Design
 | UI-02B1 Material-to-Learning Launch | EXEC-025 | DONE |
 | UI-02B Goals, Learning Path and Evidence | EXEC-029 | DONE |
 | UI-02C Canonical Activity Lifecycle | EXEC-030 | FROZEN / BLOCKED_BY_DEPENDENCY |
+| P1-05 Identity Credential and Durable Sessions | EXEC-034 | FROZEN / ACTIVE |
+| P1-05 Local Account Recovery | EXEC-035 | FROZEN / WAITING_FOR_EXEC-034 |
+| P1-05 Account Deletion and Erasure | EXEC-036 | FROZEN / WAITING_FOR_EXEC-035 |
 
 v0.3 最终状态：
 
@@ -82,6 +85,20 @@ EXEC-020 ──────────────────────┤
 ```
 
 EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有 active Book-to-Learning EXEC。
+
+P1-05 dependency graph：
+
+```text
+ADR-0009 + IDP Spec
+        ↓
+    EXEC-034
+        ↓
+    EXEC-035
+        ↓
+    EXEC-036 → P1-05 DONE
+```
+
+用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。P1-05 必须在冻结的 Allowed Files/owner 边界内推进；发生文件或语义重叠时必须先 reconciliation，不得覆盖其他并行改动。
 
 ## 4. Queue Contract
 
