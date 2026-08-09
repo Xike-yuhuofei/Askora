@@ -152,6 +152,14 @@ async def test_exec021_natural_goal_confirmation_exact_mapping_subgraph_and_plan
     )
     assert trace is not None
     assert trace.owner_system == "learning_planner"
+    snapshot_input = next(
+        item for item in trace.inputs if item.entity_type == "KnowledgeGraphSnapshot"
+    )
+    assert snapshot_input.entity_id == document.id
+    assert snapshot_input.version == (
+        f"revision:{revision['revision_id']}:"
+        f"publication:{revision['knowledge_publication_result']['decision_id']}"
+    )
 
     prerequisites = {
         relation["target_knowledge_unit_id"]: [relation["prerequisite_id"]]

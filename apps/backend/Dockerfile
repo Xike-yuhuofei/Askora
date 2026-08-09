@@ -2,6 +2,10 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
+# Build the virtual environment at its final runtime path so generated console
+# script shebangs remain executable after the multi-stage copy.
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
@@ -27,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --system --uid 1001 appuser
 
-COPY --from=builder /build/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./

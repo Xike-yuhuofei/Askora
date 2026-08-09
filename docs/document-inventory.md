@@ -33,6 +33,7 @@
 | 文件 | 处置 | 说明 |
 |---|---|---|
 | `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
+| `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
 | `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-01/P1-02/P1-03/P1-04/P1-05/P1-07 DONE，P1-06 保持独立门禁 |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理与索引 |
