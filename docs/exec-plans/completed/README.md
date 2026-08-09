@@ -12,7 +12,8 @@
 > UI-02C 收口日期：2026-08-09
 > P1-04 Library Management 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-04 EXEC-031～033 DONE
+> P1-03 收口日期：2026-08-09
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033 DONE
 
 ## Completion Matrix
 
@@ -47,6 +48,10 @@
 | EXEC-027 — UI-02B3 Real-model Guided Learning E2E | DONE | Zhipu UI E2E + DeepSeek real-model gate PASS；local implementation |
 | EXEC-028 — Zhipu Development Model Integration | DONE | `zhipu/glm-4.7-flash` unit + real-model canonical gate PASS；local configuration only |
 | EXEC-029 — UI-02B Goals, Learning Path and Evidence | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
+| EXEC-1031 — P1-03 Recovery Foundation | DONE | `23e2c51` |
+| EXEC-1032 — P1-03 Verified Offline Restore | DONE | `cfed3e6` |
+| EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |
+| EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
 | EXEC-030 — UI-02C Canonical Activity Lifecycle | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-031 — P1-04A Library Search and Organization | DONE | canonical P1-04 dependency baseline |
 | EXEC-032 — P1-04B Library Deduplication | DONE | canonical P1-04 dependency baseline |
@@ -153,6 +158,17 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 UI-02B 交付 current-user Goals、canonical plan order、owner-safe Evidence 与诚实 Today 计划摘要；未冻结的 activity/session link 不以 UI 状态伪造。详细证据见 `docs/releases/ui-02b-goals-path-evidence.md`。
+
+## P1-03 Release Gates
+
+```text
+Engineering Gate: PASS
+Policy / Ownership / Security Gate: PASS
+Desktop Recovery E2E Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+P1-03 交付 macOS 私人桌面 SQLite 的加密恢复、可验证离线恢复、current-user 可读导出和 owner-coordinated 四范围删除；详细 AC、测试、打包桌面恢复证据与既有仓库门禁债务见 `docs/releases/p1-03-data-control-recovery.md`。
 
 ## Historical Contract Rule
 

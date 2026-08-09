@@ -60,6 +60,12 @@ client_schema_version
 - 返回 accepted/already-pending 与 target scanner version，不返回内部正则、路径或 exploit detail；
 - MUST NOT 在 API adapter 中直接解除隔离或执行解析/知识建模。
 
+### API-023 — Data Control Boundary
+
+P1-03 backend API 只负责 current-user status/query、export、erasure preview/confirm/report；backup/verify/restore 的 filesystem、backend stop/start 与 atomic activation 通过 desktop typed IPC + maintenance core 执行。API/IPC 都不得直接跨 owner patch canonical state。
+
+Erasure preview token MUST 绑定 current-user/scope/target/digest/expiry；confirm 必须带 idempotency key。Restore success 后旧 auth token/cache 必须失效。完整 schema、errors 与 ownership 见 `data-control-contract.md`。
+
 ## 5. Streaming
 
 ### API-030
@@ -123,6 +129,8 @@ Legacy endpoint MAY 暂时存在，但必须：
 - legacy endpoint adapter equivalence；
 - grader-only/private fields 不泄漏。
 - quarantined reinspection ownership、idempotency、same-policy conflict 与 durable recovery；
+- data export current-user allowlist、erasure preview/confirm idempotency；
+- desktop IPC allowlist、maintenance mutual exclusion、restore re-login。
 
 ## 11. Acceptance Criteria
 

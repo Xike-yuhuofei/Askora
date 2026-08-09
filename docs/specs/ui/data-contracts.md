@@ -86,6 +86,30 @@ UI-02C 通过 ADR-0007、`SYS06 Activity Lifecycle and Completion` 与独立 Ver
 冻结 `StartLearningActivityV1`、`CompleteLearningActivityV1` 和 activity query。该授权仅在
 EXEC-030 dependency gate 满足后生效，不扩大 Goal/Plan/mastery 编辑范围。
 
+P1-03 通过 ADR-0103 与 `interfaces/data-control-contract.md` 单独冻结 data-control status、export、erasure preview/confirm/report 以及 desktop typed backup/verify/restore IPC。该协调层不成为 UI 或第九业务 state owner。
+
+### UI-DATA-013 — DataControlStatusV1
+
+```yaml
+schema_version: "1.0"
+protection_state: NOT_PROTECTED|READY|IN_PROGRESS|PARTIAL|ERROR|UNSUPPORTED
+supported_mode: PRIVATE_DESKTOP_SQLITE|UNSUPPORTED
+last_verified:
+  backup_id: uuid|null
+  reason: string|null
+  created_at: datetime|null
+  verified_at: datetime|null
+  size_bytes: integer|null
+automatic_backup:
+  enabled: boolean
+  next_due_at: datetime|null
+  last_error_code: string|null
+erasure_checkpoint: integer
+reason_codes: [string]
+```
+
+Frontend 不得把文件存在推断为 VERIFIED，也不得缓存 Recovery Key、confirmation token 或 restore success 作为 canonical status。
+
 ## 3. Common Response Envelope
 
 ### UI-DATA-020
@@ -453,6 +477,7 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 - `UI-DATA-AC-008`：退出/换用户后 frontend cache 不泄漏上一用户学习数据。
 - `UI-DATA-AC-009`：未冻结的新 commands 不会以假按钮或 frontend-only state 出现。
 - `UI-DATA-AC-010`：只有 ACTIVE/RESUMABLE activity 才携带可进入工作台的 canonical session link。
+- `UI-DATA-AC-011`：data-control status 来自 catalog/report exact refs；frontend 不自行判断 backup integrity 或 erasure completion。
 
 ## 12. Forbidden Implementations
 

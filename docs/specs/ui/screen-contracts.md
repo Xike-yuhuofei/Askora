@@ -298,6 +298,14 @@ Login 必须提供“使用恢复套件重设密码”。注册、轮换或成�
 
 删除账号必须先展示 versioned preview，再要求 current password 和精确确认短语。pending 显示执行时间、可取消边界与本地 App 重启恢复说明；purging 后不显示取消。删除全部学习数据与删除账号继续为不同动作。
 
+### UI-SCREEN-097 — Data Control and Recovery
+
+`/settings` 的“数据与恢复”区域必须显示 protection state、最后 VERIFIED recovery point、位置边界、自动备份状态与失败原因，并提供手动备份、验证、恢复、导出和分范围删除。恢复必须解释会停止本地服务、验证后才替换并要求重新登录；同盘备份不得暗示能防整盘丢失。
+
+删除 UI 必须先展示 owner 影响预览，再要求与 scope 匹配的明确确认。DOCUMENT、LEARNING_RECORDS、MODEL_EXECUTION、ALL_PERSONAL_DATA 使用不同名称和后果；PARTIAL/FAILED 不得显示“已删除”。
+
+页面覆盖 `NOT_PROTECTED|READY|IN_PROGRESS|PARTIAL|ERROR` 及通用 LOADING/UNAUTHORIZED；进度/错误使用 live region，Recovery Key 只在用户显式请求时短暂显示，不进入 DOM 日志、URL 或 localStorage。
+
 ## 11. Accessibility
 
 ### UI-SCREEN-100
@@ -325,6 +333,7 @@ Login 必须提供“使用恢复套件重设密码”。注册、轮换或成�
 - `UI-SCREEN-AC-008`：正式登录、开发自动登录和本地退出语义清晰分离。
 - `UI-SCREEN-AC-009`：360px 与 200% zoom 下关键任务、错误、引用和帮助状态可访问。
 - `UI-SCREEN-AC-011`：兼容工作台保留 RichMessage、ownership 与 canonical dialog path，同时不伪造 activity/policy/evidence 数据。
+- `UI-SCREEN-AC-012`：数据控制页清楚区分 backup/export/restore/logout/four erasure scopes，只有 VERIFIED 恢复点可激活。
 
 ## 13. Forbidden Implementations
 

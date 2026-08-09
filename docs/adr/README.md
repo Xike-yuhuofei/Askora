@@ -77,6 +77,7 @@ Codex 可以为该目标创建并接受 ADR，并继续同步 Spec、EXEC、代�
 | `ADR-0005` | Policy-bound Real-model Rendering | accepted | 2026-08-08 |
 | `ADR-0006` | Workspace Read-model Scope and Missing Objective Metadata | accepted | 2026-08-09 |
 | `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
+| `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted | 2026-08-09 |
 | `ADR-0008` | Library Management, Deduplication and OCR Governance | accepted | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 

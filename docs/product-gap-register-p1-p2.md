@@ -2,7 +2,7 @@
 
 > 状态：Current Product Gap Register
 > 校准日期：2026-08-09
-> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-04 已关闭
+> 当前实现基线：UI-02B Goals / Path / Evidence 与 UI-02C Activity Lifecycle 已完成；P1-03、P1-04 已关闭
 > 用途：记录产品完整性审计中仍未关闭的 P1、P2 问题
 > 权威边界：本文件是产品优先级与验收清单，不是 Spec、ADR 或 EXEC；实现前仍须按 `AGENTS.md` 完成治理闭环
 
@@ -10,7 +10,7 @@
 
 | 优先级 | 总数 | 完全未修复 | 部分改善 | 已关闭 |
 |---|---:|---:|---:|---:|
-| P1 — 可靠的私人产品 | 7 | 5 | 1 | 1 |
+| P1 — 可靠的私人产品 | 7 | 4 | 1 | 2 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
 本清单不包含已经通过发布门禁并归档的 P0；UI-02C“开始 → 恢复 → 完成 → 下一项”闭环已完成。
@@ -56,20 +56,19 @@ P1-01A 已进入实现门禁：跨资料草稿、可测成功标准候选、显�
 
 ### P1-03 数据控制与恢复
 
-**状态：OPEN**
+**状态：DONE（2026-08-09）**
 
-根 [README](../README.md) 仍明确说明仓库没有自动备份/恢复服务，需要自行备份数据库、文档目录和 `.env`。
+[Settings 页面](../apps/frontend/src/pages/Settings.jsx) 已提供 macOS 私人桌面 SQLite 的加密恢复点、完整重开校验、离线分阶段恢复、可读个人数据导出和四范围永久删除。桌面在距最近 VERIFIED 恢复点超过 24 小时的安全启动窗口创建 `SCHEDULED` 恢复点；保留策略、`PRE_MIGRATION` / `PRE_RESTORE` / `POST_ERASURE` 原因、Recovery Key 边界、外部副本和非敏感恢复报告均已落地。
 
-仍缺：
+关闭证据：
 
-- 自动本地备份与保留策略；
-- 可验证的恢复演练；
-- 用户数据导出；
-- migration 前快照与失败恢复；
-- 按范围删除资料、学习记录、模型执行记录和账号数据；
-- 加密、完整性校验、兼容版本与恢复报告。
+- EXEC-1031～1034 已分别完成并归档，四个实现切片保持独立 commit；
+- 38 项 P1-03 合同、备份、恢复、迁移、导出、删除、安全和 no-resurrection 测试通过；前端 59 项全量测试与 production build 通过；
+- 真实打包 Electron 完成 `backup → mutate → restore`：恢复强制清除本地会话，恢复报告为 `COMPLETED`，自动生成 VERIFIED `PRE_RESTORE` 救援点，备份后新增会话经只读数据库核验为 0；
+- wrong key、tamper、truncate、unsafe path/limits、future schema、cross-user、secret leakage、partial retry、managed old-backup/replay/projection no-resurrection 均有自动化证据；
+- 完整证据见 [P1-03 Data Control and Recovery Completion Report](releases/p1-03-data-control-recovery.md)。
 
-完成标准：用户可以在 App 内备份、验证、恢复、导出和删除数据；恢复后 canonical owner state、文件与 projection 一致，不重新生成已删除事实。
+Gate：`Engineering PASS`；`Policy / Ownership / Security PASS`；`Desktop Recovery E2E PASS`；`Learning Evidence LEARNING_EVIDENCE_INSUFFICIENT`（本项不声称改善真人学习效果）。
 
 ### P1-04 资料管理
 
@@ -174,7 +173,7 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 UI/API/Error/Persistence additive Spec、P1-06 Vertical Slice 与 EXEC-1061→1062 闭合。Preference owner
 固定为 presentation-only Platform Experience Preference；首次完成固定为 SYS06 accepted-transcript
 completion projection；deep-link 规则已冻结；v1 明确不提供样例资料。当前阻塞从 SPEC GAP 转为
-真实依赖/实现 gate：P1-02、P1-03、P1-07 尚须完成并集成，P1-06 仍保持 `OPEN`，不得把治理完成
+真实依赖/实现 gate：P1-02、P1-07 尚须完成并与已关闭的 P1-03 集成，P1-06 仍保持 `OPEN`，不得把治理完成
 写成产品已交付。
 
 #### 验收标准
