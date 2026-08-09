@@ -30,15 +30,19 @@ P1-01B 已关闭。该结论证明目标生命周期、成功标准测量和证�
 ## 3. Automated gates
 
 ```text
-Backend full pytest: 414 passed, 6 skipped
+Backend full pytest on latest main integration: 453 passed, 6 skipped
 Backend ruff app/tests: PASS
-Backend mypy app: PASS (179 source files)
+Backend mypy app: PASS (190 source files)
 Alembic: single head; SQLite fresh upgrade, representative migration and alembic check PASS
-Frontend tests: 62 passed
+Frontend tests: 71 passed
 Frontend production build: PASS
 Frontend npm audit --omit=dev: 0 vulnerabilities
-Documentation checker: PASS
+Documentation checker: 173 files, 0 broken local links
 ```
+
+PR 集成时已将 P1-01A migration 串行到 `main` 上 P1-03/onboarding 的 merge revision
+`m103f1061a01` 之后，避免形成第二个 Alembic head；20 项代表性迁移/恢复回归通过，
+另 1 项 PostgreSQL 环境条件测试跳过。
 
 覆盖包括 lifecycle expected-version/idempotency、Focus、exact resume、输入过期 replan、归档复制、
 暂停调度门禁、四类成功标准、确定性评分、开放题双重评分、相关活跃误解门禁、owner 隔离、
