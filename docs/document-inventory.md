@@ -1,7 +1,7 @@
 # Askora 文档处置清单
 
 > 状态：Current  
-> 校准日期：2026-08-08  
+> 校准日期：2026-08-09
 > 基线提交：`33f938b85a3eba446db30b1598768311a79629fc`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
@@ -47,6 +47,8 @@
 | `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；补充快照边界和准确 commit |
 | `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
 | `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A completion evidence snapshot |
+| `docs/releases/p1-03-data-control-recovery.md` | CURRENT-UPDATED | P1-03 Engineering、Policy/Ownership/Security、真实桌面恢复与 Learning Evidence 分离报告 |
+| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 产品缺口登记；P1-03 已按冻结门禁关闭 |
 
 ## 3. Canonical Design 与 Research
 
@@ -140,8 +142,8 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025 与 EXEC-029 已完成；EXEC-030 frozen/blocked |
-| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025 与 EXEC-029 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～025、EXEC-029、EXEC-1031～1034 已完成；EXEC-030 frozen/blocked |
+| `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 完成矩阵；当前包含 EXEC-001～025、EXEC-029、EXEC-1031～1034 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -168,11 +170,11 @@
 | `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN | Book-to-Learning E2E、replay、security 与 release gate 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN | 单份资料到 canonical teaching 启动 UI 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-029-ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN | Goals/Path/Evidence 只读产品闭环不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-1031-p1-03-recovery-foundation.md` | HISTORICAL-RETAIN | P1-03 recovery foundation 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-1032-p1-03-verified-restore.md` | HISTORICAL-RETAIN | P1-03 verified offline restore 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-1033-p1-03-user-data-export.md` | HISTORICAL-RETAIN | P1-03 current-user export 不可变任务合同 |
+| `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure、Settings UX 与 release gate 不可变任务合同 |
 | `docs/exec-plans/active/EXEC-030-ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | 已冻结；依赖 baseline commit 后执行 |
-| `docs/exec-plans/active/EXEC-1031-p1-03-recovery-foundation.md` | CANONICAL-RETAIN | P1-03 recovery foundation ready |
-| `docs/exec-plans/active/EXEC-1032-p1-03-verified-restore.md` | CANONICAL-RETAIN | P1-03 restore blocked by EXEC-1031 |
-| `docs/exec-plans/active/EXEC-1033-p1-03-user-data-export.md` | CANONICAL-RETAIN | P1-03 export blocked by EXEC-1032 |
-| `docs/exec-plans/active/EXEC-1034-p1-03-erasure-ui-release.md` | CANONICAL-RETAIN | P1-03 erasure/release blocked by EXEC-1033 |
 
 ## 6. Release Evidence
 
