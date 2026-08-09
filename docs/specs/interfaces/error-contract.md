@@ -60,6 +60,16 @@ AI_PROVIDER_RATE_LIMITED
 AI_PROVIDER_KEY_INVALID
 AI_PROVIDER_KEY_MISSING
 AI_OUTPUT_VALIDATION_FAILED
+MODEL_CONFIG_STORAGE_UNAVAILABLE
+MODEL_CONFIG_SCHEMA_UNSUPPORTED
+MODEL_CONFIG_REVISION_CONFLICT
+MODEL_CREDENTIAL_REJECTED
+MODEL_NOT_AVAILABLE
+MODEL_RATE_LIMITED
+MODEL_PROVIDER_TIMEOUT
+MODEL_PROVIDER_UNAVAILABLE
+MODEL_CONFIG_APPLY_FAILED
+MODEL_CONFIG_ROLLBACK_FAILED
 TOOL_NOT_AUTHORIZED
 CONCURRENT_VERSION_CONFLICT
 SCHEMA_VERSION_UNSUPPORTED
@@ -159,6 +169,14 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 
 错误日志必须带 correlation/trace id、error code 和必要上下文；不得把原始密钥、密码、完整敏感 Prompt 写入日志。
 
+### ERROR-040 — Model Configuration Retry Semantics
+
+`MODEL_CREDENTIAL_REJECTED`、`MODEL_NOT_AVAILABLE`、`MODEL_CONFIG_SCHEMA_UNSUPPORTED` 与
+`MODEL_CONFIG_REVISION_CONFLICT` 默认 non-retryable；必须修改输入或刷新 revision。
+`MODEL_RATE_LIMITED`、`MODEL_PROVIDER_TIMEOUT`、`MODEL_PROVIDER_UNAVAILABLE` MAY retry，UI 必须保留候选输入且不得声称已保存。
+`MODEL_CONFIG_APPLY_FAILED` 表示新配置未激活且已恢复旧 revision；只有实际无法恢复旧 revision 时使用
+`MODEL_CONFIG_ROLLBACK_FAILED`，该错误 non-retryable 且必须明确当前状态未知/不可用。
+
 ## 8. Acceptance Criteria
 
 - `ERROR-AC-001`：模型超时与用户答错在数据层完全不同。
@@ -167,6 +185,8 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 - `ERROR-AC-004`：副作用 retry 不产生重复操作。
 - `ERROR-AC-005`：全部 HTTP application/unhandled errors 实现完整 `ERROR-002` envelope。
 - `ERROR-AC-006`：provider timeout/rate/key/model/output errors 使用稳定 code 且不依赖自由文本。
+- `ERROR-AC-007`：credential/model/rate-limit/timeout/provider/apply/rollback 错误可机器区分。
+- `ERROR-AC-008`：任何 model configuration 错误 payload 与日志不含 credential/ciphertext/token/provider raw body。
 
 ## 9. Forbidden Implementations
 

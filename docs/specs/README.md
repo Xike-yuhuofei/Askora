@@ -60,6 +60,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [SYS06 Activity Lifecycle and Completion](systems/06-activity-lifecycle.md) — versioned start/resume/completion 与 next-activity progression
 - [SYS07 Review Scheduler](systems/07-review-scheduler.md)
 - [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
+- [SYS08 Model Configuration](systems/08-model-configuration.md) — desktop vault、provider probe、atomic activation/rollback 与 DISABLED tombstone
 
 ### Interfaces
 
@@ -84,6 +85,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 active
 - [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
+- [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040 active，EXEC-041 blocked
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
 - [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
 - [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成

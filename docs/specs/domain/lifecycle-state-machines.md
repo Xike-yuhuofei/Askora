@@ -356,7 +356,31 @@ running → cancelled
 
 恢复运行必须固定 workflow/prompt/policy 版本，除非显式启动新的 run。
 
-## 17. Feedback Dispute
+## 17. ModelRouteProfile Activation
+
+Owner：4.8；desktop Electron 是 storage/activation adapter。
+
+```text
+no desktop revision → external_read_only | unconfigured
+candidate (transient) → probing → active(new revision)
+active → probing replacement → active(new revision)
+active | external_read_only → disabled(new tombstone revision)
+probing/applying failure → prior revision restored | rollback_failed
+```
+
+### LIFE-132
+
+候选 credential 在探测成功前 MUST NOT 成为 active revision。探测只使用固定 synthetic text，不携带个人资料、学习历史或用户资料内容。
+
+### LIFE-133
+
+激活必须是 revision-aware 的事务式序列：probe → encrypted atomic write → backend restart/readiness → runtime revision verification。任一步失败必须恢复上一 encrypted revision 并重启旧配置；rollback 失败必须显式报告，不能声称旧配置已恢复。
+
+### LIFE-134
+
+clear 必须创建 `DISABLED` tombstone；不得编辑或删除用户 `.env`。同一 candidate/revision 的重复 command 必须幂等或以稳定 revision conflict 拒绝。
+
+## 18. Feedback Dispute
 
 当用户争议 learner state / assessment / content 时：
 
@@ -372,7 +396,7 @@ FeedbackSignal
 
 用户纠错不能跳过对应 owner，直接修改 canonical state。
 
-## 18. Acceptance Criteria
+## 19. Acceptance Criteria
 
 - `LIFE-AC-001`：quarantined SourceDocument 无法进入 learner-visible retrieval。
 - `LIFE-AC-008`：没有显式 owner command 或 scanner/policy version 未变化时，quarantined SourceDocument 无法出站。
@@ -383,8 +407,11 @@ FeedbackSignal
 - `LIFE-AC-005`：invalidated evidence 会触发 mastery recompute。
 - `LIFE-AC-006`：TeachingAction 执行失败不会原地改变教学策略。
 - `LIFE-AC-007`：WorkflowRun 重试不会重复不可逆副作用。
+- `LIFE-AC-010`：失败候选不会覆盖上一 active ModelRouteProfile。
+- `LIFE-AC-011`：激活后 backend runtime revision 与 encrypted desktop revision 一致。
+- `LIFE-AC-012`：clear 后重启保持 DISABLED，rollback failure 可见。
 
-## 19. Forbidden Implementations
+## 20. Forbidden Implementations
 
 禁止：
 
@@ -394,4 +421,7 @@ FeedbackSignal
 - 模型生成题直接 `active`；
 - 重评分数覆盖旧 AssessmentResult；
 - 把 WorkflowRun failure 当成 TeachingAction failure 并自动改教学策略；
+- probe 前保存候选 credential 为 active；
+- 激活失败后仍把新 revision 显示为已生效；
+- clear 仅删除内存值而允许 `.env` 重启恢复；
 - 用户点击“我会了”直接把 mastery label 改成 stable_mastery。

@@ -49,7 +49,25 @@ observed_at: datetime|null
 | 富文本回答 | `message.render_payload` | Markdown/math/cards/citations | 必须继续保留 `content` fallback |
 | 学习画像 | `/api/v1/users/profile` | 学习证据迁移入口 | 仅 `profile.mastery` 为 canonical SYS03；其余多为 legacy |
 | 文档 | `/api/v1/documents/**` | 资料库列表、上传、状态 | 当前不等于 canonical KnowledgeUnit map query |
-| 本地运行状态 | `/health/config` | 设置 | 只返回 mode/ready 类非敏感事实 |
+| 本地运行状态 | `/health/config` | 设置 | 只返回 mode/ready 与 sanitized provider/model/source/revision；不返回 credential |
+
+### UI-DATA-013 — Desktop Model Settings Bridge
+
+Electron preload 只暴露版本化窄 bridge：`getModelSettings()`、`applyModelSettings(candidate, expectedRevision)`、`clearModelSettings(expectedRevision)`。response 使用 `ModelSettingsViewV1`：
+
+```yaml
+schema_version: "1.0"
+status: UNCONFIGURED|EXTERNAL_READ_ONLY|ACTIVE|DISABLED|APPLYING|ROLLBACK_FAILED
+configured: boolean
+provider: string|null
+model: string|null
+source: DESKTOP_VAULT|EXTERNAL_ENV|NONE
+revision: integer|null
+verified_at: datetime|null
+error: StableError|null
+```
+
+bridge response、frontend store、DOM、analytics 与普通 HTTP client MUST NOT 包含 credential/ciphertext/control token。candidate credential 只在用户提交时从当前表单传给 Electron main，不得写 localStorage/sessionStorage/indexedDB。
 
 ### UI-DATA-011 — Frozen Additive Query Plan
 
@@ -129,6 +147,10 @@ correlation_id: string
 ```
 
 未知 major version MUST 明确拒绝或进入安全页面级 fallback；不得猜测字段语义。
+
+### UI-DATA-023 — Model Settings Revision Conflict
+
+apply/clear 必须携带最后读取的 `expectedRevision`。`MODEL_CONFIG_REVISION_CONFLICT` 时 UI 重新读取脱敏状态并要求用户确认，不得自动覆盖较新配置。
 
 ### UI-DATA-021 — Partial Success
 

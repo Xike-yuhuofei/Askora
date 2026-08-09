@@ -98,6 +98,12 @@ SYS02 与 SYS08 MAY 因证据/安全收紧，MUST NOT 扩大。任何无法可�
 
 Secrets 只从受控配置读取，不提交仓库、不输出日志、不发送 LLM、不进入前端 bundle。
 
+### SEC-071 — Desktop Model Credential
+
+macOS desktop credential MUST 由 Electron main 使用 `safeStorage` 加密保存，密钥保护委托给 OS Keychain；禁止明文 fallback。renderer 只能获得 `configured/provider/model/source/revision/verified_at` 等脱敏状态，MUST NOT 获得 decrypt/file/env/control-token 能力。IPC handler MUST 验证 sender/origin，并使用固定 allowlist channel。
+
+候选 credential probe 只可发送固定 synthetic text，不发送个人资料、学习历史、EvidenceBundle 或用户文档；provider 返回只用于连通性/模型有效性判定，不进入学习事实。probe、日志、错误、telemetry 均不得包含 credential、ciphertext、control token 或原始 provider response。
+
 ### SEC-070
 
 日志默认保存 metadata/reason/reference，不保存完整敏感上下文；debug capture 必须显式、限期、可删除。
@@ -134,7 +140,7 @@ Legacy Socratic selector/state graph MUST NOT 成为 final TeachingAction owner 
 
 ## 13. Tests
 
-必须覆盖：document/retrieval/tool injection；grader/answer leakage；attempted scaffold/hint/exposure expansion；direct-answer assessment integrity；actual exposure capture；path traversal；unauthorized access；secret/log leakage；malicious structured output；tool parameter validation；legacy Socratic no override。
+必须覆盖：document/retrieval/tool injection；grader/answer leakage；attempted scaffold/hint/exposure expansion；direct-answer assessment integrity；actual exposure capture；path traversal；unauthorized access；secret/log leakage；malicious structured output；tool parameter validation；legacy Socratic no override；safeStorage 不可用；renderer/IPC 越权；control token 错误；probe payload 私密数据缺席；clear/rollback 后 secret 不泄漏。
 
 P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platform key boundary、export zero-secret leakage、erasure confirmation/authorization、managed old-backup no-resurrection。
 
@@ -149,6 +155,8 @@ P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platfor
 - `SEC-AC-007`：引用声明可追踪 SourceSpan。
 - `SEC-AC-201`：SYS02/SYS08 无扩大 SYS05 support/exposure envelope 的路径。
 - `SEC-AC-202`：hard rule 无 LLM/experiment/legacy bypass。
+- `SEC-AC-203`：renderer、普通 API、日志、Prompt、telemetry 无模型明文 credential。
+- `SEC-AC-204`：desktop vault 无 OS encryption 时拒绝写入，不降级为明文。
 
 ## 15. Legacy Mapping
 
@@ -156,4 +164,4 @@ P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platfor
 
 ## 16. Forbidden Implementations
 
-禁止：Prompt 作为唯一权限层；autonomous agent 任意 shell/network；reference answer 与 learner prompt 无隔离混放；外部模型默认接收全部个人资料；日志打印 secret/完整敏感 Prompt；parser 信任扩展名；恶意 retrieval content 提升为 system instruction；继续写 `answer_exposure_max` 为 canonical security truth；SYS08/LLM 自动扩大 TeachingAction envelope。
+禁止：Prompt 作为唯一权限层；autonomous agent 任意 shell/network；reference answer 与 learner prompt 无隔离混放；外部模型默认接收全部个人资料；日志打印 secret/完整敏感 Prompt；renderer 获取明文 credential/decrypt/file/control token；safeStorage 不可用时明文落盘；probe 携带个人资料；parser 信任扩展名；恶意 retrieval content 提升为 system instruction；继续写 `answer_exposure_max` 为 canonical security truth；SYS08/LLM 自动扩大 TeachingAction envelope。

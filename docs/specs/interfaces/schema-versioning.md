@@ -16,6 +16,9 @@
 - Prompt structured output schema；
 - tool input/output schema。
 - RenderPayload / RenderBlock presentation schema。
+- Electron preload IPC request/response schema；
+- desktop encrypted `ModelRouteProfile` payload；
+- local desktop control adapter request/response schema。
 
 ## 2. 版本规则
 
@@ -75,6 +78,7 @@ Tool definition 的参数或副作用语义破坏性变化必须升 major，并�
 - `SCHEMA-AC-002`：未知 major event/API schema 被明确拒绝。
 - `SCHEMA-AC-003`：字段废弃存在兼容窗口和 migration test。
 - `SCHEMA-AC-004`：replay 不依赖模型填补历史 schema。
+- `SCHEMA-AC-005`：未知 major ModelRouteProfile/desktop IPC/control schema 被明确拒绝，旧 active revision 不被覆盖。
 
 ## 9. Forbidden Implementations
 

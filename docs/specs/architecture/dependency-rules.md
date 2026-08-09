@@ -177,9 +177,13 @@ DecisionTrace payload 由 decision owner 定义并 MAY 由 SYS08 ledger 托管�
 
 SYS02/SYS08 MUST NOT expand TeachingAction envelope；experiment layer MUST NOT restore hard-filtered action；LLM/legacy adapters MUST NOT bypass SYS05 hard constraints。
 
+### DEP-206 — Desktop Model Configuration Adapter
+
+Electron main process MAY 实现 SYS08 `ModelRouteProfileV1` 的 OS-protected storage、候选配置探测、backend restart 与 rollback。renderer 只能调用版本化窄 IPC，MUST NOT 直接访问 `safeStorage`、文件、环境变量、control token 或明文 credential；普通业务 API MUST NOT 接收或返回模型密钥。
+
 ## 8. Architecture Tests
 
-代码库 SHOULD 验证 domains 不 import api/infrastructure implementation；cross-owner writes 不可达；SYS04 no SYS03 persistence write；SYS08 no mastery/plan/review/action write；legacy direct paths 单调减少；SYS02/SYS08 tightening-only；legacy Socratic no final owner；Outcome/Experiment ledger hosting no domain takeover。
+代码库 SHOULD 验证 domains 不 import api/infrastructure implementation；cross-owner writes 不可达；SYS04 no SYS03 persistence write；SYS08 no mastery/plan/review/action write；legacy direct paths 单调减少；SYS02/SYS08 tightening-only；legacy Socratic no final owner；Outcome/Experiment ledger hosting no domain takeover；renderer 无 secret/file/control-plane capability，local control adapter 不暴露公网。
 
 ## 9. Acceptance Criteria
 
@@ -189,7 +193,8 @@ SYS02/SYS08 MUST NOT expand TeachingAction envelope；experiment layer MUST NOT 
 - `DEP-AC-204`：legacy Socratic 无 final TeachingAction ownership。
 - `DEP-AC-205`：无 legacy/v0.3 permanent dual truth。
 - `DEP-AC-206`：existing `DEP-050..055` prohibited dependencies 仍可由 architecture tests 强制。
+- `DEP-AC-207`：desktop renderer 无直接 secret/storage/control-plane 依赖。
 
 ## 10. Forbidden Implementations
 
-禁止 cross-owner repository writes；SYS08/LLM direct canonical writes；SYS06 private-policy dependency；SYS02 learner-state writer；SYS07 plan writer；chat-text direct state update；SYS02/SYS08 envelope expansion；experiment hard-rule restoration；permanent legacy dual truth。
+禁止 cross-owner repository writes；SYS08/LLM direct canonical writes；SYS06 private-policy dependency；SYS02 learner-state writer；SYS07 plan writer；chat-text direct state update；SYS02/SYS08 envelope expansion；experiment hard-rule restoration；renderer 获取明文模型密钥或 control token；公网/普通 API 暴露模型配置控制面；permanent legacy dual truth。

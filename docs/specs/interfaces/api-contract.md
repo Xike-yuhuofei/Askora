@@ -105,6 +105,12 @@ Assistant message MAY additive 返回 `render_payload`，其 canonical contract 
 - successful command 返回 `RecoveryResultV1` 后，客户端 MUST re-query owner projection；
 - endpoint response 使用 `Cache-Control: private, no-store`。
 
+### API-041 — Local Desktop Model Control Adapter
+
+桌面模型配置控制面不是公共服务 API，也不得进入 OpenAPI。它只可在 private/local desktop mode 注册于 loopback，要求 Electron main 每进程随机生成的高熵 control token，并只接受固定版本 schema。probe 请求中的 credential 只用于当前内存中的单次 provider 调用；不得持久化、记录、返回或进入普通业务 request。
+
+控制面 response 只返回 sanitized provider/model、probe outcome、稳定 error code 与 runtime configuration revision；MUST NOT 返回 credential、ciphertext、control token、原始 provider body 或完整 request。非 loopback、token 错误、schema 不支持与非 desktop mode 均 fail closed。
+
 ## 7. Versioning
 
 公共 API schema 遵循 `schema-versioning.md`。破坏性变化需要新 major/API version，不得静默改变 `/api/v1` 语义。
@@ -142,6 +148,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - recovery issue ownership、action allowlist、expected version、idempotency、budget 与 audit；
 - data export current-user allowlist、erasure preview/confirm idempotency；
 - desktop IPC allowlist、maintenance mutual exclusion、restore re-login。
+- desktop control adapter 的 loopback/token/schema 限制与 secret-free response；
 
 ## 11. Acceptance Criteria
 
@@ -152,6 +159,7 @@ Legacy endpoint MAY 暂时存在，但必须：
 - `API-AC-005`：legacy dialog endpoint 如保留，只是 canonical facade adapter。
 - `API-AC-006`：复检 API 只 enqueue 显式 SYS01 command；重复请求不产生第二个 run/task。
 - `API-AC-007`：Recovery API 仅是 query/transport adapter，不形成跨 owner writer。
+- `API-AC-008`：model probe 不出现在 OpenAPI/公网，普通 API 永不接收或返回 credential。
 
 ## 12. Forbidden Implementations
 
@@ -162,3 +170,4 @@ Legacy endpoint MAY 暂时存在，但必须：
 - `/dialog` 绕过 orchestrator 直接调用 LLM 作为默认路径；
 - HTTP status/free text 作为唯一错误合同；
 - API response 暴露内部 reference answer/rubric secret。
+- 用公开 `/api/v1` endpoint 接收、保存或返回模型 credential。

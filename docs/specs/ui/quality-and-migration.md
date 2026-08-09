@@ -216,6 +216,12 @@ E2E SHOULD 使用 deterministic fixture；UI 改造不需要每次调用真实�
 
 继续覆盖 raw HTML、unsafe URL、remote image、citation trace、prompt injection、grader-only leakage、unauthorized document/evidence、secret/log leakage。UI 错误详情不得暴露 stack trace、内部路径或敏感规则。
 
+Model Settings 额外必须覆盖：unknown IPC major、sender deny、credential 不回填、不进入 web storage/DOM snapshot、double submit、revision conflict、safeStorage unavailable、probe 分类、apply rollback、rollback failed、clear confirmation/disabled tombstone、keyboard/live-region，以及 360px/200% zoom 的错误恢复。
+
+### UI-QUAL-010 — P1-02 Execution Gate
+
+P1-02 只通过 `vertical-slices/p1-02-model-settings.md` 与 EXEC-040→EXEC-041 串行实施。EXEC-040 先完成 vault/probe/activation/recovery foundation 并独立提交；EXEC-041 才可完成 Settings 产品体验、packaged macOS real-provider/relaunch 验收和 gap closure。历史 real-model E2E 不能替代当前 Settings gate。
+
 ## 5. Engineering Commands
 
 各 EXEC 按范围至少运行：

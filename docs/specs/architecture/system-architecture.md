@@ -109,7 +109,7 @@ Owner：ReviewSchedule、memory scheduling state、retrievability estimate、`ne
 
 ### ARCH-307 — SYS08 AI Orchestration & Trust
 
-Owner：Session/Workflow execution state、ModelRoute/Inference、ToolCall/Result、PromptVersion、execution validation/telemetry。MAY host LearningEvent/DecisionTrace/Outcome/Experiment ledger persistence，但 hosting MUST NOT 成为 payload/domain ownership。SYS08 MAY tighten action envelope；MUST NOT expand semantics。
+Owner：Session/Workflow execution state、`ModelRouteProfile`/ModelRoute/Inference、ToolCall/Result、PromptVersion、execution validation/telemetry。Desktop Electron 仅作为受控 credential/configuration infrastructure adapter：可加密保存并通过本机控制面激活 SYS08 profile，但不得成为第二配置 owner。MAY host LearningEvent/DecisionTrace/Outcome/Experiment ledger persistence，但 hosting MUST NOT 成为 payload/domain ownership。SYS08 MAY tighten action envelope；MUST NOT expand semantics。
 
 ## 4. v0.3 Canonical Policy Architecture
 
