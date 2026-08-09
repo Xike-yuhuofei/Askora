@@ -76,8 +76,17 @@ async def enforce_restore_barriers(
                 storage_base_path=storage_base_path,
                 restore_barrier_path=barrier_path,
             )
-            if not await service._purge_record(record, max_attempts=max_attempts):
-                raise PrivacyRestoreBlockedError()
+            completed = await service._purge_record(record, max_attempts=max_attempts)
+            if not completed:
+                refreshed = await session.get(AccountDeletionRequestRecord, record.request_id)
+                if not (
+                    refreshed is not None
+                    and refreshed.lifecycle == "purging"
+                    and refreshed.current_step == "POST_ERASURE_BASELINE"
+                    and refreshed.erasure_receipt_id is not None
+                    and refreshed.erasure_checkpoint is not None
+                ):
+                    raise PrivacyRestoreBlockedError()
             recovered += 1
     return recovered
 

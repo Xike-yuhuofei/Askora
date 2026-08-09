@@ -23,6 +23,13 @@ from app.models.assessment import (
     MasteryEstimateRecord,
 )
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
+from app.models.consent import ConsentRecord
+from app.models.data_control import (
+    DataErasureCheckpointRecord,
+    DataErasureReceiptRecord,
+    DataErasureStepRecord,
+    DataErasureWorkflowRecord,
+)
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import (
     DocumentChunk,
@@ -72,13 +79,16 @@ from app.models.planning import (
 from app.models.privacy import (
     AccountDeletionPreviewRecord,
     AccountDeletionRequestRecord,
-    OwnerErasureStepReceiptRecord,
     PrivacyTombstoneRecord,
 )
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
+    "DataErasureCheckpointRecord",
+    "DataErasureReceiptRecord",
+    "DataErasureStepRecord",
+    "DataErasureWorkflowRecord",
     "ExperimentAssignmentRecord",
     "LearningTrajectoryRecord",
     "OutcomeObservationRecord",
@@ -96,7 +106,6 @@ __all__ = [
     "RecoveryThrottleRecord",
     "AccountDeletionPreviewRecord",
     "AccountDeletionRequestRecord",
-    "OwnerErasureStepReceiptRecord",
     "PrivacyTombstoneRecord",
     "UserProfile",
     "DialogSession",
@@ -113,6 +122,7 @@ __all__ = [
     "MasteryEstimateRecord",
     "BookLearningTranscriptTurnRecord",
     "BookLearningAdvanceRecord",
+    "ConsentRecord",
     "LearningActivityRecord",
     "LearningActivityStateRecord",
     "ActivityLifecycleCommandReceiptRecord",

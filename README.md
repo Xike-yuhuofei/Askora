@@ -141,7 +141,7 @@ docker compose up --build
 - `/metrics`：Prometheus 文本指标，可通过配置关闭；
 - 调试编排 API 默认关闭，通过 `ENABLE_ORCHESTRATOR_DEBUG_API=true` 显式开启；
 - Alembic 是服务模式的 schema migration 来源；升级本地历史数据前也应先备份再迁移；
-- 仓库没有自动备份/恢复服务，本地数据库、文档目录和 `.env` 需要自行做加密备份。
+- macOS 私人桌面版会在安全启动窗口按 24 小时策略创建并校验加密恢复点，并在“设置”中提供手动备份、校验、离线恢复、个人数据导出和分范围永久删除；provider key、JWT、日志与 `.env` 不进入恢复包，整盘故障仍建议另存一个经验证的外部副本。
 
 ## 文档规则
 

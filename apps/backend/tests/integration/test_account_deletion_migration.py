@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 IDENTITY_HEAD = "f35b91b807d2"
-MAIN_HEAD = "f1061a0b9c01"
+DATA_CONTROL_HEAD = "m103f1061a01"
 MIGRATION_REVISION = "f36c91b807d3"
 
 
@@ -45,10 +45,20 @@ async def test_account_deletion_migration_upgrade_rollback_forward_fix(tmp_path:
         assert {
             "account_deletion_previews",
             "account_deletion_requests",
-            "owner_erasure_step_receipts",
             "privacy_tombstones",
+            "data_erasure_workflows",
+            "data_erasure_receipts",
         }.issubset(tables)
+        assert "owner_erasure_step_receipts" not in tables
         assert "account_lifecycle" in user_columns
+        request_columns = await connection.run_sync(
+            lambda sync: {
+                column["name"] for column in inspect(sync).get_columns("account_deletion_requests")
+            }
+        )
+        assert {"erasure_workflow_id", "erasure_receipt_id", "erasure_checkpoint"}.issubset(
+            request_columns
+        )
     await engine.dispose()
 
     _alembic(database_url, "downgrade", IDENTITY_HEAD)
@@ -76,7 +86,7 @@ def test_account_deletion_postgresql_offline_ddl_is_portable() -> None:
             "-m",
             "alembic",
             "upgrade",
-            f"{MAIN_HEAD}:{MIGRATION_REVISION}",
+            f"{DATA_CONTROL_HEAD}:{MIGRATION_REVISION}",
             "--sql",
         ],
         cwd=BACKEND_ROOT,

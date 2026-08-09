@@ -14,6 +14,7 @@ import jwt
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.data_control import ErasureReportV1, ErasureWorkflowStatus
 from app.contracts.privacy import (
     ACCOUNT_DELETION_POLICY_VERSION,
     AccountDeletionAcceptedV1,
@@ -35,21 +36,22 @@ from app.core.exceptions import (
     InvalidTokenError,
     PrivacySubjectAmbiguousError,
 )
+from app.data_control.erasure import ErasureCoordinator
+from app.data_control.recovery import RecoveryError
 from app.infrastructure.identity import IdentityRepository
 from app.infrastructure.privacy import (
-    OWNER_ERASURE_ORDER,
     SUBJECT_REGISTRY,
     PrivacyInventoryRepository,
     manifest_from_payload,
     manifest_to_payload,
 )
+from app.models.data_control import DataErasureReceiptRecord, DataErasureWorkflowRecord
 from app.models.privacy import (
     AccountDeletionPreviewRecord,
     AccountDeletionRequestRecord,
-    OwnerErasureStepReceiptRecord,
     PrivacyTombstoneRecord,
 )
-from app.models.user import User, UserStatus
+from app.models.user import User
 from app.services.auth.auth_service import AuthService
 from app.services.privacy.cache import cache_scope_digests, purge_manifest_cache_if_available
 from app.services.privacy.restore_barrier import RestoreBarrierStore
@@ -333,8 +335,50 @@ class AccountDeletionService:
     ) -> bool:
         if record.lifecycle not in {"deletion_pending", "purging"}:
             return record.lifecycle == "deleted"
-        if record.manifest_payload is None or record.user_id is None:
+        if record.manifest_payload is None:
             await self._block(record, "PRIVACY_MANIFEST_UNAVAILABLE")
+            return False
+        coordinator = self._erasure_coordinator()
+        if record.erasure_workflow_id is not None:
+            workflow = await self.db.get(DataErasureWorkflowRecord, record.erasure_workflow_id)
+            if workflow is None:
+                await self._block(record, "DATA_ERASURE_WORKFLOW_MISSING")
+                return False
+            report = ErasureReportV1.model_validate(workflow.report)
+            if report.status == ErasureWorkflowStatus.PARTIAL:
+                report = await coordinator.resume_committed_workflow(report.workflow_id)
+            elif report.status == ErasureWorkflowStatus.FAILED_RETRYABLE:
+                if record.user_id is None or record.retry_count >= max_attempts:
+                    await self._block(record, "PRIVACY_RETRY_EXHAUSTED")
+                    return False
+                user = await self.db.get(User, record.user_id)
+                if user is None:
+                    await self._block(record, "PRIVACY_SUBJECT_MISSING")
+                    return False
+                record.retry_count += 1
+                current_manifest = await PrivacyInventoryRepository(self.db).build_manifest(
+                    user_id=user.id,
+                    pseudonym_id=user.pseudonym_id,
+                    subject_digest=record.subject_digest,
+                    subject_digests=self._identity_subject_digests(user),
+                    storage_base_path=self._storage_base_path,
+                )
+                if current_manifest.blocking_issues:
+                    await self._block(record, "PRIVACY_SUBJECT_AMBIGUOUS")
+                    return False
+                record.manifest_digest = current_manifest.manifest_digest
+                record.manifest_payload = manifest_to_payload(current_manifest)
+                await self.db.commit()
+                report = await self._erasure_coordinator(
+                    manifest=current_manifest
+                ).execute_authorized_account_deletion(
+                    user=user,
+                    account_request_id=uuid.UUID(record.request_id),
+                )
+            return await self._safe_apply_canonical_report(record, report)
+
+        if record.user_id is None:
+            await self._block(record, "PRIVACY_SUBJECT_MISSING")
             return False
         if record.retry_count >= max_attempts:
             await self._block(record, "PRIVACY_RETRY_EXHAUSTED")
@@ -347,127 +391,99 @@ class AccountDeletionService:
             await self._block(record, "PRIVACY_SUBJECT_MISSING")
             return False
         user.account_lifecycle = "purging"
-        await self.db.commit()
-
-        manifest = manifest_from_payload(record.manifest_payload)
-        repository = PrivacyInventoryRepository(self.db, storage_base_path=self._storage_base_path)
-        attempt = record.retry_count
-        request_id = record.request_id
-        for owner in OWNER_ERASURE_ORDER:
-            record.current_step = owner
-            await self.db.commit()
-            existing = (
-                (
-                    await self.db.execute(
-                        select(OwnerErasureStepReceiptRecord).where(
-                            OwnerErasureStepReceiptRecord.request_id == record.request_id,
-                            OwnerErasureStepReceiptRecord.owner == owner,
-                            OwnerErasureStepReceiptRecord.error_count == 0,
-                            OwnerErasureStepReceiptRecord.manifest_digest
-                            == manifest.manifest_digest,
-                        )
-                    )
-                )
-                .scalars()
-                .first()
-            )
-            if existing is not None:
-                continue
-            try:
-                counts = await repository.erase_owner(owner=owner, manifest=manifest)
-                receipt_payload = {
-                    "request_id": record.request_id,
-                    "owner": owner,
-                    "attempt": attempt,
-                    "requested_count": counts.requested_count,
-                    "deleted_count": counts.deleted_count,
-                    "missing_count": counts.missing_count,
-                    "error_count": counts.error_count,
-                    "manifest_digest": manifest.manifest_digest,
-                }
-                self.db.add(
-                    OwnerErasureStepReceiptRecord(
-                        receipt_id=str(uuid.uuid4()),
-                        request_id=record.request_id,
-                        owner=owner,
-                        attempt=attempt,
-                        requested_count=counts.requested_count,
-                        deleted_count=counts.deleted_count,
-                        missing_count=counts.missing_count,
-                        error_count=counts.error_count,
-                        manifest_digest=manifest.manifest_digest,
-                        receipt_digest=self._sha256(receipt_payload),
-                    )
-                )
-                await self.db.commit()
-            except Exception as exc:  # noqa: BLE001 - owner failure becomes durable blocked state
-                await self.db.rollback()
-                reloaded = await self.db.get(AccountDeletionRequestRecord, request_id)
-                assert reloaded is not None
-                record = reloaded
-                await self._block(
-                    record, f"PRIVACY_OWNER_ERASURE_FAILED:{owner}:{type(exc).__name__}"
-                )
-                return False
-
-        record.current_step = "PROJECTIONS"
-        await self.db.commit()
-        residual = await PrivacyInventoryRepository(self.db).build_manifest(
+        current_manifest = await PrivacyInventoryRepository(self.db).build_manifest(
             user_id=user.id,
             pseudonym_id=user.pseudonym_id,
             subject_digest=record.subject_digest,
             subject_digests=self._identity_subject_digests(user),
             storage_base_path=self._storage_base_path,
         )
-        if residual.entries or residual.blocking_issues:
-            await self._block(record, "PRIVACY_RECONCILIATION_FAILED")
+        if current_manifest.blocking_issues:
+            await self._block(record, "PRIVACY_SUBJECT_AMBIGUOUS")
             return False
+        record.manifest_digest = current_manifest.manifest_digest
+        record.manifest_payload = manifest_to_payload(current_manifest)
+        record.current_step = "DATA_ERASURE_WORKFLOW"
+        await self.db.commit()
 
         try:
-            await self._finalize_identity(record=record, user=user, manifest=manifest)
-        except Exception as exc:  # noqa: BLE001 - barrier/finalization failure must fail closed
+            report = await self._erasure_coordinator(
+                manifest=current_manifest
+            ).execute_authorized_account_deletion(
+                user=user,
+                account_request_id=uuid.UUID(record.request_id),
+            )
+        except (RecoveryError, ValueError) as exc:
             await self.db.rollback()
-            reloaded = await self.db.get(AccountDeletionRequestRecord, request_id)
+            reloaded = await self.db.get(AccountDeletionRequestRecord, record.request_id)
             assert reloaded is not None
-            record = reloaded
-            await self._block(record, f"PRIVACY_FINALIZE_FAILED:{type(exc).__name__}")
+            reason = exc.code.value if isinstance(exc, RecoveryError) else type(exc).__name__
+            await self._block(reloaded, f"DATA_ERASURE_START_FAILED:{reason}")
             return False
+        reloaded = await self.db.get(AccountDeletionRequestRecord, record.request_id)
+        assert reloaded is not None
+        return await self._safe_apply_canonical_report(reloaded, report)
+
+    async def _safe_apply_canonical_report(
+        self,
+        record: AccountDeletionRequestRecord,
+        report: ErasureReportV1,
+    ) -> bool:
+        try:
+            return await self._apply_canonical_report(record, report)
+        except (RecoveryError, ValueError) as exc:
+            await self.db.rollback()
+            reloaded = await self.db.get(AccountDeletionRequestRecord, record.request_id)
+            assert reloaded is not None
+            reason = exc.code.value if isinstance(exc, RecoveryError) else type(exc).__name__
+            await self._block(reloaded, f"PRIVACY_FINALIZE_FAILED:{reason}")
+            return False
+
+    async def _apply_canonical_report(
+        self,
+        record: AccountDeletionRequestRecord,
+        report: ErasureReportV1,
+    ) -> bool:
+        record.erasure_workflow_id = str(report.workflow_id)
+        record.erasure_receipt_id = str(report.receipt_id) if report.receipt_id else None
+        record.erasure_checkpoint = report.checkpoint
+        if report.status == ErasureWorkflowStatus.PARTIAL:
+            await self._block(record, "DATA_ERASURE_PARTIAL")
+            return False
+        if report.status in {
+            ErasureWorkflowStatus.FAILED_RETRYABLE,
+            ErasureWorkflowStatus.FAILED_TERMINAL,
+        }:
+            await self._block(record, f"DATA_ERASURE_{report.status.value}")
+            return False
+        if report.status == ErasureWorkflowStatus.AWAITING_RECOVERY_BASELINE:
+            record.current_step = "POST_ERASURE_BASELINE"
+            if self.db.get_bind().dialect.name != "sqlite":
+                barrier_digest = await self._ensure_restore_barrier(record)
+                report = await self._erasure_coordinator().complete_operational_no_resurrection(
+                    workflow_id=report.workflow_id,
+                    checkpoint=report.checkpoint or 0,
+                    barrier_digest=barrier_digest,
+                )
+            else:
+                await self.db.commit()
+                return False
+        if report.status != ErasureWorkflowStatus.COMPLETED:
+            record.current_step = "DATA_ERASURE_WORKFLOW"
+            await self.db.commit()
+            return False
+        await self._finalize_identity(record=record, report=report)
         return True
 
-    async def _finalize_identity(
-        self,
-        *,
-        record: AccountDeletionRequestRecord,
-        user: User,
-        manifest,
-    ) -> None:
-        now = self._utc(self._now())
-        receipts = list(
-            (
-                await self.db.execute(
-                    select(OwnerErasureStepReceiptRecord)
-                    .where(OwnerErasureStepReceiptRecord.request_id == record.request_id)
-                    .order_by(
-                        OwnerErasureStepReceiptRecord.owner,
-                        OwnerErasureStepReceiptRecord.attempt,
-                    )
-                )
-            ).scalars()
-        )
-        receipts_digest = self._sha256(
-            [
-                {
-                    "owner": receipt.owner,
-                    "attempt": receipt.attempt,
-                    "receipt_digest": receipt.receipt_digest,
-                }
-                for receipt in receipts
-            ]
-        )
-        if self._restore_barrier_path is None:
+    async def _ensure_restore_barrier(self, record: AccountDeletionRequestRecord) -> str:
+        if record.restore_barrier_digest is not None:
+            return record.restore_barrier_digest
+        if self._restore_barrier_path is None or record.manifest_payload is None:
             raise ValueError("PRIVACY_RESTORE_BARRIER_UNAVAILABLE")
+        manifest = manifest_from_payload(record.manifest_payload)
+        now = self._utc(self._now())
         await purge_manifest_cache_if_available(manifest)
-        barrier_digest = RestoreBarrierStore(self._restore_barrier_path).append(
+        record.restore_barrier_digest = RestoreBarrierStore(self._restore_barrier_path).append(
             subject_digest=record.subject_digest,
             request_id=record.request_id,
             policy_version=record.policy_version,
@@ -475,6 +491,26 @@ class AccountDeletionService:
             completed_at=now,
             cache_scope_digests=cache_scope_digests(manifest),
         )
+        await self.db.commit()
+        return record.restore_barrier_digest
+
+    async def _finalize_identity(
+        self,
+        *,
+        record: AccountDeletionRequestRecord,
+        report: ErasureReportV1,
+    ) -> None:
+        if report.receipt_id is None or report.checkpoint is None:
+            raise ValueError("DATA_ERASURE_RECEIPT_MISSING")
+        receipt = await self.db.get(DataErasureReceiptRecord, str(report.receipt_id))
+        if (
+            receipt is None
+            or receipt.workflow_id != str(report.workflow_id)
+            or receipt.checkpoint != report.checkpoint
+        ):
+            raise ValueError("DATA_ERASURE_RECEIPT_MISMATCH")
+        now = self._utc(self._now())
+        barrier_digest = await self._ensure_restore_barrier(record)
         self.db.add(
             PrivacyTombstoneRecord(
                 request_id=record.request_id,
@@ -482,27 +518,12 @@ class AccountDeletionService:
                 policy_version=record.policy_version,
                 subject_digest=record.subject_digest,
                 manifest_digest=record.manifest_digest,
-                receipts_digest=receipts_digest,
+                receipts_digest=f"sha256:{receipt.result_digest}",
                 restore_barrier_digest=barrier_digest,
                 final_status="deleted",
                 completed_at=now,
             )
         )
-        user.status = UserStatus.DELETED
-        user.account_lifecycle = "deleted"
-        user.phone_encrypted = None
-        user.phone_hash = None
-        user.email_encrypted = None
-        user.nickname = None
-        user.password_hash = None
-        user.password_changed_at = None
-        user.wechat_openid_encrypted = None
-        user.real_name_encrypted = None
-        user.is_verified = False
-        user.last_login_at = None
-        user.deleted_at = now
-        user.credential_version += 1
-        user.pseudonym_id = f"deleted_{record.subject_digest[:24]}"
 
         original_user_id = record.user_id
         await self.db.execute(
@@ -535,6 +556,14 @@ class AccountDeletionService:
         record.last_error_code = None
         record.blocking_issues = []
         await self.db.commit()
+
+    def _erasure_coordinator(self, *, manifest=None) -> ErasureCoordinator:
+        return ErasureCoordinator(
+            self.db,
+            documents_dir=self._storage_base_path,
+            fail_closed_marker=self._storage_base_path.parent / "recovery" / "erasure-pending.json",
+            account_manifest=manifest,
+        )
 
     async def _block(self, record: AccountDeletionRequestRecord, code: str) -> None:
         record.lifecycle = "deletion_blocked"
@@ -605,6 +634,16 @@ class AccountDeletionService:
             cancellable=record.lifecycle == "deletion_pending"
             and self._utc(self._now()) < self._utc(record.purge_due_at),
             current_step=record.current_step,
+            erasure_workflow_id=(
+                uuid.UUID(record.erasure_workflow_id) if record.erasure_workflow_id else None
+            ),
+            erasure_receipt_id=(
+                uuid.UUID(record.erasure_receipt_id) if record.erasure_receipt_id else None
+            ),
+            erasure_checkpoint=record.erasure_checkpoint,
+            requires_post_erasure_maintenance=(
+                record.lifecycle == "purging" and record.current_step == "POST_ERASURE_BASELINE"
+            ),
             retry_count=record.retry_count,
             blocking_issues=tuple(
                 PrivacyBlockingIssueV1.model_validate(issue)

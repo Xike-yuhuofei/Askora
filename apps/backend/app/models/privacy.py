@@ -56,6 +56,10 @@ class AccountDeletionRequestRecord(Base):
     control_token_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     cancel_idempotency_key_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     retry_idempotency_key_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    erasure_workflow_id: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True)
+    erasure_receipt_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    erasure_checkpoint: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    restore_barrier_digest: Mapped[str | None] = mapped_column(String(71), nullable=True)
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     purge_due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     purge_started_at: Mapped[datetime | None] = mapped_column(
@@ -85,35 +89,6 @@ class AccountDeletionRequestRecord(Base):
             name="ck_account_deletion_lifecycle",
         ),
         Index("ix_account_deletion_requests_due", "lifecycle", "purge_due_at"),
-    )
-
-
-class OwnerErasureStepReceiptRecord(Base):
-    __tablename__ = "owner_erasure_step_receipts"
-
-    receipt_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    request_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    owner: Mapped[str] = mapped_column(String(20), nullable=False)
-    attempt: Mapped[int] = mapped_column(Integer, nullable=False)
-    requested_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    deleted_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    missing_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    error_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    manifest_digest: Mapped[str] = mapped_column(String(71), nullable=False)
-    receipt_digest: Mapped[str] = mapped_column(String(71), nullable=False)
-    error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-
-    __table_args__ = (
-        UniqueConstraint("request_id", "owner", "attempt", name="uq_owner_erasure_attempt"),
-        CheckConstraint("attempt > 0", name="ck_owner_erasure_attempt_positive"),
-        CheckConstraint(
-            "requested_count >= 0 AND deleted_count >= 0 AND missing_count >= 0 "
-            "AND error_count >= 0",
-            name="ck_owner_erasure_counts_nonnegative",
-        ),
     )
 
 

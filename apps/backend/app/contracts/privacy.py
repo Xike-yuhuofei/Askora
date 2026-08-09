@@ -80,6 +80,10 @@ class AccountDeletionStatusV1(PrivacyContract):
     purge_due_at: datetime
     cancellable: bool
     current_step: str | None = Field(default=None, max_length=50)
+    erasure_workflow_id: UUID | None = Field(default=None, strict=False)
+    erasure_receipt_id: UUID | None = Field(default=None, strict=False)
+    erasure_checkpoint: int | None = Field(default=None, ge=1)
+    requires_post_erasure_maintenance: bool = False
     retry_count: int = Field(ge=0)
     blocking_issues: tuple[PrivacyBlockingIssueV1, ...] = ()
     completed_at: datetime | None = None
@@ -96,14 +100,3 @@ class AccountDeletionCancelResultV1(PrivacyContract):
     cancelled: bool
     replayed: bool
     status: AccountDeletionStatusV1
-
-
-class OwnerErasureReceiptV1(PrivacyContract):
-    schema_version: Literal["1.0"] = "1.0"
-    owner: str
-    requested_count: int = Field(ge=0)
-    deleted_count: int = Field(ge=0)
-    missing_count: int = Field(ge=0)
-    error_count: int = Field(ge=0)
-    manifest_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
-    receipt_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")

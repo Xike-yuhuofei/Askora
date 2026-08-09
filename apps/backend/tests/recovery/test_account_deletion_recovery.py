@@ -20,10 +20,14 @@ from app.contracts.privacy import (
 )
 from app.core.database import Base
 from app.core.exceptions import InvalidTokenError
-from app.infrastructure.privacy import FrozenSubjectManifest, PrivacyInventoryRepository
+from app.data_control.crypto import generate_recovery_key, parse_recovery_key
+from app.data_control.erasure import ErasureCoordinator
+from app.data_control.recovery import RecoveryManager
+from app.infrastructure.privacy import FrozenSubjectManifest
+from app.models.data_control import DataErasureReceiptRecord, DataErasureStepRecord
 from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.knowledge import KnowledgePoint
-from app.models.privacy import OwnerErasureStepReceiptRecord, PrivacyTombstoneRecord
+from app.models.privacy import PrivacyTombstoneRecord
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.auth_service import AuthService
 from app.services.privacy.account_deletion import AccountDeletionService
@@ -36,8 +40,14 @@ from app.services.privacy.runtime import enforce_restore_barriers
 async def test_due_purge_deletes_rows_files_and_identity_but_preserves_other_user_and_global(
     tmp_path: Path,
 ) -> None:
-    database_path = tmp_path / "purge.db"
-    documents = tmp_path / "documents"
+    user_data = tmp_path / "user-data"
+    user_data.mkdir()
+    database_path = user_data / "askora.db"
+    documents = user_data / "documents"
+    (user_data / "local-secrets.json").write_text(
+        json.dumps({"jwtSecret": "j" * 48, "kekSecret": "k" * 48}),
+        encoding="utf-8",
+    )
     barrier_path = tmp_path / "restore-barriers.json"
     engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
     async with engine.begin() as connection:
@@ -139,15 +149,24 @@ async def test_due_purge_deletes_rows_files_and_identity_but_preserves_other_use
             ),
         )
 
+        assert await deletion.purge_due_requests() == 0
+        status = await deletion.get_status(deletion_control_token=accepted.deletion_control_token)
+        assert status.lifecycle is DeletionLifecycle.PURGING
+        assert status.requires_post_erasure_maintenance
+        assert status.erasure_workflow_id is not None
+        assert status.erasure_checkpoint is not None
+        RecoveryManager(
+            user_data,
+            parse_recovery_key(generate_recovery_key()),
+            app_version="account-deletion-test",
+        ).finalize_erasure(
+            workflow_id=status.erasure_workflow_id,
+            checkpoint=status.erasure_checkpoint,
+        )
         assert await deletion.purge_due_requests() == 1
         status = await deletion.get_status(deletion_control_token=accepted.deletion_control_token)
         assert status.lifecycle is DeletionLifecycle.DELETED
-        assert target.account_lifecycle == "deleted"
-        assert target.status is UserStatus.DELETED
-        assert target.phone_encrypted is None
-        assert target.phone_hash is None
-        assert target.password_hash is None
-        assert target.nickname is None
+        assert await session.scalar(select(func.count(User.id)).where(User.id == target.id)) == 0
         assert not target_file.exists()
         assert other_file.exists()
         assert await session.get(UserDocument, "doc-target") is None
@@ -156,9 +175,11 @@ async def test_due_purge_deletes_rows_files_and_identity_but_preserves_other_use
         assert await session.get(KnowledgePoint, "global-kp") is not None
         assert await session.get(PrivacyTombstoneRecord, str(status.request_id)) is not None
         receipt_count = await session.scalar(
-            select(func.count(OwnerErasureStepReceiptRecord.receipt_id))
+            select(func.count(DataErasureReceiptRecord.receipt_id))
         )
-        assert receipt_count == 12
+        step_count = await session.scalar(select(func.count(DataErasureStepRecord.id)))
+        assert receipt_count == 1
+        assert step_count and step_count > 0
 
     barrier_payload = json.loads(barrier_path.read_text(encoding="utf-8"))
     assert len(barrier_payload["barriers"]) == 1
@@ -205,9 +226,7 @@ async def test_old_database_snapshot_is_repurged_before_business_startup(
     )
     async with factory() as session:
         restored = await session.get(User, target_id)
-        assert restored is not None
-        assert restored.status is UserStatus.DELETED
-        assert restored.account_lifecycle == "deleted"
+        assert restored is None
         with pytest.raises(InvalidTokenError):
             await AuthService(session).login_with_phone(
                 phone="13600136000",
@@ -289,17 +308,17 @@ async def test_owner_failure_blocks_and_explicit_retry_resumes_from_receipts(
         await connection.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     fixed_now = datetime(2026, 8, 9, 10, 0, tzinfo=timezone.utc)
-    original = PrivacyInventoryRepository.erase_owner
+    original = ErasureCoordinator._execute_plan
     failed = False
 
-    async def fail_sys03_once(self, *, owner, manifest):
+    async def fail_once(self, workflow_id, plan):
         nonlocal failed
-        if owner == "SYS03" and not failed:
+        if not failed:
             failed = True
             raise OSError("simulated owner failure")
-        return await original(self, owner=owner, manifest=manifest)
+        return await original(self, workflow_id, plan)
 
-    monkeypatch.setattr(PrivacyInventoryRepository, "erase_owner", fail_sys03_once)
+    monkeypatch.setattr(ErasureCoordinator, "_execute_plan", fail_once)
     async with factory() as session:
         user, _, _ = await AuthService(session).register_user(
             "13700137000", "Askora retry password 2026", "重试用户"
@@ -326,9 +345,9 @@ async def test_owner_failure_blocks_and_explicit_retry_resumes_from_receipts(
         blocked = await deletion.get_status(deletion_control_token=accepted.deletion_control_token)
         assert blocked.lifecycle is DeletionLifecycle.DELETION_BLOCKED
         receipts_before = await session.scalar(
-            select(func.count(OwnerErasureStepReceiptRecord.receipt_id))
+            select(func.count(DataErasureReceiptRecord.receipt_id))
         )
-        assert receipts_before == 4
+        assert receipts_before == 0
 
         completed = await deletion.retry_deletion(
             deletion_control_token=accepted.deletion_control_token,
@@ -337,11 +356,12 @@ async def test_owner_failure_blocks_and_explicit_retry_resumes_from_receipts(
                 idempotency_key="retry-explicit-command-0001",
             ),
         )
-        assert completed.lifecycle is DeletionLifecycle.DELETED
+        assert completed.lifecycle is DeletionLifecycle.PURGING
+        assert completed.requires_post_erasure_maintenance
         receipts_after = await session.scalar(
-            select(func.count(OwnerErasureStepReceiptRecord.receipt_id))
+            select(func.count(DataErasureReceiptRecord.receipt_id))
         )
-        assert receipts_after == 12
+        assert receipts_after == 1
         replay = await deletion.retry_deletion(
             deletion_control_token=accepted.deletion_control_token,
             command=AccountDeletionRetryV1(
@@ -349,7 +369,7 @@ async def test_owner_failure_blocks_and_explicit_retry_resumes_from_receipts(
                 idempotency_key="retry-explicit-command-0001",
             ),
         )
-        assert replay.lifecycle is DeletionLifecycle.DELETED
+        assert replay.lifecycle is DeletionLifecycle.PURGING
 
     await engine.dispose()
 

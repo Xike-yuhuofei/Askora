@@ -60,6 +60,12 @@ client_schema_version
 - 返回 accepted/already-pending 与 target scanner version，不返回内部正则、路径或 exploit detail；
 - MUST NOT 在 API adapter 中直接解除隔离或执行解析/知识建模。
 
+### API-023 — Data Control Boundary
+
+P1-03 backend API 只负责 current-user status/query、export、erasure preview/confirm/report；backup/verify/restore 的 filesystem、backend stop/start 与 atomic activation 通过 desktop typed IPC + maintenance core 执行。API/IPC 都不得直接跨 owner patch canonical state。
+
+Erasure preview token MUST 绑定 current-user/scope/target/digest/expiry；confirm 必须带 idempotency key。Restore success 后旧 auth token/cache 必须失效。完整 schema、errors 与 ownership 见 `data-control-contract.md`。
+
 ## 5. Streaming
 
 ### API-030
@@ -123,6 +129,8 @@ Legacy endpoint MAY 暂时存在，但必须：
 - legacy endpoint adapter equivalence；
 - grader-only/private fields 不泄漏。
 - quarantined reinspection ownership、idempotency、same-policy conflict 与 durable recovery；
+- data export current-user allowlist、erasure preview/confirm idempotency；
+- desktop IPC allowlist、maintenance mutual exclusion、restore re-login。
 
 ## 11. Acceptance Criteria
 
@@ -155,7 +163,11 @@ Identity/session/recovery/account-deletion API MUST 调用 `IDP-*` application p
 
 ### API-202
 
-账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token 只能访问该 deletion request 的 status/cancel，MUST NOT 访问任何学习或账号普通数据。
+账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token 只能访问该 deletion request 的 status/cancel/retry，MUST NOT 访问任何学习或账号普通数据。status MAY 返回 canonical P1-03 workflow/receipt/checkpoint refs 与 `requires_post_erasure_maintenance`，不得返回 manifest/content。
+
+### API-204
+
+公共 P1-03 erasure preview API MUST NOT 直接接受 `ALL_PERSONAL_DATA` 作为绕过账号安全流程的入口；该 scope 只能由 P1-05 已完成 password re-auth、精确短语和 grace 的内部 authorization bridge 调用。普通 Settings 必须路由到账号删除页。
 
 ### API-203
 

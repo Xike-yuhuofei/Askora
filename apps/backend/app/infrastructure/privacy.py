@@ -177,6 +177,12 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "canonical_mastery_estimate_versions": _entry(
         "SYS03", _E, "canonical", subject=("user_id",), json=("payload",)
     ),
+    "consent_records": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "legacy_identity",
+        subject=("user_id", "guardian_user_id"),
+    ),
     "child_profiles": _entry(
         "SYS03",
         _E,
@@ -454,8 +460,11 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "users": _entry("IDENTITY_FINALIZE", _I, "identity", subject=("id", "pseudonym_id")),
     "account_deletion_previews": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
     "account_deletion_requests": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
-    "owner_erasure_step_receipts": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
     "privacy_tombstones": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
+    "data_erasure_workflows": _entry("DATA_CONTROL", _V, "privacy_governance"),
+    "data_erasure_steps": _entry("DATA_CONTROL", _V, "privacy_governance"),
+    "data_erasure_receipts": _entry("DATA_CONTROL", _V, "privacy_governance"),
+    "data_erasure_checkpoints": _entry("DATA_CONTROL", _V, "privacy_governance"),
 }
 
 

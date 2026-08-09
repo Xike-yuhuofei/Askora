@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1 import (
     auth_router,
     book_learning_router,
+    data_control_router,
     dialog_router,
     documents_router,
     onboarding_router,
@@ -36,11 +37,15 @@ from app.core.database import close_db, init_db
 from app.core.exceptions import AppError
 from app.core.logging import get_logger, setup_logging
 from app.core.redis_client import close_redis, init_redis
+from app.data_control.erasure import erasure_fail_closed
 from app.observability import setup_observability
 
 # 初始化日志
 setup_logging()
 logger = get_logger(__name__)
+ERASURE_FAIL_CLOSED_MARKER = (
+    Path(settings.local_storage_base_path).resolve().parent / "recovery" / "erasure-pending.json"
+)
 
 
 def _check_runtime_config() -> None:
@@ -206,6 +211,22 @@ app.add_middleware(
 setup_observability(app)
 
 
+@app.middleware("http")
+async def enforce_pending_erasure_fail_closed(request: Request, call_next):
+    if erasure_fail_closed(ERASURE_FAIL_CLOSED_MARKER, request.url.path):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": {
+                    "code": "DATA_ERASURE_PARTIAL",
+                    "message": "删除后恢复基线尚未完成，学习数据功能暂时关闭",
+                    "request_id": getattr(request.state, "request_id", "unknown"),
+                }
+            },
+        )
+    return await call_next(request)
+
+
 # ========== 全局异常处理 ==========
 
 
@@ -301,6 +322,7 @@ async def config_health_check():
 # v1 API
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(book_learning_router, prefix="/api/v1")
+app.include_router(data_control_router, prefix="/api/v1")
 app.include_router(dialog_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
@@ -330,6 +352,13 @@ if settings.dev_auto_login_enabled:
 
 def main():
     """命令行启动入口"""
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "data-control":
+        from app.data_control.cli import main as data_control_main
+
+        raise SystemExit(data_control_main(sys.argv[2:]))
+
     import uvicorn
 
     target = "app.main:app" if settings.is_development else app

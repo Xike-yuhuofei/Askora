@@ -17,6 +17,7 @@ from app.contracts.privacy import (
 )
 from app.core.database import Base
 from app.core.exceptions import AuthSessionRevokedError, CurrentPasswordInvalidError
+from app.models.data_control import DataErasureWorkflowRecord
 from app.models.privacy import AccountDeletionRequestRecord
 from app.services.auth.auth_service import AuthService
 from app.services.privacy.account_deletion import AccountDeletionService
@@ -130,6 +131,22 @@ async def test_preview_request_pending_idempotency_and_cancel_require_fresh_logi
                 idempotency_key="delete-account-command-0002",
             ),
         )
+        assert await final_deletion.purge_due_requests() == 0
+        pending_request = await session.get(
+            AccountDeletionRequestRecord, str(final_accepted.status.request_id)
+        )
+        assert pending_request is not None
+        assert pending_request.current_step == "POST_ERASURE_BASELINE"
+        assert pending_request.erasure_workflow_id is not None
+        workflow = await session.get(DataErasureWorkflowRecord, pending_request.erasure_workflow_id)
+        assert workflow is not None
+        workflow.status = "COMPLETED"
+        workflow.report = {
+            **workflow.report,
+            "status": "COMPLETED",
+            "completed_at": "2026-08-09T10:00:00Z",
+        }
+        await session.commit()
         assert await final_deletion.purge_due_requests() == 1
         requests = list((await session.execute(select(AccountDeletionRequestRecord))).scalars())
         assert len(requests) == 2

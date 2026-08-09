@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as accountApi from '../api/account'
+import * as dataControlApi from '../api/dataControl'
 import AccountDeletion from '../pages/AccountDeletion'
 import { RouterProvider } from '../router'
 
@@ -14,6 +15,7 @@ vi.mock('../api/account', () => ({
   cancelDeletion: vi.fn(),
   retryDeletion: vi.fn(),
 }))
+vi.mock('../api/dataControl', () => ({ finalizeErasure: vi.fn() }))
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1' }, clearForDeletion }),
 }))
@@ -34,6 +36,7 @@ describe('IDP-072 account deletion journey', () => {
     sessionStorage.clear()
     clearForDeletion.mockReset()
     Object.values(accountApi).forEach((mock) => mock.mockReset())
+    dataControlApi.finalizeErasure.mockReset()
   })
 
   it('requires preview, current password and exact typed phrase before pending', async () => {
@@ -99,5 +102,30 @@ describe('IDP-072 account deletion journey', () => {
     fireEvent.click(screen.getByRole('button', { name: '完成并清除本地状态' }))
     expect(sessionStorage.getItem('account_deletion_control')).toBeNull()
     expect(window.location.hash).toBe('#/login')
+  })
+
+  it('keeps purging honest until post-erasure maintenance is verified', async () => {
+    sessionStorage.setItem('account_deletion_control', 'maintenance-control-token')
+    accountApi.getDeletionStatus.mockResolvedValue({
+      request_id: 'fbab6d88-1fe8-47cf-875f-6ca645c9d432',
+      lifecycle: 'purging',
+      purge_due_at: '2026-08-10T03:00:00Z',
+      cancellable: false,
+      erasure_workflow_id: '22222222-2222-4222-8222-222222222222',
+      erasure_checkpoint: 3,
+      requires_post_erasure_maintenance: true,
+    })
+    dataControlApi.finalizeErasure.mockResolvedValue({
+      post_erasure_point: { status: 'VERIFIED' },
+    })
+    render(<RouterProvider><AccountDeletion /></RouterProvider>)
+
+    expect(await screen.findByText(/完成前不会显示“已删除”/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '完成防复活维护' }))
+    await waitFor(() => expect(dataControlApi.finalizeErasure).toHaveBeenCalledWith({
+      workflowId: '22222222-2222-4222-8222-222222222222',
+      checkpoint: 3,
+      clearLocalSession: true,
+    }))
   })
 })

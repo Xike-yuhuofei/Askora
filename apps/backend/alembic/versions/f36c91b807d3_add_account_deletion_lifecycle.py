@@ -1,7 +1,7 @@
 """Add account deletion lifecycle and privacy governance records.
 
 Revision ID: f36c91b807d3
-Revises: f35b91b807d2, f1061a0b9c01
+Revises: f35b91b807d2, m103f1061a01
 """
 
 import sqlalchemy as sa
@@ -9,19 +9,18 @@ import sqlalchemy as sa
 from alembic import context, op
 
 revision = "f36c91b807d3"
-down_revision = ("f35b91b807d2", "f1061a0b9c01")
+down_revision = ("f35b91b807d2", "m103f1061a01")
 branch_labels = None
 depends_on = None
 
 
-def _precreated_schema_state() -> tuple[bool, bool]:
+def _precreated_schema_state() -> tuple[bool, bool, set[str]]:
     if context.is_offline_mode():
-        return False, False
+        return False, False, set()
     inspector = sa.inspect(op.get_bind())
     expected_tables = {
         "account_deletion_previews",
         "account_deletion_requests",
-        "owner_erasure_step_receipts",
         "privacy_tombstones",
     }
     existing_tables = set(inspector.get_table_names())
@@ -53,14 +52,6 @@ def _precreated_schema_state() -> tuple[bool, bool]:
             "retry_count",
             "blocking_issues",
         },
-        "owner_erasure_step_receipts": {
-            "receipt_id",
-            "request_id",
-            "owner",
-            "attempt",
-            "manifest_digest",
-            "receipt_digest",
-        },
         "privacy_tombstones": {
             "request_id",
             "subject_digest",
@@ -78,11 +69,11 @@ def _precreated_schema_state() -> tuple[bool, bool]:
                     f"incompatible precreated {table_name} schema for {revision}: "
                     f"missing={sorted(required - columns)}"
                 )
-    return lifecycle_precreated, bool(precreated_tables)
+    return lifecycle_precreated, bool(precreated_tables), existing_tables
 
 
 def upgrade() -> None:
-    lifecycle_precreated, tables_precreated = _precreated_schema_state()
+    lifecycle_precreated, tables_precreated, existing_tables = _precreated_schema_state()
     if not lifecycle_precreated:
         with op.batch_alter_table("users") as batch_op:
             batch_op.add_column(
@@ -103,6 +94,33 @@ def upgrade() -> None:
             )
 
     if tables_precreated:
+        request_columns = {
+            item["name"]
+            for item in sa.inspect(op.get_bind()).get_columns("account_deletion_requests")
+        }
+        additions = {
+            "erasure_workflow_id": sa.Column(
+                "erasure_workflow_id", sa.String(length=36), nullable=True
+            ),
+            "erasure_receipt_id": sa.Column(
+                "erasure_receipt_id", sa.String(length=36), nullable=True
+            ),
+            "erasure_checkpoint": sa.Column("erasure_checkpoint", sa.Integer(), nullable=True),
+            "restore_barrier_digest": sa.Column(
+                "restore_barrier_digest", sa.String(length=71), nullable=True
+            ),
+        }
+        missing = [name for name in additions if name not in request_columns]
+        if missing:
+            with op.batch_alter_table("account_deletion_requests") as batch_op:
+                for name in missing:
+                    batch_op.add_column(additions[name])
+                if "erasure_workflow_id" in missing:
+                    batch_op.create_unique_constraint(
+                        "uq_account_deletion_erasure_workflow", ["erasure_workflow_id"]
+                    )
+        if "owner_erasure_step_receipts" in existing_tables:
+            op.drop_table("owner_erasure_step_receipts")
         return
 
     op.create_table(
@@ -152,6 +170,10 @@ def upgrade() -> None:
         sa.Column("control_token_digest", sa.String(length=64), nullable=True),
         sa.Column("cancel_idempotency_key_digest", sa.String(length=64), nullable=True),
         sa.Column("retry_idempotency_key_digest", sa.String(length=64), nullable=True),
+        sa.Column("erasure_workflow_id", sa.String(length=36), nullable=True),
+        sa.Column("erasure_receipt_id", sa.String(length=36), nullable=True),
+        sa.Column("erasure_checkpoint", sa.Integer(), nullable=True),
+        sa.Column("restore_barrier_digest", sa.String(length=71), nullable=True),
         sa.Column("requested_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("purge_due_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("purge_started_at", sa.DateTime(timezone=True), nullable=True),
@@ -177,6 +199,7 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "subject_digest", "idempotency_key_digest", name="uq_account_deletion_request_key"
         ),
+        sa.UniqueConstraint("erasure_workflow_id", name="uq_account_deletion_erasure_workflow"),
     )
     op.create_index(
         "ix_account_deletion_requests_user_id", "account_deletion_requests", ["user_id"]
@@ -193,34 +216,6 @@ def upgrade() -> None:
         "ix_account_deletion_requests_due",
         "account_deletion_requests",
         ["lifecycle", "purge_due_at"],
-    )
-
-    op.create_table(
-        "owner_erasure_step_receipts",
-        sa.Column("receipt_id", sa.String(length=36), nullable=False),
-        sa.Column("request_id", sa.String(length=36), nullable=False),
-        sa.Column("owner", sa.String(length=20), nullable=False),
-        sa.Column("attempt", sa.Integer(), nullable=False),
-        sa.Column("requested_count", sa.Integer(), nullable=False),
-        sa.Column("deleted_count", sa.Integer(), nullable=False),
-        sa.Column("missing_count", sa.Integer(), nullable=False),
-        sa.Column("error_count", sa.Integer(), nullable=False),
-        sa.Column("manifest_digest", sa.String(length=71), nullable=False),
-        sa.Column("receipt_digest", sa.String(length=71), nullable=False),
-        sa.Column("error_code", sa.String(length=100), nullable=True),
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
-        ),
-        sa.CheckConstraint("attempt > 0", name="ck_owner_erasure_attempt_positive"),
-        sa.CheckConstraint(
-            "requested_count >= 0 AND deleted_count >= 0 AND missing_count >= 0 AND error_count >= 0",
-            name="ck_owner_erasure_counts_nonnegative",
-        ),
-        sa.PrimaryKeyConstraint("receipt_id"),
-        sa.UniqueConstraint("request_id", "owner", "attempt", name="uq_owner_erasure_attempt"),
-    )
-    op.create_index(
-        "ix_owner_erasure_step_receipts_request_id", "owner_erasure_step_receipts", ["request_id"]
     )
 
     op.create_table(
@@ -248,10 +243,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_privacy_tombstones_subject_digest", table_name="privacy_tombstones")
     op.drop_table("privacy_tombstones")
-    op.drop_index(
-        "ix_owner_erasure_step_receipts_request_id", table_name="owner_erasure_step_receipts"
-    )
-    op.drop_table("owner_erasure_step_receipts")
     op.drop_index("ix_account_deletion_requests_due", table_name="account_deletion_requests")
     op.drop_index("ix_account_deletion_requests_lifecycle", table_name="account_deletion_requests")
     op.drop_index(

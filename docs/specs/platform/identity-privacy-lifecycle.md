@@ -3,7 +3,7 @@
 > Spec ID：`IDP-*`
 > 状态：FROZEN
 > 版本：v1.0
-> Governing decision：ADR-0009
+> Governing decision：ADR-0009 + ADR-0107
 
 ## 1. Scope and Ownership
 
@@ -29,11 +29,10 @@ Privacy Coordinator 是以下治理记录的唯一 writer：
 DeletionPreview
 AccountDeletionRequest
 PrivacySubjectManifest / blocking issue
-OwnerErasureStepReceipt
 PrivacyTombstone / RestoreBarrier
 ```
 
-它 MUST 通过 owner erasure port 清除学习数据，MUST NOT 通过普通 shared ORM session 任意 patch 八系统状态。
+它 MUST 通过 P1-03 `DataErasureWorkflowV1/ALL_PERSONAL_DATA` 清除学习数据，MUST NOT 维护第二套 owner step/receipt/checkpoint truth，也 MUST NOT 通过普通 shared ORM session 任意 patch 八系统状态。
 
 ## 2. Password Policy
 
@@ -188,9 +187,9 @@ manifest MUST 由 explicit registry 基于 direct `user_id`、`pseudonym_id`、o
 
 记录同时关联其他 user、无法解析 subject 或超出 registry 时必须创建 blocking issue。MUST NOT 猜测、跳过后仍报告完成或删除其他用户数据。
 
-### IDP-052 — Owner Erasure
+### IDP-052 — Canonical Owner Erasure
 
-每个 owner handler MUST：只接受 frozen manifest；幂等删除自己的 rows/files/projections；取消能重建数据的 pending task；返回 requested/deleted/missing/error counts 与 digest。普通业务 repository 不获得跨 owner delete 权限。
+`DeleteAccountV1` 到期后 MUST 调用 P1-03 固定 `ALL_PERSONAL_DATA` scope。每个 owner handler MUST 幂等删除自己的 rows/files/projections、取消能重建数据的 pending task并将最小结果写入 P1-03 durable step/receipt/checkpoint；普通业务 repository 不获得跨 owner delete 权限。P1-05 MUST NOT 写第二套 owner receipt。
 
 ### IDP-053 — Immutable Records
 
@@ -198,15 +197,15 @@ manifest MUST 由 explicit registry 基于 direct `user_id`、`pseudonym_id`、o
 
 ### IDP-054 — Reconciliation
 
-所有 owner steps 完成后 MUST 重新 inventory。数据库 records、文件、pending task、cache/projection 对目标 subject 均为零才可完成。bounded retry 耗尽进入 `DELETION_BLOCKED`，账号保持不可用。
+所有 canonical owner steps 完成后 MUST 重新 inventory。数据库 records、文件、pending task、cache/projection 对目标 subject 均为零，且 P1-03 receipt/checkpoint 与适用的 no-resurrection maintenance 完成后，账号才可进入 `DELETED`。bounded retry 耗尽或 P1-03 partial/terminal failure 进入 `DELETION_BLOCKED`，账号保持不可用。
 
 ### IDP-055 — Tombstone
 
-tombstone MAY 保存 request id、policy/schema version、时间、scope/receipt digests、最终状态与不可逆边界；MUST NOT 保存 phone/email/nickname/password/hash/recovery secret、原始 user content、Prompt/model output 或可逆身份。
+tombstone MAY 保存 request id、policy/schema version、时间、P1-03 workflow/receipt/checkpoint digest、最终状态与不可逆边界；MUST NOT 保存 phone/email/nickname/password/hash/recovery secret、原始 user content、Prompt/model output 或可逆身份。tombstone 是 canonical receipt 的最小投影，不是第二 erasure truth。
 
 ### IDP-056 — Restore Barrier
 
-完成删除 MUST 原子/可恢复写数据库外 restore barrier。认证与 startup recovery 在普通业务启动前检查；App 管理的旧 snapshot 命中 barrier 时 MUST fail closed 并重新执行清除，MUST NOT 恢复 ACTIVE 登录。
+完成删除 MUST 先满足 P1-03 erasure checkpoint/no-resurrection contract，再原子/可恢复写数据库外 subject restore barrier。认证与 startup recovery 在普通业务启动前检查；App 管理的旧 snapshot 命中 barrier 时 MUST fail closed并按 canonical checkpoint 重新执行清除，MUST NOT 恢复 ACTIVE 登录。
 
 ## 7. API / Error / Observability
 
