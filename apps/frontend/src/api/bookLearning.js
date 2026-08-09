@@ -4,6 +4,10 @@ export const getReadiness = (documentId) =>
   api.get(`/book-learning/${encodeURIComponent(documentId)}/readiness`)
     .then((response) => response.data)
 
+export const advance = (documentId, body) =>
+  api.post(`/book-learning/${encodeURIComponent(documentId)}/advance`, body)
+    .then((response) => response.data)
+
 export const getGoal = (goalId) =>
   api.get(`/book-learning/goals/${encodeURIComponent(goalId)}`)
     .then((response) => response.data)
@@ -47,4 +51,8 @@ export const selectNextActivity = (body) =>
 
 export const startTeachingRound = (activityId, body) =>
   api.post(`/book-learning/activities/${encodeURIComponent(activityId)}/start`, body)
+    .then((response) => response.data)
+
+export const getTranscript = (activityId) =>
+  api.get(`/book-learning/activities/${encodeURIComponent(activityId)}/transcript`)
     .then((response) => response.data)

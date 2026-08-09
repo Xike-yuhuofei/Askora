@@ -4,15 +4,12 @@ import json
 import os
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 
 from app.contracts.adaptive import (
     AnswerExposure,
     AssistanceState,
-    HintSpecificity,
-    ScaffoldControl,
     ValidationObligation,
     VersionedRef,
 )
@@ -23,10 +20,12 @@ from app.domains.learner_model import (
     AdaptiveEvidenceEligibilityProfile,
 )
 from app.domains.teaching_policy.kernel import TeachingPolicyKernel
-from app.orchestration.adaptive_execution import AdaptiveRenderRequest, RenderProposal
 from app.orchestration.learning_facade import LearningOrchestrationFacade
+from app.orchestration.model_rendering import (
+    POLICY_BOUND_MODEL_PROMPT_VERSION,
+    PolicyBoundModelRenderer,
+)
 from app.services.llm import model_router as router_module
-from app.services.llm.model_router import BaseLLMProvider, ChatMessage
 from tests.fixtures.v03_execution_factory import adaptive_request, make_candidate
 from tests.fixtures.v03_policy_factory import (
     NOW,
@@ -38,73 +37,25 @@ from tests.fixtures.v03_policy_factory import (
     with_previous_action,
 )
 
-PROMPT_VERSION = "v03-policy-bound-render/1.0"
-
 
 def _configured_model() -> tuple[Settings, LLMProvider, str, str]:
     configured = Settings(_env_file=".env", _env_ignore_empty=True)  # type: ignore[call-arg]
-    if configured.llm_qwen_api_key:
-        return configured, LLMProvider.QWEN, configured.llm_qwen_model, "science"
-    if configured.llm_deepseek_api_key:
-        return configured, LLMProvider.DEEPSEEK, configured.llm_deepseek_model, "math"
-    if configured.llm_doubao_api_key:
-        return configured, LLMProvider.DOUBAO, configured.llm_doubao_model, "science"
+    configured_models = {
+        LLMProvider.QWEN: (configured.llm_qwen_api_key, configured.llm_qwen_model),
+        LLMProvider.DEEPSEEK: (
+            configured.llm_deepseek_api_key,
+            configured.llm_deepseek_model,
+        ),
+        LLMProvider.DOUBAO: (configured.llm_doubao_api_key, configured.llm_doubao_model),
+        LLMProvider.ZHIPU: (configured.llm_zhipu_api_key, configured.llm_zhipu_model),
+    }
+    default_key, default_model = configured_models[configured.llm_default_provider]
+    if default_key:
+        return configured, configured.llm_default_provider, default_model, "science"
+    for provider, (api_key, model) in configured_models.items():
+        if api_key:
+            return configured, provider, model, "science"
     pytest.fail("ASKORA_RUN_REAL_MODEL=1 but no configured real model credential was found")
-
-
-class _ConfiguredAdaptiveRenderer:
-    """Test-only real provider adapter; SYS08 remains the output-policy authority."""
-
-    def __init__(self, provider: BaseLLMProvider) -> None:
-        self._provider = provider
-        self.provider = ""
-        self.model = ""
-        self.latency_ms = 0
-
-    async def render(self, request: AdaptiveRenderRequest) -> RenderProposal:
-        evidence = "\n".join(item.content for item in request.evidence_bundle.items)
-        response = await self._provider.chat_completion(
-            [
-                ChatMessage(
-                    role="system",
-                    content=(
-                        "你只负责执行已确定的教学动作，不得选择或改变教学策略。"
-                        "只能依据给定资料做简短解释，不调用工具，不直接给出任何测验答案。"
-                    ),
-                ),
-                ChatMessage(
-                    role="user",
-                    content=(
-                        f"教学策略：{request.teaching_action.strategy_family.value}\n"
-                        f"允许动作：{','.join(move.value for move in request.teaching_action.interaction_moves)}\n"
-                        f"资料：{evidence}\n"
-                        f"学习者请求：{request.user_text}"
-                    ),
-                ),
-            ],
-            temperature=0.1,
-            max_tokens=256,
-        )
-        self.provider = response.provider
-        self.model = response.model
-        self.latency_ms = response.latency_ms
-        used_ids = tuple(item.evidence_id for item in request.evidence_bundle.items)
-        return RenderProposal(
-            response_id=uuid5(
-                NAMESPACE_URL,
-                f"askora:v03:real-render:{request.teaching_action.action_id}:{response.model}",
-            ),
-            response_version=PROMPT_VERSION,
-            text=response.content.strip(),
-            strategy_family=request.teaching_action.strategy_family,
-            interaction_moves=request.teaching_action.interaction_moves,
-            action_modifiers=request.teaching_action.action_modifiers,
-            actual_scaffold_control=ScaffoldControl.LOW,
-            actual_hint_specificity=HintSpecificity.CONCEPTUAL_STRATEGIC,
-            actual_answer_exposure=AnswerExposure.NONE,
-            declared_assistance_state=AssistanceState.ASSISTED,
-            used_evidence_ids=used_ids,
-        )
 
 
 @pytest.mark.asyncio
@@ -119,9 +70,13 @@ async def test_real_configured_model_through_v03_canonical_adaptive_path() -> No
     settings.llm_qwen_api_key = configured.llm_qwen_api_key
     settings.llm_deepseek_api_key = configured.llm_deepseek_api_key
     settings.llm_doubao_api_key = configured.llm_doubao_api_key
+    settings.llm_zhipu_api_key = configured.llm_zhipu_api_key
     settings.llm_qwen_model = configured.llm_qwen_model
     settings.llm_deepseek_model = configured.llm_deepseek_model
     settings.llm_doubao_model = configured.llm_doubao_model
+    settings.llm_zhipu_model = configured.llm_zhipu_model
+    settings.llm_zhipu_base_url = configured.llm_zhipu_base_url
+    settings.llm_zhipu_thinking_enabled = configured.llm_zhipu_thinking_enabled
     settings.llm_timeout = max(configured.llm_timeout, 60)
     router_module._model_router = None
 
@@ -144,7 +99,7 @@ async def test_real_configured_model_through_v03_canonical_adaptive_path() -> No
         ),
     )
     router = router_module.get_model_router()
-    renderer = _ConfiguredAdaptiveRenderer(router.route_for_subject(subject))
+    renderer = PolicyBoundModelRenderer(router)
     try:
         turn = await LearningOrchestrationFacade(adaptive_renderer=renderer).run_turn(request)
         assert turn.reply_text.strip()
@@ -158,9 +113,12 @@ async def test_real_configured_model_through_v03_canonical_adaptive_path() -> No
             turn.adaptive_execution_v03.actual_assistance.assistance_state
             is AssistanceState.ASSISTED
         )
-        assert "mock" not in renderer.model.lower()
-        assert renderer.provider == provider_name.value
-        assert renderer.model == model_name
+        model_execution = turn.adaptive_execution_v03.model_execution
+        assert model_execution is not None
+        assert model_execution.mode == "real_model"
+        assert model_execution.provider == provider_name.value
+        assert model_execution.model == model_name
+        assert model_execution.prompt_version == POLICY_BOUND_MODEL_PROMPT_VERSION
 
         action = turn.teaching_action_v03
         execution = turn.adaptive_execution_v03
@@ -232,13 +190,13 @@ async def test_real_configured_model_through_v03_canonical_adaptive_path() -> No
         )
 
         summary = {
-            "provider": renderer.provider,
-            "model": renderer.model,
-            "prompt_version": PROMPT_VERSION,
+            "provider": model_execution.provider,
+            "model": model_execution.model,
+            "prompt_version": model_execution.prompt_version,
             "policy_bundle_version": bundle.policy_version,
             "result": "success",
             "response_length": len(turn.reply_text),
-            "latency_ms": renderer.latency_ms,
+            "latency_ms": model_execution.latency_ms,
             "teaching_action_id": str(action.action_id),
             "decision_id": str(action.decision_id),
             "actual_assistance": execution.actual_assistance.assistance_state.value,

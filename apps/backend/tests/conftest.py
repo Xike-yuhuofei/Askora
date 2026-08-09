@@ -43,6 +43,7 @@ os.environ["ENABLE_ORCHESTRATOR_DEBUG_API"] = "true"
 os.environ["LLM_QWEN_API_KEY"] = ""
 os.environ["LLM_DEEPSEEK_API_KEY"] = ""
 os.environ["LLM_DOUBAO_API_KEY"] = ""
+os.environ["LLM_ZHIPU_API_KEY"] = ""
 os.environ["EMBEDDING_API_KEY"] = ""
 
 

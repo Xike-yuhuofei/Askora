@@ -22,6 +22,7 @@ from app.models.assessment import (
     LearnerStateRecord,
     MasteryEstimateRecord,
 )
+from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import DocumentChunk, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.knowledge import KnowledgePoint, LearningMaterial
@@ -70,6 +71,8 @@ __all__ = [
     "LearnerEvidenceRecord",
     "LearnerStateRecord",
     "MasteryEstimateRecord",
+    "BookLearningTranscriptTurnRecord",
+    "BookLearningAdvanceRecord",
     "LearningActivityRecord",
     "DiagnosticNeedRecord",
     "LearningGoalRecord",

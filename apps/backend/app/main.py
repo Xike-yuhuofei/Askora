@@ -50,6 +50,7 @@ def _check_runtime_config() -> None:
         "qwen": settings.llm_qwen_api_key,
         "deepseek": settings.llm_deepseek_api_key,
         "doubao": settings.llm_doubao_api_key,
+        "zhipu": settings.llm_zhipu_api_key,
     }
     if not any(llm_keys.values()):
         logger.warning(
@@ -247,7 +248,10 @@ async def health_check():
 async def config_health_check():
     """系统运行配置状态"""
     llm_configured = bool(
-        settings.llm_qwen_api_key or settings.llm_deepseek_api_key or settings.llm_doubao_api_key
+        settings.llm_qwen_api_key
+        or settings.llm_deepseek_api_key
+        or settings.llm_doubao_api_key
+        or settings.llm_zhipu_api_key
     )
 
     return {

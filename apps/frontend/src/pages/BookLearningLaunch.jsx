@@ -2,10 +2,10 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   ArrowLeft,
   BookOpen,
+  Check,
   CheckCircle2,
   Clock3,
   RefreshCw,
-  Route,
   Send,
   ShieldAlert,
   Sparkles,
@@ -28,85 +28,74 @@ const readinessStates = new Set([
   'BLOCKED',
 ])
 
-const stateMeta = {
-  PROCESSING: ['资料处理中', '资料仍在安全检查、解析或知识建模中。'],
-  CONTENT_PARTIAL: ['资料尚未达到学习条件', '当前资料缺少可执行学习所需的已发布知识或可回放依据。'],
-  READY_FOR_GOAL: ['制定学习目标', '用一句可验证的话说明你希望学会什么。'],
-  GOAL_CONFIRMATION_REQUIRED: ['确认学习目标', '系统已形成候选目标；确认后才会进入知识映射。'],
-  DIAGNOSIS_REQUIRED: ['准备先修诊断', '系统将根据已确认目标建立资料范围并检查必要基础。'],
-  DIAGNOSING: ['完成先修诊断', '请独立回答。当前步骤不会把未知状态默认成会或不会。'],
-  PLAN_READY: ['生成学习活动', '诊断结果已准备好交给现有学习规划器。'],
-  READY_TO_LEARN: ['开始学习', '当前活动已由学习规划器选择，将进入 canonical 教学回合。'],
-  BLOCKED: ['当前无法继续', '系统在正确的 owner 边界停下，没有用聊天绕过缺失条件。'],
-}
+const automaticCommands = new Set([
+  'MapGoalToKnowledge',
+  'BuildGoalKnowledgeSubgraph',
+  'GeneratePrerequisiteDiagnosis',
+  'GenerateLearningPlan',
+  'SelectNextLearningActivity',
+])
 
-const reasonLabels = {
-  CONTENT_PROCESSING_IN_PROGRESS: '资料仍在后台处理中',
-  CONTENT_MODEL_PARTIAL: '资料知识模型尚不完整',
-  CONTENT_NOT_APPROVED_FOR_LEARNING: '资料尚未通过安全学习条件',
-  PUBLISHED_CONTENT_READY_FOR_GOAL: '已有可追溯的已发布知识可用于制定目标',
-  LEARNING_GOAL_USER_CONFIRMATION_REQUIRED: '学习目标需要你的明确确认',
-  GOAL_KNOWLEDGE_MAPPING_REQUIRED: '目标尚未映射到资料中的知识',
-  GOAL_SUBGRAPH_REQUIRED: '目标的先修知识范围尚未建立',
-  PREREQUISITE_DIAGNOSTIC_REQUIRED: '需要检查会影响学习路径的先修基础',
-  DIAGNOSTIC_ACTIVITY_ACTIVE: '先修诊断正在进行',
-  DIAGNOSTIC_COMPLETE_PLAN_GENERATION_REQUIRED: '诊断已完成，可以生成学习计划',
-  LEARNING_PLAN_READY: '学习计划已准备好选择下一个活动',
-  LEARNING_ACTIVITY_SELECTED: '下一个学习活动已经选定',
-  PLAN_NO_FEASIBLE_ACTIVITY: '当前计划没有可执行活动',
-  UI02B1_SINGLE_TARGET_REQUIRED: '当前最小版本只支持单一学习目标范围；请把目标写得更聚焦',
+const stateMeta = {
+  PROCESSING: ['正在准备这份资料', '完成安全检查和内容整理后，就可以开始制定目标。'],
+  CONTENT_PARTIAL: ['这份资料还不能开始学习', '资料中的可用内容仍不完整。你的文件已经保留，可以稍后再试。'],
+  READY_FOR_GOAL: ['你想从这份资料中学会什么？', '一句清楚的目标，能帮助 Askora 安排更合适的起点。'],
+  GOAL_CONFIRMATION_REQUIRED: ['确认你的学习目标', '看看系统的理解是否准确。确认后，余下准备会自动完成。'],
+  DIAGNOSIS_REQUIRED: ['正在安排学习起点', 'Askora 正在整理学习范围，并准备必要的基础检查。'],
+  DIAGNOSING: ['先看看你的起点', '这不是考试，也不计分；回答会用来减少不必要的重复学习。'],
+  PLAN_READY: ['正在安排第一节学习', 'Askora 正在从计划中选择现在最值得做的一小步。'],
+  READY_TO_LEARN: ['本次学习已经准备好', '从一个聚焦的问题开始，预计十几分钟完成。'],
+  BLOCKED: ['暂时无法继续', '系统没有绕过缺失条件。你的资料和已完成进度仍然保留。'],
 }
 
 const activityLabels = {
-  learn_new: '学习新内容',
-  prerequisite_remediation: '补足先修基础',
-  diagnostic: '诊断',
-  practice: '练习',
-  delayed_review: '延迟复习',
-  transfer_check: '迁移检验',
-  metacognitive_review: '学习反思',
+  learn_new: '理解一个新概念',
+  prerequisite_remediation: '补足一个必要基础',
+  diagnostic: '确认学习起点',
+  practice: '做一次应用练习',
+  delayed_review: '完成一次延迟复习',
+  transfer_check: '把知识用到新情境',
+  metacognitive_review: '回顾自己的学习方法',
 }
 
 function entityRef(readiness, entityType) {
   return readiness?.owner_refs?.find((item) => item.ref?.entity_type === entityType)?.ref || null
 }
 
+function selectedActivityRef(readiness) {
+  return readiness?.owner_refs?.find(
+    (item) => item.ref?.entity_type === 'LearningActivity' && item.status === 'selected',
+  )?.ref || null
+}
+
 function operationKey(documentId, operation, resource = 'current') {
-  return `ui02b1:${documentId}:${operation}:${resource}:v1`
+  return `ui02b2:${documentId}:${operation}:${resource}:v1`
 }
 
-function teachingSession(activityId) {
-  const key = `askora:ui02b1:${activityId}:session-id`
-  let value = sessionStorage.getItem(key)
-  if (!value) {
-    value = globalThis.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
-      /[xy]/g,
-      (character) => {
-        const random = Math.floor(Math.random() * 16)
-        const next = character === 'x' ? random : (random & 0x3) | 0x8
-        return next.toString(16)
-      },
-    )
-    sessionStorage.setItem(key, value)
-  }
-  return value
-}
-
-function storedTurn(activityId) {
-  const value = Number(sessionStorage.getItem(`askora:ui02b1:${activityId}:next-turn`) || 1)
-  return Number.isInteger(value) && value > 0 ? value : 1
+function readinessFingerprint(readiness, command) {
+  const preferredType = {
+    MapGoalToKnowledge: 'LearningGoal',
+    BuildGoalKnowledgeSubgraph: 'GoalKnowledgeMapping',
+    GeneratePrerequisiteDiagnosis: 'GoalKnowledgeMapping',
+    GenerateLearningPlan: 'DiagnosticNeed',
+    SelectNextLearningActivity: 'LearningPlan',
+  }[command]
+  const item = readiness.owner_refs.find((value) => value.ref.entity_type === preferredType)
+  if (!item) return `${readiness.state}:${command}:missing-owner-ref`
+  return `${readiness.state}:${command}:${item.ref.entity_id}:v${item.ref.version}`
 }
 
 function responseMessage(error, fallback) {
   if (error?.response?.status === 401) return '登录状态已失效，请重新登录。'
   const code = error?.response?.data?.error?.message
   const known = {
-    DIAGNOSTIC_ITEM_UNAVAILABLE: '诊断题暂不可用，系统没有记录为学习者答错。',
-    DIAGNOSTIC_NEED_VERSION_CONFLICT: '诊断状态已更新，正在重新读取最新版本。',
-    POLICY_RUNTIME_NOT_CONFIGURED: '教学策略运行配置尚未准备好。',
+    DIAGNOSTIC_ITEM_UNAVAILABLE: '基础检查题暂时不可用。这次故障不会被记录成你的错误。',
+    DIAGNOSTIC_NEED_VERSION_CONFLICT: '学习起点刚刚发生变化，已为你读取最新进度。',
+    POLICY_RUNTIME_NOT_CONFIGURED: '教学服务尚未准备好，你的学习进度已经保留。',
+    BOOK_LEARNING_USER_INPUT_REQUIRED: '现在需要你的输入，系统没有替你作答。',
+    BOOK_SYSTEM_START_ALREADY_ACCEPTED: '本次学习已经开始，正在恢复已有内容。',
   }
-  if (known[code]) return known[code]
-  return fallback
+  return known[code] || fallback
 }
 
 function assertReadiness(payload) {
@@ -120,25 +109,72 @@ function assertReadiness(payload) {
   return payload
 }
 
+function assertTranscript(payload) {
+  if (String(payload?.schema_version || '').split('.')[0] !== '1') {
+    throw new Error('UNSUPPORTED_BOOK_TRANSCRIPT_SCHEMA')
+  }
+  if (!payload?.session_id || !Array.isArray(payload.turns) || !payload.activity_ref) {
+    throw new Error('INVALID_BOOK_TRANSCRIPT')
+  }
+  return payload
+}
+
 function GoalSummary({ goal }) {
-  if (!goal) return <p className="learning-empty">正在读取目标的 owner 版本…</p>
+  if (!goal) return <p className="learning-empty">正在恢复你的目标…</p>
   return (
-    <div className="learning-summary">
-      <h3>{goal.title}</h3>
-      <p>{goal.application_context || `主题：${goal.topic}`}</p>
-      <dl>
-        <div><dt>目标版本</dt><dd>v{goal.version}</dd></div>
-        <div><dt>每周时间</dt><dd>{goal.weekly_time_budget_minutes ? `${goal.weekly_time_budget_minutes} 分钟` : '未设置'}</dd></div>
-      </dl>
+    <div className="learning-summary learning-summary--goal">
+      <div className="learning-summary__icon"><Target size={20} /></div>
       <div>
-        <strong>希望形成的能力</strong>
-        <ul>{goal.target_capabilities?.map((item) => <li key={item}>{item}</li>)}</ul>
-      </div>
-      <div>
-        <strong>成功标准</strong>
-        <ul>{goal.success_criteria?.map((item) => <li key={item}>{item}</li>)}</ul>
+        <h3>{goal.title}</h3>
+        {goal.application_context && <p>{goal.application_context}</p>}
+        <ul>
+          {goal.target_capabilities?.slice(0, 3).map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <p className="learning-summary__meta">
+          {goal.weekly_time_budget_minutes ? `每周约 ${goal.weekly_time_budget_minutes} 分钟` : '按你的节奏学习'}
+        </p>
       </div>
     </div>
+  )
+}
+
+function LearningProgress({ state }) {
+  const activeIndex = state === 'READY_FOR_GOAL' || state === 'GOAL_CONFIRMATION_REQUIRED'
+    ? 0
+    : state === 'DIAGNOSIS_REQUIRED' || state === 'DIAGNOSING'
+      ? 1
+      : 2
+  const labels = ['目标', '起点', '本次学习']
+  return (
+    <ol className="learning-progress" aria-label="学习准备进度">
+      {labels.map((label, index) => (
+        <li
+          className={index < activeIndex ? 'is-complete' : index === activeIndex ? 'is-current' : ''}
+          key={label}
+          aria-current={index === activeIndex ? 'step' : undefined}
+        >
+          <span>{index < activeIndex ? <Check size={14} /> : index + 1}</span>
+          {label}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function EvidenceDisclosure({ evidence }) {
+  if (!evidence?.length) return null
+  return (
+    <details className="turn-evidence">
+      <summary>依据资料 · {evidence.length} 处</summary>
+      <ol>
+        {evidence.map((item) => (
+          <li key={item.evidence_id}>
+            <p>{item.excerpt}</p>
+            <small>{item.pedagogical_role} · 已连接到原文位置</small>
+          </li>
+        ))}
+      </ol>
+    </details>
   )
 }
 
@@ -147,6 +183,7 @@ export default function BookLearningLaunch({ documentId }) {
   const [details, setDetails] = useState({})
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [advancing, setAdvancing] = useState(false)
   const [error, setError] = useState('')
   const [intent, setIntent] = useState('')
   const [applicationContext, setApplicationContext] = useState('')
@@ -154,63 +191,72 @@ export default function BookLearningLaunch({ documentId }) {
   const [deadline, setDeadline] = useState('')
   const [diagnosticAnswer, setDiagnosticAnswer] = useState('')
   const [teachingInput, setTeachingInput] = useState('')
-  const [messages, setMessages] = useState([])
   const diagnosticStartedAt = useRef(Date.now())
+  const advanceAttempts = useRef(new Set())
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setLoading(true)
-    setError('')
     try {
       const nextReadiness = assertReadiness(await bookLearningApi.getReadiness(documentId))
       const nextDetails = {}
-      const goalRef = entityRef(nextReadiness, 'LearningGoal')
-      const goalId = goalRef?.entity_id
+      const goalId = entityRef(nextReadiness, 'LearningGoal')?.entity_id
       if (goalId) {
-        const goalResult = await bookLearningApi.getGoal(goalId)
-        nextDetails.goal = goalResult.payload?.goal
+        nextDetails.goal = (await bookLearningApi.getGoal(goalId)).payload?.goal
       }
-      if (
-        goalId &&
-        nextReadiness.state === 'DIAGNOSIS_REQUIRED' &&
-        nextReadiness.next_commands.includes('GeneratePrerequisiteDiagnosis')
-      ) {
-        nextDetails.mapping = (await bookLearningApi.getMapping(goalId)).payload
-      }
-      if (
-        goalId &&
-        (nextReadiness.state === 'DIAGNOSING' ||
-          (nextReadiness.state === 'PLAN_READY' && nextReadiness.next_commands.includes('GenerateLearningPlan')))
-      ) {
+      if (goalId && nextReadiness.state === 'DIAGNOSING') {
         nextDetails.diagnostic = (await bookLearningApi.getDiagnostic(goalId)).payload
       }
-      if (
-        goalId &&
-        (nextReadiness.state === 'PLAN_READY' || nextReadiness.state === 'READY_TO_LEARN')
-      ) {
+      if (goalId && (nextReadiness.state === 'PLAN_READY' || nextReadiness.state === 'READY_TO_LEARN')) {
         nextDetails.plan = (await bookLearningApi.getPlan(goalId)).payload
       }
       if (goalId && nextReadiness.state === 'READY_TO_LEARN') {
-        const selectedActivityRef = nextReadiness.owner_refs.find(
-          (item) => item.ref?.entity_type === 'LearningActivity' && item.status === 'selected',
-        )?.ref
+        const activityRef = selectedActivityRef(nextReadiness)
         const activity = nextDetails.plan?.activities?.find(
-          (item) => item.activity_id === selectedActivityRef?.entity_id,
+          (item) => item.activity_id === activityRef?.entity_id,
         )
-        if (!activity || !nextDetails.plan?.plan) {
-          throw new Error('SELECTED_ACTIVITY_REF_MISSING')
-        }
+        if (!activity || !nextDetails.plan?.plan) throw new Error('SELECTED_ACTIVITY_REF_MISSING')
         nextDetails.selection = { plan: nextDetails.plan.plan, activity }
+        nextDetails.transcript = assertTranscript(
+          await bookLearningApi.getTranscript(activity.activity_id),
+        )
       }
       setReadiness(nextReadiness)
       setDetails(nextDetails)
+      setError('')
     } catch (loadError) {
-      setError(responseMessage(loadError, '无法读取这份资料的学习准备状态，请稍后重试。'))
+      setError(responseMessage(loadError, '无法恢复这份资料的学习进度，请稍后重试。'))
     } finally {
       setLoading(false)
     }
   }, [documentId])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (!readiness || loading || busy || advancing) return
+    const commands = readiness.next_commands.filter((command) => automaticCommands.has(command))
+    if (commands.length !== 1) return
+    const command = commands[0]
+    const fingerprint = readinessFingerprint(readiness, command)
+    if (advanceAttempts.current.has(fingerprint)) return
+    if (advanceAttempts.current.size >= 6) {
+      setError('准备步骤没有在预期范围内完成。你的进度已经保留，请重试。')
+      return
+    }
+    advanceAttempts.current.add(fingerprint)
+    setAdvancing(true)
+    setError('')
+    bookLearningApi.advance(documentId, {
+      schema_version: '1.0',
+      idempotency_key: operationKey(documentId, 'advance', fingerprint),
+    }).then(
+      () => load({ quiet: true }),
+      async (advanceError) => {
+        await load({ quiet: true })
+        setError(responseMessage(advanceError, '学习准备暂时没有完成。已完成的进度不会丢失。'))
+      },
+    ).finally(() => setAdvancing(false))
+  }, [advancing, busy, documentId, load, loading, readiness])
 
   const run = async (command, fallback) => {
     if (busy) return false
@@ -229,39 +275,42 @@ export default function BookLearningLaunch({ documentId }) {
     }
   }
 
-  const goalRef = entityRef(readiness, 'LearningGoal')
-  const goalId = goalRef?.entity_id
+  const retry = () => {
+    advanceAttempts.current.clear()
+    load()
+  }
+
+  const goalId = entityRef(readiness, 'LearningGoal')?.entity_id
   const [stateTitle, stateDescription] = stateMeta[readiness?.state] || ['', '']
-  const reasons = useMemo(
-    () => readiness?.reason_codes?.map((code) => reasonLabels[code] || code) || [],
-    [readiness],
-  )
+  const reasons = useMemo(() => readiness?.reason_codes || [], [readiness])
+  const lastModelExecution = details.transcript?.turns?.at(-1)?.model_execution || null
 
   if (loading) {
-    return <div className="page-state" role="status"><div className="spinner" />正在读取资料学习状态…</div>
+    return <div className="page-state" role="status"><div className="spinner" />正在恢复你的学习进度…</div>
   }
 
   if (!readiness) {
     return (
       <div className="page-state page-state--error" role="alert">
         <ShieldAlert size={28} />
-        <h1>无法打开资料学习</h1>
+        <h1>暂时无法打开这份资料</h1>
         <p>{error}</p>
-        <button type="button" className="button button--secondary" onClick={() => load()}><RefreshCw size={16} />重试</button>
+        <button type="button" className="button button--secondary" onClick={retry}><RefreshCw size={16} />重试</button>
       </div>
     )
   }
 
-  const createGoal = () => run(async () => {
-    await bookLearningApi.createGoal(documentId, {
+  const createGoal = () => run(
+    () => bookLearningApi.createGoal(documentId, {
       schema_version: '1.0',
       intent: intent.trim(),
       application_context: applicationContext.trim() || null,
       deadline_at: deadline ? new Date(`${deadline}T23:59:59`).toISOString() : null,
       weekly_time_budget_minutes: weeklyBudget ? Number(weeklyBudget) : null,
       idempotency_key: operationKey(documentId, 'goal-create'),
-    })
-  }, '学习目标没有创建成功，请检查输入后重试。')
+    }),
+    '学习目标没有保存成功，请检查输入后重试。',
+  )
 
   const confirmGoal = () => run(
     () => bookLearningApi.confirmGoal(goalId, {
@@ -271,37 +320,6 @@ export default function BookLearningLaunch({ documentId }) {
     }),
     '学习目标没有确认成功，请重试。',
   )
-
-  const mapGoal = () => run(
-    () => bookLearningApi.mapGoal(goalId, {
-      schema_version: '1.0',
-      idempotency_key: operationKey(documentId, 'goal-map', goalId),
-    }),
-    '目标知识范围没有建立成功。',
-  )
-
-  const startDiagnostic = () => {
-    const mapping = details.mapping?.mapping
-    const subgraph = details.mapping?.subgraph
-    const targets = mapping?.selected_target_ids || []
-    if (targets.length !== 1 || !subgraph) {
-      setError(reasonLabels.UI02B1_SINGLE_TARGET_REQUIRED)
-      return
-    }
-    run(
-      () => bookLearningApi.startDiagnostic({
-        schema_version: '1.0',
-        mapping_id: mapping.mapping_id,
-        mapping_version: mapping.mapping_version,
-        subgraph_id: subgraph.subgraph_id,
-        subgraph_version: subgraph.version,
-        target_knowledge_unit_id: targets[0],
-        max_attempts: 3,
-        idempotency_key: operationKey(documentId, 'diagnostic-start', mapping.mapping_id),
-      }),
-      '先修诊断没有启动；系统没有把这次失败记作答错。',
-    )
-  }
 
   const submitDiagnostic = async () => {
     const need = details.diagnostic?.need
@@ -320,7 +338,7 @@ export default function BookLearningLaunch({ documentId }) {
         },
         idempotency_key: operationKey(documentId, 'diagnostic-answer', `${need.need_id}:v${need.version}`),
       }),
-      '诊断回答没有提交成功；系统没有把这次故障记作答错。',
+      '回答没有提交成功。这次故障不会被记录成你的错误。',
     )
     if (completed) {
       setDiagnosticAnswer('')
@@ -328,152 +346,212 @@ export default function BookLearningLaunch({ documentId }) {
     }
   }
 
-  const generatePlan = () => {
-    const need = details.diagnostic?.need
-    run(
-      () => bookLearningApi.generatePlan({
-        schema_version: '1.0',
-        need_id: need.need_id,
-        idempotency_key: operationKey(documentId, 'plan-generate', need.need_id),
-      }),
-      '学习计划没有生成成功。',
-    )
-  }
-
-  const selectActivity = () => run(
-    () => bookLearningApi.selectNextActivity({
-      schema_version: '1.0',
-      goal_id: goalId,
-      idempotency_key: operationKey(documentId, 'activity-select', goalId),
-    }),
-    '下一个学习活动没有选择成功。',
-  )
-
-  const sendTeaching = async () => {
+  const startLesson = () => {
     const activity = details.selection?.activity
     const plan = details.selection?.plan
-    const text = teachingInput.trim()
-    if (!activity || !plan || !text || busy) return
-    setBusy(true)
-    setError('')
-    try {
-      const currentTurn = storedTurn(activity.activity_id)
-      const result = await bookLearningApi.startTeachingRound(activity.activity_id, {
+    const transcript = details.transcript
+    if (!activity || !plan || !transcript) return
+    run(
+      () => bookLearningApi.startTeachingRound(activity.activity_id, {
         schema_version: '1.0',
         goal_id: goalId,
         plan_id: plan.plan_id,
         plan_version: plan.version,
         activity_id: activity.activity_id,
-        session_id: teachingSession(activity.activity_id),
-        turn_id: `ui02b1-turn-${currentTurn}`,
+        session_id: transcript.session_id,
+        turn_id: 'system-start-1',
+        turn_kind: 'system_start',
+        learner_text: null,
+        idempotency_key: operationKey(documentId, 'teaching-system-start', activity.activity_id),
+      }),
+      '本次学习暂时没有开始。你的计划已经保留，可以重试。',
+    )
+  }
+
+  const sendTeaching = async () => {
+    const activity = details.selection?.activity
+    const plan = details.selection?.plan
+    const transcript = details.transcript
+    const text = teachingInput.trim()
+    if (!activity || !plan || !transcript || !text) return
+    const turnNumber = transcript.next_turn_number
+    const completed = await run(
+      () => bookLearningApi.startTeachingRound(activity.activity_id, {
+        schema_version: '1.0',
+        goal_id: goalId,
+        plan_id: plan.plan_id,
+        plan_version: plan.version,
+        activity_id: activity.activity_id,
+        session_id: transcript.session_id,
+        turn_id: `learner-turn-${turnNumber}`,
+        turn_kind: 'learner',
         learner_text: text,
-        idempotency_key: operationKey(documentId, 'teaching', `${activity.activity_id}:turn-${currentTurn}`),
-      })
-      setMessages((items) => [
-        ...items,
-        { id: `learner-${currentTurn}`, role: 'learner', text },
-        { id: `assistant-${currentTurn}`, role: 'assistant', text: result.reply_text },
-      ])
-      setTeachingInput('')
-      sessionStorage.setItem(
-        `askora:ui02b1:${activity.activity_id}:next-turn`,
-        String(currentTurn + 1),
+        idempotency_key: operationKey(documentId, 'teaching', `${activity.activity_id}:turn-${turnNumber}`),
+      }),
+      '这次回应没有完成。你的已有学习记录已经保留。',
+    )
+    if (completed) setTeachingInput('')
+  }
+
+  const renderPreparation = () => (
+    <div className="learning-preparing" role="status" aria-live="polite">
+      <span className="learning-preparing__orb"><Sparkles size={23} /></span>
+      <h2>{stateTitle}</h2>
+      <p>{stateDescription}</p>
+      <div className="learning-preparing__line" aria-hidden="true"><span /></div>
+    </div>
+  )
+
+  const renderTeaching = () => {
+    const activity = details.selection?.activity
+    const transcript = details.transcript
+    if (!activity || !transcript) return <p className="learning-empty">正在恢复本次学习…</p>
+    if (!transcript.turns.length) {
+      return (
+        <div className="lesson-ready">
+          <span className="lesson-ready__icon"><BookOpen size={26} /></span>
+          <p className="eyebrow">为你安排的下一步</p>
+          <h2>{activityLabels[activity.type] || '继续学习'}</h2>
+          <p>Askora 会先提出一个聚焦的问题，再根据你的回答继续。</p>
+          <div className="lesson-ready__time"><Clock3 size={16} />约 {activity.estimated_duration_minutes} 分钟</div>
+          <button type="button" className="button button--primary button--prominent" onClick={startLesson} disabled={busy}>
+            <BookOpen size={17} />开始本次学习
+          </button>
+        </div>
       )
-    } catch (teachingError) {
-      setError(responseMessage(teachingError, '教学回合没有完成；系统没有把这次故障记作学习失败。'))
-    } finally {
-      setBusy(false)
     }
+    return (
+      <div className="teaching-panel">
+        <div className="activity-card">
+          <div><small>本次学习</small><strong>{activityLabels[activity.type] || activity.type}</strong></div>
+          <span><Clock3 size={14} />约 {activity.estimated_duration_minutes} 分钟</span>
+        </div>
+        <div className="teaching-messages" aria-live="polite">
+          {transcript.turns.flatMap((turn) => {
+            const items = []
+            if (turn.learner_text) {
+              items.push(
+                <article key={`${turn.turn_id}:learner`} className="teaching-message teaching-message--learner">
+                  <strong>你</strong><p>{turn.learner_text}</p>
+                </article>,
+              )
+            }
+            items.push(
+              <article key={`${turn.turn_id}:assistant`} className="teaching-message teaching-message--assistant">
+                <strong>Askora</strong>
+                <Suspense fallback={<p>{turn.reply_text}</p>}>
+                  <RichMessage fallbackText={turn.reply_text} payload={null} />
+                </Suspense>
+                <EvidenceDisclosure evidence={turn.evidence} />
+              </article>,
+            )
+            return items
+          })}
+        </div>
+        <form className="teaching-composer" onSubmit={(event) => { event.preventDefault(); sendTeaching() }}>
+          <label htmlFor="teaching-input" className="visually-hidden">写下你的想法或问题</label>
+          <textarea
+            id="teaching-input"
+            rows={3}
+            value={teachingInput}
+            onChange={(event) => setTeachingInput(event.target.value)}
+            placeholder="写下你的想法或问题…"
+            disabled={busy}
+          />
+          <button type="submit" className="button button--primary" disabled={busy || !teachingInput.trim()} aria-label="发送学习回答">
+            <Send size={16} />发送
+          </button>
+        </form>
+        <p className="learning-disclosure"><CheckCircle2 size={14} />学习记录已保存，刷新页面也可以继续。</p>
+      </div>
+    )
   }
 
   const renderStep = () => {
     if (readiness.state === 'PROCESSING' || readiness.state === 'CONTENT_PARTIAL' || readiness.state === 'BLOCKED') {
       return (
         <div className="learning-blocked">
-          {readiness.state === 'PROCESSING' ? <Clock3 size={24} /> : <ShieldAlert size={24} />}
-          <p>{stateDescription}</p>
-          <button type="button" className="button button--secondary" onClick={() => load()}><RefreshCw size={16} />刷新状态</button>
+          {readiness.state === 'PROCESSING' ? <Clock3 size={25} /> : <ShieldAlert size={25} />}
+          <h2>{stateTitle}</h2><p>{stateDescription}</p>
+          <button type="button" className="button button--secondary" onClick={retry}><RefreshCw size={16} />重新检查</button>
         </div>
       )
     }
     if (readiness.state === 'READY_FOR_GOAL') {
       return (
         <form className="learning-form" onSubmit={(event) => { event.preventDefault(); createGoal() }}>
-          <label><span>我希望学会什么</span><textarea value={intent} onChange={(event) => setIntent(event.target.value)} rows={4} maxLength={2000} placeholder="例如：我想掌握本章的核心方法，并能用它分析一个新的案例。" required /></label>
-          <label><span>应用场景（可选）</span><input value={applicationContext} onChange={(event) => setApplicationContext(event.target.value)} maxLength={500} placeholder="例如：用于工作中的数据分析" /></label>
-          <div className="learning-form__row">
-            <label><span>每周学习时间（分钟）</span><input type="number" min="1" max="10080" value={weeklyBudget} onChange={(event) => setWeeklyBudget(event.target.value)} /></label>
-            <label><span>目标日期（可选）</span><input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></label>
-          </div>
-          <button type="submit" className="button button--primary" disabled={busy || !intent.trim()}><Target size={16} />形成目标候选</button>
+          <div className="learning-form__intro"><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
+          <label><span>我的学习目标</span><textarea value={intent} onChange={(event) => setIntent(event.target.value)} rows={4} maxLength={2000} placeholder="例如：掌握这本书的核心方法，并能用它分析一个新的案例。" required autoFocus /></label>
+          <label><span>我准备用在（可选）</span><input value={applicationContext} onChange={(event) => setApplicationContext(event.target.value)} maxLength={500} placeholder="例如：工作中的数据分析" /></label>
+          <details className="learning-form__more">
+            <summary>更多选项</summary>
+            <div className="learning-form__row">
+              <label><span>每周学习时间</span><div className="input-with-suffix"><input type="number" min="1" max="10080" value={weeklyBudget} onChange={(event) => setWeeklyBudget(event.target.value)} /><span>分钟</span></div></label>
+              <label><span>希望完成的日期</span><input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></label>
+            </div>
+          </details>
+          <button type="submit" className="button button--primary button--prominent" disabled={busy || !intent.trim()}><Sparkles size={16} />继续</button>
         </form>
       )
     }
     if (readiness.state === 'GOAL_CONFIRMATION_REQUIRED') {
-      return <><GoalSummary goal={details.goal} /><button type="button" className="button button--primary" onClick={confirmGoal} disabled={busy || !details.goal}><CheckCircle2 size={16} />确认这个学习目标</button></>
+      return (
+        <div className="goal-confirmation">
+          <div><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
+          <GoalSummary goal={details.goal} />
+          <button type="button" className="button button--primary button--prominent" onClick={confirmGoal} disabled={busy || !details.goal}><CheckCircle2 size={17} />确认并准备学习</button>
+          <p className="goal-confirmation__note">只有你能确认学习目标；系统不会替你作这个决定。</p>
+        </div>
+      )
     }
-    if (readiness.state === 'DIAGNOSIS_REQUIRED') {
-      if (readiness.next_commands.includes('MapGoalToKnowledge') || readiness.next_commands.includes('BuildGoalKnowledgeSubgraph')) {
-        return <><GoalSummary goal={details.goal} /><button type="button" className="button button--primary" onClick={mapGoal} disabled={busy}><Route size={16} />建立资料学习范围</button></>
-      }
-      const targets = details.mapping?.mapping?.selected_target_ids || []
-      if (targets.length !== 1 && details.mapping) {
-        return <div className="learning-blocked"><ShieldAlert size={24} /><p>{reasonLabels.UI02B1_SINGLE_TARGET_REQUIRED}</p></div>
-      }
-      return <button type="button" className="button button--primary" onClick={startDiagnostic} disabled={busy || !details.mapping}><Sparkles size={16} />开始先修诊断</button>
+    if (readiness.state === 'DIAGNOSIS_REQUIRED' || readiness.state === 'PLAN_READY') {
+      return renderPreparation()
     }
     if (readiness.state === 'DIAGNOSING') {
       const item = details.diagnostic?.learner_item
-      if (!item) return <p className="learning-empty">正在读取学习者可见的诊断题…</p>
+      if (!item) return <p className="learning-empty">正在恢复基础检查…</p>
       return (
         <form className="diagnostic-card" onSubmit={(event) => { event.preventDefault(); submitDiagnostic() }}>
-          <p className="eyebrow">独立回答 · 不显示参考答案</p>
-          <h3>{item.prompt}</h3>
+          <div><p className="eyebrow">不计分 · 用于调整学习起点</p><h2>{item.prompt}</h2></div>
           {item.item_type === 'multiple_choice' && item.options?.length ? (
             <fieldset><legend>选择一个答案</legend>{item.options.map((option) => <label key={option}><input type="radio" name="diagnostic-answer" value={option} checked={diagnosticAnswer === option} onChange={(event) => setDiagnosticAnswer(event.target.value)} />{option}</label>)}</fieldset>
-          ) : <label><span>你的回答</span><input value={diagnosticAnswer} onChange={(event) => setDiagnosticAnswer(event.target.value)} autoComplete="off" /></label>}
-          <button type="submit" className="button button--primary" disabled={busy || !diagnosticAnswer.trim()}>提交独立回答</button>
+          ) : <label><span>你的回答</span><input value={diagnosticAnswer} onChange={(event) => setDiagnosticAnswer(event.target.value)} autoComplete="off" autoFocus /></label>}
+          <button type="submit" className="button button--primary button--prominent" disabled={busy || !diagnosticAnswer.trim()}>提交并继续</button>
         </form>
       )
     }
-    if (readiness.state === 'PLAN_READY') {
-      if (readiness.next_commands.includes('GenerateLearningPlan')) {
-        return <button type="button" className="button button--primary" onClick={generatePlan} disabled={busy || !details.diagnostic?.need}><Route size={16} />生成学习计划</button>
-      }
-      const activities = details.plan?.activities || []
-      return <><div className="learning-summary"><h3>计划包含 {activities.length} 个活动</h3><p>活动顺序由 SYS06 学习规划器提供，页面不会重新排序。</p></div><button type="button" className="button button--primary" onClick={selectActivity} disabled={busy}><BookOpen size={16} />选择下一个活动</button></>
-    }
-    const activity = details.selection?.activity
-    return (
-      <div className="teaching-panel">
-        {activity ? <div className="activity-card"><strong>{activityLabels[activity.type] || activity.type}</strong><span>约 {activity.estimated_duration_minutes} 分钟</span></div> : <p className="learning-empty">正在恢复已选择的学习活动…</p>}
-        <div className="teaching-messages" aria-live="polite">
-          {messages.length ? messages.map((message) => <article key={message.id} className={`teaching-message teaching-message--${message.role}`}><strong>{message.role === 'learner' ? '你' : 'Askora'}</strong><Suspense fallback={<p>{message.text}</p>}><RichMessage fallbackText={message.text} payload={null} /></Suspense></article>) : <p className="learning-empty">写下你希望先理解的问题，系统会在当前活动与资料证据范围内回应。</p>}
-        </div>
-        <form className="teaching-composer" onSubmit={(event) => { event.preventDefault(); sendTeaching() }}>
-          <label htmlFor="teaching-input" className="visually-hidden">学习问题</label>
-          <textarea id="teaching-input" rows={3} value={teachingInput} onChange={(event) => setTeachingInput(event.target.value)} placeholder="例如：请先解释这个概念，并让我尝试举一个例子。" disabled={busy || !activity} />
-          <button type="submit" className="button button--primary" disabled={busy || !activity || !teachingInput.trim()}><Send size={16} />发送</button>
-        </form>
-        <p className="learning-disclosure">当前页面展示本次打开期间的消息；尚无 durable activity↔dialog-session 历史恢复合同。</p>
-      </div>
-    )
+    return renderTeaching()
   }
 
   return (
     <div className="book-learning-page page-stack">
-      <header className="page-header page-header--split">
-        <div><p className="eyebrow">UI-02B1 · 单份资料学习</p><h1>{stateTitle}</h1><p>{stateDescription}</p></div>
-        <a className="button button--secondary" href="#/library"><ArrowLeft size={16} />返回资料库</a>
+      <header className="book-learning-header">
+        <a className="book-learning-back" href="#/library" aria-label="返回资料库"><ArrowLeft size={18} />资料库</a>
+        <div><p className="eyebrow">资料学习</p><h1>{details.goal?.title || '开始一段有目标的学习'}</h1></div>
       </header>
-      {error && <p className="inline-error" role="alert">{error}</p>}
-      <section className="surface readiness-strip" aria-label="当前学习准备状态">
-        <span className={`status-pill readiness-strip__state readiness-strip__state--${readiness.state.toLowerCase()}`}>{readiness.state}</span>
-        <ul>{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-        <button type="button" className="button button--ghost" onClick={() => load()} aria-label="刷新学习状态"><RefreshCw size={15} /></button>
-      </section>
+      <LearningProgress state={readiness.state} />
+      {(error || advancing) && (
+        <div className={error ? 'learning-notice learning-notice--error' : 'learning-notice'} role={error ? 'alert' : 'status'}>
+          {error || '正在为你准备下一步…'}
+          {error && <button type="button" className="button button--ghost" onClick={retry}><RefreshCw size={15} />重试</button>}
+        </div>
+      )}
       <main className="surface learning-step">{renderStep()}</main>
-      <details className="surface learning-audit"><summary>查看 owner 引用</summary><ul>{readiness.owner_refs.map((item) => <li key={`${item.owner_system}:${item.ref.entity_type}:${item.ref.entity_id}`}><strong>{item.owner_system}</strong> · {item.ref.entity_type} · v{item.ref.version}</li>)}</ul></details>
+      <details className="learning-technical">
+        <summary>技术详情</summary>
+        <p>状态：{readiness.state}</p>
+        {lastModelExecution && (
+          <p>
+            模型执行：{lastModelExecution.mode} · {lastModelExecution.provider || 'local'} · {lastModelExecution.model || 'template'} · {lastModelExecution.prompt_version}
+          </p>
+        )}
+        <ul>{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+        <ul>{readiness.owner_refs.map((item, index) => (
+          <li key={`${item.owner_system}:${item.ref.entity_type}:${item.ref.entity_id}:${item.ref.version}:${item.status}:${index}`}>
+            {item.owner_system} · {item.ref.entity_type} · v{item.ref.version}
+          </li>
+        ))}</ul>
+      </details>
     </div>
   )
 }

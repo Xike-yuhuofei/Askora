@@ -51,7 +51,20 @@ Affected specs: ...
 
 ## 4. Codex 权限
 
-Codex 可以指出需要 ADR 的 `SPEC GAP`，但不得自行创建“accepted” ADR 来授权自己的设计变化。重大架构决策必须先由顶层设计流程确认。
+Codex 可以指出需要 ADR 的 `SPEC GAP`。当用户已明确授权目标或明确委托架构自治时，
+Codex 可以为该目标创建并接受 ADR，并继续同步 Spec、EXEC、代码和测试；不再要求另一次
+顶层人工批准。
+
+由 Codex 接受的 ADR 必须记录：
+
+- `Decision authority: user-delegated Codex`；
+- 对应用户目标/任务范围；
+- 至少一个真实备选方案与未采用原因；
+- 状态所有权、重复 truth 风险、迁移/回滚或 forward-fix；
+- 安全、隐私、replay、idempotency 与验证门禁；
+- 对 Engineering / Policy / Learning Evidence 声明边界的影响。
+
+没有明确用户目标授权时，Codex 仍只能提出 `proposed` ADR，不能自行标记为 `accepted`。
 
 ## 5. ADR Index
 
@@ -60,6 +73,8 @@ Codex 可以指出需要 ADR 的 `SPEC GAP`，但不得自行创建“accepted�
 | `ADR-0001` | Teaching Strategy Ontology | accepted | 2026-08-07 |
 | `ADR-0002` | Constrained Deterministic Teaching Policy Architecture | accepted | 2026-08-07 |
 | `ADR-0003` | Policy Runtime Profile Source and Activation Resolution | accepted | 2026-08-08 |
+| `ADR-0004` | Guided Book Learning and Durable Transcript | accepted | 2026-08-08 |
+| `ADR-0005` | Policy-bound Real-model Rendering | accepted | 2026-08-08 |
 | `ADR-0006` | Workspace Read-model Scope and Missing Objective Metadata | accepted | 2026-08-09 |
 | `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
 

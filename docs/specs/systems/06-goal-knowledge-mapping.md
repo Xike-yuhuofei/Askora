@@ -225,4 +225,8 @@ MUST 覆盖：
 
 ## 14. Freeze Decision
 
-`SPEC-D04`：**FROZEN / READY_FOR_EXEC_DECOMPOSITION**。若实现必须新增跨系统公共 Goal 类型、改变 LearningGoal owner 或改变用户确认语义，必须先报告 `SPEC GAP`。
+`SPEC-D04`：**FROZEN / UI-02B2 ADDITIVE**。`selected_target_ids` 的稳定顺序按 deterministic
+fusion rank 降序；第一个 target 是首轮 prerequisite diagnostic 的
+`primary_diagnostic_target_id`。该规则只选择首轮诊断入口，不删除其余目标，也不改变完整
+Goal subgraph/plan scope。若实现必须新增跨系统公共 Goal 类型、改变 LearningGoal owner 或改变
+用户确认语义，必须先报告 `SPEC GAP`。

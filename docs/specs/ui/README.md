@@ -1,6 +1,6 @@
 # Askora UI Redesign Specification Set
 
-> 状态：`FROZEN`
+> 状态：`FROZEN / UI-02B2 ADDITIVE`
 > 权威性：Canonical UI Implementation Contract
 > 需求确认：2026-08-08，用户确认“全部按推荐”
 > 冻结批准：2026-08-08，用户明确批准冻结并授权从 UI-01 开始串行实施
@@ -88,6 +88,9 @@
 
 当前 UI-02A 已公开资料库/知识地图 Query；Book-to-Learning baseline 已公开单资料 Goal、mapping、diagnostic、plan、activity selection 与 teaching façade。完整 Goals/Path/Evidence Query 仍未实施。UI-02B1 只冻结单资料 launch 路径，不把它描述为完整 UI-02B。
 
+UI-02B2 由用户委托的 ADR-0004 additive 冻结：系统准备步骤自动推进、首轮教学由系统带领、
+exact activity transcript 可跨刷新恢复；它仍不等于完整 Goals/Path/Evidence UI。
+
 ## 6. 明确不在本 Spec Set 中授权的事项
 
 - 新增或改变 Teaching Strategy、TeachingStage、TeachingAction、提示与答案暴露规则；
@@ -108,10 +111,13 @@ FROZEN UI SPEC
 → UI-02A DONE gate
 → UI-02B1 Material-to-Learning Launch + EXEC-025
 → UI-02B1 DONE gate
+→ UI-02B2 Guided Book Learning + EXEC-026
+→ UI-02B2 DONE gate
 → UI-02B Goals/Path/Evidence + independent EXEC
 → UI-02B DONE gate
 → UI-03 Vertical Slice + independent EXEC
 → UI-03 DONE gate
 ```
 
-UI-01、UI-02A 与 UI-02B1 已 DONE。完整 UI-02B/UI-03 仍受严格串行门禁约束，不得由 UI-02B1 暗含扩展。
+UI-01、UI-02A、UI-02B1 与 UI-02B2 已 DONE。完整 UI-02B/UI-03
+仍受严格串行门禁约束，不得由 UI-02B2 暗含扩展。

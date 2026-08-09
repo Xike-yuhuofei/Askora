@@ -103,17 +103,21 @@ class PublishedKnowledgeRAGService:
                 index_versions={},
             )
 
-        rows = (
-            await self.db.execute(
-                select(DocumentChunk, UserDocument)
-                .join(UserDocument, DocumentChunk.document_id == UserDocument.id)
-                .where(DocumentChunk.document_id.in_(document_ids))
+        # ``documents`` already contains the owner-scoped canonical publication
+        # metadata.  Joining UserDocument here repeats that potentially multi-MB
+        # JSON value once per chunk (thousands of times for a real EPUB), which
+        # can block before retrieval or model execution even begins.
+        documents_by_id = {item.id: item for item in documents}
+        chunks = (
+            await self.db.scalars(
+                select(DocumentChunk).where(DocumentChunk.document_id.in_(document_ids))
             )
         ).all()
         candidates: list[AdaptiveRetrievalCandidate] = []
         index_versions: dict[str, str] = {}
         current_revision_ids: dict[str, str] = {}
-        for chunk, document in rows:
+        for chunk in chunks:
+            document = documents_by_id[chunk.document_id]
             candidate, versions, current_revision_id = self._candidate_from_projection(
                 chunk=chunk,
                 document=document,

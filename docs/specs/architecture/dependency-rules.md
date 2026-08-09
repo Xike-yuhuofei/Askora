@@ -6,7 +6,7 @@
 
 ## 1. Purpose
 
-本规范定义各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移限制。违反本文件的实现必须先通过 Design/ADR/Spec 变更，MUST NOT 由执行代理临场重定义架构。
+本规范定义各系统允许的依赖方向、跨边界调用方式以及 legacy 迁移限制。违反本文件的实现必须先通过 Design/ADR/Spec 变更，MUST NOT 由执行代理在产品代码中临场或隐式重定义架构；用户已委托架构自治时，Codex MAY 先正式接受 ADR、更新 Spec 并冻结 EXEC，再按新合同实现。
 
 ## 2. Existing Dependency Rules Retained
 

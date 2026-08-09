@@ -14,9 +14,11 @@ from app.application.book_learning import (
     BookLearningApplicationError,
 )
 from app.contracts.book_learning import (
+    AdvanceBookLearningRequestV1,
     BookLearningOperationResponseV1,
     BookLearningReadinessV1,
     BookLearningTeachingResponseV1,
+    BookLearningTranscriptV1,
     ConfirmBookLearningGoalRequestV1,
     CreateBookLearningGoalRequestV1,
     GenerateBookPlanRequestV1,
@@ -56,7 +58,7 @@ async def _execute(command: Awaitable[T]) -> T:
         code = str(exc)
         status_code = (
             status.HTTP_503_SERVICE_UNAVAILABLE
-            if code.startswith("POLICY_RUNTIME_")
+            if code.startswith(("POLICY_RUNTIME_", "AI_MODEL_"))
             else status.HTTP_409_CONFLICT
         )
         raise BusinessError(
@@ -90,6 +92,31 @@ async def get_readiness(
         correlation_id=str(_correlation_id(request)),
     )
     response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.post(
+    "/{document_id}/advance",
+    response_model=BookLearningOperationResponseV1,
+    summary="安全推进一个无需用户输入的书籍学习步骤",
+)
+async def advance_book_learning(
+    document_id: UUID,
+    body: AdvanceBookLearningRequestV1,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    application: BookLearningApplication = Depends(get_book_learning_application),
+) -> BookLearningOperationResponseV1:
+    result = await _execute(
+        application.advance(
+            user=current_user,
+            document_id=document_id,
+            idempotency_key=body.idempotency_key,
+            correlation_id=_correlation_id(request),
+        )
+    )
+    await db.commit()
     return result
 
 
@@ -363,6 +390,29 @@ async def select_next_activity(
     return result
 
 
+@router.get(
+    "/activities/{activity_id}/transcript",
+    response_model=BookLearningTranscriptV1,
+    summary="获取当前学习活动的可恢复教学记录",
+)
+async def get_activity_transcript(
+    activity_id: UUID,
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    application: BookLearningApplication = Depends(get_book_learning_application),
+) -> BookLearningTranscriptV1:
+    result = await _execute(
+        application.get_transcript(
+            user=current_user,
+            activity_id=activity_id,
+            correlation_id=_correlation_id(request),
+        )
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
 @router.post(
     "/activities/{activity_id}/start",
     response_model=BookLearningTeachingResponseV1,
@@ -391,6 +441,7 @@ async def start_teaching_round(
             activity_id=activity_id,
             session_id=body.session_id,
             turn_id=body.turn_id,
+            turn_kind=body.turn_kind,
             learner_text=body.learner_text,
             idempotency_key=body.idempotency_key,
             correlation_id=_correlation_id(request),

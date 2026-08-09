@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as bookLearningApi from '../api/bookLearning'
@@ -6,10 +6,12 @@ import BookLearningLaunch from '../pages/BookLearningLaunch'
 
 vi.mock('../api/bookLearning', () => ({
   getReadiness: vi.fn(),
+  advance: vi.fn(),
   getGoal: vi.fn(),
   getMapping: vi.fn(),
   getDiagnostic: vi.fn(),
   getPlan: vi.fn(),
+  getTranscript: vi.fn(),
   createGoal: vi.fn(),
   confirmGoal: vi.fn(),
   mapGoal: vi.fn(),
@@ -22,12 +24,10 @@ vi.mock('../api/bookLearning', () => ({
 
 const documentId = '11111111-1111-4111-8111-111111111111'
 const goalId = '22222222-2222-4222-8222-222222222222'
-const mappingId = '33333333-3333-4333-8333-333333333333'
-const subgraphId = '44444444-4444-4444-8444-444444444444'
-const targetId = '55555555-5555-4555-8555-555555555555'
 const needId = '66666666-6666-4666-8666-666666666666'
 const planId = '77777777-7777-4777-8777-777777777777'
 const activityId = '88888888-8888-4888-8888-888888888888'
+const sessionId = '99999999-9999-4999-8999-999999999999'
 
 const goalRef = {
   owner_system: 'SYS06',
@@ -65,15 +65,6 @@ const goal = {
   weekly_time_budget_minutes: 60,
 }
 
-const mappingPayload = {
-  mapping: {
-    mapping_id: mappingId,
-    mapping_version: 1,
-    selected_target_ids: [targetId],
-  },
-  subgraph: { subgraph_id: subgraphId, version: 1 },
-}
-
 const activeDiagnostic = {
   need: { need_id: needId, version: 1, status: 'active' },
   learner_item: {
@@ -84,10 +75,6 @@ const activeDiagnostic = {
     prompt: '请写出比例的定义',
     options: [],
   },
-}
-
-const terminalDiagnostic = {
-  need: { need_id: needId, version: 2, status: 'resolved' },
 }
 
 const planPayload = {
@@ -102,109 +89,132 @@ const planPayload = {
   }],
 }
 
-const selectionPayload = {
-  goal,
-  plan: planPayload.plan,
-  activity: planPayload.activities[0],
+const assistantTurn = {
+  turn_id: 'system-start-1',
+  turn_number: 1,
+  turn_kind: 'system_start',
+  learner_text: null,
+  reply_text: '先想一想：比例中的两个量表达了什么关系？',
+  teaching_action_ref: { entity_type: 'TeachingAction', entity_id: 'action-1', version: '3.0' },
+  evidence_bundle_ref: { entity_type: 'EvidenceBundle', entity_id: 'bundle-1', version: '3.0' },
+  evidence: [{
+    evidence_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    source_span_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+    pedagogical_role: 'definition',
+    excerpt: '比例表示两个量之间的相对关系。',
+  }],
+  accepted_at: '2026-08-08T12:00:00Z',
+  model_execution: {
+    schema_version: '1.0',
+    mode: 'real_model',
+    provider: 'deepseek',
+    model: 'deepseek-chat',
+    prompt_version: 'v03-policy-bound-real-render/1.0',
+    inference_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    latency_ms: 320,
+    input_tokens: 120,
+    output_tokens: 40,
+    total_tokens: 160,
+  },
 }
+
+const transcript = (turns = []) => ({
+  schema_version: '1.0',
+  session_id: sessionId,
+  activity_ref: { entity_type: 'LearningActivity', entity_id: activityId, version: 1 },
+  turns,
+  next_turn_number: turns.length + 1,
+  correlation_id: 'transcript-test',
+})
 
 function operation(payload = {}) {
   return { schema_version: '1.0', operation: 'test', owner_refs: [], payload, correlation_id: 'op' }
 }
 
-describe('UI02B1 material-to-learning launch', () => {
+describe('UI02B2 guided book learning', () => {
   beforeEach(() => {
-    sessionStorage.clear()
     for (const value of Object.values(bookLearningApi)) {
       value.mockReset()
       value.mockResolvedValue(operation())
     }
     bookLearningApi.getGoal.mockResolvedValue(operation({ goal }))
-    bookLearningApi.getMapping.mockResolvedValue(operation(mappingPayload))
+    bookLearningApi.getDiagnostic.mockResolvedValue(operation(activeDiagnostic))
     bookLearningApi.getPlan.mockResolvedValue(operation(planPayload))
-    bookLearningApi.selectNextActivity.mockResolvedValue(operation(selectionPayload))
+    bookLearningApi.getTranscript.mockResolvedValue(transcript())
   })
 
-  it('UI02B1-AC-001..009 closes the real command sequence to a canonical teaching response', async () => {
+  it('automatically advances owner-only preparation and stops for the learner diagnostic', async () => {
     bookLearningApi.getReadiness
-      .mockResolvedValueOnce(readiness('READY_FOR_GOAL', ['CreateLearningGoalCandidate'], ['PUBLISHED_CONTENT_READY_FOR_GOAL']))
       .mockResolvedValueOnce(readiness('GOAL_CONFIRMATION_REQUIRED', ['ConfirmLearningGoal'], ['LEARNING_GOAL_USER_CONFIRMATION_REQUIRED'], [goalRef]))
       .mockResolvedValueOnce(readiness('DIAGNOSIS_REQUIRED', ['MapGoalToKnowledge'], ['GOAL_KNOWLEDGE_MAPPING_REQUIRED'], [goalRef]))
       .mockResolvedValueOnce(readiness('DIAGNOSIS_REQUIRED', ['GeneratePrerequisiteDiagnosis'], ['PREREQUISITE_DIAGNOSTIC_REQUIRED'], [goalRef]))
-      .mockResolvedValueOnce(readiness('DIAGNOSING', ['ContinuePrerequisiteDiagnosis'], ['DIAGNOSTIC_ACTIVITY_ACTIVE'], [goalRef]))
-      .mockResolvedValueOnce(readiness('PLAN_READY', ['GenerateLearningPlan'], ['DIAGNOSTIC_COMPLETE_PLAN_GENERATION_REQUIRED'], [goalRef]))
-      .mockResolvedValueOnce(readiness('PLAN_READY', ['SelectNextLearningActivity'], ['LEARNING_PLAN_READY'], [goalRef]))
-      .mockResolvedValueOnce(readiness('READY_TO_LEARN', ['StartCanonicalTeachingRound'], ['LEARNING_ACTIVITY_SELECTED'], [goalRef, selectedActivityRef]))
-    bookLearningApi.getDiagnostic
-      .mockResolvedValueOnce(operation(activeDiagnostic))
-      .mockResolvedValueOnce(operation(terminalDiagnostic))
-    bookLearningApi.startTeachingRound.mockResolvedValue({ reply_text: '我们先从资料中的比例定义开始。' })
+      .mockResolvedValue(readiness('DIAGNOSING', ['ContinuePrerequisiteDiagnosis'], ['DIAGNOSTIC_ACTIVITY_ACTIVE'], [goalRef]))
 
     render(<BookLearningLaunch documentId={documentId} />)
-    expect(await screen.findByRole('heading', { name: '制定学习目标' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('我希望学会什么'), { target: { value: '掌握比例并应用到新案例' } })
-    fireEvent.click(screen.getByRole('button', { name: '形成目标候选' }))
-    expect(await screen.findByRole('heading', { name: '确认学习目标' })).toBeInTheDocument()
-    expect(screen.getByText('独立解决一道新题')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '确认这个学习目标' }))
-    expect(await screen.findByRole('button', { name: '建立资料学习范围' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '建立资料学习范围' }))
-    expect(await screen.findByRole('button', { name: '开始先修诊断' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '开始先修诊断' }))
+    expect(await screen.findByRole('heading', { name: '确认你的学习目标' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '确认并准备学习' }))
 
     expect(await screen.findByText('请写出比例的定义')).toBeInTheDocument()
-    expect(screen.queryByText('grader-only')).not.toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('你的回答'), { target: { value: '两个量之间的相对关系' } })
-    fireEvent.click(screen.getByRole('button', { name: '提交独立回答' }))
-
-    expect(await screen.findByRole('button', { name: '生成学习计划' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '生成学习计划' }))
-    expect(await screen.findByRole('button', { name: '选择下一个活动' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '选择下一个活动' }))
-
-    expect(await screen.findByText('学习新内容')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('学习问题'), { target: { value: '请用资料解释比例。' } })
-    fireEvent.click(screen.getByRole('button', { name: '发送' }))
-    expect(await screen.findByText('我们先从资料中的比例定义开始。')).toBeInTheDocument()
-
-    expect(bookLearningApi.createGoal).toHaveBeenCalledTimes(1)
-    expect(bookLearningApi.confirmGoal).toHaveBeenCalledTimes(1)
-    expect(bookLearningApi.mapGoal).toHaveBeenCalledTimes(1)
-    expect(bookLearningApi.startDiagnostic).toHaveBeenCalledTimes(1)
-    expect(bookLearningApi.submitDiagnosticResponse).toHaveBeenCalledWith(
-      needId,
-      expect.objectContaining({
-        expected_need_version: 1,
-        response: '两个量之间的相对关系',
-        assistance: expect.objectContaining({ assistance_class: 'none', answer_visible: false }),
-      }),
-    )
-    expect(bookLearningApi.startTeachingRound).toHaveBeenCalledWith(
-      activityId,
-      expect.objectContaining({ activity_id: activityId, learner_text: '请用资料解释比例。' }),
-    )
-    expect(bookLearningApi.selectNextActivity).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(bookLearningApi.advance).toHaveBeenCalledTimes(2))
+    expect(bookLearningApi.advance.mock.calls[0][1].idempotency_key).toContain('MapGoalToKnowledge')
+    expect(bookLearningApi.advance.mock.calls[1][1].idempotency_key).toContain('GeneratePrerequisiteDiagnosis')
+    expect(screen.queryByRole('button', { name: /建立资料学习范围|开始先修诊断|生成学习计划|选择下一个活动/ })).not.toBeInTheDocument()
+    expect(screen.getByText('不计分 · 用于调整学习起点')).toBeInTheDocument()
   })
 
-  it('UI02B1-AC-004 refuses to choose among multiple mapped targets', async () => {
+  it('starts with a server-owned system turn and restores the accepted reply with evidence', async () => {
     bookLearningApi.getReadiness.mockResolvedValue(
-      readiness('DIAGNOSIS_REQUIRED', ['GeneratePrerequisiteDiagnosis'], ['PREREQUISITE_DIAGNOSTIC_REQUIRED'], [goalRef]),
+      readiness('READY_TO_LEARN', ['StartCanonicalTeachingRound'], ['LEARNING_ACTIVITY_SELECTED'], [goalRef, selectedActivityRef]),
     )
-    bookLearningApi.getMapping.mockResolvedValue(operation({
-      ...mappingPayload,
-      mapping: { ...mappingPayload.mapping, selected_target_ids: [targetId, '99999999-9999-4999-8999-999999999999'] },
-    }))
+    bookLearningApi.getTranscript
+      .mockResolvedValueOnce(transcript())
+      .mockResolvedValue(transcript([assistantTurn]))
 
     render(<BookLearningLaunch documentId={documentId} />)
 
-    expect(await screen.findByText(/只支持单一学习目标范围/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '开始先修诊断' })).not.toBeInTheDocument()
-    expect(bookLearningApi.startDiagnostic).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: '开始本次学习' }))
+
+    expect(await screen.findByText('先想一想：比例中的两个量表达了什么关系？')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('技术详情'))
+    expect(screen.getByText(/模型执行：real_model · deepseek · deepseek-chat/)).toBeInTheDocument()
+    expect(bookLearningApi.startTeachingRound).toHaveBeenCalledWith(
+      activityId,
+      expect.objectContaining({
+        turn_kind: 'system_start',
+        learner_text: null,
+        session_id: sessionId,
+      }),
+    )
+    expect(screen.getByText('依据资料 · 1 处')).toBeInTheDocument()
+    expect(screen.getByText(/刷新页面也可以继续/)).toBeInTheDocument()
+    expect(within(screen.getByRole('main')).queryByText(/canonical|SYS08|READY_TO_LEARN/)).not.toBeInTheDocument()
   })
 
-  it('UI02B1-AC-010 fails closed for an unknown readiness state', async () => {
+  it('submits the next learner turn against the durable transcript number', async () => {
+    bookLearningApi.getReadiness.mockResolvedValue(
+      readiness('READY_TO_LEARN', ['StartCanonicalTeachingRound'], ['LEARNING_ACTIVITY_SELECTED'], [goalRef, selectedActivityRef]),
+    )
+    bookLearningApi.getTranscript.mockResolvedValue(transcript([assistantTurn]))
+
+    render(<BookLearningLaunch documentId={documentId} />)
+
+    fireEvent.change(await screen.findByLabelText('写下你的想法或问题'), {
+      target: { value: '两个量之间的相对关系。' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '发送学习回答' }))
+
+    await waitFor(() => expect(bookLearningApi.startTeachingRound).toHaveBeenCalledWith(
+      activityId,
+      expect.objectContaining({
+        turn_id: 'learner-turn-2',
+        turn_kind: 'learner',
+        learner_text: '两个量之间的相对关系。',
+      }),
+    ))
+  })
+
+  it('fails closed for an unknown readiness state', async () => {
     bookLearningApi.getReadiness.mockResolvedValue({
       ...readiness('READY_FOR_GOAL', [], ['UNKNOWN']),
       state: 'FUTURE_STATE',
@@ -212,7 +222,25 @@ describe('UI02B1 material-to-learning launch', () => {
 
     render(<BookLearningLaunch documentId={documentId} />)
 
-    expect(await screen.findByRole('heading', { name: '无法打开资料学习' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '暂时无法打开这份资料' })).toBeInTheDocument()
     expect(bookLearningApi.createGoal).not.toHaveBeenCalled()
+  })
+
+  it('renders distinct lifecycle refs without duplicate React keys', async () => {
+    const activityRef = { ...selectedActivityRef, status: 'available' }
+    bookLearningApi.getReadiness.mockResolvedValue(
+      readiness('READY_TO_LEARN', ['StartCanonicalTeachingRound'], ['LEARNING_ACTIVITY_SELECTED'], [goalRef, activityRef, selectedActivityRef]),
+    )
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      render(<BookLearningLaunch documentId={documentId} />)
+      expect(await screen.findByRole('button', { name: '开始本次学习' })).toBeInTheDocument()
+      await waitFor(() => {
+        expect(consoleError.mock.calls.some((items) => String(items[0]).includes('same key'))).toBe(false)
+      })
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 })

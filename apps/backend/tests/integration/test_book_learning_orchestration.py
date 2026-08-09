@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import models  # noqa: F401
-from app.application.book_learning import BookLearningApplication
+from app.application.book_learning import BookLearningApplication, BookLearningApplicationError
 from app.contracts.assessment import AssistanceSnapshot
 from app.core.database import Base
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
@@ -20,12 +20,47 @@ from app.models.assessment import AssessmentItem
 from app.models.document import ModerationStatus, ProcessingStatus
 from app.models.ledger import LearningEventRecord
 from app.models.user import User, UserRole, UserStatus
+from app.orchestration.learning_facade import LearningOrchestrationFacade
+from app.orchestration.model_rendering import PolicyBoundModelRenderer
 from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.document_service import DocumentService
+from app.services.llm.model_router import ChatMessage, LLMResponse
 from app.services.policy_runtime import default_policy_activation, default_policy_bundle
 from app.services.storage.local_storage import LocalFileStorage
 
 NOW = datetime(2026, 8, 8, 22, 0, tzinfo=timezone.utc)
+
+
+class CountingModelProvider:
+    def __init__(self) -> None:
+        self.calls: list[list[ChatMessage]] = []
+        self.fail = False
+
+    async def chat_completion(
+        self,
+        messages: list[ChatMessage],
+        **_kwargs,
+    ) -> LLMResponse:
+        self.calls.append(messages)
+        if self.fail:
+            raise RuntimeError("provider unavailable")
+        return LLMResponse(
+            content="先依据原文说说你观察到的核心差异是什么？",
+            model="glm-policy-test",
+            provider="zhipu",
+            input_tokens=24,
+            output_tokens=12,
+            total_tokens=36,
+            latency_ms=8,
+        )
+
+
+class FixedModelRouter:
+    def __init__(self, provider: CountingModelProvider) -> None:
+        self.provider = provider
+
+    def route_for_subject(self, _subject: str) -> CountingModelProvider:
+        return self.provider
 
 
 @pytest.fixture
@@ -170,7 +205,15 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     records = AdaptiveContractRepository(db)
     await records.publish_policy_bundle(default_policy_bundle())
     await records.activate_policy_bundle(default_policy_activation())
-    app = BookLearningApplication(db)
+    provider = CountingModelProvider()
+    app = BookLearningApplication(
+        db,
+        teaching_facade=LearningOrchestrationFacade(
+            adaptive_renderer=PolicyBoundModelRenderer(  # type: ignore[arg-type]
+                FixedModelRouter(provider)
+            )
+        ),
+    )
     created = await app.create_goal_candidate(
         user=user,
         document_id=UUID(document.id),
@@ -189,15 +232,20 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         correlation_id=uuid4(),
         now=NOW,
     )
-    mapping_result = await app.map_goal(
+    mapped = await app.advance(
         user=user,
-        goal_id=goal_id,
-        idempotency_key="canonical:goal:map",
+        document_id=UUID(document.id),
+        idempotency_key="canonical:advance:map",
         correlation_id=uuid4(),
         now=NOW,
     )
+    assert mapped.payload["applied_command"] == "MapGoalToKnowledge"
+    mapping_result = await app.get_mapping(
+        user=user,
+        goal_id=goal_id,
+        correlation_id=uuid4(),
+    )
     mapping = mapping_result.payload["mapping"]
-    subgraph = mapping_result.payload["subgraph"]
     prerequisite_id = units["Fractions"]
     db.add(
         AssessmentItem(
@@ -218,22 +266,21 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         )
     )
     await db.flush()
-    started = await app.start_diagnostic(
+    diagnosed = await app.advance(
         user=user,
-        mapping_id=UUID(mapping["mapping_id"]),
-        mapping_version=mapping["mapping_version"],
-        subgraph_id=UUID(subgraph["subgraph_id"]),
-        subgraph_version=subgraph["version"],
-        target_knowledge_unit_id=units["Ratios"],
-        max_attempts=3,
-        idempotency_key="canonical:diagnostic:start",
+        document_id=UUID(document.id),
+        idempotency_key="canonical:advance:diagnostic",
         correlation_id=uuid4(),
         now=NOW,
     )
+    assert diagnosed.payload["applied_command"] == "GeneratePrerequisiteDiagnosis"
     diagnostic_view = await app.get_diagnostic(
         user=user,
         goal_id=goal_id,
         correlation_id=uuid4(),
+    )
+    assert diagnostic_view.payload["need"]["target_knowledge_unit_id"] == (
+        mapping["selected_target_ids"][0]
     )
     learner_item = diagnostic_view.payload["learner_item"]
     assert learner_item["prompt"] == "Type fractions"
@@ -255,7 +302,7 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
             now=NOW,
         )
 
-    need = started.payload["need"]
+    need = diagnostic_view.payload["need"]
     completed = await app.submit_diagnostic_response(
         user=user,
         need_id=UUID(need["need_id"]),
@@ -267,6 +314,22 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         now=NOW,
     )
     assert completed.payload["need"]["status"] == "resolved"
+    advanced_activity = await app.advance(
+        user=user,
+        document_id=UUID(document.id),
+        idempotency_key="canonical:advance:activity",
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    assert advanced_activity.payload["applied_command"] == "SelectNextLearningActivity"
+    duplicate_advanced_activity = await app.advance(
+        user=user,
+        document_id=UUID(document.id),
+        idempotency_key="canonical:advance:activity",
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    assert duplicate_advanced_activity.payload == advanced_activity.payload
     generated = await app.generate_plan(
         user=user,
         need_id=UUID(completed.payload["need"]["need_id"]),
@@ -284,34 +347,58 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert generated.payload["plan"] == duplicate_generated.payload["plan"]
     assert generated.payload["plan"] == completed.payload["plan"]
     assert (
-        await app.readiness(user=user, document_id=UUID(document.id), correlation_id="plan-ready")
-    ).state == "PLAN_READY"
+        await app.readiness(user=user, document_id=UUID(document.id), correlation_id="ready")
+    ).state == "READY_TO_LEARN"
 
-    selected = await app.select_next_activity(
-        user=user,
-        goal_id=goal_id,
-        idempotency_key="canonical:activity:select",
-        correlation_id=uuid4(),
-        now=NOW,
-    )
-    plan = selected.payload["plan"]
-    activity = selected.payload["activity"]
-    duplicate_selected = await app.select_next_activity(
-        user=user,
-        goal_id=goal_id,
-        idempotency_key="canonical:activity:select",
-        correlation_id=uuid4(),
-        now=NOW,
-    )
-    assert duplicate_selected.payload["activity"] == activity
+    plan_view = await app.get_plan(user=user, goal_id=goal_id, correlation_id=uuid4())
+    plan = plan_view.payload["plan"]
     ready = await app.readiness(user=user, document_id=UUID(document.id), correlation_id="ready")
     assert ready.state == "READY_TO_LEARN"
+    selected_ref = next(
+        item.ref
+        for item in ready.owner_refs
+        if item.ref.entity_type == "LearningActivity" and item.status == "selected"
+    )
+    activity = next(
+        item
+        for item in plan_view.payload["activities"]
+        if item["activity_id"] == selected_ref.entity_id
+    )
     assert any(
         item.ref.entity_type == "LearningActivity"
         and item.ref.entity_id == str(activity["activity_id"])
         and item.status == "selected"
         for item in ready.owner_refs
     )
+
+    system_start = await app.start_teaching_round(
+        user=user,
+        goal_id=goal_id,
+        plan_id=UUID(plan["plan_id"]),
+        plan_version=plan["version"],
+        activity_id=UUID(activity["activity_id"]),
+        session_id=None,
+        turn_id="system-start-1",
+        turn_kind="system_start",
+        learner_text=None,
+        idempotency_key="canonical:teaching:system-start",
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    assert system_start.turn_number == 1
+    assert system_start.turn_kind == "system_start"
+    assert system_start.model_execution is not None
+    assert system_start.model_execution.mode == "real_model"
+    assert system_start.model_execution.provider == "zhipu"
+    assert len(provider.calls) == 1
+    first_transcript = await app.get_transcript(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    assert first_transcript.session_id == system_start.session_id
+    assert first_transcript.turns[0].learner_text is None
+    assert first_transcript.turns[0].evidence
 
     teaching_session_id = uuid4()
     teaching = await app.start_teaching_round(
@@ -328,6 +415,11 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         now=NOW,
     )
     assert teaching.reply_text
+    assert teaching.session_id == system_start.session_id
+    assert teaching.turn_number == 2
+    assert teaching.model_execution is not None
+    assert teaching.model_execution.mode == "real_model"
+    assert len(provider.calls) == 2
     assert teaching.teaching_action.teaching_context_ref.entity_type == "teaching_context"
     assert teaching.evidence_bundle.items
     assert teaching.evidence_bundle.source_scope["document_ids"] == [document.id]
@@ -356,6 +448,16 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert duplicate_teaching.teaching_action == teaching.teaching_action
     assert duplicate_teaching.evidence_bundle == teaching.evidence_bundle
     assert duplicate_teaching.reply_text == teaching.reply_text
+    assert duplicate_teaching.model_execution == teaching.model_execution
+    assert len(provider.calls) == 2
+    transcript = await app.get_transcript(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    assert transcript.next_turn_number == 3
+    assert [turn.turn_kind for turn in transcript.turns] == ["system_start", "learner"]
+    assert transcript.turns[1].learner_text == "请帮助我理解 ratios 和 fractions 的关系"
     assistance_events = (
         await db.scalars(
             select(LearningEventRecord).where(
@@ -366,6 +468,53 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     ).all()
     assert len(assistance_events) == 1
     assert assistance_events[0].producer_system == "SYS08"
+    model_events = (
+        await db.scalars(
+            select(LearningEventRecord).where(
+                LearningEventRecord.event_type == "ModelInferenceCompleted"
+            )
+        )
+    ).all()
+    assert len(model_events) == 2
+    assert {event.aggregate_id for event in model_events} == {
+        str(system_start.model_execution.inference_id),
+        str(teaching.model_execution.inference_id),
+    }
+    assert all("prompt" not in event.payload for event in model_events)
+
+    provider.fail = True
+    with pytest.raises(BookLearningApplicationError, match="AI_MODEL_UNAVAILABLE"):
+        await app.start_teaching_round(
+            user=user,
+            goal_id=goal_id,
+            plan_id=UUID(plan["plan_id"]),
+            plan_version=plan["version"],
+            activity_id=UUID(activity["activity_id"]),
+            session_id=teaching.session_id,
+            turn_id="turn-3-provider-failure",
+            learner_text="请继续帮助我理解 ratios 和 fractions 的关系",
+            idempotency_key="canonical:teaching:provider-failure",
+            correlation_id=uuid4(),
+            now=NOW,
+        )
+    after_failure = await app.get_transcript(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        correlation_id=uuid4(),
+    )
+    assert len(after_failure.turns) == 2
+    assert (
+        len(
+            (
+                await db.scalars(
+                    select(LearningEventRecord).where(
+                        LearningEventRecord.event_type == "ModelInferenceCompleted"
+                    )
+                )
+            ).all()
+        )
+        == 2
+    )
 
 
 @pytest.mark.asyncio
