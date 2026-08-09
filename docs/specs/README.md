@@ -81,7 +81,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
-- [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-038 frozen
+- [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-038 DONE
 - [P1-01A Goal Definition, Draft and Safe Replan](vertical-slices/p1-01a-goal-definition-draft-replan.md) — multi-source/explicit target/preview/boundary apply；EXEC-037 DONE
 - [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
 - [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成

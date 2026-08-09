@@ -41,10 +41,14 @@ from app.models.document import (
 )
 from app.models.goal_management import (
     FocusedGoalStateRecord,
+    GoalAchievementEvaluationRecord,
+    GoalAchievementPolicyRecord,
+    GoalAssessmentActivityRecord,
     GoalChangePreviewRecord,
     GoalDefinitionRecord,
     GoalDraftRecord,
     GoalManagementCommandReceiptRecord,
+    GoalObjectiveRecord,
     GoalPlanStateRecord,
     GoalStateRecord,
 )
@@ -120,6 +124,10 @@ __all__ = [
     "GoalChangePreviewRecord",
     "FocusedGoalStateRecord",
     "GoalManagementCommandReceiptRecord",
+    "GoalAchievementPolicyRecord",
+    "GoalObjectiveRecord",
+    "GoalAssessmentActivityRecord",
+    "GoalAchievementEvaluationRecord",
     "UserDocument",
     "DocumentChunk",
     "DocumentCollectionAssignment",

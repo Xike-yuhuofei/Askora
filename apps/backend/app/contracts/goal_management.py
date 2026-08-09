@@ -227,6 +227,7 @@ class GoalDetailV1(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     definition: LearningGoalDefinitionV2
     state: LearningGoalStateV1
+    plan_state: LearningPlanStateV1 | None = None
     focused: bool
 
 
@@ -243,3 +244,133 @@ class SuggestSuccessCriteriaRequestV1(ContractModel):
 class SuggestSuccessCriteriaResponseV1(ContractModel):
     schema_version: Literal["1.0"] = "1.0"
     criteria: tuple[SuccessCriterionInputV1, ...]
+
+
+class LearningObjectiveV1(ContractModel):
+    objective_id: UUID
+    objective_schema_version: Literal["1.0"] = "1.0"
+    objective_version: int = Field(ge=1)
+    goal_id: UUID
+    definition_version: int = Field(ge=1)
+    criterion_id: UUID
+    cognitive_process: CognitiveProcess
+    target_refs: tuple[VersionedRef, ...] = Field(min_length=1)
+    evidence_requirements: tuple[str, ...] = Field(min_length=1)
+    policy_ref: VersionedRef
+    created_at: datetime
+
+
+class GoalAchievementPolicyV1(ContractModel):
+    policy_id: UUID
+    policy_schema_version: Literal["1.0"] = "1.0"
+    policy_version: int = Field(ge=1)
+    name: str = Field(min_length=1, max_length=120)
+    delay_seconds: dict[CognitiveProcess, int]
+    minimum_score: float = Field(ge=0.0, le=1.0)
+    minimum_assessment_confidence: float = Field(ge=0.0, le=1.0)
+    maximum_grader_disagreement: float = Field(ge=0.0, le=1.0)
+    novelty_policy: dict[str, object]
+    rubric_version: str = Field(min_length=1)
+    grader_schema_version: str = Field(min_length=1)
+    reviewer_required: bool = True
+    created_at: datetime
+
+
+GoalAssessmentStatus = Literal[
+    "scheduled",
+    "available",
+    "submitted",
+    "accepted",
+    "needs_review",
+    "scoring_failed",
+    "cancelled",
+]
+
+
+class GoalAssessmentActivityV1(ContractModel):
+    assessment_activity_id: UUID
+    assessment_schema_version: Literal["1.0"] = "1.0"
+    activity_version: int = Field(ge=1)
+    user_id: UUID
+    goal_id: UUID
+    definition_version: int = Field(ge=1)
+    objective_ref: VersionedRef
+    criterion_id: UUID
+    cognitive_process: CognitiveProcess
+    scoring_method: Literal["structured", "open_response"]
+    prompt: str = Field(min_length=1, max_length=2_000)
+    status: GoalAssessmentStatus
+    policy_ref: VersionedRef
+    not_before: datetime
+    result_ref: VersionedRef | None = None
+    evidence_ref: VersionedRef | None = None
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    created_at: datetime
+
+
+class ScheduleGoalAssessmentsCommandV1(ContractModel):
+    expected_state_version: int = Field(ge=1)
+    idempotency_key: str = Field(min_length=8, max_length=200)
+
+
+class SubmitGoalAssessmentCommandV1(ContractModel):
+    expected_state_version: int = Field(ge=1)
+    expected_activity_version: int = Field(ge=1)
+    response: str = Field(min_length=1, max_length=12_000)
+    idempotency_key: str = Field(min_length=8, max_length=200)
+
+
+class GoalCriterionEvaluationV1(ContractModel):
+    criterion_id: UUID
+    satisfied: bool
+    assessment_result_refs: tuple[VersionedRef, ...] = ()
+    learner_evidence_refs: tuple[VersionedRef, ...] = ()
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+
+class GoalAchievementEvaluationV1(ContractModel):
+    evaluation_id: UUID
+    evaluation_schema_version: Literal["1.0"] = "1.0"
+    evaluation_version: int = Field(ge=1)
+    user_id: UUID
+    goal_id: UUID
+    definition_version: int = Field(ge=1)
+    policy_ref: VersionedRef
+    criterion_evaluations: tuple[GoalCriterionEvaluationV1, ...] = Field(min_length=1)
+    open_validation_obligation_refs: tuple[VersionedRef, ...] = ()
+    active_misconception_refs: tuple[VersionedRef, ...] = ()
+    eligible_for_achievement: bool
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+    created_at: datetime
+
+
+class EvaluateGoalAchievementCommandV1(ContractModel):
+    expected_state_version: int = Field(ge=1)
+    idempotency_key: str = Field(min_length=8, max_length=200)
+
+
+class GoalLifecycleCommandV1(ContractModel):
+    expected_state_version: int = Field(ge=1)
+    expected_plan_state_version: int | None = Field(default=None, ge=1)
+    idempotency_key: str = Field(min_length=8, max_length=200)
+
+
+class ConfirmGoalAchievementCommandV1(GoalLifecycleCommandV1):
+    evaluation_id: UUID
+    expected_evaluation_version: int = Field(ge=1)
+
+
+class GoalLifecycleResultV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    state: LearningGoalStateV1
+    plan_state: LearningPlanStateV1 | None = None
+    copied_draft: LearningGoalDraftV1 | None = None
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+
+class GoalAchievementWorkspaceV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    policy: GoalAchievementPolicyV1
+    objectives: tuple[LearningObjectiveV1, ...]
+    assessments: tuple[GoalAssessmentActivityV1, ...]
+    latest_evaluation: GoalAchievementEvaluationV1 | None = None

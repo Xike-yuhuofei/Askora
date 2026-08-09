@@ -105,3 +105,68 @@ class GoalManagementCommandReceiptRecord(Base):
         UniqueConstraint("user_id", "idempotency_key", name="uq_goal_management_user_key"),
         Index("ix_goal_management_receipt_command", "user_id", "command_type"),
     )
+
+
+class GoalAchievementPolicyRecord(Base):
+    __tablename__ = "goal_achievement_policy_versions"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    policy_id: Mapped[str] = mapped_column(String(36), index=True)
+    policy_version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("policy_id", "policy_version", name="uq_goal_achievement_policy"),
+    )
+
+
+class GoalObjectiveRecord(Base):
+    __tablename__ = "learning_objective_versions"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    objective_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    objective_version: Mapped[int] = mapped_column(Integer)
+    criterion_id: Mapped[str] = mapped_column(String(36), index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("objective_id", "objective_version", name="uq_learning_objective_version"),
+    )
+
+
+class GoalAssessmentActivityRecord(Base):
+    __tablename__ = "goal_assessment_activity_versions"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    assessment_activity_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    criterion_id: Mapped[str] = mapped_column(String(36), index=True)
+    activity_version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    grader_payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint(
+            "assessment_activity_id",
+            "activity_version",
+            name="uq_goal_assessment_activity_version",
+        ),
+    )
+
+
+class GoalAchievementEvaluationRecord(Base):
+    __tablename__ = "goal_achievement_evaluation_versions"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    evaluation_id: Mapped[str] = mapped_column(String(36), index=True)
+    goal_id: Mapped[str] = mapped_column(String(36), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    evaluation_version: Mapped[int] = mapped_column(Integer)
+    eligible: Mapped[bool] = mapped_column(index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint(
+            "evaluation_id", "evaluation_version", name="uq_goal_achievement_evaluation"
+        ),
+    )
