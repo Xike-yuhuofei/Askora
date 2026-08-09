@@ -28,6 +28,7 @@ RecoveryActionCode = Literal[
     "open_model_settings",
     "open_data_recovery",
     "open_activity",
+    "open_ocr_review",
     "reselect_file",
     "wait_until",
     "copy_diagnostics",
@@ -106,7 +107,7 @@ RECOVERY_CATALOG: Mapping[str, RecoveryCatalogEntry] = MappingProxyType(
             RecoveryCategory.CONFLICT,
             "preserved_but_unavailable",
             "navigation",
-            frozenset({"copy_diagnostics"}),
+            frozenset({"open_ocr_review", "copy_diagnostics"}),
         ),
         "DATABASE_UNAVAILABLE": RecoveryCatalogEntry(
             RecoveryCategory.DEPENDENCY,

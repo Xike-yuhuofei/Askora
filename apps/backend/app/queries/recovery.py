@@ -16,7 +16,7 @@ from app.contracts.recovery import (
 )
 from app.domains.content_knowledge import SAFETY_REINSPECTION_KEY, SAFETY_SCANNER_VERSION
 from app.infrastructure.recovery import RecoveryLedgerRepository
-from app.models.document import ProcessingStatus, UserDocument
+from app.models.document import DocumentOcrRun, ProcessingStatus, UserDocument
 from app.models.ledger import OutboxTaskRecord, RecoveryEventRecord
 from app.models.user import User
 from app.services.documents.document_service import (
@@ -239,6 +239,53 @@ class RecoveryQueryService:
                         updated_at=updated,
                     )
                 )
+        ocr_runs = (
+            await self._session.scalars(
+                select(DocumentOcrRun)
+                .join(UserDocument, UserDocument.id == DocumentOcrRun.document_id)
+                .where(
+                    DocumentOcrRun.pseudonym_id == user.pseudonym_id,
+                    DocumentOcrRun.status == "review_required",
+                    UserDocument.pseudonym_id == user.pseudonym_id,
+                    UserDocument.is_deleted.is_(False),
+                )
+            )
+        ).all()
+        documents_by_id = {document.id: document for document in documents}
+        for run in ocr_runs:
+            ocr_document = documents_by_id.get(run.document_id)
+            if ocr_document is None or storage.get_file_size(ocr_document.storage_path) <= 0:
+                continue
+            issues.append(
+                RecoveryIssueViewV1(
+                    issue_ref=f"ocr:{run.id}:review",
+                    issue_version=row_version(run.updated_at),
+                    code="CONTENT_OCR_REVIEW_REQUIRED",
+                    category=RecoveryCategory.CONFLICT,
+                    severity="warning",
+                    status="active",
+                    title="扫描文字等待人工复核",
+                    summary="OCR 候选仍未发布；请对照原页逐项确认后再决定是否发布。",
+                    data_safety="preserved_but_unavailable",
+                    duplicate_risk="not_applicable",
+                    source_system="SYS01",
+                    resource_ref=f"ocr_run:{run.id}",
+                    actions=(
+                        RecoveryActionV1(
+                            action_code="open_ocr_review",
+                            label="打开 OCR 复核",
+                            kind="navigate",
+                            enabled=True,
+                            route=(
+                                f"/library?document={run.document_id}"
+                                f"&ocrRun={run.id}"
+                            ),
+                        ),
+                    ),
+                    opened_at=aware(run.created_at),
+                    updated_at=aware(run.updated_at),
+                )
+            )
         return issues
 
     async def _outbox_issues(self, user: User) -> list[RecoveryIssueViewV1]:

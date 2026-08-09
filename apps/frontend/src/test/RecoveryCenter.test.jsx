@@ -125,4 +125,34 @@ describe('P107 recovery center', () => {
     expect(await screen.findByText('目前没有待处理问题')).toBeInTheDocument()
     expect(screen.getByText(/不代表绝对安全/)).toBeInTheDocument()
   })
+
+  it('navigates an OCR issue to the exact SYS01 review run', async () => {
+    recoveryApi.listRecoveryIssues.mockResolvedValue({
+      ...payload,
+      issues: [{
+        ...issue,
+        issue_ref: 'ocr:run-1:review',
+        code: 'CONTENT_OCR_REVIEW_REQUIRED',
+        category: 'conflict',
+        title: '扫描文字等待人工复核',
+        data_safety: 'preserved_but_unavailable',
+        duplicate_risk: 'not_applicable',
+        actions: [{
+          action_code: 'open_ocr_review',
+          label: '打开 OCR 复核',
+          kind: 'navigate',
+          enabled: true,
+          route: '/library?document=document-1&ocrRun=run-1',
+        }],
+      }],
+    })
+    render(<RouterProvider><RecoveryCenter /></RouterProvider>)
+
+    fireEvent.click(await screen.findByRole('button', { name: '打开 OCR 复核' }))
+
+    await waitFor(() => expect(window.location.hash).toBe(
+      '#/library?document=document-1&ocrRun=run-1',
+    ))
+    expect(recoveryApi.executeRecoveryAction).not.toHaveBeenCalled()
+  })
 })

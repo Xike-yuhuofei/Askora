@@ -113,6 +113,7 @@ const mapPayload = {
 
 describe('UI02A 资料库', () => {
   beforeEach(() => {
+    window.location.hash = '#/library'
     workspaceApi.getLibraryWorkspace.mockReset()
     workspaceApi.getKnowledgeMap.mockReset()
     documentApi.uploadDocument.mockReset()
@@ -398,6 +399,38 @@ describe('UI02A 资料库', () => {
     ))
     expect(await screen.findByText('复核文本已发布为新的可追溯 revision。')).toBeInTheDocument()
   }, 6000)
+
+  it('从恢复中心深链当前 owner 的 OCR run 并直接展示人工复核', async () => {
+    const runId = '55555555-5555-4555-8555-555555555555'
+    const ready = {
+      run_id: runId,
+      document_id: documentView.document_id,
+      status: 'review_required',
+      page_count: 1,
+      candidate_count: 1,
+      candidates: [{
+        candidate_id: '66666666-6666-4666-8666-666666666666',
+        page_number: 1,
+        block_index: 0,
+        bbox: [10, 20, 300, 70],
+        text: '待人工核对的 OCR 文字',
+        confidence: 72,
+        image_hash: 'a'.repeat(64),
+        status: 'candidate',
+        corrected_text: null,
+        version: 1,
+      }],
+    }
+    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
+    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
+    window.location.hash = `#/library?document=${documentView.document_id}&ocrRun=${runId}`
+
+    render(<Library />)
+
+    expect(await screen.findByRole('heading', { name: '扫描 PDF 文字复核' })).toBeInTheDocument()
+    expect(documentApi.getDocumentOcrRun).toHaveBeenCalledWith(runId)
+    expect(screen.getByDisplayValue('待人工核对的 OCR 文字')).toBeInTheDocument()
+  })
 
   it('不把查询失败渲染为一个空资料库', async () => {
     workspaceApi.getLibraryWorkspace.mockRejectedValueOnce({ response: { status: 503 } })

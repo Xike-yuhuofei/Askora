@@ -47,7 +47,7 @@ RecoveryIssueViewV1:
 
 ```yaml
 RecoveryActionV1:
-  action_code: retry_owner_command|reinspect_document|open_model_settings|open_data_recovery|open_activity|reselect_file|wait_until|copy_diagnostics|acknowledge
+  action_code: retry_owner_command|reinspect_document|open_model_settings|open_data_recovery|open_activity|open_ocr_review|reselect_file|wait_until|copy_diagnostics|acknowledge
   label: string
   kind: command|navigate|wait|client
   enabled: boolean
@@ -114,6 +114,10 @@ UI 只呈现服务端动作，不用自由文本或 HTTP status 猜测。
 provider issue 若携带 current-user scoped `activity:{id}`，MUST 提供 `open_activity` 导航回 canonical
 `/learn/:id`；该动作不重放模型调用。`CONTENT_FILE_MISSING` 只有在 SYS01 已冻结并实现原文件替换
 command 时才能启用 `reselect_file`，否则只导航已验证的数据恢复 owner 页面。
+
+`CONTENT_OCR_REVIEW_REQUIRED` MUST 由 current-user scoped `DocumentOcrRun.status=review_required`
+投影，并提供 `open_ocr_review` 导航到同一 document/run 的 SYS01 人工复核界面。导航不得自动接受、
+拒绝或发布候选；已 accepted/rejected 的 run 不再作为 active recovery issue。
 
 ## 4. Query and command
 

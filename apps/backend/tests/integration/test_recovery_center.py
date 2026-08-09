@@ -12,7 +12,7 @@ from app.contracts.recovery import RecoveryCommandV1
 from app.core.database import Base
 from app.domains.content_knowledge import SAFETY_SCAN_CURRENT_KEY, SAFETY_SCANNER_VERSION
 from app.infrastructure.outbox import OutboxStatus
-from app.models.document import ProcessingStatus, UserDocument
+from app.models.document import DocumentOcrRun, ProcessingStatus, UserDocument
 from app.models.ledger import LearningEventRecord, OutboxTaskRecord, RecoveryEventRecord
 from app.models.user import User
 from app.queries.recovery import RecoveryQueryService
@@ -239,5 +239,77 @@ async def test_quarantine_action_requires_a_newer_policy(tmp_path, monkeypatch) 
         assert (
             issue.actions[0].disabled_reason_code
             == "CONTENT_REINSPECTION_POLICY_UNCHANGED"
+        )
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_ocr_review_issue_uses_owner_run_and_real_review_route(
+    tmp_path, monkeypatch
+) -> None:
+    engine, factory, storage = await _factory(tmp_path, monkeypatch)
+    async with factory() as session:
+        owner = User(id=str(uuid4()), pseudonym_id="ocr-review-owner")
+        other = User(id=str(uuid4()), pseudonym_id="ocr-review-other")
+        session.add_all((owner, other))
+        await session.commit()
+
+        documents = DocumentService(session)
+        documents.storage = storage
+        document = await documents.upload_document(
+            owner.pseudonym_id,
+            "scanned.pdf",
+            b"%PDF-1.4 preserved fixture",
+        )
+        run = DocumentOcrRun(
+            id=str(uuid4()),
+            document_id=document.id,
+            pseudonym_id=owner.pseudonym_id,
+            raw_checksum="a" * 64,
+            engine="tesseract-local",
+            engine_version="fixture",
+            languages=["chi_sim", "eng"],
+            policy_version="local-ocr-v1",
+            status="review_required",
+            page_count=1,
+            candidate_count=1,
+            reason_codes=["OCR_REVIEW_REQUIRED"],
+            idempotency_key="ocr-review-owner-run",
+        )
+        session.add(run)
+        await session.commit()
+
+        issue = next(
+            item
+            for item in (
+                await RecoveryQueryService(session).list_issues(
+                    owner, correlation_id="ocr-review"
+                )
+            ).issues
+            if item.code == "CONTENT_OCR_REVIEW_REQUIRED"
+        )
+        assert issue.resource_ref == f"ocr_run:{run.id}"
+        assert [action.action_code for action in issue.actions] == ["open_ocr_review"]
+        assert issue.actions[0].route == (
+            f"/library?document={document.id}&ocrRun={run.id}"
+        )
+        assert not any(
+            item.code == "CONTENT_OCR_REVIEW_REQUIRED"
+            for item in (
+                await RecoveryQueryService(session).list_issues(
+                    other, correlation_id="ocr-review-other"
+                )
+            ).issues
+        )
+
+        run.status = "accepted"
+        await session.commit()
+        assert not any(
+            item.code == "CONTENT_OCR_REVIEW_REQUIRED"
+            for item in (
+                await RecoveryQueryService(session).list_issues(
+                    owner, correlation_id="ocr-review-resolved"
+                )
+            ).issues
         )
     await engine.dispose()

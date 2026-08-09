@@ -56,6 +56,8 @@ apps/backend/app/models/__init__.py
 apps/backend/app/models/ledger.py
 apps/backend/app/orchestration/model_rendering.py
 apps/backend/app/queries/recovery.py
+apps/backend/app/queries/library.py
+apps/backend/app/api/v1/workspace.py
 apps/backend/app/services/documents/document_service.py
 apps/backend/app/services/documents/processing_worker.py
 apps/backend/app/services/llm/provider_errors.py
@@ -65,24 +67,28 @@ apps/backend/tests/**/test_*recovery*.py
 apps/backend/tests/**/test_*error*.py
 apps/backend/tests/**/test_*startup*.py
 apps/backend/tests/integration/test_v03_adaptive_execution_loop.py
+apps/backend/tests/integration/test_library_workspace_query.py
 apps/frontend/electron/main.cjs
 apps/frontend/electron/preload.cjs
 apps/frontend/electron/bootstrap-diagnostics.cjs
 apps/frontend/src/App.jsx
 apps/frontend/src/api/client.js
 apps/frontend/src/api/recovery.js
+apps/frontend/src/api/workspace.js
 apps/frontend/src/components/AppShell.css
 apps/frontend/src/components/AppShell.jsx
 apps/frontend/src/components/RecoveryIndicator.jsx
 apps/frontend/src/pages/Settings.jsx
 apps/frontend/src/pages/RecoveryCenter.jsx
 apps/frontend/src/pages/RecoveryCenter.css
+apps/frontend/src/pages/Library.jsx
 apps/frontend/src/pages/StartupRecovery.jsx
 apps/frontend/src/pages/StartupRecovery.css
 apps/frontend/src/test/AppRoutes.test.jsx
 apps/frontend/src/test/BootstrapDiagnostics.test.js
 apps/frontend/src/test/Settings.test.jsx
 apps/frontend/src/test/*Recovery*.test.jsx
+apps/frontend/src/test/Library.test.jsx
 apps/frontend/src/test/client.test.js
 ```
 
