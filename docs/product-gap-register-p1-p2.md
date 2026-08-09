@@ -40,20 +40,21 @@ P1-01A 与 P1-01B 已分别完成独立治理、实现、验证和本地提交�
 
 ### P1-02 模型设置体验
 
-**状态：OPEN**
+**状态：DONE（2026-08-09）**
 
-[Settings 页面](../apps/frontend/src/pages/Settings.jsx) 当前只能读取“AI 模型已配置/未配置”，用户仍需在 App 外编辑环境配置。
+[Settings 页面](../apps/frontend/src/pages/Settings.jsx) 已在 packaged macOS App 内闭合安全配置、真实验证、激活、恢复与停用，不再要求用户编辑 `.env`。
 
-仍缺：
+已完成：
 
-- Key 的安全录入、更新和清除；
-- provider / model 选择；
-- 连接测试与真实错误反馈；
-- 本地 fallback、超时、限流和费用边界说明；
-- 配置失败后的恢复动作；
-- secret 不进入日志、Prompt、前端持久化或普通导出。
+- Electron `safeStorage` 加密 vault、revision conflict、原子写入、rollback 与 DISABLED tombstone；
+- provider/model allowlist、窄 IPC、exact sender/path 校验与 renderer secret isolation；
+- 固定合成 Prompt 的真实 probe，以及凭据、模型、限流、超时、5xx、storage、schema、apply/rollback 稳定错误；
+- 每 App 独立 loopback port、每次 backend start 高熵 token 与私有 readiness child identity；
+- Settings 中的数据发送、费用、无 silent failover、本地 fallback 与失败恢复说明；
+- packaged App 使用智谱 `glm-4.7-flash` 完成配置、真实 canonical 学习响应和同一 vault revision 重启恢复；
+- sanitized audit、日志/DOM/frontend persistence 安全回归与完整 backend/frontend/Electron/docs 门禁。
 
-完成标准：首次使用者可以只在 App 内安全完成模型配置和验证，并能理解失败原因与数据发送边界。
+完成证据见 [P1-02 Model Settings Completion Report](releases/p1-02-model-settings.md)。本项只证明 Engineering、Security/Ownership 与 Real Provider Product Gate；真人学习效果仍为 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ### P1-03 数据控制与恢复
 

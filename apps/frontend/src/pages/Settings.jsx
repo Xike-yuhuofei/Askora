@@ -34,6 +34,92 @@ const MODEL_SOURCE_LABELS = {
   NONE: '未配置',
 }
 
+const MODEL_PROFILE_KEYS = Object.freeze([
+  'schema_version',
+  'state',
+  'provider',
+  'model',
+  'source',
+  'revision',
+  'verified_at',
+  'runtime_ready',
+  'runtime_revision',
+  'reason_codes',
+])
+const MODEL_PROFILE_STATES = new Set(['ACTIVE', 'DISABLED', 'EXTERNAL_READ_ONLY', 'UNCONFIGURED', 'DEGRADED'])
+const MODEL_PROFILE_SOURCES = new Set(['DESKTOP_VAULT', 'EXTERNAL_ENVIRONMENT', 'NONE'])
+
+function parseModelSummary(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const keys = Object.keys(value)
+  if (keys.length !== MODEL_PROFILE_KEYS.length || !MODEL_PROFILE_KEYS.every((key) => keys.includes(key))) return null
+  if (
+    value.schema_version !== '1.0'
+    || !MODEL_PROFILE_STATES.has(value.state)
+    || !MODEL_PROFILE_SOURCES.has(value.source)
+    || typeof value.runtime_ready !== 'boolean'
+    || !Array.isArray(value.reason_codes)
+    || (value.revision !== null && (!Number.isSafeInteger(value.revision) || value.revision < 1))
+    || (value.runtime_revision !== null && (!Number.isSafeInteger(value.runtime_revision) || value.runtime_revision < 1))
+  ) return null
+  const requiresRoute = ['ACTIVE', 'EXTERNAL_READ_ONLY', 'DEGRADED'].includes(value.state)
+  if (requiresRoute !== (value.provider !== null && value.model !== null)) return null
+  if (value.provider !== null && !MODEL_OPTIONS[value.provider]?.models.includes(value.model)) return null
+  if (value.source === 'DESKTOP_VAULT' && value.revision === null) return null
+  if (value.source !== 'DESKTOP_VAULT' && value.revision !== null) return null
+  return {
+    schema_version: value.schema_version,
+    state: value.state,
+    provider: value.provider,
+    model: value.model,
+    source: value.source,
+    revision: value.revision,
+    verified_at: typeof value.verified_at === 'string' ? value.verified_at : null,
+    runtime_ready: value.runtime_ready,
+    runtime_revision: value.runtime_revision,
+    reason_codes: value.reason_codes.filter((code) => typeof code === 'string'),
+  }
+}
+
+function safeModelError(code) {
+  const presentations = {
+    MODEL_VIEW_SCHEMA_UNSUPPORTED: ['无法安全读取模型配置', '请升级 Askora 后重试；当前不会应用或覆盖任何配置。'],
+    MODEL_CONTROL_NOT_AVAILABLE: ['本地模型控制面不可用', '请在 Askora 桌面 App 中打开此页面后重试。'],
+    MODEL_CONFIG_STORAGE_UNAVAILABLE: ['安全存储不可用', '请解锁 macOS 登录钥匙串并重开 Askora；当前配置未被覆盖。'],
+    MODEL_CONFIG_SCHEMA_UNSUPPORTED: ['已保存的配置无法读取', '可重置为停用状态后重新配置；该操作不会启用 .env 中的 Key。'],
+    MODEL_CONFIG_REVISION_CONFLICT: ['配置已在其他操作中更新，请重新确认。', '已刷新最新脱敏状态；请核对后重新输入 Key。'],
+    MODEL_CREDENTIAL_REJECTED: ['模型凭据被 provider 拒绝，请更新后重试', '候选配置没有写入；请确认凭据和模型权限。'],
+    MODEL_NOT_AVAILABLE: ['所选模型不可用', '请确认 provider 账户权限，或选择列表中的其他模型。'],
+    MODEL_RATE_LIMITED: ['Provider 正在限流', '请等待片刻后重试；Askora 不会自动切换 provider。'],
+    MODEL_PROVIDER_TIMEOUT: ['连接测试超时', '当前配置未被覆盖；请检查网络后重新输入 Key 并重试。'],
+    MODEL_PROVIDER_UNAVAILABLE: ['模型连接测试失败。', '当前配置未被覆盖；请稍后重新输入 Key 并重试。'],
+    MODEL_CONFIG_APPLY_FAILED: ['应用失败，旧配置已恢复', '旧配置仍可用；请检查本机服务后重新验证。'],
+    MODEL_CONFIG_ROLLBACK_FAILED: ['旧配置恢复失败。', '当前模型配置不可用；请打开恢复中心处理。'],
+  }
+  const [message, guidance] = presentations[code] || ['模型配置操作失败', '当前配置未被静默替换；请刷新状态后重试。']
+  return { code, message, guidance }
+}
+
+function parseModelBridgeResult(result) {
+  if (!result || typeof result !== 'object' || typeof result.ok !== 'boolean') {
+    return { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
+  }
+  if (result.ok) {
+    const summary = parseModelSummary(result.settings)
+    return summary
+      ? { ok: true, summary }
+      : { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
+  }
+  const code = typeof result.error?.code === 'string' ? result.error.code : 'MODEL_CONTROL_NOT_AVAILABLE'
+  return {
+    ok: false,
+    error: safeModelError(code),
+    summary: result.settings ? parseModelSummary(result.settings) : null,
+    rollbackSucceeded: result.rollback_succeeded === true,
+    rollbackFailed: result.rollback_succeeded === false || code === 'MODEL_CONFIG_ROLLBACK_FAILED',
+  }
+}
+
 function modelStatusLabel(model) {
   if (model.phase === 'loading') return '正在读取'
   if (model.phase === 'validating') return '正在验证'
@@ -68,6 +154,7 @@ function ModelSettingsPanel({ sectionRef }) {
   const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS.qwen.models[0])
   const [credential, setCredential] = useState('')
   const [clearArmed, setClearArmed] = useState(false)
+  const [recoveryArmed, setRecoveryArmed] = useState(false)
   const bridgeAvailable = Boolean(window.electronAPI?.getModelSettings)
   const canApply = Boolean(window.electronAPI?.applyModelSettings)
   const canClear = Boolean(window.electronAPI?.clearModelSettings)
@@ -87,20 +174,17 @@ function ModelSettingsPanel({ sectionRef }) {
     }
     setModel((current) => ({ ...current, phase: 'loading', error: null, message: '' }))
     try {
-      const result = await window.electronAPI.getModelSettings()
-      if (!result?.ok || !result.settings) {
-        setModel({ phase: 'rollback_failed', summary: null, error: result?.error || {
-          code: 'MODEL_CONFIG_STORAGE_UNAVAILABLE',
-          message: '模型配置状态暂时无法读取。',
-        }, message: '' })
+      const parsed = parseModelBridgeResult(await window.electronAPI.getModelSettings())
+      if (!parsed.ok) {
+        setModel({ phase: 'rollback_failed', summary: parsed.summary, error: parsed.error, message: '' })
         return null
       }
-      acceptSummary(result.settings)
-      return result.settings
+      acceptSummary(parsed.summary)
+      return parsed.summary
     } catch {
       setModel({ phase: 'rollback_failed', summary: null, error: {
         code: 'MODEL_PROVIDER_UNAVAILABLE',
-        message: '模型配置状态暂时无法读取。',
+        ...safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
       }, message: '' })
       return null
     }
@@ -140,66 +224,67 @@ function ModelSettingsPanel({ sectionRef }) {
     }
     setModel((current) => ({ ...current, phase: 'validating', error: null, message: '' }))
     try {
-      const result = await window.electronAPI.applyModelSettings({
+      const parsed = parseModelBridgeResult(await window.electronAPI.applyModelSettings({
         schema_version: '1.0',
         provider,
         model: selectedModel,
         api_key: candidateKey,
         expected_revision: model.summary?.revision ?? null,
-      })
-      if (result?.ok && result.settings) {
-        setModel({ phase: 'ready', summary: result.settings, error: null, message: '模型配置已验证并应用。' })
+      }))
+      if (parsed.ok) {
+        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: '模型配置已验证并应用。' })
         return
       }
-      let summary = result?.settings || model.summary
-      if (result?.error?.code === 'MODEL_CONFIG_REVISION_CONFLICT') {
+      let summary = parsed.summary || model.summary
+      if (parsed.error.code === 'MODEL_CONFIG_REVISION_CONFLICT') {
         summary = await loadModelSettings() || summary
       }
       setModel({
-        phase: result?.rollback_succeeded === true
+        phase: parsed.rollbackSucceeded
           ? 'apply_recovered'
-          : result?.rollback_succeeded === false || result?.error?.code === 'MODEL_CONFIG_ROLLBACK_FAILED'
+          : parsed.rollbackFailed
             ? 'rollback_failed'
             : 'ready',
         summary,
-        error: result?.error || { code: 'MODEL_PROVIDER_UNAVAILABLE', message: '模型连接测试失败。' },
+        error: parsed.error,
         message: '',
       })
     } catch {
       setModel((current) => ({
         ...current,
         phase: 'ready',
-        error: { code: 'MODEL_PROVIDER_UNAVAILABLE', message: '模型连接测试失败。' },
+        error: safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
         message: '',
       }))
     }
   }
 
-  const clearSettings = async () => {
+  const clearSettings = async (recovery = false) => {
     if (!canClear || model.phase === 'applying') return
     setClearArmed(false)
+    setRecoveryArmed(false)
     setCredential('')
     setModel((current) => ({ ...current, phase: 'applying', error: null, message: '' }))
     try {
-      const result = await window.electronAPI.clearModelSettings({
-        schema_version: '1.0',
-        expected_revision: model.summary?.revision ?? null,
-      })
-      if (result?.ok && result.settings) {
-        setModel({ phase: 'ready', summary: result.settings, error: null, message: 'App 模型配置已停用；外部配置未被编辑。' })
+      const command = recovery
+        ? { schema_version: '1.0', expected_revision: null, recovery_confirmation: 'RESET_UNREADABLE_VAULT' }
+        : { schema_version: '1.0', expected_revision: model.summary?.revision ?? null }
+      const parsed = parseModelBridgeResult(await window.electronAPI.clearModelSettings(command))
+      if (parsed.ok) {
+        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: 'App 模型配置已停用；外部配置未被编辑。' })
         return
       }
       setModel({
-        phase: result?.rollback_succeeded === true ? 'apply_recovered' : 'rollback_failed',
-        summary: result?.settings || model.summary,
-        error: result?.error || { code: 'MODEL_CONFIG_APPLY_FAILED', message: '模型配置未能停用。' },
+        phase: parsed.rollbackSucceeded ? 'apply_recovered' : 'rollback_failed',
+        summary: parsed.summary || model.summary,
+        error: parsed.error,
         message: '',
       })
     } catch {
       setModel((current) => ({
         ...current,
         phase: 'rollback_failed',
-        error: { code: 'MODEL_CONFIG_ROLLBACK_FAILED', message: '模型配置恢复失败。' },
+        error: safeModelError('MODEL_CONFIG_ROLLBACK_FAILED'),
         message: '',
       }))
     }
@@ -290,7 +375,7 @@ function ModelSettingsPanel({ sectionRef }) {
             <div className="model-settings-confirm" role="alert">
               <p>停用会写入 DISABLED revision 并重启本地服务；不会编辑 `.env` 或 provider 账户。</p>
               <div>
-                <button type="button" className="button button--danger" onClick={clearSettings}>确认停用</button>
+                <button type="button" className="button button--danger" onClick={() => clearSettings(false)}>确认停用</button>
                 <button type="button" className="button button--secondary" onClick={() => setClearArmed(false)}>取消</button>
               </div>
             </div>
@@ -303,7 +388,20 @@ function ModelSettingsPanel({ sectionRef }) {
         <div className="inline-error model-settings-error" role="alert">
           <strong>{model.error.message}</strong>
           <span>错误码：{model.error.code}</span>
+          <span>{model.error.guidance}</span>
           <span>{model.phase === 'apply_recovered' ? '旧配置仍可用；本次候选已丢弃。' : model.phase === 'rollback_failed' ? '当前模型不可用，请进入恢复中心处理。' : '候选配置没有写入；当前 owner 状态未被覆盖。'}</span>
+          {model.error.code === 'MODEL_CONFIG_SCHEMA_UNSUPPORTED' && !recoveryArmed && (
+            <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(true)}>重置不可读配置</button>
+          )}
+          {recoveryArmed && (
+            <div role="dialog" aria-label="确认重置不可读配置" className="model-settings-confirm">
+              <p>这会写入停用 revision，不会启用外部环境中的 Key。</p>
+              <div>
+                <button type="button" className="button button--danger" onClick={() => clearSettings(true)}>确认重置并停用</button>
+                <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(false)}>取消</button>
+              </div>
+            </div>
+          )}
           {model.phase === 'rollback_failed' && (
             <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>打开恢复中心</button>
           )}

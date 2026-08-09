@@ -114,6 +114,8 @@ probe MUST 使用 candidate provider/model/Key 的 isolated provider instance、
 
 desktop control adapter 仅在 `APP_ENV=local + PRIVATE_APP=true + loopback host + non-empty high-entropy control token` 时注册。每次 backend start 使用新 token；comparison constant-time；endpoint 不进入 OpenAPI。
 
+Electron 每个 App process MUST 选择一个未占用的 loopback port（MAY 优先兼容端口），并在该 App process 的 backend restart 间保持稳定。每次 start 的当前 token MUST 同时保护私有 readiness handshake 与 probe；只有该 authenticated private readiness response 才能证明当前 child backend identity。公共 `/ready`、仅有 listener、端口被占用或其他 Askora backend 的成功响应均不得满足本实例 readiness。无法取得或重新绑定已选 port 时 MUST fail closed，不得 attach 到其他实例的数据库、API 或 runtime。
+
 ### MODEL-CONFIG-053
 
 probe request/response/log MUST NOT 保存或返回 Key、Authorization header、request body、provider raw response body 或 stack。只允许 provider/model、prompt version、latency、stable result/error code、retryable、tested_at、correlation id。

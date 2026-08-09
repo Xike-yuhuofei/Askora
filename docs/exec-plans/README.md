@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：UI-02C、P1-01、P1-03、P1-04、P1-05、P1-07 DONE；P1-02B 与 P1-06B 按独立冻结队列推进
-> Active：EXEC-041（P1-02B）、EXEC-1062（P1-06B）
-> 已完成：EXEC-001～EXEC-040、EXEC-1031～1034、EXEC-1061（其中 EXEC-037 有两个历史任务域文件）
+> 状态：UI-02C、P1-01、P1-02、P1-03、P1-04、P1-05、P1-07 DONE；P1-06B 按独立冻结队列推进
+> Active：EXEC-1062（P1-06B）
+> 已完成：EXEC-001～EXEC-041、EXEC-1031～1034、EXEC-1061（其中 EXEC-037 有两个历史任务域文件）
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
 
@@ -19,8 +19,8 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-041](active/EXEC-041-p1-02b-model-settings-product-closure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 两项均不得越过真实依赖或已冻结 owner 边界 |
-| [`completed/`](completed/README.md) | EXEC-001～040、EXEC-1031～1034、EXEC-1061（EXEC-037 含两个历史任务域文件） | 保留执行任务合同及其显式决策记录 |
+| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 不得越过真实依赖或已冻结 owner 边界 |
+| [`completed/`](completed/README.md) | EXEC-001～041、EXEC-1031～1034、EXEC-1061（EXEC-037 含两个历史任务域文件） | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
 
@@ -51,7 +51,7 @@ Accepted ADR / Canonical Design
 | P1-01A Goal Definition, Draft and Safe Replan | [EXEC-038](completed/EXEC-038-p1-01a-goal-definition-draft-replan.md) | DONE |
 | P1-01B Goal Lifecycle and Evidence-gated Achievement | [EXEC-039](completed/EXEC-039-p1-01b-goal-lifecycle-achievement.md) | DONE |
 | P1-02A Secure Model Configuration Foundation | [EXEC-040](completed/EXEC-040-p1-02a-model-configuration-foundation.md) | DONE |
-| P1-02B Model Settings Product Closure | EXEC-041 | FROZEN / ACTIVE |
+| P1-02B Model Settings Product Closure | [EXEC-041](completed/EXEC-041-p1-02b-model-settings-product-closure.md) | DONE |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
 | P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
 | P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |

@@ -382,6 +382,29 @@ def _model_config_error_response(*, status_code: int, error: ModelConfigErrorV1)
     return JSONResponse(status_code=status_code, content={"error": error.model_dump(mode="json")})
 
 
+def _is_authorized_desktop_control_request(request: Request) -> bool:
+    peer = request.client.host if request.client else ""
+    supplied_token = request.headers.get("x-askora-desktop-control", "")
+    return peer in {"127.0.0.1", "::1"} and hmac.compare_digest(
+        supplied_token, settings.desktop_control_token
+    )
+
+
+async def _desktop_control_ready(request: Request) -> JSONResponse:
+    """Authenticated child identity handshake; never a public health endpoint."""
+    if not _is_authorized_desktop_control_request(request):
+        correlation_id = getattr(request.state, "request_id", None)
+        return _model_config_error_response(
+            status_code=404,
+            error=ModelConfigErrorV1.for_code(
+                code=ModelConfigErrorCode.MODEL_CONTROL_NOT_AVAILABLE,
+                message="本地模型控制面不可用",
+                correlation_id=correlation_id,
+            ),
+        )
+    return JSONResponse(status_code=200, content={"status": "ready"})
+
+
 async def _desktop_model_probe(request: Request) -> JSONResponse:
     """Local-only credential probe; deliberately absent from public API/OpenAPI."""
     from app.contracts.model_configuration import ModelConfigCandidateV1
@@ -391,11 +414,7 @@ async def _desktop_model_probe(request: Request) -> JSONResponse:
     )
 
     correlation_id = getattr(request.state, "request_id", None)
-    peer = request.client.host if request.client else ""
-    supplied_token = request.headers.get("x-askora-desktop-control", "")
-    if peer not in {"127.0.0.1", "::1"} or not hmac.compare_digest(
-        supplied_token, settings.desktop_control_token
-    ):
+    if not _is_authorized_desktop_control_request(request):
         return _model_config_error_response(
             status_code=404,
             error=ModelConfigErrorV1.for_code(
@@ -442,6 +461,12 @@ if (
     and settings.host in {"127.0.0.1", "::1", "localhost"}
     and _is_high_entropy_desktop_control_token(settings.desktop_control_token)
 ):
+    app.add_api_route(
+        "/_desktop/model-configuration/ready",
+        _desktop_control_ready,
+        methods=["GET"],
+        include_in_schema=False,
+    )
     app.add_api_route(
         "/_desktop/model-configuration/probe",
         _desktop_model_probe,

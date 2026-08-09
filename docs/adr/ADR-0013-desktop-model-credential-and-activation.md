@@ -57,12 +57,14 @@ Askora 是私人 macOS Electron App。当前模型 Key 只来自后端环境配�
 - clear 追加 `DISABLED` revision，而不是退回环境变量。
 - apply failure 恢复 prior ciphertext/revision 并验证 prior backend ready。
 - vault schema unknown/corrupt 时不猜测、不回传 ciphertext，显示恢复错误；用户可显式清除并重新配置。
+- 显式恢复复用 `clearModelSettings`，要求 `expected_revision=null` 与固定 recovery confirmation；只在 vault 确认不可读且 safeStorage 可用时写 `DISABLED revision=1`，失败恢复原 ciphertext。普通可读 revision 不允许 force clear。
+- Electron 每个 App process 选择自己的未占用 loopback port，并在该进程的 backend restart 间复用；每次 backend start 仍生成新 control token。只有当前 token 认证的私有 readiness handshake 可确认 child identity，不能把其他 Askora 的公共 `/ready` 当作本实例。
 - 不新增数据库 migration；encrypted profile 位于 Electron `userData`，属于桌面 infrastructure artifact。
 
 ## Security and Privacy Consequences
 
 - Key 在用户输入、IPC、local control probe 和 backend process memory 中短暂存在，这是完成调用所需的最小明文面。
-- control adapter 仅 local/private 注册，并由每次启动的高熵 token 鉴权；token 与 Key 不记录。
+- control adapter 仅 local/private 注册，并由每次启动的高熵 token 鉴权；token 与 Key 不记录。独立 loopback port 与 authenticated readiness 防止并发 App 误附着到其他实例。
 - safeStorage 不可用时用户不能保存新 Key，但 App 其他本地能力可继续运行。
 - connection probe 会产生一次真实外部请求，UI 必须在动作前说明可能产生极小费用。
 

@@ -20,7 +20,8 @@
 > P1-03 收口日期：2026-08-09
 > P1-06A Onboarding Readiness Foundation 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02A EXEC-040、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
+> P1-02B 模型设置产品闭环收口日期：2026-08-09
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02 EXEC-040～041、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
 
 ## Completion Matrix
 
@@ -67,6 +68,7 @@
 | EXEC-038 — P1-01A Goal Definition, Draft and Safe Replan | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-039 — P1-01B Goal Lifecycle and Evidence-gated Achievement | DONE | local atomic implementation commit；hash 见 Git 历史/交付回执 |
 | EXEC-040 — P1-02A Secure Model Configuration Foundation | DONE | `0da63a7` / `7964ebd` / `d59837d` |
+| EXEC-041 — P1-02B Model Settings Product Closure | DONE | `feat(model-settings): close P1-02 product gate`；hash 见 Git 历史 |
 | EXEC-1031 — P1-03 Recovery Foundation | DONE | `23e2c51` |
 | EXEC-1032 — P1-03 Verified Offline Restore | DONE | `cfed3e6` |
 | EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |

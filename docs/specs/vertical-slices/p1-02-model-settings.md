@@ -72,6 +72,9 @@ EXEC-041 MUST NOT 在 EXEC-040 未 DONE 前实施。
 - `P102-AC-003`：401/403、model unavailable、429、timeout、5xx、storage、revision、apply/rollback 分支可区分。
 - `P102-AC-004`：probe 不含私人资料；Key 不在 frontend persistence、普通 API、日志、Prompt、export。
 - `P102-AC-005`：apply failure old revision remains usable；clear tombstone prevents environment resurrection。
+- `P102-AC-011`：unreadable vault 只能经显式 recovery confirmation 重置为 DISABLED；普通 clear/revision 与 Keychain fail-closed 不被绕过。
+- `P102-AC-012`：apply/clear/recovery 产生 sanitized local audit；audit/error/log 中无 secret/ciphertext/control token/raw provider body。
+- `P102-AC-013`：每个 App process 使用独立且 restart-stable 的 loopback port；只有当前 backend start token 认证的私有 readiness 才能确认 child identity，其他 Askora `/ready` 不可误通过。
 - `P102-AC-006`：当前 route 不 silent failover，不以 mock/local fallback 冒充 connected。
 - `P102-AC-007`：1440/1024/768/360、200% zoom、keyboard、live status/error 通过。
 - `P102-AC-008`：packaged macOS App 用真实 provider 完成 configure→learn→relaunch；provider availability 以本次执行为准。

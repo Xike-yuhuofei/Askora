@@ -53,18 +53,35 @@ observed_at: datetime|null
 
 ### UI-DATA-013 — Desktop Model Settings Bridge
 
-Electron preload 只暴露版本化窄 bridge：`getModelSettings()`、`applyModelSettings(candidate, expectedRevision)`、`clearModelSettings(expectedRevision)`。response 使用 `ModelSettingsViewV1`：
+Electron preload 只暴露版本化窄 bridge：`getModelSettings()`、`applyModelSettings(ModelConfigApplyCommandV1)`、`clearModelSettings(ModelConfigClearCommandV1)`。成功 response 的 `settings` MUST 直接复用 `MODEL-CONFIG-010`，不得定义第二套 UI truth：
 
 ```yaml
 schema_version: "1.0"
-status: UNCONFIGURED|EXTERNAL_READ_ONLY|ACTIVE|DISABLED|APPLYING|ROLLBACK_FAILED
-configured: boolean
+state: ACTIVE|DISABLED|EXTERNAL_READ_ONLY|UNCONFIGURED|DEGRADED
 provider: string|null
 model: string|null
-source: DESKTOP_VAULT|EXTERNAL_ENV|NONE
+source: DESKTOP_VAULT|EXTERNAL_ENVIRONMENT|NONE
 revision: integer|null
 verified_at: datetime|null
-error: StableError|null
+runtime_ready: boolean
+runtime_revision: integer|null
+reason_codes: [string]
+```
+
+bridge 使用 strict envelope：成功为 `{ok: true, settings: ModelRouteProfileSummaryV1}`；失败为 `{ok: false, error: StableError, rollback_succeeded?: boolean, settings?: ModelRouteProfileSummaryV1}`。`APPLYING / APPLY_FAILED_RESTORED / ROLLBACK_FAILED` 是 renderer transaction display state，不得写回或伪装成 SYS08 profile state。
+
+```yaml
+ModelConfigApplyCommandV1:
+  schema_version: "1.0"
+  provider: qwen|deepseek|doubao|zhipu
+  model: string
+  api_key: string
+  expected_revision: integer|null
+
+ModelConfigClearCommandV1:
+  schema_version: "1.0"
+  expected_revision: integer|null
+  recovery_confirmation: "RESET_UNREADABLE_VAULT"  # 仅显式不可读 vault 恢复时存在
 ```
 
 bridge response、frontend store、DOM、analytics 与普通 HTTP client MUST NOT 包含 credential/ciphertext/control token。candidate credential 只在用户提交时从当前表单传给 Electron main，不得写 localStorage/sessionStorage/indexedDB。

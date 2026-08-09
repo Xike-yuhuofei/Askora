@@ -1,6 +1,6 @@
 # EXEC-041 — P1-02B Model Settings Product Closure
 
-> Status：FROZEN / ACTIVE
+> Status：DONE
 > Priority：P1 Product Reliability
 > Governing：ADR-0013、`MODEL-CONFIG-*`、P1-02 Vertical Slice
 
@@ -18,6 +18,10 @@ EXEC-040 已归档，所有 foundation AC PASS，并形成独立集成提交 `d5
 docs/product-gap-register-p1-p2.md
 docs/document-inventory.md
 docs/specs/README.md
+docs/design/p1-02-model-settings.md
+docs/adr/ADR-0012-desktop-model-credential-and-activation.md
+docs/specs/systems/08-model-configuration.md
+docs/specs/interfaces/api-contract.md
 docs/specs/ui/README.md
 docs/specs/ui/screen-contracts.md
 docs/specs/ui/data-contracts.md
@@ -31,6 +35,7 @@ docs/releases/p1-02-model-settings.md
 docs/releases/README.md
 apps/backend/app/main.py
 apps/backend/tests/contracts/test_model_configuration_contract.py
+apps/backend/tests/security/test_model_configuration_security.py
 apps/frontend/src/api/users.js
 apps/frontend/src/App.jsx
 apps/frontend/src/pages/Settings.jsx
@@ -53,18 +58,20 @@ apps/frontend/package.json
 2. 实现 Settings 状态机、provider/model form、apply/reverify/update/clear。
 3. 实现 data/cost/fallback/error/recovery copy 和 accessible status。
 4. 覆盖 component/security/responsive/keyboard tests。
-5. packaged macOS App 完成真实 provider configure→canonical learning→relaunch。
-6. 运行 full gates，形成 release report。
-7. 仅在全部 AC 有证据后把 P1-02 标 DONE，归档并独立 commit。
+5. 以独立 loopback port 与当前 backend start token 的私有 readiness 握手隔离并发 App 实例。
+6. packaged macOS App 完成真实 provider configure→canonical learning→relaunch。
+7. 运行 full gates，形成 release report。
+8. 仅在全部 AC 有证据后把 P1-02 标 DONE，归档并独立 commit。
 
 ## Acceptance Criteria
 
-- `EXEC041-AC-001`：`P102-AC-001..010` 全部满足。
+- `EXEC041-AC-001`：`P102-AC-001..013` 全部满足。
 - `EXEC041-AC-002`：首次用户不离开 App 完成配置与真实验证。
 - `EXEC041-AC-003`：每个失败状态都有数据安全说明和下一动作。
 - `EXEC041-AC-004`：真实 provider、backend revision、canonical inference 与 relaunch recovery 一致。
 - `EXEC041-AC-005`：full backend/frontend/electron/security/docs gates PASS。
 - `EXEC041-AC-006`：P1-02 register=DONE；Engineering/Security/Real Provider PASS；Learning Evidence 仍 insufficient。
+- `EXEC041-AC-007`：并发 Askora App 不共享 backend；公共 `/ready`、已占用 port 或其他实例均不能满足本实例 identity/readiness。
 
 ## Required Tests
 
@@ -90,4 +97,20 @@ git diff --check
 
 ## Completion Report
 
-分别报告 Engineering、Security/Ownership、Real Provider Product Gate、Learning Evidence；逐项列 P1-02 AC、测试、真实页面/App/relaunch、commit、未完成项和 SPEC GAP。
+完成日期：2026-08-09。
+
+```text
+Engineering Gate: PASS
+Security / Ownership Gate: PASS
+Real Provider Product Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+packaged macOS App 已使用智谱 `glm-4.7-flash` 完成 Settings real probe、encrypted vault
+revision 1、authenticated backend restart、canonical `real_model` response 与同一 revision 的
+quit/relaunch recovery。后端 378 passed / 2 skipped，Electron 41/41，frontend 70/70，构建、
+npm audit、Ruff、mypy、PostgreSQL `alembic check`、docs checker 与 diff check 全部通过。
+
+`P102-AC-001..013` 与 `EXEC041-AC-001..007` 均有当前证据；P1-02 register 已标 DONE。
+Blocking SPEC GAP：none。完整证据与范围外发现见
+[P1-02 Completion Report](../../releases/p1-02-model-settings.md)。
