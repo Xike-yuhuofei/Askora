@@ -26,6 +26,7 @@ describe('UI-SCREEN-090 / UI01-VSLICE-AC-008 settings', () => {
     expect(await screen.findByText('私人使用')).toBeInTheDocument()
     expect(screen.getByText('未配置，将使用模拟回复')).toBeInTheDocument()
     expect(screen.queryByText(/api[_ -]?key/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '打开恢复中心' })).toBeInTheDocument()
   })
 
   it('describes logout as local-session clearing and returns to login', async () => {

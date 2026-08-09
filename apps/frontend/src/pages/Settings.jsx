@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, KeyRound, LockKeyhole, LogOut, Server, Shield, User } from 'lucide-react'
+import { AlertTriangle, CircleAlert, KeyRound, LockKeyhole, LogOut, Server, Shield, User } from 'lucide-react'
 import * as usersApi from '../api/users'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from '../router'
@@ -33,6 +33,16 @@ export default function Settings() {
       </header>
 
       <div className="settings-grid">
+        <section className="surface settings-section settings-section--wide settings-session">
+          <div>
+            <h2>错误恢复中心</h2>
+            <p>查看资料、模型、后台任务和本地数据的可恢复问题，以及每个动作的安全边界。</p>
+          </div>
+          <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>
+            <CircleAlert size={16} />
+            打开恢复中心
+          </button>
+        </section>
         <section className="surface settings-section">
           <div className="section-heading section-heading--compact">
             <div><h2>账号信息</h2></div>

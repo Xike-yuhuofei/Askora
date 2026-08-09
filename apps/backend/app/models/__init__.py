@@ -31,6 +31,7 @@ from app.models.ledger import (
     DecisionTraceRecord,
     LearningEventRecord,
     OutboxTaskRecord,
+    RecoveryEventRecord,
 )
 from app.models.planning import (
     DiagnosticNeedRecord,
@@ -90,4 +91,5 @@ __all__ = [
     "DecisionTraceRecord",
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
+    "RecoveryEventRecord",
 ]

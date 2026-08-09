@@ -65,6 +65,19 @@ api.interceptors.request.use(async (config) => {
 
 const GLOBAL_NOTICE_CODES = ['SYS-0001']
 
+export function normalizeApiError(error) {
+  const payload = error?.response?.data?.error || {}
+  return {
+    code: payload.code || 'NETWORK_UNAVAILABLE',
+    category: payload.category || (error?.response ? 'internal' : 'dependency'),
+    message: payload.message || '服务暂时不可用',
+    retryable: Boolean(payload.retryable),
+    correlation_id: payload.correlation_id || payload.request_id || null,
+    details: payload.details || null,
+    recovery: payload.recovery || null,
+  }
+}
+
 // 响应拦截器：处理 401 与系统级错误提示。
 api.interceptors.response.use(
   (response) => response,
@@ -107,7 +120,7 @@ api.interceptors.response.use(
     }
 
     // 系统故障使用统一弹窗，并保留 request_id 便于定位。
-    const errData = error.response?.data?.error
+    const errData = normalizeApiError(error)
     if (errData?.code && GLOBAL_NOTICE_CODES.includes(errData.code)) {
       window.dispatchEvent(
         new CustomEvent('app:api-error', {
@@ -115,10 +128,14 @@ api.interceptors.response.use(
             code: errData.code,
             message: errData.message,
             details: errData.details,
-            request_id: errData.request_id,
+            request_id: errData.correlation_id,
           },
         })
       )
+    }
+
+    if (errData.code !== 'NETWORK_UNAVAILABLE') {
+      window.dispatchEvent(new CustomEvent('app:recovery-refresh'))
     }
 
     return Promise.reject(error)

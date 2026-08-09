@@ -44,7 +44,7 @@ class LocalFileStorage:
         """确保基础存储路径存在"""
         self.base_path.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.base_path.chmod(0o700)
-        logger.info("local_storage_initialized", path=str(self.base_path))
+        logger.info("local_storage_initialized")
 
     def _get_user_dir(self, pseudonym_id: str) -> Path:
         """获取用户存储目录"""

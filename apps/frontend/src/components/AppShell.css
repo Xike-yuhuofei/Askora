@@ -9,6 +9,26 @@
   padding: 32px clamp(24px, 4vw, 56px);
 }
 
+.recovery-indicator {
+  align-items: center;
+  background: #fff8e8;
+  border: 1px solid #e9bd62;
+  border-radius: 999px;
+  color: #71480b;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 650;
+  gap: 0.42rem;
+  margin: 0 0 1rem auto;
+  padding: 0.45rem 0.72rem;
+  text-decoration: none;
+}
+
+.recovery-indicator:focus-visible {
+  outline: 3px solid var(--focus-ring, #6b8afd);
+  outline-offset: 3px;
+}
+
 .app-main--workspace {
   padding: 20px;
 }

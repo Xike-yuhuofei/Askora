@@ -23,6 +23,7 @@ from app.api.v1 import (
     dialog_router,
     documents_router,
     orchestrator_router,
+    recovery_router,
     users_router,
     workspace_router,
     ws_router,
@@ -32,6 +33,10 @@ from app.core.database import close_db, init_db
 from app.core.exceptions import AppError
 from app.core.logging import get_logger, setup_logging
 from app.core.redis_client import close_redis, init_redis
+from app.core.startup_diagnostics import (
+    classify_database_startup_error,
+    emit_startup_diagnostic,
+)
 from app.observability import setup_observability
 
 # 初始化日志
@@ -84,7 +89,12 @@ async def lifespan(app: FastAPI):
     )
 
     # 初始化数据库
-    await init_db()
+    try:
+        await init_db()
+    except Exception as exc:
+        code, retryable = classify_database_startup_error(exc)
+        emit_startup_diagnostic(code, retryable=retryable)
+        raise
     logger.info("database_initialized")
 
     # 初始化 Redis
@@ -191,6 +201,7 @@ setup_observability(app)
 async def app_error_handler(request: Request, exc: AppError):
     """统一应用异常处理"""
     request_id = getattr(request.state, "request_id", "unknown")
+    correlation_id = exc.correlation_id or request_id
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -199,9 +210,13 @@ async def app_error_handler(request: Request, exc: AppError):
                 "code": exc.error_code,
                 "message": exc.message,
                 "request_id": request_id,
+                "category": exc.category,
+                "retryable": exc.retryable,
+                "correlation_id": correlation_id,
                 "details": (
                     exc.error_detail if hasattr(exc, "error_detail") and exc.error_detail else None
                 ),
+                "recovery": exc.recovery,
             }
         },
     )
@@ -225,6 +240,11 @@ async def global_exception_handler(request: Request, exc: Exception):
                 "code": "SYS-0001",
                 "message": "服务器内部错误",
                 "request_id": request_id,
+                "category": "internal",
+                "retryable": False,
+                "correlation_id": request_id,
+                "details": None,
+                "recovery": None,
             }
         },
     )
@@ -271,6 +291,7 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
+app.include_router(recovery_router, prefix="/api/v1")
 
 # Orchestrator TEI v1 调试端点
 if settings.enable_orchestrator_debug_api:

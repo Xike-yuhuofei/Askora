@@ -5,6 +5,7 @@ const http = require('http')
 const path = require('path')
 const { spawn } = require('child_process')
 const { createAppMenu } = require('./app-menu.cjs')
+const bootstrapDiagnostics = require('./bootstrap-diagnostics.cjs')
 
 const isDev = !app.isPackaged
 if (process.platform !== 'win32') process.umask(0o077)
@@ -23,6 +24,9 @@ const BACKEND_STARTUP_TIMEOUT = 60000
 let mainWindow
 let backendProcess = null
 let readyBackendURL = null
+let backendStartPromise = null
+let backendDiagnosticBuffer = ''
+let backendStartupState = bootstrapDiagnostics.starting({ attempt: -1 })
 
 function getBackendBinaryPath() {
   if (isDev) {
@@ -79,10 +83,34 @@ function waitForBackend(url, timeoutMs) {
   })
 }
 
-async function startLocalBackend() {
+function setBackendFailure(code, options = {}) {
+  publishBackendStartupState(bootstrapDiagnostics.failed(backendStartupState, code, options))
+}
+
+function publishBackendStartupState(nextState) {
+  backendStartupState = nextState
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('app:backend-startup-state', { ...backendStartupState })
+  }
+}
+
+function consumeBackendDiagnostics(data) {
+  backendDiagnosticBuffer += data.toString()
+  const lines = backendDiagnosticBuffer.split(/\r?\n/)
+  backendDiagnosticBuffer = lines.pop() || ''
+  for (const line of lines) {
+    const diagnostic = bootstrapDiagnostics.parseDiagnosticLine(backendStartupState, line.trim())
+    if (diagnostic) publishBackendStartupState(diagnostic)
+  }
+}
+
+async function startLocalBackendAttempt() {
+  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
+  backendDiagnosticBuffer = ''
   const backendInfo = getBackendBinaryPath()
   if (!backendInfo) {
     console.error('[Askora] Local backend executable was not found')
+    setBackendFailure('BOOTSTRAP_BACKEND_BINARY_MISSING', { retryable: false })
     return null
   }
 
@@ -106,24 +134,30 @@ async function startLocalBackend() {
     WORKER_ENABLED: 'false',
   }
 
-  backendProcess = spawn(backendInfo.command, backendInfo.args, {
+  const spawnedProcess = spawn(backendInfo.command, backendInfo.args, {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
     cwd: backendInfo.cwd,
   })
+  backendProcess = spawnedProcess
 
-  backendProcess.stdout?.on('data', (data) => {
-    console.log(`[Backend] ${data.toString().trim()}`)
+  // Backend output may contain paths or provider detail. The desktop boundary only
+  // consumes the fixed-prefix sanitized diagnostic channel and never mirrors raw text.
+  spawnedProcess.stdout?.on('data', () => {})
+  spawnedProcess.stderr?.on('data', (data) => {
+    consumeBackendDiagnostics(data)
   })
-  backendProcess.stderr?.on('data', (data) => {
-    console.error(`[Backend] ${data.toString().trim()}`)
+  spawnedProcess.on('error', () => {
+    console.error('[Askora] Failed to start local backend')
+    setBackendFailure('BOOTSTRAP_BACKEND_SPAWN_FAILED', { retryable: true })
   })
-  backendProcess.on('error', (error) => {
-    console.error('[Askora] Failed to start local backend:', error.message)
-  })
-  backendProcess.on('exit', (code) => {
+  spawnedProcess.on('exit', (code) => {
     console.log(`[Askora] Local backend exited with code ${code}`)
+    if (backendProcess !== spawnedProcess) return
+    if (backendStartupState.status === 'starting' || backendStartupState.status === 'ready') {
+      setBackendFailure('BOOTSTRAP_BACKEND_EXITED', { retryable: true, exit_code: code })
+    }
     backendProcess = null
     readyBackendURL = null
   })
@@ -131,13 +165,41 @@ async function startLocalBackend() {
   const ready = await waitForBackend(backendURL, BACKEND_STARTUP_TIMEOUT)
   if (!ready) {
     console.error('[Askora] Local backend did not become ready before the timeout')
+    if (backendStartupState.status === 'starting') {
+      setBackendFailure('BOOTSTRAP_BACKEND_START_TIMEOUT', { retryable: true })
+    }
     stopLocalBackend()
     return null
   }
 
   readyBackendURL = backendURL
+  publishBackendStartupState(bootstrapDiagnostics.ready(backendStartupState))
   console.log('[Askora] Local backend is ready')
   return backendURL
+}
+
+function startLocalBackend() {
+  if (backendStartPromise) return backendStartPromise
+  backendStartPromise = startLocalBackendAttempt().finally(() => {
+    backendStartPromise = null
+  })
+  return backendStartPromise
+}
+
+async function retryLocalBackend() {
+  if (backendStartPromise) return backendStartPromise
+  const previousProcess = backendProcess
+  stopLocalBackend()
+  if (previousProcess && previousProcess.exitCode === null) {
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 3200)
+      previousProcess.once('exit', () => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+  }
+  return startLocalBackend()
 }
 
 function stopLocalBackend() {
@@ -197,6 +259,11 @@ async function createWindow() {
 ipcMain.handle('app:get-version', () => app.getVersion())
 ipcMain.handle('app:get-platform', () => process.platform)
 ipcMain.handle('app:get-backend-url', () => readyBackendURL)
+ipcMain.handle('app:get-backend-startup-state', () => ({ ...backendStartupState }))
+ipcMain.handle('app:retry-backend-startup', async () => {
+  await retryLocalBackend()
+  return { ...backendStartupState }
+})
 
 app.whenReady().then(createWindow)
 

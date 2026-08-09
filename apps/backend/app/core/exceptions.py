@@ -20,11 +20,35 @@ class AppError(HTTPException):
         message: str,
         detail: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
+        category: str | None = None,
+        retryable: bool = False,
+        recovery: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
     ) -> None:
         self.error_code = error_code
         self.message = message
         self.error_detail = detail or {}
+        self.category = category or self._category_for_status(status_code)
+        self.retryable = retryable
+        self.recovery = recovery
+        self.correlation_id = correlation_id
         super().__init__(status_code=status_code, detail=message, headers=headers)
+
+    @staticmethod
+    def _category_for_status(status_code: int) -> str:
+        if status_code in {401, 403}:
+            return "authorization"
+        if status_code == 404:
+            return "not_found"
+        if status_code == 409:
+            return "conflict"
+        if status_code == 422:
+            return "validation"
+        if status_code == 429:
+            return "transient"
+        if status_code >= 500:
+            return "internal"
+        return "business"
 
 
 # ========== 认证授权相关 (AUTH-xxxx) ==========
@@ -100,6 +124,8 @@ class AuthenticationStateUnavailableError(AuthError):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             error_code="AUTH-0006",
             message="认证状态服务暂时不可用，请稍后重试",
+            category="dependency",
+            retryable=True,
         )
 
 
@@ -233,6 +259,8 @@ class RateLimitError(AppError):
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             error_code="RATE-0001",
             message=message,
+            category="transient",
+            retryable=True,
         )
 
 
@@ -247,11 +275,77 @@ class BusinessError(AppError):
         message: str,
         error_code: str = "BIZ-0001",
         status_code: int = status.HTTP_400_BAD_REQUEST,
+        detail: Optional[dict[str, Any]] = None,
+        category: str = "business",
+        retryable: bool = False,
+        recovery: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
     ) -> None:
         super().__init__(
             status_code=status_code,
             error_code=error_code,
             message=message,
+            detail=detail,
+            category=category,
+            retryable=retryable,
+            recovery=recovery,
+            correlation_id=correlation_id,
+        )
+
+
+class RecoveryIssueNotFoundError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="恢复问题不存在或不可访问",
+            error_code="RECOVERY_ISSUE_NOT_FOUND",
+            status_code=status.HTTP_404_NOT_FOUND,
+            category="not_found",
+        )
+
+
+class RecoveryActionNotAllowedError(BusinessError):
+    def __init__(self, reason_code: str = "RECOVERY_ACTION_NOT_ALLOWED") -> None:
+        super().__init__(
+            message="当前问题不允许执行该恢复动作",
+            error_code="RECOVERY_ACTION_NOT_ALLOWED",
+            status_code=status.HTTP_409_CONFLICT,
+            category="conflict",
+            detail={"reason_code": reason_code},
+        )
+
+
+class RecoveryVersionConflictError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="问题状态已更新，请刷新后重试",
+            error_code="CONCURRENT_VERSION_CONFLICT",
+            status_code=status.HTTP_409_CONFLICT,
+            category="conflict",
+        )
+
+
+class ContentFileMissingError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料记录仍在，但原文件当前不可用",
+            error_code="CONTENT_FILE_MISSING",
+            status_code=status.HTTP_409_CONFLICT,
+            category="data_integrity",
+            recovery={
+                "issue_ref": None,
+                "retry_after_seconds": None,
+                "actions": [],
+            },
+        )
+
+
+class ContentChecksumMismatchError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="原文件完整性校验失败，未执行重试",
+            error_code="DATABASE_INTEGRITY_FAILED",
+            status_code=status.HTTP_409_CONFLICT,
+            category="data_integrity",
         )
 
 
