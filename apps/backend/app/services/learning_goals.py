@@ -499,11 +499,7 @@ class LearningGoalService:
                     version=mapping.goal_version,
                 ),
                 *[
-                    DecisionInput(
-                        entity_type="KnowledgeGraphSnapshot",
-                        entity_id=value,
-                        version=value,
-                    )
+                    self._knowledge_graph_snapshot_input(value)
                     for value in mapping.knowledge_graph_versions
                 ],
             ],
@@ -543,6 +539,25 @@ class LearningGoalService:
             created_at=mapping.created_at,
             correlation_id=correlation_id,
             trace_id=f"goal-mapping:{mapping.mapping_id}:v{mapping.mapping_version}",
+        )
+
+    @staticmethod
+    def _knowledge_graph_snapshot_input(value: str) -> DecisionInput:
+        parts = value.split(":")
+        if len(parts) != 6 or parts[0::2] != ["document", "revision", "publication"]:
+            raise ValueError("GOAL_MAPPING_KNOWLEDGE_GRAPH_VERSION_INVALID")
+        try:
+            document_id, revision_id, publication_id = (
+                UUID(parts[1]),
+                UUID(parts[3]),
+                UUID(parts[5]),
+            )
+        except ValueError as exc:
+            raise ValueError("GOAL_MAPPING_KNOWLEDGE_GRAPH_VERSION_INVALID") from exc
+        return DecisionInput(
+            entity_type="KnowledgeGraphSnapshot",
+            entity_id=document_id,
+            version=f"revision:{revision_id}:publication:{publication_id}",
         )
 
     @staticmethod
