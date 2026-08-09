@@ -139,9 +139,7 @@ class OnboardingJourneyQueryService:
     ) -> None:
         self._session = session
         self._preferences = OnboardingPreferenceRepository(session)
-        self._model_configuration = (
-            model_configuration or UnavailableModelConfigurationQuery()
-        )
+        self._model_configuration = model_configuration or UnavailableModelConfigurationQuery()
         self._data_control = data_control or UnavailableDataControlQuery()
         self._clock = clock
 
@@ -152,9 +150,7 @@ class OnboardingJourneyQueryService:
     def now(self) -> datetime:
         return _aware(self._clock())
 
-    async def get_journey(
-        self, user: User, *, correlation_id: str
-    ) -> OnboardingJourneyViewV1:
+    async def get_journey(self, user: User, *, correlation_id: str) -> OnboardingJourneyViewV1:
         generated_at = self.now()
         preference_record = await self._preferences.get_or_create_active(
             user_id=str(user.id), journey_id=JOURNEY_ID, now=generated_at
@@ -177,9 +173,7 @@ class OnboardingJourneyQueryService:
         )
         steps = (model_step, material.step, goals.step, activity_step)
         dependency_partial = self._dependency_partial(model, data_control)
-        acknowledged = (
-            preference.boundary_notice_version_acknowledged == BOUNDARY_NOTICE_VERSION
-        )
+        acknowledged = preference.boundary_notice_version_acknowledged == BOUNDARY_NOTICE_VERSION
         complete = acknowledged and all(item.state == "COMPLETE" for item in steps)
         journey_state: OnboardingJourneyState
         if complete:
@@ -205,9 +199,7 @@ class OnboardingJourneyQueryService:
             generated_at=generated_at,
             journey_state=journey_state,
             should_enter_welcome=(
-                preference.visibility == "ACTIVE"
-                and not complete
-                and not dependency_partial
+                preference.visibility == "ACTIVE" and not complete and not dependency_partial
             ),
             preference=preference,
             boundary_notice=BoundaryNoticeV1(
@@ -417,8 +409,7 @@ class OnboardingJourneyQueryService:
                 AvailabilityStatus.STALE,
             )
             source_ref = (
-                f"LearningGoal:{confirmed_current[0].goal_id}:"
-                f"v{confirmed_current[0].version}"
+                f"LearningGoal:{confirmed_current[0].goal_id}:" f"v{confirmed_current[0].version}"
             )
             reasons = ("GOAL_SOURCE_MAPPING_UNAVAILABLE",)
         elif candidates:
@@ -479,8 +470,7 @@ class OnboardingJourneyQueryService:
                     goal.user_id == str(canonical_user_id(user.id)),
                     state.status == "completed",
                     state.previous_status == "active",
-                    state.transition_reason
-                    == "LEARNER_FINISHED_TRANSCRIPT_BACKED_ACTIVITY",
+                    state.transition_reason == "LEARNER_FINISHED_TRANSCRIPT_BACKED_ACTIVITY",
                     state.actor_type == "learner",
                     state.completed_at.is_not(None),
                     ~exists(

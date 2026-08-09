@@ -1,21 +1,602 @@
-import { useEffect, useState } from 'react'
-import { AlertTriangle, KeyRound, LockKeyhole, LogOut, Server, Shield, User } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  CircleAlert,
+  Download,
+  HardDrive,
+  KeyRound,
+  Laptop,
+  LockKeyhole,
+  LogOut,
+  RotateCcw,
+  Server,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react'
+import * as authApi from '../api/auth'
 import * as usersApi from '../api/users'
+import * as dataControlApi from '../api/dataControl'
 import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from '../router'
+import { useLocation, useNavigate } from '../router'
 import './Settings.css'
 
-export default function Settings() {
-  const { user, logout } = useAuth()
+const MODEL_OPTIONS = {
+  qwen: { label: '通义千问', models: ['qwen-turbo'] },
+  deepseek: { label: 'DeepSeek', models: ['deepseek-chat'] },
+  doubao: { label: '豆包', models: ['doubao-pro-32k'] },
+  zhipu: { label: '智谱', models: ['glm-4.7-flash'] },
+}
+
+const MODEL_SOURCE_LABELS = {
+  DESKTOP_VAULT: 'App 安全存储',
+  EXTERNAL_ENVIRONMENT: '外部只读配置',
+  NONE: '未配置',
+}
+
+const MODEL_PROFILE_KEYS = Object.freeze([
+  'schema_version',
+  'state',
+  'provider',
+  'model',
+  'source',
+  'revision',
+  'verified_at',
+  'runtime_ready',
+  'runtime_revision',
+  'reason_codes',
+])
+const MODEL_PROFILE_STATES = new Set(['ACTIVE', 'DISABLED', 'EXTERNAL_READ_ONLY', 'UNCONFIGURED', 'DEGRADED'])
+const MODEL_PROFILE_SOURCES = new Set(['DESKTOP_VAULT', 'EXTERNAL_ENVIRONMENT', 'NONE'])
+
+function parseModelSummary(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const keys = Object.keys(value)
+  if (keys.length !== MODEL_PROFILE_KEYS.length || !MODEL_PROFILE_KEYS.every((key) => keys.includes(key))) return null
+  if (
+    value.schema_version !== '1.0'
+    || !MODEL_PROFILE_STATES.has(value.state)
+    || !MODEL_PROFILE_SOURCES.has(value.source)
+    || typeof value.runtime_ready !== 'boolean'
+    || !Array.isArray(value.reason_codes)
+    || (value.revision !== null && (!Number.isSafeInteger(value.revision) || value.revision < 1))
+    || (value.runtime_revision !== null && (!Number.isSafeInteger(value.runtime_revision) || value.runtime_revision < 1))
+  ) return null
+  const requiresRoute = ['ACTIVE', 'EXTERNAL_READ_ONLY', 'DEGRADED'].includes(value.state)
+  if (requiresRoute !== (value.provider !== null && value.model !== null)) return null
+  if (value.provider !== null && !MODEL_OPTIONS[value.provider]?.models.includes(value.model)) return null
+  if (value.source === 'DESKTOP_VAULT' && value.revision === null) return null
+  if (value.source !== 'DESKTOP_VAULT' && value.revision !== null) return null
+  return {
+    schema_version: value.schema_version,
+    state: value.state,
+    provider: value.provider,
+    model: value.model,
+    source: value.source,
+    revision: value.revision,
+    verified_at: typeof value.verified_at === 'string' ? value.verified_at : null,
+    runtime_ready: value.runtime_ready,
+    runtime_revision: value.runtime_revision,
+    reason_codes: value.reason_codes.filter((code) => typeof code === 'string'),
+  }
+}
+
+function safeModelError(code) {
+  const presentations = {
+    MODEL_VIEW_SCHEMA_UNSUPPORTED: ['无法安全读取模型配置', '请升级 Askora 后重试；当前不会应用或覆盖任何配置。'],
+    MODEL_CONTROL_NOT_AVAILABLE: ['本地模型控制面不可用', '请在 Askora 桌面 App 中打开此页面后重试。'],
+    MODEL_CONFIG_STORAGE_UNAVAILABLE: ['安全存储不可用', '请解锁 macOS 登录钥匙串并重开 Askora；当前配置未被覆盖。'],
+    MODEL_CONFIG_SCHEMA_UNSUPPORTED: ['已保存的配置无法读取', '可重置为停用状态后重新配置；该操作不会启用 .env 中的 Key。'],
+    MODEL_CONFIG_REVISION_CONFLICT: ['配置已在其他操作中更新，请重新确认。', '已刷新最新脱敏状态；请核对后重新输入 Key。'],
+    MODEL_CREDENTIAL_REJECTED: ['模型凭据被 provider 拒绝，请更新后重试', '候选配置没有写入；请确认凭据和模型权限。'],
+    MODEL_NOT_AVAILABLE: ['所选模型不可用', '请确认 provider 账户权限，或选择列表中的其他模型。'],
+    MODEL_RATE_LIMITED: ['Provider 正在限流', '请等待片刻后重试；Askora 不会自动切换 provider。'],
+    MODEL_PROVIDER_TIMEOUT: ['连接测试超时', '当前配置未被覆盖；请检查网络后重新输入 Key 并重试。'],
+    MODEL_PROVIDER_UNAVAILABLE: ['模型连接测试失败。', '当前配置未被覆盖；请稍后重新输入 Key 并重试。'],
+    MODEL_CONFIG_APPLY_FAILED: ['应用失败，旧配置已恢复', '旧配置仍可用；请检查本机服务后重新验证。'],
+    MODEL_CONFIG_ROLLBACK_FAILED: ['旧配置恢复失败。', '当前模型配置不可用；请打开恢复中心处理。'],
+  }
+  const [message, guidance] = presentations[code] || ['模型配置操作失败', '当前配置未被静默替换；请刷新状态后重试。']
+  return { code, message, guidance }
+}
+
+function parseModelBridgeResult(result) {
+  if (!result || typeof result !== 'object' || typeof result.ok !== 'boolean') {
+    return { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
+  }
+  if (result.ok) {
+    const summary = parseModelSummary(result.settings)
+    return summary
+      ? { ok: true, summary }
+      : { ok: false, error: safeModelError('MODEL_VIEW_SCHEMA_UNSUPPORTED'), summary: null }
+  }
+  const code = typeof result.error?.code === 'string' ? result.error.code : 'MODEL_CONTROL_NOT_AVAILABLE'
+  return {
+    ok: false,
+    error: safeModelError(code),
+    summary: result.settings ? parseModelSummary(result.settings) : null,
+    rollbackSucceeded: result.rollback_succeeded === true,
+    rollbackFailed: result.rollback_succeeded === false || code === 'MODEL_CONFIG_ROLLBACK_FAILED',
+  }
+}
+
+function modelStatusLabel(model) {
+  if (model.phase === 'loading') return '正在读取'
+  if (model.phase === 'validating') return '正在验证'
+  if (model.phase === 'applying') return '正在应用'
+  if (model.phase === 'unavailable') return '未配置'
+  if (model.phase === 'apply_recovered') return '应用失败已恢复'
+  if (model.phase === 'rollback_failed') return '恢复失败'
+  const summary = model.summary
+  if (summary?.state === 'ACTIVE' && summary.runtime_ready) return '已验证'
+  if (summary?.state === 'EXTERNAL_READ_ONLY') return '外部只读配置'
+  if (summary?.state === 'DISABLED') return '已停用'
+  if (summary?.state === 'DEGRADED') return '恢复失败'
+  return '未配置'
+}
+
+function formatVerifiedAt(value) {
+  if (!value) return '尚未验证'
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function ModelSettingsPanel({ sectionRef }) {
+  const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [model, setModel] = useState({ phase: 'loading', summary: null, error: null, message: '' })
+  const [provider, setProvider] = useState('qwen')
+  const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS.qwen.models[0])
+  const [credential, setCredential] = useState('')
+  const [clearArmed, setClearArmed] = useState(false)
+  const [recoveryArmed, setRecoveryArmed] = useState(false)
+  const bridgeAvailable = Boolean(window.electronAPI?.getModelSettings)
+  const canApply = Boolean(window.electronAPI?.applyModelSettings)
+  const canClear = Boolean(window.electronAPI?.clearModelSettings)
+
+  const acceptSummary = useCallback((summary, nextPhase = 'ready') => {
+    setModel({ phase: nextPhase, summary, error: null, message: '' })
+    if (summary?.provider && MODEL_OPTIONS[summary.provider]) {
+      setProvider(summary.provider)
+      setSelectedModel(summary.model || MODEL_OPTIONS[summary.provider].models[0])
+    }
+  }, [])
+
+  const loadModelSettings = useCallback(async () => {
+    if (!bridgeAvailable) {
+      setModel({ phase: 'unavailable', summary: null, error: null, message: '' })
+      return null
+    }
+    setModel((current) => ({ ...current, phase: 'loading', error: null, message: '' }))
+    try {
+      const parsed = parseModelBridgeResult(await window.electronAPI.getModelSettings())
+      if (!parsed.ok) {
+        setModel({ phase: 'rollback_failed', summary: parsed.summary, error: parsed.error, message: '' })
+        return null
+      }
+      acceptSummary(parsed.summary)
+      return parsed.summary
+    } catch {
+      setModel({ phase: 'rollback_failed', summary: null, error: {
+        code: 'MODEL_PROVIDER_UNAVAILABLE',
+        ...safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
+      }, message: '' })
+      return null
+    }
+  }, [acceptSummary, bridgeAvailable])
+
+  useEffect(() => {
+    loadModelSettings()
+  }, [loadModelSettings])
+
+  useEffect(() => {
+    if (pathname !== '/settings/models') return undefined
+    const frame = window.requestAnimationFrame(() => sectionRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [pathname, sectionRef])
+
+  const changeProvider = (event) => {
+    const nextProvider = event.target.value
+    setProvider(nextProvider)
+    setSelectedModel(MODEL_OPTIONS[nextProvider].models[0])
+    setClearArmed(false)
+  }
+
+  const applySettings = async (event) => {
+    event.preventDefault()
+    if (!canApply || ['validating', 'applying'].includes(model.phase)) return
+    const candidateKey = credential
+    setCredential('')
+    setClearArmed(false)
+    if (candidateKey.length < 8) {
+      setModel((current) => ({
+        ...current,
+        phase: 'ready',
+        error: { code: 'MODEL_CREDENTIAL_REJECTED', message: '请输入有效的模型 Key。' },
+        message: '',
+      }))
+      return
+    }
+    setModel((current) => ({ ...current, phase: 'validating', error: null, message: '' }))
+    try {
+      const parsed = parseModelBridgeResult(await window.electronAPI.applyModelSettings({
+        schema_version: '1.0',
+        provider,
+        model: selectedModel,
+        api_key: candidateKey,
+        expected_revision: model.summary?.revision ?? null,
+      }))
+      if (parsed.ok) {
+        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: '模型配置已验证并应用。' })
+        return
+      }
+      let summary = parsed.summary || model.summary
+      if (parsed.error.code === 'MODEL_CONFIG_REVISION_CONFLICT') {
+        summary = await loadModelSettings() || summary
+      }
+      setModel({
+        phase: parsed.rollbackSucceeded
+          ? 'apply_recovered'
+          : parsed.rollbackFailed
+            ? 'rollback_failed'
+            : 'ready',
+        summary,
+        error: parsed.error,
+        message: '',
+      })
+    } catch {
+      setModel((current) => ({
+        ...current,
+        phase: 'ready',
+        error: safeModelError('MODEL_PROVIDER_UNAVAILABLE'),
+        message: '',
+      }))
+    }
+  }
+
+  const clearSettings = async (recovery = false) => {
+    if (!canClear || model.phase === 'applying') return
+    setClearArmed(false)
+    setRecoveryArmed(false)
+    setCredential('')
+    setModel((current) => ({ ...current, phase: 'applying', error: null, message: '' }))
+    try {
+      const command = recovery
+        ? { schema_version: '1.0', expected_revision: null, recovery_confirmation: 'RESET_UNREADABLE_VAULT' }
+        : { schema_version: '1.0', expected_revision: model.summary?.revision ?? null }
+      const parsed = parseModelBridgeResult(await window.electronAPI.clearModelSettings(command))
+      if (parsed.ok) {
+        setModel({ phase: 'ready', summary: parsed.summary, error: null, message: 'App 模型配置已停用；外部配置未被编辑。' })
+        return
+      }
+      setModel({
+        phase: parsed.rollbackSucceeded ? 'apply_recovered' : 'rollback_failed',
+        summary: parsed.summary || model.summary,
+        error: parsed.error,
+        message: '',
+      })
+    } catch {
+      setModel((current) => ({
+        ...current,
+        phase: 'rollback_failed',
+        error: safeModelError('MODEL_CONFIG_ROLLBACK_FAILED'),
+        message: '',
+      }))
+    }
+  }
+
+  const busy = ['validating', 'applying'].includes(model.phase)
+  const summary = model.summary
+  const stateLabel = modelStatusLabel(model)
+
+  return (
+    <section
+      className="surface settings-section settings-section--wide model-settings"
+      ref={sectionRef}
+      tabIndex={-1}
+      aria-labelledby="model-settings-title"
+    >
+      <div className="section-heading section-heading--compact">
+        <div>
+          <p className="eyebrow">SYS08 · 本机安全存储</p>
+          <h2 id="model-settings-title">模型与密钥</h2>
+          <p>配置 Askora 实际使用的单一 provider/model；已保存的 Key 永不回显。</p>
+        </div>
+        <KeyRound size={18} />
+      </div>
+
+      <div className="model-settings-status" role="status" aria-live="polite">
+        <strong>{stateLabel}</strong>
+        {model.phase === 'loading' && <span>正在读取脱敏配置…</span>}
+        {model.phase === 'unavailable' && (
+          <span>仅在 macOS 桌面 App 中提供安全写入；浏览器视图不会接收或保存 Key。</span>
+        )}
+        {summary && (
+          <dl className="model-settings-summary">
+            <div><dt>Provider</dt><dd>{MODEL_OPTIONS[summary.provider]?.label || '未配置'}</dd></div>
+            <div><dt>Model</dt><dd>{summary.model || '未配置'}</dd></div>
+            <div><dt>来源</dt><dd>{MODEL_SOURCE_LABELS[summary.source] || summary.source || '未配置'}</dd></div>
+            <div><dt>Revision</dt><dd>{summary.revision ?? '无'}</dd></div>
+            <div><dt>最后验证</dt><dd>{formatVerifiedAt(summary.verified_at)}</dd></div>
+            <div><dt>运行一致性</dt><dd>{summary.runtime_ready && summary.runtime_revision === summary.revision ? '一致' : '未就绪'}</dd></div>
+          </dl>
+        )}
+      </div>
+
+      {canApply && (
+        <form className="model-settings-form" onSubmit={applySettings}>
+          <label>
+            <span>Provider</span>
+            <select value={provider} onChange={changeProvider} disabled={busy}>
+              {Object.entries(MODEL_OPTIONS).map(([value, option]) => (
+                <option value={value} key={value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Model</span>
+            <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={busy}>
+              {MODEL_OPTIONS[provider].models.map((value) => <option value={value} key={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className="model-settings-key">
+            <span>API Key</span>
+            <input
+              type="password"
+              value={credential}
+              onChange={(event) => setCredential(event.target.value)}
+              autoComplete="new-password"
+              spellCheck="false"
+              disabled={busy}
+              placeholder="提交后立即清空，不会回显"
+            />
+          </label>
+          <div className="model-settings-disclosure">
+            <strong>验证边界</strong>
+            <p>测试只发送固定合成文本，不发送个人资料，但可能产生极少量 provider 调用费用。</p>
+            <p>真实 Book Learning 会发送当前学习意图与一份 learner-visible evidence；兼容 quick flow 最多发送最近 20 条消息。Askora 不读取余额，实际费用以 provider 账户为准。</p>
+          </div>
+          <div className="model-settings-actions">
+            <button type="submit" className="button button--primary" disabled={busy || credential.length < 8}>
+              {model.phase === 'validating' ? '正在验证…' : '验证并应用'}
+            </button>
+            {canClear && summary?.source === 'DESKTOP_VAULT' && summary.state !== 'DISABLED' && !clearArmed && (
+              <button type="button" className="button button--secondary" disabled={busy} onClick={() => setClearArmed(true)}>
+                停用 App 模型配置
+              </button>
+            )}
+          </div>
+          {clearArmed && (
+            <div className="model-settings-confirm" role="alert">
+              <p>停用会写入 DISABLED revision 并重启本地服务；不会编辑 `.env` 或 provider 账户。</p>
+              <div>
+                <button type="button" className="button button--danger" onClick={() => clearSettings(false)}>确认停用</button>
+                <button type="button" className="button button--secondary" onClick={() => setClearArmed(false)}>取消</button>
+              </div>
+            </div>
+          )}
+        </form>
+      )}
+
+      {model.message && <p className="settings-success" role="status">{model.message}</p>}
+      {model.error && (
+        <div className="inline-error model-settings-error" role="alert">
+          <strong>{model.error.message}</strong>
+          <span>错误码：{model.error.code}</span>
+          <span>{model.error.guidance}</span>
+          <span>{model.phase === 'apply_recovered' ? '旧配置仍可用；本次候选已丢弃。' : model.phase === 'rollback_failed' ? '当前模型不可用，请进入恢复中心处理。' : '候选配置没有写入；当前 owner 状态未被覆盖。'}</span>
+          {model.error.code === 'MODEL_CONFIG_SCHEMA_UNSUPPORTED' && !recoveryArmed && (
+            <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(true)}>重置不可读配置</button>
+          )}
+          {recoveryArmed && (
+            <div role="dialog" aria-label="确认重置不可读配置" className="model-settings-confirm">
+              <p>这会写入停用 revision，不会启用外部环境中的 Key。</p>
+              <div>
+                <button type="button" className="button button--danger" onClick={() => clearSettings(true)}>确认重置并停用</button>
+                <button type="button" className="button button--secondary" onClick={() => setRecoveryArmed(false)}>取消</button>
+              </div>
+            </div>
+          )}
+          {model.phase === 'rollback_failed' && (
+            <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>打开恢复中心</button>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export default function Settings() {
+  const { user, logout, replaceSessionTokens } = useAuth()
+  const navigate = useNavigate()
+  const modelSectionRef = useRef(null)
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [clearing, setClearing] = useState(false)
+  const [sessions, setSessions] = useState({ status: 'loading', data: [], error: '' })
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
+  const [passwordState, setPasswordState] = useState({ status: 'idle', message: '' })
+  const [sessionAction, setSessionAction] = useState('')
+  const [accountRecovery, setAccountRecovery] = useState({ status: 'loading', data: null, error: '' })
+  const [accountRecoveryPassword, setAccountRecoveryPassword] = useState('')
+  const [accountRecoveryAction, setAccountRecoveryAction] = useState('idle')
+  const [issuedRecovery, setIssuedRecovery] = useState(null)
+  const [recoveryConfirmed, setRecoveryConfirmed] = useState(false)
+
+  const loadSessions = () => {
+    setSessions((current) => ({ ...current, status: 'loading', error: '' }))
+    return authApi.listSessions()
+      .then((data) => setSessions({ status: 'ready', data: data.sessions || [], error: '' }))
+      .catch(() => setSessions({ status: 'error', data: [], error: '无法读取会话，请稍后重试。' }))
+  }
+
+  const loadAccountRecoveryStatus = () => {
+    setAccountRecovery((current) => ({ ...current, status: 'loading', error: '' }))
+    return authApi.getRecoveryStatus()
+      .then((data) => setAccountRecovery({ status: 'ready', data, error: '' }))
+      .catch(() => setAccountRecovery({ status: 'error', data: null, error: '无法读取恢复套件状态，请稍后重试。' }))
+  }
+  const [exportScopes, setExportScopes] = useState({
+    PROFILE: true,
+    DOCUMENTS: true,
+    LEARNING_RECORDS: true,
+    MODEL_EXECUTION: true,
+  })
+  const [includeDocumentOriginals, setIncludeDocumentOriginals] = useState(false)
+  const [exportState, setExportState] = useState({ status: 'idle', message: '' })
+  const [recovery, setRecovery] = useState({ status: 'loading', data: null, message: '' })
+  const [recoveryAction, setRecoveryAction] = useState('')
+  const [saveExternalCopy, setSaveExternalCopy] = useState(false)
+  const [recoveryKey, setRecoveryKey] = useState('')
+  const [erasureScope, setErasureScope] = useState('LEARNING_RECORDS')
+  const [erasureTarget, setErasureTarget] = useState('')
+  const [erasurePreview, setErasurePreview] = useState(null)
+  const [erasureCommandKey, setErasureCommandKey] = useState('')
+  const [erasurePhrase, setErasurePhrase] = useState('')
+  const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
+
+  const refreshRecovery = () => dataControlApi.getDataControlStatus()
+    .then((data) => setRecovery({ status: 'ready', data, message: '' }))
+    .catch(() => setRecovery({ status: 'error', data: null, message: '无法读取本机恢复状态。' }))
 
   useEffect(() => {
     usersApi.getSystemConfig()
       .then((data) => setSystem({ status: 'ready', data, error: '' }))
       .catch(() => setSystem({ status: 'error', data: null, error: '后端服务不可用，无法读取实时运行状态。' }))
+    refreshRecovery()
+    return dataControlApi.onMaintenanceState?.((state) => {
+      if (state?.active) {
+        setRecovery((current) => ({ ...current, message: '正在执行离线数据维护…' }))
+      } else {
+        refreshRecovery()
+      }
+    })
   }, [])
+
+  useEffect(() => { loadSessions() }, [])
+  useEffect(() => { loadAccountRecoveryStatus() }, [])
+
+  const createIdempotencyKey = (prefix) => `${prefix}-${crypto.randomUUID()}`
+
+  const submitPassword = async (event) => {
+    event.preventDefault()
+    if (passwordState.status === 'loading') return
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordState({ status: 'error', message: '两次输入的新密码不一致。' })
+      return
+    }
+    const currentSession = sessions.data.find((session) => session.current)
+    if (!currentSession) {
+      setPasswordState({ status: 'error', message: '当前会话状态不可用，请刷新会话列表后重试。' })
+      return
+    }
+    setPasswordState({ status: 'loading', message: '正在安全修改密码…' })
+    try {
+      const result = await authApi.changePassword({
+        schema_version: '1.0',
+        current_password: passwordForm.current,
+        new_password: passwordForm.next,
+        idempotency_key: createIdempotencyKey('change-password'),
+        current_session_version: currentSession.version,
+      })
+      if (result.tokens) replaceSessionTokens(result.tokens)
+      setPasswordForm({ current: '', next: '', confirm: '' })
+      setPasswordState({
+        status: 'success',
+        message: `密码已修改；已撤销 ${result.revoked_other_sessions} 个其他会话，当前会话已轮换。`,
+      })
+      await loadSessions()
+    } catch (error) {
+      const code = error.response?.data?.error?.code
+      const messages = {
+        AUTH_CURRENT_PASSWORD_INVALID: '当前密码不正确，请重新输入。',
+        AUTH_PASSWORD_POLICY_REJECTED: '新密码需为 15～128 个字符，且不能与当前密码相同。',
+        CONCURRENT_VERSION_CONFLICT: '会话已变化，请刷新后重试。',
+      }
+      setPasswordState({ status: 'error', message: messages[code] || '密码修改失败，请稍后重试。' })
+      await loadSessions()
+    }
+  }
+
+  const revokeOne = async (sessionId) => {
+    if (sessionAction) return
+    setSessionAction(sessionId)
+    try {
+      await authApi.revokeSession(sessionId, createIdempotencyKey('revoke-session'))
+      await loadSessions()
+    } catch {
+      setSessions((current) => ({ ...current, error: '撤销失败，会话状态已重新读取。' }))
+      await loadSessions()
+    } finally {
+      setSessionAction('')
+    }
+  }
+
+  const revokeOthers = async () => {
+    if (sessionAction) return
+    setSessionAction('others')
+    try {
+      await authApi.revokeOtherSessions(createIdempotencyKey('revoke-others'))
+      await loadSessions()
+    } catch {
+      setSessions((current) => ({ ...current, error: '撤销其他会话失败，请稍后重试。' }))
+    } finally {
+      setSessionAction('')
+    }
+  }
+
+  const issueRecovery = async (event) => {
+    event.preventDefault()
+    if (accountRecoveryAction === 'loading') return
+    setAccountRecoveryAction('loading')
+    setAccountRecovery((current) => ({ ...current, error: '' }))
+    try {
+      const result = await authApi.issueRecoveryKit(
+        accountRecoveryPassword,
+        createIdempotencyKey('issue-recovery'),
+      )
+      if (!result.recovery_secret) {
+        setAccountRecovery((current) => ({ ...current, error: '本次请求未返回新套件，请重新发起轮换。' }))
+        return
+      }
+      setIssuedRecovery(result)
+      setRecoveryConfirmed(false)
+      setAccountRecoveryPassword('')
+      setAccountRecovery({
+        status: 'ready',
+        data: {
+          configured: true,
+          credential_version: result.credential_version,
+          created_at: result.created_at,
+        },
+        error: '',
+      })
+    } catch (error) {
+      const code = error.response?.data?.error?.code
+      const messages = {
+        AUTH_CURRENT_PASSWORD_INVALID: '当前密码不正确，请重新输入。',
+        AUTH_RECOVERY_RATE_LIMITED: '尝试次数过多，请稍后再试。',
+      }
+      const message = messages[code] || '恢复套件轮换失败，请稍后重试。'
+      await loadAccountRecoveryStatus()
+      setAccountRecovery((current) => ({
+        ...current,
+        error: message,
+      }))
+    } finally {
+      setAccountRecoveryAction('idle')
+    }
+  }
+
+  const dismissIssuedRecovery = () => {
+    if (!recoveryConfirmed) return
+    setIssuedRecovery(null)
+    setRecoveryConfirmed(false)
+  }
 
   const clearLocalSession = async () => {
     if (clearing) return
@@ -23,6 +604,156 @@ export default function Settings() {
     await logout()
     navigate('/login')
   }
+
+  const toggleExportScope = (scope) => {
+    setExportScopes((current) => ({ ...current, [scope]: !current[scope] }))
+    if (scope === 'DOCUMENTS' && exportScopes.DOCUMENTS) {
+      setIncludeDocumentOriginals(false)
+    }
+  }
+
+  const exportUserData = async () => {
+    if (exportState.status === 'working') return
+    const scopes = Object.entries(exportScopes)
+      .filter(([, enabled]) => enabled)
+      .map(([scope]) => scope)
+    if (scopes.length === 0) {
+      setExportState({ status: 'error', message: '至少选择一个导出范围。' })
+      return
+    }
+    setExportState({ status: 'working', message: '正在生成导出…' })
+    try {
+      const ready = await dataControlApi.createUserExport({
+        scopes,
+        includeDocumentOriginals,
+      })
+      await dataControlApi.downloadUserExport({
+        exportId: ready.export_id,
+        token: ready.download_token,
+      })
+      setExportState({ status: 'success', message: '导出已下载；服务端临时副本已失效。' })
+    } catch {
+      setExportState({ status: 'error', message: '导出失败或已过期，请重新创建。' })
+    }
+  }
+
+  const runRecoveryAction = async (name, action, successMessage) => {
+    if (recoveryAction) return
+    setRecoveryAction(name)
+    setRecovery((current) => ({ ...current, message: '正在执行离线数据维护…' }))
+    try {
+      await action()
+      await refreshRecovery()
+      setRecovery((current) => ({ ...current, message: successMessage }))
+    } catch {
+      setRecovery((current) => ({ ...current, message: '数据维护失败；当前数据未被声明为已恢复。' }))
+    } finally {
+      setRecoveryAction('')
+    }
+  }
+
+  const revealKey = async () => {
+    try {
+      const value = await dataControlApi.revealRecoveryKey()
+      if (value) setRecoveryKey(value)
+    } catch {
+      setRecovery((current) => ({ ...current, message: 'Recovery Key 无法显示。' }))
+    }
+  }
+
+  const previewErasure = async () => {
+    if (erasureState.status === 'working') return
+    if (erasureScope === 'DOCUMENT' && !erasureTarget.trim()) {
+      setErasureState({ status: 'error', message: '删除单份资料时必须填写资料 ID。', report: null })
+      return
+    }
+    setErasureState({ status: 'working', message: '正在计算实际影响…', report: null })
+    try {
+      const preview = await dataControlApi.createErasurePreview({
+        scope: erasureScope,
+        targetRef: erasureScope === 'DOCUMENT' ? erasureTarget.trim() : null,
+      })
+      setErasurePreview(preview)
+      setErasureCommandKey(
+        globalThis.crypto?.randomUUID?.()
+          || `erase-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      )
+      setErasurePhrase('')
+      setErasureState({ status: 'preview', message: '', report: null })
+    } catch {
+      setErasureState({ status: 'error', message: '无法创建删除预览；没有执行删除。', report: null })
+    }
+  }
+
+  const finishErasureBaseline = async (report, scope) => {
+    try {
+      const result = await dataControlApi.finalizeErasure({
+        workflowId: report.workflow_id,
+        checkpoint: report.checkpoint,
+        clearLocalSession: scope === 'ALL_PERSONAL_DATA',
+      })
+      if (result?.post_erasure_point?.status !== 'VERIFIED') throw new Error('baseline not verified')
+      setErasureState({
+        status: 'success',
+        message: '删除完成；删除后恢复基线已验证。',
+        report,
+      })
+      setErasurePreview(null)
+      setErasurePhrase('')
+      await refreshRecovery()
+      if (scope === 'ALL_PERSONAL_DATA') {
+        await logout()
+        navigate('/login')
+      }
+    } catch {
+      setErasureState({
+        status: 'partial',
+        message: '数据已删除，但恢复基线尚未完成；学习功能保持关闭，请重试。',
+        report,
+      })
+    }
+  }
+
+  const confirmErasure = async () => {
+    if (!erasurePreview || erasurePhrase !== erasurePreview.confirmation_phrase) return
+    setErasureState({ status: 'working', message: '正在删除并建立反复活检查点…', report: null })
+    try {
+      const report = await dataControlApi.confirmErasure({
+        previewId: erasurePreview.preview_id,
+        confirmationToken: erasurePreview.confirmation_token,
+        confirmationPhrase: erasurePhrase,
+        idempotencyKey: erasureCommandKey,
+      })
+      if (report.status !== 'AWAITING_RECOVERY_BASELINE') {
+        setErasureState({ status: 'error', message: '删除未完成；受影响范围仍被关闭。', report })
+        return
+      }
+      await finishErasureBaseline(report, erasurePreview.scope)
+    } catch {
+      try {
+        const recovered = await dataControlApi.resumePendingErasure()
+        if (recovered?.post_erasure_point?.status === 'VERIFIED') {
+          setErasurePreview(null)
+          setErasureState({
+            status: 'success',
+            message: '删除完成；删除后恢复基线已验证。',
+            report: null,
+          })
+          await refreshRecovery()
+          return
+        }
+      } catch {}
+      setErasureState({ status: 'error', message: '删除未完成；没有显示成功。', report: null })
+    }
+  }
+
+  const protectionLabel = {
+    READY: '已验证保护',
+    NOT_PROTECTED: '尚无已验证恢复点',
+    PARTIAL: '保护未完成',
+    ERROR: '保护异常',
+    UNSUPPORTED: '当前模式不支持',
+  }[recovery.data?.protection_state] || '正在读取'
 
   return (
     <div className="settings-page page-stack">
@@ -33,6 +764,16 @@ export default function Settings() {
       </header>
 
       <div className="settings-grid">
+        <section className="surface settings-section settings-section--wide settings-session">
+          <div>
+            <h2>错误恢复中心</h2>
+            <p>查看资料、模型、后台任务和本地数据的可恢复问题，以及每个动作的安全边界。</p>
+          </div>
+          <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>
+            <CircleAlert size={16} />
+            打开恢复中心
+          </button>
+        </section>
         <section className="surface settings-section">
           <div className="section-heading section-heading--compact">
             <div><h2>账号信息</h2></div>
@@ -44,6 +785,47 @@ export default function Settings() {
             <div><dt>账号状态</dt><dd>{user?.status === 'active' ? '正常' : (user?.status || '未知')}</dd></div>
             <div><dt>手机号</dt><dd>当前接口不返回明文</dd></div>
           </dl>
+        </section>
+
+        <section className="surface settings-section settings-section--wide">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <h2>恢复与备份</h2>
+              <p>恢复包经过加密与完整重开校验；可读数据导出不能用于恢复。</p>
+            </div>
+            <HardDrive size={18} />
+          </div>
+          {recovery.status === 'loading' && <p className="inline-state" role="status">正在读取保护状态…</p>}
+          {recovery.status === 'error' && <p className="inline-error" role="alert">{recovery.message}</p>}
+          {recovery.status === 'ready' && (
+            <>
+              <dl className="settings-list settings-recovery-status">
+                <div><dt>保护状态</dt><dd>{protectionLabel}</dd></div>
+                <div><dt>最近已验证恢复点</dt><dd>{recovery.data.last_verified ? new Date(recovery.data.last_verified.created_at).toLocaleString('zh-CN') : '无'}</dd></div>
+                <div><dt>删除检查点</dt><dd>{recovery.data.erasure_checkpoint}</dd></div>
+              </dl>
+              <label className="settings-inline-check">
+                <input type="checkbox" checked={saveExternalCopy} onChange={(event) => setSaveExternalCopy(event.target.checked)} />
+                同时保存一个经验证的外部副本（可防整盘故障）
+              </label>
+              <div className="settings-actions">
+                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('backup', () => dataControlApi.createVerifiedBackup({ saveExternalCopy }), '恢复点已创建并通过完整校验。')}>立即创建恢复点</button>
+                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('verify', dataControlApi.chooseAndVerifyBackup, '所选恢复点已通过完整校验。')}>校验恢复点</button>
+                <button type="button" className="button button--secondary" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('restore', dataControlApi.chooseAndRestoreBackup, '恢复完成，当前数据已通过启动检查。')}><RotateCcw size={16} />恢复数据</button>
+                <button type="button" className="button button--secondary" onClick={revealKey}>显示 Recovery Key</button>
+                {recovery.data.protection_state === 'PARTIAL' && (
+                  <button type="button" className="button button--danger" disabled={Boolean(recoveryAction)} onClick={() => runRecoveryAction('resume-erasure', dataControlApi.resumePendingErasure, '删除后恢复基线已补齐。')}>完成删除后恢复基线</button>
+                )}
+              </div>
+              {recoveryKey && (
+                <div className="settings-recovery-key" role="status">
+                  <code>{recoveryKey}</code>
+                  <button type="button" onClick={() => setRecoveryKey('')}>隐藏</button>
+                </div>
+              )}
+              {recovery.message && <p className="settings-success" role="status">{recovery.message}</p>}
+            </>
+          )}
         </section>
 
         <section className="surface settings-section">
@@ -58,9 +840,113 @@ export default function Settings() {
               <div><dt>运行模式</dt><dd>{system.data.mode === 'private' ? '私人使用' : '服务模式'}</dd></div>
               <div>
                 <dt>AI 模型</dt>
-                <dd>{system.data.llm_ready ? '已配置' : '未配置，将使用模拟回复'}</dd>
+                <dd>{system.data.llm_ready ? '已配置' : '未配置'}</dd>
               </div>
             </dl>
+          )}
+        </section>
+
+        <ModelSettingsPanel sectionRef={modelSectionRef} />
+
+        <section className="surface settings-section settings-section--wide settings-erasure">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <h2>永久删除数据</h2>
+              <p>先读取真实影响，再输入精确短语确认；完成前受影响功能保持关闭。</p>
+            </div>
+            <Trash2 size={18} />
+          </div>
+          <div className="settings-erasure-controls">
+            <label>
+              <span>删除范围</span>
+              <select aria-label="删除范围" value={erasureScope} onChange={(event) => {
+                setErasureScope(event.target.value)
+                setErasurePreview(null)
+                setErasureState({ status: 'idle', message: '', report: null })
+              }}>
+                <option value="DOCUMENT">单份资料</option>
+                <option value="LEARNING_RECORDS">学习记录</option>
+                <option value="MODEL_EXECUTION">模型执行记录</option>
+              </select>
+            </label>
+            {erasureScope === 'DOCUMENT' && (
+              <label>
+                <span>资料 ID</span>
+                <input aria-label="资料 ID" value={erasureTarget} onChange={(event) => setErasureTarget(event.target.value)} />
+              </label>
+            )}
+            <button type="button" className="button button--secondary" onClick={previewErasure} disabled={erasureState.status === 'working'}>预览删除影响</button>
+          </div>
+          {erasurePreview && (
+            <div className="settings-erasure-preview">
+              <p><strong>不可恢复操作</strong>：{erasurePreview.backup_impact}</p>
+              <ul>{erasurePreview.impacts.map((impact) => <li key={impact.owner_system}>{impact.owner_system}：{impact.estimated_records} 项</li>)}</ul>
+              <p>请输入：<code>{erasurePreview.confirmation_phrase}</code></p>
+              <label>
+                <span>输入确认短语</span>
+                <input aria-label="输入确认短语" value={erasurePhrase} onChange={(event) => setErasurePhrase(event.target.value)} autoComplete="off" />
+              </label>
+              <button type="button" className="button button--danger" onClick={confirmErasure} disabled={erasurePhrase !== erasurePreview.confirmation_phrase || erasureState.status === 'working'}>确认永久删除</button>
+            </div>
+          )}
+          {erasureState.status === 'partial' && erasureState.report && (
+            <button type="button" className="button button--danger" onClick={() => finishErasureBaseline(erasureState.report, erasureScope)}>重试完成恢复基线</button>
+          )}
+          {erasureState.message && <p className={erasureState.status === 'success' ? 'settings-success' : 'inline-error'} role={erasureState.status === 'success' ? 'status' : 'alert'}>{erasureState.message}</p>}
+          <p className="settings-help">删除全部个人数据与账号需要密码复验和 24 小时可取消等待期。</p>
+          <button type="button" className="button button--danger" onClick={() => navigate('/settings/delete-account')}>进入账号删除流程</button>
+        </section>
+
+        <section className="surface settings-section settings-section--wide">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <h2>导出我的数据</h2>
+              <p>生成一次性、15 分钟有效的可读 ZIP；它不是数据库恢复包。</p>
+            </div>
+            <Download size={18} />
+          </div>
+          <div className="settings-export-scopes">
+            {[
+              ['PROFILE', '账号与画像'],
+              ['DOCUMENTS', '资料元数据'],
+              ['LEARNING_RECORDS', '学习记录'],
+              ['MODEL_EXECUTION', '模型执行记录'],
+            ].map(([scope, label]) => (
+              <label key={scope}>
+                <input
+                  type="checkbox"
+                  checked={exportScopes[scope]}
+                  onChange={() => toggleExportScope(scope)}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+            <label>
+              <input
+                type="checkbox"
+                checked={includeDocumentOriginals}
+                disabled={!exportScopes.DOCUMENTS}
+                onChange={(event) => setIncludeDocumentOriginals(event.target.checked)}
+              />
+              <span>包含资料原件</span>
+            </label>
+          </div>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={exportUserData}
+            disabled={exportState.status === 'working' || !Object.values(exportScopes).some(Boolean)}
+          >
+            <Download size={16} />
+            {exportState.status === 'working' ? '正在生成…' : '创建并下载导出'}
+          </button>
+          {exportState.message && (
+            <p
+              className={exportState.status === 'error' ? 'inline-error' : 'settings-success'}
+              role={exportState.status === 'error' ? 'alert' : 'status'}
+            >
+              {exportState.message}
+            </p>
           )}
         </section>
 
@@ -76,15 +962,109 @@ export default function Settings() {
           </div>
         </section>
 
+        <section className="surface settings-section settings-section--wide" aria-labelledby="password-heading">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <p className="eyebrow">账号安全</p>
+              <h2 id="password-heading">修改密码</h2>
+            </div>
+            <KeyRound size={18} />
+          </div>
+          <form className="settings-form" onSubmit={submitPassword}>
+            <label>当前密码<input type="password" autoComplete="current-password" value={passwordForm.current} onChange={(event) => setPasswordForm({ ...passwordForm, current: event.target.value })} required /></label>
+            <label>新密码<input type="password" autoComplete="new-password" minLength={15} maxLength={128} value={passwordForm.next} onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })} required aria-describedby="password-help" /></label>
+            <label>确认新密码<input type="password" autoComplete="new-password" minLength={15} maxLength={128} value={passwordForm.confirm} onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })} required /></label>
+            <p id="password-help" className="settings-help">15～128 个字符；允许空格和 Unicode，不要求机械组合字符。</p>
+            <button type="submit" className="button button--primary" disabled={passwordState.status === 'loading'}>{passwordState.status === 'loading' ? '正在修改…' : '修改密码并轮换会话'}</button>
+          </form>
+          {passwordState.message && <p className={passwordState.status === 'error' ? 'inline-error' : 'inline-success'} role={passwordState.status === 'error' ? 'alert' : 'status'}>{passwordState.message}</p>}
+        </section>
+
+        <section className="surface settings-section settings-section--wide" aria-labelledby="sessions-heading">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <p className="eyebrow">设备与会话</p>
+              <h2 id="sessions-heading">Askora App 实例</h2>
+              <p className="settings-help">名称只用于识别登录实例，不代表可信硬件身份。</p>
+            </div>
+            <Laptop size={18} />
+          </div>
+          {sessions.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取会话…</div>}
+          {sessions.status === 'error' && <p className="inline-error" role="alert">{sessions.error}</p>}
+          {sessions.status === 'ready' && (
+            <div className="session-list">
+              {sessions.data.map((session) => (
+                <article className="session-item" key={session.session_id}>
+                  <div>
+                    <strong>{session.client_label}{session.current ? '（当前）' : ''}</strong>
+                    <small>最近活动：{new Date(session.last_seen_at).toLocaleString('zh-CN')}</small>
+                    {session.revoked && <span className="status-chip">已撤销</span>}
+                  </div>
+                  {!session.current && !session.revoked && <button type="button" className="button button--secondary" onClick={() => revokeOne(session.session_id)} disabled={Boolean(sessionAction)}>{sessionAction === session.session_id ? '正在撤销…' : '撤销'}</button>}
+                </article>
+              ))}
+              <button type="button" className="button button--secondary" onClick={revokeOthers} disabled={Boolean(sessionAction)}>{sessionAction === 'others' ? '正在撤销…' : '撤销其他所有会话'}</button>
+            </div>
+          )}
+        </section>
+
+        <section className="surface settings-section settings-section--wide" aria-labelledby="recovery-heading">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <p className="eyebrow">离线恢复</p>
+              <h2 id="recovery-heading">恢复套件</h2>
+              <p className="settings-help">套件可在忘记密码时离线恢复账号；每次轮换都会立即废止旧套件。</p>
+            </div>
+            <KeyRound size={18} />
+          </div>
+          {accountRecovery.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取恢复状态…</div>}
+          {accountRecovery.status === 'ready' && (
+            <p className="recovery-status">
+              {accountRecovery.data?.configured
+                ? `当前套件版本 ${accountRecovery.data.credential_version}`
+                : '尚未创建恢复套件'}
+            </p>
+          )}
+          {!issuedRecovery && (
+            <form className="settings-form settings-form--recovery" onSubmit={issueRecovery}>
+              <label>
+                验证当前密码以轮换恢复套件
+                <input type="password" autoComplete="current-password" value={accountRecoveryPassword} onChange={(event) => setAccountRecoveryPassword(event.target.value)} required />
+              </label>
+              <button type="submit" className="button button--secondary" disabled={accountRecoveryAction === 'loading'}>
+                {accountRecoveryAction === 'loading' ? '正在轮换…' : accountRecovery.data?.configured ? '轮换恢复套件' : '创建恢复套件'}
+              </button>
+            </form>
+          )}
+          {issuedRecovery && (
+            <div className="recovery-kit-panel" role="status">
+              <strong>新的恢复套件只显示这一次</strong>
+              <p>{issuedRecovery.storage_warning}</p>
+              <output className="recovery-kit-output" aria-label="新的离线恢复套件">{issuedRecovery.recovery_secret}</output>
+              <small>版本 {issuedRecovery.credential_version}</small>
+              <label className="recovery-kit-confirm">
+                <input type="checkbox" checked={recoveryConfirmed} onChange={(event) => setRecoveryConfirmed(event.target.checked)} />
+                我已将新套件保存在离线安全位置
+              </label>
+              <button type="button" className="button button--primary" disabled={!recoveryConfirmed} onClick={dismissIssuedRecovery}>确认保存并关闭</button>
+            </div>
+          )}
+          {accountRecovery.error && <p className="inline-error" role="alert">{accountRecovery.error}</p>}
+        </section>
+
         <section className="surface settings-section settings-section--wide settings-session">
           <div>
-            <h2>本地会话</h2>
-            <p>退出只清除当前设备的令牌和用户缓存，不会删除服务端学习数据。</p>
+            <h2>退出当前会话</h2>
+            <p>退出会撤销服务端当前会话并清除本地令牌，不会删除学习数据。</p>
           </div>
           <button type="button" className="button button--danger" onClick={clearLocalSession} disabled={clearing}>
             <LogOut size={16} />
-            {clearing ? '正在退出…' : '退出并清除本地登录信息'}
+            {clearing ? '正在退出…' : '退出当前会话'}
           </button>
+        </section>
+        <section className="surface settings-section settings-section--wide settings-danger" aria-labelledby="danger-heading">
+          <div><p className="eyebrow">危险操作</p><h2 id="danger-heading">删除账号</h2><p>永久删除学习数据、文件、会话和身份信息；先生成可核对的删除清单。</p></div>
+          <button type="button" className="button button--danger" onClick={() => navigate('/settings/delete-account')}>查看删除范围</button>
         </section>
       </div>
     </div>

@@ -36,6 +36,9 @@ Askora 当前是私人本地应用。UI MUST 清晰呈现本地运行/外部模�
 | 6 | 历史记录 | 会话、活动和结果的历史入口 | `/history` |
 | 7 | 设置 | 账号、运行模式、模型配置事实、退出 | `/settings` |
 
+`错误恢复中心` 是设置中的 station，不新增常驻一级导航。AppShell 只在存在 active/waiting issue
+时显示紧凑全局指示器；指示器只导航，不直接执行恢复动作。
+
 ### UI-IA-010 — Navigation Vocabulary
 
 一级导航标签使用 2～4 个中文字符，禁止使用内部系统编号、算法名或 `SYS03/SYS05` 等工程术语作为主导航。
@@ -70,10 +73,14 @@ Askora 当前是私人本地应用。UI MUST 清晰呈现本地运行/外部模�
 | `/evidence` | 学习证据 | Standard + Inspector |
 | `/history` | 历史记录 | Standard |
 | `/settings` | 设置 | Standard |
+| `/settings/recovery` | 错误恢复中心 | Standard |
 | `/learn/:activityId` | 导师工作台 | Workspace |
 | `/quick/:sessionId` | 兼容快速学习工作台 | Workspace + Compatibility Label |
 | `/focus/:activityId` | 沉浸学习 | Focus |
 | `/login` | 登录 / 注册 | Auth |
+
+后端无法 ready 时，Electron MUST 在 protected router 之外显示 bootstrap recovery shell。登录页、
+今天页或设置页都依赖后端，因此不能作为唯一启动恢复入口。
 
 ### UI-IA-021 — Legacy Route Migration
 

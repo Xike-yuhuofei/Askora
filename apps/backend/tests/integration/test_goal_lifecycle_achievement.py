@@ -135,7 +135,9 @@ async def _zero_delay_policy(service, now):
         policy_id=policy_id,
         policy_version=1,
         name="test zero-delay policy",
-        delay_seconds={process: 0 for process in ("recall", "understand", "explain", "apply", "transfer")},
+        delay_seconds={
+            process: 0 for process in ("recall", "understand", "explain", "apply", "transfer")
+        },
         minimum_score=0.8,
         minimum_assessment_confidence=0.75,
         maximum_grader_disagreement=0.15,
@@ -317,7 +319,9 @@ async def test_resume_with_expired_source_stays_paused_and_requires_replan(tmp_p
 
 
 @pytest.mark.asyncio
-async def test_four_criteria_double_grading_and_user_confirmed_achievement(tmp_path, monkeypatch) -> None:
+async def test_four_criteria_double_grading_and_user_confirmed_achievement(
+    tmp_path, monkeypatch
+) -> None:
     engine, factory = await _db(tmp_path)
     async with factory() as session:
         user, service, goal_id, now = await _active_goal(session, tmp_path)
@@ -334,9 +338,17 @@ async def test_four_criteria_double_grading_and_user_confirmed_achievement(tmp_p
             now=now,
         )
         assert {item.cognitive_process for item in workspace.assessments} == {
-            "recall", "understand", "apply", "transfer"
+            "recall",
+            "understand",
+            "apply",
+            "transfer",
         }
-        assert next(item for item in workspace.assessments if item.cognitive_process == "recall").scoring_method == "structured"
+        assert (
+            next(
+                item for item in workspace.assessments if item.cognitive_process == "recall"
+            ).scoring_method
+            == "structured"
+        )
 
         grade = {
             "score": 0.92,
@@ -350,7 +362,11 @@ async def test_four_criteria_double_grading_and_user_confirmed_achievement(tmp_p
             "app.services.assessment.goal_achievement.get_model_router", lambda: _Router(provider)
         )
         for item in workspace.assessments:
-            response = "热力学第二定律" if item.cognitive_process == "recall" else "熵不会减少，并可用于分析不同温差下的热机效率。"
+            response = (
+                "热力学第二定律"
+                if item.cognitive_process == "recall"
+                else "熵不会减少，并可用于分析不同温差下的热机效率。"
+            )
             scored = await service.submit_goal_assessment(
                 user=user,
                 goal_id=goal_id,
@@ -418,7 +434,9 @@ async def test_open_grader_failures_do_not_create_learner_failure(
             correlation_id=uuid4(),
             now=now,
         )
-        item = next(value for value in workspace.assessments if value.cognitive_process == "understand")
+        item = next(
+            value for value in workspace.assessments if value.cognitive_process == "understand"
+        )
         grade = {
             "score": 0.9,
             "confidence": 0.2,

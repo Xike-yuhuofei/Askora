@@ -109,9 +109,7 @@ class ActivityLifecycleService:
         now: datetime | None = None,
     ) -> ActivityLifecycleResponseV1:
         owner_id = canonical_user_id(user.id)
-        digest = self._digest(
-            {"command": "SelectNextLearningActivity", "goal_id": str(goal_id)}
-        )
+        digest = self._digest({"command": "SelectNextLearningActivity", "goal_id": str(goal_id)})
         replay = await self._replay(
             user_id=owner_id, idempotency_key=idempotency_key, digest=digest
         )
@@ -136,9 +134,7 @@ class ActivityLifecycleService:
             update={"status": plan_record.status}
         )
         definitions = await self._ordered_definitions(plan)
-        states = await self._states.latest_for_plan(
-            plan_id=plan.plan_id, plan_version=plan.version
-        )
+        states = await self._states.latest_for_plan(plan_id=plan.plan_id, plan_version=plan.version)
         if len(states) != len(definitions):
             raise _error(
                 "LEGACY_ACTIVITY_STATE_UNMIGRATED",
@@ -202,9 +198,7 @@ class ActivityLifecycleService:
         return await self._replay(
             user_id=canonical_user_id(user.id),
             idempotency_key=idempotency_key,
-            digest=self._digest(
-                {"command": "SelectNextLearningActivity", "goal_id": str(goal_id)}
-            ),
+            digest=self._digest({"command": "SelectNextLearningActivity", "goal_id": str(goal_id)}),
         )
 
     async def _require_goal_active(self, *, user: User, goal_id: UUID) -> None:
@@ -590,20 +584,14 @@ class ActivityLifecycleService:
         refs: tuple[VersionedRef, ...],
     ) -> None:
         if not refs:
-            raise _error(
-                "ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "至少需要一条已接纳学习记录"
-            )
+            raise _error("ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "至少需要一条已接纳学习记录")
         for ref in refs:
             if ref.entity_type != "BookLearningTranscriptTurn":
-                raise _error(
-                    "ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "学习记录引用类型无效"
-                )
+                raise _error("ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "学习记录引用类型无效")
             try:
                 turn_number = int(ref.version)
             except (TypeError, ValueError):
-                raise _error(
-                    "ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "学习记录版本无效"
-                ) from None
+                raise _error("ACTIVITY_COMPLETION_EVIDENCE_REQUIRED", "学习记录版本无效") from None
             record = await self._session.scalar(
                 select(BookLearningTranscriptTurnRecord).where(
                     BookLearningTranscriptTurnRecord.user_id == str(user_id),
@@ -656,9 +644,7 @@ class ActivityLifecycleService:
                 "new_status": state.status,
                 "lifecycle_version": state.version,
                 "reason": state.transition_reason,
-                "source_refs": [
-                    item.model_dump(mode="json") for item in state.source_refs
-                ],
+                "source_refs": [item.model_dump(mode="json") for item in state.source_refs],
             },
             provenance=EventProvenance(source="domain", algorithm_version="sys06-activity-v1"),
             trace=EventTrace(trace_id=f"activity-lifecycle:{state.correlation_id}"),
@@ -680,9 +666,7 @@ class ActivityLifecycleService:
     async def _replay(
         self, *, user_id: UUID, idempotency_key: str, digest: str
     ) -> ActivityLifecycleResponseV1 | None:
-        receipt = await self._states.get_receipt(
-            user_id=user_id, idempotency_key=idempotency_key
-        )
+        receipt = await self._states.get_receipt(user_id=user_id, idempotency_key=idempotency_key)
         if receipt is None:
             return None
         if receipt.command_digest != digest:

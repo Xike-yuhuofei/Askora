@@ -1,7 +1,7 @@
 # Askora Code Wiki
 
-> 生成时间：2026-08-08  
-> 版本：v0.3 Adaptive Teaching Loop  
+> 生成时间：2026-08-08
+> 版本：v0.3 Adaptive Teaching Loop
 > 项目性质：私人自用、本地优先的 AI 学习应用
 
 ---
@@ -246,7 +246,7 @@ apps/backend/app/
 
 ### 4.2 核心配置
 
-**文件**: [config.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/core/config.py)
+**文件**: [config.py](../apps/backend/app/core/config.py)
 
 `Settings` 类基于 `pydantic-settings`，从 `.env` 文件加载配置：
 
@@ -268,7 +268,7 @@ apps/backend/app/
 
 ### 4.3 公共合同层 (Contracts)
 
-**目录**: [contracts/](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/contracts/)
+**目录**: [contracts/](../apps/backend/app/contracts/)
 
 Contracts 是跨八大系统共享的唯一公共合同入口，所有系统间通信通过这里定义的类型进行：
 
@@ -289,7 +289,7 @@ Contracts 是跨八大系统共享的唯一公共合同入口，所有系统间�
 
 #### SYS05 - 教学策略 (teaching_policy)
 
-**核心文件**: [kernel.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/domains/teaching_policy/kernel.py)
+**核心文件**: [kernel.py](../apps/backend/app/domains/teaching_policy/kernel.py)
 
 **`TeachingPolicyKernel`** — B3 确定性单决策内核
 
@@ -368,7 +368,7 @@ validate_policy_input 输入校验
 
 #### LearningOrchestrationFacade
 
-**文件**: [learning_facade.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/orchestration/learning_facade.py)
+**文件**: [learning_facade.py](../apps/backend/app/orchestration/learning_facade.py)
 
 这是整个应用的生产入口，所有普通和流式传输都通过它执行：
 
@@ -392,7 +392,7 @@ class LearningOrchestrationFacade:
 
 #### AdaptiveExecutionService
 
-**文件**: [adaptive_execution.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/orchestration/adaptive_execution.py)
+**文件**: [adaptive_execution.py](../apps/backend/app/orchestration/adaptive_execution.py)
 
 v0.3 自适应执行服务，负责：
 - 调用 LLM 生成教学内容
@@ -404,7 +404,7 @@ v0.3 自适应执行服务，负责：
 
 #### TEI (Teaching Engine Interface)
 
-**基类**: [base.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/engines/base.py)
+**基类**: [base.py](../apps/backend/app/engines/base.py)
 
 所有教学引擎必须实现 TEI 接口的四个方法：
 
@@ -418,7 +418,7 @@ v0.3 自适应执行服务，负责：
 
 #### LearningFlowOrchestrator
 
-**文件**: [orchestrator.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/engines/orchestrator.py)
+**文件**: [orchestrator.py](../apps/backend/app/engines/orchestrator.py)
 
 教学引擎编排器，核心调度层：
 
@@ -438,7 +438,7 @@ class LearningFlowOrchestrator:
 
 #### 引擎注册表
 
-**文件**: [_registry.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/engines/_registry.py)
+**文件**: [_registry.py](../apps/backend/app/engines/_registry.py)
 
 使用 `@register_engine` 装饰器自动注册引擎：
 
@@ -485,7 +485,7 @@ class SharedContext:
 
 #### DialogService
 
-**文件**: [dialog_service.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/services/dialog/dialog_service.py)
+**文件**: [dialog_service.py](../apps/backend/app/services/dialog/dialog_service.py)
 
 对话传输适配器，连接 API 层与 `LearningOrchestrationFacade`：
 
@@ -502,7 +502,7 @@ class DialogService:
 
 #### ModelRouter
 
-**文件**: [model_router.py](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/services/llm/model_router.py)
+**文件**: [model_router.py](../apps/backend/app/services/llm/model_router.py)
 
 多模型供应商路由层：
 
@@ -532,7 +532,7 @@ class DialogService:
 
 ### 4.8 数据模型层 (Models)
 
-**目录**: [models/](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/models/)
+**目录**: [models/](../apps/backend/app/models/)
 
 核心 ORM 模型：
 
@@ -550,7 +550,7 @@ class DialogService:
 
 ### 4.9 API 层
 
-**目录**: [api/v1/](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/api/v1/)
+**目录**: [api/v1/](../apps/backend/app/api/v1/)
 
 #### API 路由表
 
@@ -583,7 +583,7 @@ class DialogService:
 
 ### 4.10 基础设施层 (Infrastructure)
 
-**目录**: [infrastructure/](file:///Users/xike/Documents/Docs/Askora/apps/backend/app/infrastructure/)
+**目录**: [infrastructure/](../apps/backend/app/infrastructure/)
 
 | 文件 | 功能 |
 |------|------|
@@ -675,7 +675,7 @@ apps/frontend/
 
 #### AppShell
 
-**文件**: [AppShell.jsx](file:///Users/xike/Documents/Docs/Askora/apps/frontend/src/components/AppShell.jsx)
+**文件**: [AppShell.jsx](../apps/frontend/src/components/AppShell.jsx)
 
 应用外壳布局，提供两种变体：
 - `standard` — 标准页面布局（带侧边栏）
@@ -683,7 +683,7 @@ apps/frontend/
 
 #### RichMessage
 
-**文件**: [RichMessage.jsx](file:///Users/xike/Documents/Docs/Askora/apps/frontend/src/components/messages/RichMessage.jsx)
+**文件**: [RichMessage.jsx](../apps/frontend/src/components/messages/RichMessage.jsx)
 
 富文本消息渲染组件，支持：
 - Markdown 渲染
@@ -693,13 +693,13 @@ apps/frontend/
 
 #### Sidebar
 
-**文件**: [Sidebar.jsx](file:///Users/xike/Documents/Docs/Askora/apps/frontend/src/components/Sidebar.jsx)
+**文件**: [Sidebar.jsx](../apps/frontend/src/components/Sidebar.jsx)
 
 侧边导航栏，提供页面导航入口。
 
 ### 5.4 路由系统
 
-**文件**: [router.jsx](file:///Users/xike/Documents/Docs/Askora/apps/frontend/src/router.jsx)
+**文件**: [router.jsx](../apps/frontend/src/router.jsx)
 
 基于 Hash 的自定义路由系统：
 
@@ -726,7 +726,7 @@ NavLink            // 导航链接组件
 
 ### 5.5 API 客户端
 
-**文件**: [client.js](file:///Users/xike/Documents/Docs/Askora/apps/frontend/src/api/client.js)
+**文件**: [client.js](../apps/frontend/src/api/client.js)
 
 基于 Axios 的 API 客户端：
 
@@ -762,7 +762,7 @@ api.interceptors.response.use(null, async (error) => { ... })
 
 ### 5.6 Electron 桌面壳
 
-**文件**: [main.cjs](file:///Users/xike/Documents/Docs/Askora/apps/frontend/electron/main.cjs)
+**文件**: [main.cjs](../apps/frontend/electron/main.cjs)
 
 macOS 桌面壳，核心功能：
 - 内嵌 Python 后端（PyInstaller 打包）

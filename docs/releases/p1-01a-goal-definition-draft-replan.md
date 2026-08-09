@@ -1,7 +1,7 @@
 # P1-01A Goal Definition, Draft and Safe Replan Completion Report
 
 > Date: 2026-08-09
-> Scope: EXEC-037
+> Scope: EXEC-038
 > Governing: ADR-0010, SYS06 Goal Management, P1-01A Vertical Slice
 
 ## 1. Final gate

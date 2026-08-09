@@ -1,10 +1,10 @@
 # ADR-0009 — Local-first Identity and Privacy Lifecycle
 
-Status: accepted  
-Date: 2026-08-09  
-Decision owner: Codex under the user's explicit authorization to close P1-05 and pass the related tests  
-Decision authority: user-delegated Codex  
-Authorized objective: 真正关闭 `docs/product-gap-register-p1-p2.md` 的 P1-05 账号生命周期  
+Status: accepted
+Date: 2026-08-09
+Decision owner: Codex under the user's explicit authorization to close P1-05 and pass the related tests
+Decision authority: user-delegated Codex
+Authorized objective: 真正关闭 `docs/product-gap-register-p1-p2.md` 的 P1-05 账号生命周期
 Affected specs: `docs/specs/platform/identity-privacy-lifecycle.md`, `docs/specs/interfaces/api-contract.md`, `docs/specs/interfaces/error-contract.md`, `docs/specs/interfaces/persistence-contract.md`, `docs/specs/quality/security-standard.md`, `docs/specs/ui/screen-contracts.md`, `docs/specs/vertical-slices/p1-05-account-lifecycle.md`
 
 ## Context

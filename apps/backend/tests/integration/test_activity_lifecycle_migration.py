@@ -149,9 +149,7 @@ async def test_exec030_backfill_uses_accepted_owner_transcript_without_completio
                     LearningActivityStateRecord.status,
                     LearningActivityStateRecord.transition_reason,
                     LearningActivityStateRecord.completed_at,
-                ).where(
-                    LearningActivityStateRecord.activity_id == str(activity_id)
-                )
+                ).where(LearningActivityStateRecord.activity_id == str(activity_id))
             )
         ).one()
         assert row.status == "active"

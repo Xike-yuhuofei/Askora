@@ -148,9 +148,7 @@ class GoalManagementService:
         return draft
 
     async def get_draft(self, *, user: User, draft_id: UUID) -> LearningGoalDraftV1:
-        draft = await self.repo.latest_draft(
-            draft_id=draft_id, user_id=canonical_user_id(user.id)
-        )
+        draft = await self.repo.latest_draft(draft_id=draft_id, user_id=canonical_user_id(user.id))
         if draft is None:
             raise ResourceNotFoundError("目标草稿")
         return draft
@@ -204,9 +202,7 @@ class GoalManagementService:
             deadline_at=definition.deadline_at,
             weekly_time_budget_minutes=definition.weekly_time_budget_minutes,
             success_criteria=tuple(
-                SuccessCriterionInputV1.model_validate(
-                    item.model_dump(exclude={"target_refs"})
-                )
+                SuccessCriterionInputV1.model_validate(item.model_dump(exclude={"target_refs"}))
                 for item in definition.success_criteria
             ),
             source_document_ids=definition.source_document_ids,
@@ -248,11 +244,26 @@ class GoalManagementService:
         *, topic: str, cognitive_processes: tuple[CognitiveProcess, ...]
     ) -> SuggestSuccessCriteriaResponseV1:
         templates = {
-            "recall": ("不查看资料，独立回忆并准确列出 {topic} 的关键要点", ("delayed_independent_recall",)),
-            "understand": ("不查看资料，独立解释 {topic} 并说明关键关系", ("independent_explanation", "delayed_independent")),
-            "explain": ("面向未学习者独立解释 {topic}，并回应一个追问", ("independent_explanation", "delayed_independent")),
-            "apply": ("独立运用 {topic} 解决一个未见过的具体问题", ("independent_application", "novel_context")),
-            "transfer": ("在足够新颖的情境中独立迁移运用 {topic}", ("independent_transfer", "novel_context")),
+            "recall": (
+                "不查看资料，独立回忆并准确列出 {topic} 的关键要点",
+                ("delayed_independent_recall",),
+            ),
+            "understand": (
+                "不查看资料，独立解释 {topic} 并说明关键关系",
+                ("independent_explanation", "delayed_independent"),
+            ),
+            "explain": (
+                "面向未学习者独立解释 {topic}，并回应一个追问",
+                ("independent_explanation", "delayed_independent"),
+            ),
+            "apply": (
+                "独立运用 {topic} 解决一个未见过的具体问题",
+                ("independent_application", "novel_context"),
+            ),
+            "transfer": (
+                "在足够新颖的情境中独立迁移运用 {topic}",
+                ("independent_transfer", "novel_context"),
+            ),
         }
         criteria: list[SuccessCriterionInputV1] = []
         for process in cognitive_processes:
@@ -294,7 +305,9 @@ class GoalManagementService:
             raise _error("GOAL_VERSION_CONFLICT", "目标草稿已结束")
         fields = command.model_fields_set - {"expected_draft_version", "idempotency_key"}
         updates: dict[str, object] = {
-            field: getattr(command, field) for field in fields if getattr(command, field) is not None
+            field: getattr(command, field)
+            for field in fields
+            if getattr(command, field) is not None
         }
         for nullable in ("application_context", "deadline_at", "weekly_time_budget_minutes"):
             if nullable in fields:
@@ -330,9 +343,7 @@ class GoalManagementService:
         )
         return updated
 
-    async def suggest_targets(
-        self, *, user: User, draft_id: UUID
-    ) -> tuple[GoalTargetCardV1, ...]:
+    async def suggest_targets(self, *, user: User, draft_id: UUID) -> tuple[GoalTargetCardV1, ...]:
         draft = await self.get_draft(user=user, draft_id=draft_id)
         scope = await self.knowledge.load_scope(
             user=user, source_document_ids=draft.source_document_ids
@@ -442,7 +453,9 @@ class GoalManagementService:
             input_refs=tuple(input_refs),
             field_diffs=diffs,
             sources=source_views,
-            target_cards=tuple(item for item in cards if item.target_id in draft.selected_target_ids),
+            target_cards=tuple(
+                item for item in cards if item.target_id in draft.selected_target_ids
+            ),
             selected_target_ids=draft.selected_target_ids,
             plan_impact={
                 "creates_new_mapping": True,
@@ -785,7 +798,9 @@ class GoalManagementService:
         objectives: list[LearningObjectiveV1] = []
         assessments: list[GoalAssessmentActivityV1] = []
         for criterion in definition.success_criteria:
-            objective_id = uuid5(goal_id, f"objective:{definition.definition_version}:{criterion.criterion_id}")
+            objective_id = uuid5(
+                goal_id, f"objective:{definition.definition_version}:{criterion.criterion_id}"
+            )
             objective = LearningObjectiveV1(
                 objective_id=objective_id,
                 objective_version=1,
@@ -886,7 +901,11 @@ class GoalManagementService:
     ) -> GoalAssessmentActivityV1:
         owner_id = canonical_user_id(user.id)
         digest = _digest(
-            {"goal_id": str(goal_id), "activity_id": str(activity_id), **command.model_dump(mode="json")}
+            {
+                "goal_id": str(goal_id),
+                "activity_id": str(activity_id),
+                **command.model_dump(mode="json"),
+            }
         )
         replay = await self.repo.replay(
             user_id=owner_id,
@@ -936,7 +955,9 @@ class GoalManagementService:
         evidence_ref = None
         result_ref = None
         if outcome.result is not None:
-            result_ref = _ref("AssessmentResult", outcome.result.result_id, outcome.result.result_version)
+            result_ref = _ref(
+                "AssessmentResult", outcome.result.result_id, outcome.result.result_version
+            )
             if outcome.result.reviewer_result == "accepted":
                 objectives = await self.repo.list_objectives(
                     goal_id=goal_id,
@@ -960,7 +981,11 @@ class GoalManagementService:
                     "apply": "routine_application",
                     "transfer": "transfer",
                 }[activity.cognitive_process]
-                novelty = "far_variant" if activity.cognitive_process in {"apply", "transfer"} else "near_variant"
+                novelty = (
+                    "far_variant"
+                    if activity.cognitive_process in {"apply", "transfer"}
+                    else "near_variant"
+                )
                 await CanonicalLearnerProjectorService(self.session).project_assessment(
                     result=outcome.result,
                     attempt=outcome.attempt,
@@ -1038,7 +1063,9 @@ class GoalManagementService:
         criterion_evaluations: list[GoalCriterionEvaluationV1] = []
         obligations: list[VersionedRef] = []
         for criterion in definition.success_criteria:
-            candidates = [item for item in assessments if item.criterion_id == criterion.criterion_id]
+            candidates = [
+                item for item in assessments if item.criterion_id == criterion.criterion_id
+            ]
             accepted_refs = []
             evidence_refs = []
             satisfied = False
@@ -1061,7 +1088,9 @@ class GoalManagementService:
                     evidence_refs.append(item.evidence_ref)
             if not satisfied:
                 obligations.extend(
-                    _ref("GoalAssessmentActivity", item.assessment_activity_id, item.activity_version)
+                    _ref(
+                        "GoalAssessmentActivity", item.assessment_activity_id, item.activity_version
+                    )
                     for item in candidates
                     if item.status != "accepted"
                 )
@@ -1072,9 +1101,11 @@ class GoalManagementService:
                     assessment_result_refs=tuple(accepted_refs),
                     learner_evidence_refs=tuple(evidence_refs),
                     reason_codes=(
-                        "GOAL_CRITERION_EVIDENCE_ACCEPTED"
-                        if satisfied
-                        else "GOAL_CRITERION_EVIDENCE_MISSING",
+                        (
+                            "GOAL_CRITERION_EVIDENCE_ACCEPTED"
+                            if satisfied
+                            else "GOAL_CRITERION_EVIDENCE_MISSING"
+                        ),
                     ),
                 )
             )
@@ -1111,11 +1142,13 @@ class GoalManagementService:
                 and not misconception_refs
             ),
             reason_codes=(
-                "GOAL_ACHIEVEMENT_ELIGIBLE"
-                if all(item.satisfied for item in criterion_evaluations)
-                and not obligations
-                and not misconception_refs
-                else "GOAL_EVIDENCE_INSUFFICIENT",
+                (
+                    "GOAL_ACHIEVEMENT_ELIGIBLE"
+                    if all(item.satisfied for item in criterion_evaluations)
+                    and not obligations
+                    and not misconception_refs
+                    else "GOAL_EVIDENCE_INSUFFICIENT"
+                ),
             ),
             created_at=now,
         )
@@ -1193,7 +1226,11 @@ class GoalManagementService:
     ) -> GoalLifecycleResultV1:
         owner_id = canonical_user_id(user.id)
         digest = _digest(
-            {"goal_id": str(goal_id), "target_status": target_status, **command.model_dump(mode="json")}
+            {
+                "goal_id": str(goal_id),
+                "target_status": target_status,
+                **command.model_dump(mode="json"),
+            }
         )
         replay = await self.repo.replay(
             user_id=owner_id,
@@ -1244,7 +1281,9 @@ class GoalManagementService:
             )
             await self.repo.save_plan_state(next_plan_state)
         if target_status in {"paused", "archived", "achieved"}:
-            await self._clear_focus(owner_id=owner_id, goal_id=goal_id, correlation_id=correlation_id, now=now)
+            await self._clear_focus(
+                owner_id=owner_id, goal_id=goal_id, correlation_id=correlation_id, now=now
+            )
         result = GoalLifecycleResultV1(
             state=next_state,
             plan_state=next_plan_state,
@@ -1521,9 +1560,7 @@ class GoalManagementService:
             created_at=now,
             reason_codes=["GOAL_DEFINITION_APPLIED"],
         )
-        plan = await self.plans.save(
-            decision, idempotency_key=f"goal-v2-plan:{idempotency_key}"
-        )
+        plan = await self.plans.save(decision, idempotency_key=f"goal-v2-plan:{idempotency_key}")
         activity_response = await ActivityLifecycleService(self.session).select_next(
             user=user,
             goal_id=draft.goal_id,
@@ -1696,9 +1733,7 @@ class GoalManagementService:
             plan_id=UUID(plan_record.plan_id), plan_version=plan_record.version
         )
         active = next((item for item in states.values() if item.status == "active"), None)
-        return (
-            _ref("LearningActivityState", active.activity_id, active.version) if active else None
-        )
+        return _ref("LearningActivityState", active.activity_id, active.version) if active else None
 
     async def _supersede_active_activity(
         self,

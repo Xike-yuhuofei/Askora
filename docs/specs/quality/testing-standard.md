@@ -211,6 +211,8 @@ Database tests MUST 覆盖 SQLite FK/constraints、unique aggregate version、tr
 
 Security tests MUST 覆盖 malicious document prompt injection、unauthorized tool call、answer/rubric leakage、citation mismatch、cross-user access（服务模式）、path traversal/unsafe upload、secret leakage/logging、cross-owner write attempt。
 
+Desktop model configuration MUST 分层验证：L1 profile/vault/atomic revision；L2 preload IPC 与稳定错误；L3 local-only probe、candidate no-persist、restart/revision verify、rollback 与 DISABLED tombstone；L4 packaged macOS app 中真实 provider probe、激活、一次 canonical learning turn 与 relaunch 恢复。Mock/fake provider 只能满足 L1～L3，不得替代 L4 当前可用性证据。
+
 ## 15. Test Data / Parameter Governance
 
 ### TEST-300

@@ -11,9 +11,7 @@ from pydantic import Field
 from app.contracts.adaptive import VersionedRef
 from app.contracts.base import ContractModel
 
-ActivityStatus = Literal[
-    "planned", "available", "active", "completed", "skipped", "superseded"
-]
+ActivityStatus = Literal["planned", "available", "active", "completed", "skipped", "superseded"]
 
 
 class LearningActivityStateV1(ContractModel):

@@ -14,7 +14,7 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-PREVIOUS_HEAD = "f1061a0b9c01"
+PREVIOUS_HEAD = "f36c91b807d3"
 GOAL_A_HEAD = "d2f1010a37a1"
 GOAL_HEAD = "d2f1010b38b2"
 POSTGRES_TEST_URL = os.environ.get("ASKORA_POSTGRES_TEST_URL")
@@ -100,14 +100,10 @@ async def test_goal_migration_backfills_definition_state_and_candidate_draft(tmp
             )
         ).scalar_one()
         draft_status = (
-            await connection.exec_driver_sql(
-                "SELECT status FROM learning_goal_draft_versions"
-            )
+            await connection.exec_driver_sql("SELECT status FROM learning_goal_draft_versions")
         ).scalar_one()
         state_status = (
-            await connection.exec_driver_sql(
-                "SELECT status FROM learning_goal_state_versions"
-            )
+            await connection.exec_driver_sql("SELECT status FROM learning_goal_state_versions")
         ).scalar_one()
         assert definition_count == 2
         assert draft_status == "draft"
@@ -128,7 +124,9 @@ async def test_goal_migration_backfills_definition_state_and_candidate_draft(tmp
 
 
 @pytest.mark.asyncio
-async def test_goal_achievement_migration_rolls_back_without_touching_goal_history(tmp_path) -> None:
+async def test_goal_achievement_migration_rolls_back_without_touching_goal_history(
+    tmp_path,
+) -> None:
     url = f"sqlite+aiosqlite:///{tmp_path / 'goal-achievement-migration.db'}"
     _alembic(url, "upgrade", GOAL_HEAD)
     engine = create_async_engine(url)

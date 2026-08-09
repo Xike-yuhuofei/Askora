@@ -316,7 +316,9 @@ class GoalManagementRepository:
                     GoalObjectiveRecord.goal_id == str(goal_id),
                     GoalObjectiveRecord.user_id == str(user_id),
                 )
-                .order_by(GoalObjectiveRecord.criterion_id, GoalObjectiveRecord.objective_version.desc())
+                .order_by(
+                    GoalObjectiveRecord.criterion_id, GoalObjectiveRecord.objective_version.desc()
+                )
             )
         ).all()
         latest: dict[str, GoalObjectiveRecord] = {}

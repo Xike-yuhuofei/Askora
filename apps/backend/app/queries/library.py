@@ -89,6 +89,7 @@ class WorkspaceLibraryQueryService:
         status: str | None,
         subject: str | None,
         query_text: str | None = None,
+        document_id: UUID | None = None,
         tag_id: UUID | None = None,
         collection_id: UUID | None = None,
         archived: bool = False,
@@ -115,6 +116,8 @@ class WorkspaceLibraryQueryService:
         )
         if status:
             query = query.where(UserDocument.processing_status == status)
+        if document_id is not None:
+            query = query.where(UserDocument.id == str(document_id))
         if subject:
             query = query.where(UserDocument.subject == subject)
         if tag_id is not None:
@@ -158,16 +161,16 @@ class WorkspaceLibraryQueryService:
             order_by = (UserDocument.updated_at.desc(), UserDocument.id)
         elif sort == "title_asc":
             order_by = (
-                func.lower(func.coalesce(UserDocument.display_title, UserDocument.original_filename)),
+                func.lower(
+                    func.coalesce(UserDocument.display_title, UserDocument.original_filename)
+                ),
                 UserDocument.id,
             )
         else:
             order_by = (UserDocument.created_at.desc(), UserDocument.id)
         rows = (
             await self._db.execute(
-                query.order_by(*order_by)
-                .offset((page - 1) * page_size)
-                .limit(page_size)
+                query.order_by(*order_by).offset((page - 1) * page_size).limit(page_size)
             )
         ).all()
         documents = [row[0] for row in rows]

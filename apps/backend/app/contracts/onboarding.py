@@ -12,13 +12,9 @@ from app.contracts.base import ContractModel
 
 JourneyId = Literal["first-learning-v1"]
 PreferenceVisibility = Literal["ACTIVE", "DISMISSED"]
-DismissedReason = Literal[
-    "USER_DEFERRED", "COMPLETED_JOURNEY", "LEGACY_EXISTING_USER_BACKFILL"
-]
+DismissedReason = Literal["USER_DEFERRED", "COMPLETED_JOURNEY", "LEGACY_EXISTING_USER_BACKFILL"]
 OnboardingStep = Literal["MODEL", "MATERIAL", "GOAL", "FIRST_ACTIVITY"]
-OnboardingStepState = Literal[
-    "NOT_STARTED", "IN_PROGRESS", "COMPLETE", "BLOCKED", "STALE"
-]
+OnboardingStepState = Literal["NOT_STARTED", "IN_PROGRESS", "COMPLETE", "BLOCKED", "STALE"]
 OnboardingJourneyState = Literal["ACTIVE", "COMPLETE", "BLOCKED", "PARTIAL", "STALE"]
 OnboardingActionCode = Literal[
     "ACKNOWLEDGE_BOUNDARIES",
@@ -58,9 +54,7 @@ class OnboardingPreferenceV1(ContractModel):
 
 
 class SourceObservationV1(ContractModel):
-    source_system: Literal[
-        "PLATFORM_EXPERIENCE", "SYS08", "SYS01", "SYS06", "DATA_CONTROL"
-    ]
+    source_system: Literal["PLATFORM_EXPERIENCE", "SYS08", "SYS01", "SYS06", "DATA_CONTROL"]
     availability: AvailabilityStatus
     source_ref: str | None = None
     observed_at: datetime | None = None
@@ -160,7 +154,5 @@ class FirstActivityCompletionProjectionV1(ContractModel):
     state_ref: VersionedRef
     status: Literal["completed"] = "completed"
     completed_at: datetime
-    completion_source_type: Literal["accepted_model_transcript"] = (
-        "accepted_model_transcript"
-    )
+    completion_source_type: Literal["accepted_model_transcript"] = "accepted_model_transcript"
     completion_source_ref: VersionedRef

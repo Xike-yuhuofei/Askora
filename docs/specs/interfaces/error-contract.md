@@ -4,6 +4,9 @@
 > 状态：Canonical Implementation Contract  
 > 版本：v0.1
 
+ADR-0012 / P1-07 adds the recovery presentation fields below without changing
+the meaning of existing stable codes.
+
 ## 1. 原则
 
 ### ERROR-001
@@ -22,7 +25,15 @@ error:
   retryable: boolean
   correlation_id: string|null
   details: object|null
+  recovery:
+    issue_ref: string|null
+    retry_after_seconds: integer|null
+    actions: [RecoveryActionV1]
 ```
+
+`request_id` MAY remain as an additive compatibility alias, but
+`correlation_id` is canonical. API adapters MUST emit `category`, `retryable`
+and `correlation_id` for every `AppError` and unhandled error.
 
 ## 2. 稳定错误码
 
@@ -44,27 +55,55 @@ TEACH_NO_ELIGIBLE_ACTION
 PLAN_NO_FEASIBLE_ACTIVITY
 REVIEW_INVALID_OBSERVATION
 AI_MODEL_UNAVAILABLE
+AI_PROVIDER_TIMEOUT
+AI_PROVIDER_RATE_LIMITED
+AI_PROVIDER_KEY_INVALID
+AI_PROVIDER_KEY_MISSING
 AI_OUTPUT_VALIDATION_FAILED
+MODEL_CONFIG_STORAGE_UNAVAILABLE
+MODEL_CONFIG_SCHEMA_UNSUPPORTED
+MODEL_CONFIG_REVISION_CONFLICT
+MODEL_CREDENTIAL_REJECTED
+MODEL_NOT_AVAILABLE
+MODEL_RATE_LIMITED
+MODEL_PROVIDER_TIMEOUT
+MODEL_PROVIDER_UNAVAILABLE
+MODEL_CONFIG_APPLY_FAILED
+MODEL_CONFIG_ROLLBACK_FAILED
 TOOL_NOT_AUTHORIZED
 CONCURRENT_VERSION_CONFLICT
 SCHEMA_VERSION_UNSUPPORTED
-AUTH_CURRENT_PASSWORD_INVALID
-AUTH_PASSWORD_POLICY_REJECTED
-AUTH_SESSION_REQUIRED
-AUTH_SESSION_NOT_FOUND
-AUTH_SESSION_REVOKED
-AUTH_REFRESH_REPLAY_DETECTED
-AUTH_RECOVERY_INVALID
-AUTH_RECOVERY_RATE_LIMITED
-ACCOUNT_DELETION_PREVIEW_STALE
-ACCOUNT_DELETION_CONFIRMATION_INVALID
-ACCOUNT_DELETION_IN_PROGRESS
-ACCOUNT_DELETION_NOT_CANCELLABLE
-ACCOUNT_DELETION_BLOCKED
-PRIVACY_SUBJECT_AMBIGUOUS
-PRIVACY_RECONCILIATION_FAILED
-PRIVACY_RESTORE_BLOCKED
+CONTENT_PROCESSING_FAILED
+CONTENT_FILE_MISSING
+CONTENT_OCR_REVIEW_REQUIRED
+DATABASE_UNAVAILABLE
+DATABASE_MIGRATION_REQUIRED
+DATABASE_INTEGRITY_FAILED
+OUTBOX_RETRY_WAITING
+OUTBOX_RETRY_EXHAUSTED
+OUTBOX_HANDLER_UNAVAILABLE
+DATA_MODE_UNSUPPORTED
+DATA_MAINTENANCE_BUSY
+DATA_RECOVERY_KEY_REQUIRED
+DATA_RECOVERY_KEY_INVALID
+DATA_BACKUP_NOT_VERIFIED
+DATA_BACKUP_INTEGRITY_FAILED
+DATA_BACKUP_LIMIT_EXCEEDED
+DATA_RESTORE_SCHEMA_UNSUPPORTED
+DATA_RESTORE_RECONCILIATION_FAILED
+DATA_RESTORE_FAILED_ROLLED_BACK
+DATA_EXPORT_SCOPE_INVALID
+DATA_EXPORT_EXPIRED
+DATA_ERASURE_PREVIEW_EXPIRED
+DATA_ERASURE_CONFIRMATION_INVALID
+DATA_ERASURE_PARTIAL
 ```
+
+上述 recovery 错误的 category、retryability、data safety、retry budget 与允许动作由
+`recovery-contract.md` 的单一目录冻结。Provider adapter MUST 根据 typed exception/HTTP status
+分类，不得把 provider message 文本作为主分支。
+
+P1-03 data-control errors 的 category/retryability 由 `data-control-contract.md` 冻结：wrong key、unsafe package、future schema 与 invalid confirmation non-retryable；maintenance busy、temporary storage 与未完成 owner step MAY retryable。任何 error details 不得包含 key、内容原文或完整本地路径。
 
 ## 3. Retry
 
@@ -75,6 +114,17 @@ PRIVACY_RESTORE_BLOCKED
 ### ERROR-011
 
 自动 retry 必须有上限、退避、trace，并对副作用操作保证幂等。
+
+### ERROR-012
+
+`retryable=true` 只表示该错误类别允许重试，不表示现在立即重试。若存在 rate limit、lease、
+backoff 或预算，响应 MUST 同时给出 `next_eligible_at/retry_after` 与剩余预算。预算耗尽后同一
+run/task 不得继续自动重试。
+
+### ERROR-013
+
+Manual recovery MUST append audit and create an owner-approved replacement task/run when replay is
+safe. It MUST NOT erase or reset the original dead-letter/exhausted history.
 
 ## 4. Domain vs Transport
 
@@ -119,12 +169,24 @@ business/conflict；`CONTENT_REINSPECTION_CHECKSUM_MISMATCH` 是 non-retryable i
 
 错误日志必须带 correlation/trace id、error code 和必要上下文；不得把原始密钥、密码、完整敏感 Prompt 写入日志。
 
+### ERROR-040 — Model Configuration Retry Semantics
+
+`MODEL_CREDENTIAL_REJECTED`、`MODEL_NOT_AVAILABLE`、`MODEL_CONFIG_SCHEMA_UNSUPPORTED` 与
+`MODEL_CONFIG_REVISION_CONFLICT` 默认 non-retryable；必须修改输入或刷新 revision。
+`MODEL_RATE_LIMITED`、`MODEL_PROVIDER_TIMEOUT`、`MODEL_PROVIDER_UNAVAILABLE` MAY retry，UI 必须保留候选输入且不得声称已保存。
+`MODEL_CONFIG_APPLY_FAILED` 表示新配置未激活且已恢复旧 revision；只有实际无法恢复旧 revision 时使用
+`MODEL_CONFIG_ROLLBACK_FAILED`，该错误 non-retryable 且必须明确当前状态未知/不可用。
+
 ## 8. Acceptance Criteria
 
 - `ERROR-AC-001`：模型超时与用户答错在数据层完全不同。
 - `ERROR-AC-002`：同一稳定领域错误在 HTTP/WS/streaming 都保留同一 error code。
 - `ERROR-AC-003`：非 retryable 业务错误不会进入自动重试循环。
 - `ERROR-AC-004`：副作用 retry 不产生重复操作。
+- `ERROR-AC-005`：全部 HTTP application/unhandled errors 实现完整 `ERROR-002` envelope。
+- `ERROR-AC-006`：provider timeout/rate/key/model/output errors 使用稳定 code 且不依赖自由文本。
+- `ERROR-AC-007`：credential/model/rate-limit/timeout/provider/apply/rollback 错误可机器区分。
+- `ERROR-AC-008`：任何 model configuration 错误 payload 与日志不含 credential/ciphertext/token/provider raw body。
 
 ## 9. Forbidden Implementations
 

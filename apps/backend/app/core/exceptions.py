@@ -20,11 +20,35 @@ class AppError(HTTPException):
         message: str,
         detail: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
+        category: str | None = None,
+        retryable: bool = False,
+        recovery: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
     ) -> None:
         self.error_code = error_code
         self.message = message
         self.error_detail = detail or {}
+        self.category = category or self._category_for_status(status_code)
+        self.retryable = retryable
+        self.recovery = recovery
+        self.correlation_id = correlation_id
         super().__init__(status_code=status_code, detail=message, headers=headers)
+
+    @staticmethod
+    def _category_for_status(status_code: int) -> str:
+        if status_code in {401, 403}:
+            return "authorization"
+        if status_code == 404:
+            return "not_found"
+        if status_code == 409:
+            return "conflict"
+        if status_code == 422:
+            return "validation"
+        if status_code == 429:
+            return "transient"
+        if status_code >= 500:
+            return "internal"
+        return "business"
 
 
 # ========== 认证授权相关 (AUTH-xxxx) ==========
@@ -100,6 +124,166 @@ class AuthenticationStateUnavailableError(AuthError):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             error_code="AUTH-0006",
             message="认证状态服务暂时不可用，请稍后重试",
+            category="dependency",
+            retryable=True,
+        )
+
+
+class CurrentPasswordInvalidError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_CURRENT_PASSWORD_INVALID",
+            message="当前密码不正确",
+        )
+
+
+class PasswordPolicyRejectedError(AuthError):
+    def __init__(self, message: str = "新密码不符合 password-policy-v2") -> None:
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error_code="AUTH_PASSWORD_POLICY_REJECTED",
+            message=message,
+        )
+
+
+class AuthSessionRequiredError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_SESSION_REQUIRED",
+            message="旧版会话已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class AuthSessionNotFoundError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="AUTH_SESSION_NOT_FOUND",
+            message="会话不存在或无权访问",
+        )
+
+
+class AuthSessionRevokedError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_SESSION_REVOKED",
+            message="会话已失效，请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class RefreshReplayDetectedError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_REFRESH_REPLAY_DETECTED",
+            message="检测到刷新令牌重复使用，当前会话已撤销",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class IdentityCommandConflictError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="CONCURRENT_VERSION_CONFLICT",
+            message="请求版本或幂等键与已处理命令冲突，请刷新后重试",
+        )
+
+
+class AuthRecoveryInvalidError(AuthError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_RECOVERY_INVALID",
+            message="恢复信息无效或已使用",
+        )
+
+
+class AuthRecoveryRateLimitedError(AuthError):
+    def __init__(self, retry_after_seconds: int) -> None:
+        super().__init__(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            error_code="AUTH_RECOVERY_RATE_LIMITED",
+            message="尝试次数过多，请稍后再试",
+            detail={"retry_after_seconds": max(1, retry_after_seconds)},
+            headers={"Retry-After": str(max(1, retry_after_seconds))},
+        )
+
+
+class AccountDeletionPreviewStaleError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_PREVIEW_STALE",
+            message="删除预览已过期或数据范围已变化，请重新生成预览",
+        )
+
+
+class AccountDeletionConfirmationInvalidError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error_code="ACCOUNT_DELETION_CONFIRMATION_INVALID",
+            message="删除确认信息无效",
+        )
+
+
+class AccountDeletionInProgressError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_IN_PROGRESS",
+            message="账号删除正在进行，普通登录和账号操作已停用",
+        )
+
+
+class AccountDeletionNotCancellableError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_NOT_CANCELLABLE",
+            message="删除已开始执行，当前状态不可取消",
+        )
+
+
+class AccountDeletionBlockedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="ACCOUNT_DELETION_BLOCKED",
+            message="删除核对未通过，账号保持不可用",
+        )
+
+
+class PrivacySubjectAmbiguousError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_SUBJECT_AMBIGUOUS",
+            message="数据归属存在歧义，删除未开始",
+        )
+
+
+class PrivacyReconciliationFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_RECONCILIATION_FAILED",
+            message="删除后仍检测到目标数据，账号保持不可用",
+        )
+
+
+class PrivacyRestoreBlockedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code="PRIVACY_RESTORE_BLOCKED",
+            message="检测到已删除账号的旧快照，普通业务启动已阻断",
         )
 
 
@@ -233,6 +417,8 @@ class RateLimitError(AppError):
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             error_code="RATE-0001",
             message=message,
+            category="transient",
+            retryable=True,
         )
 
 
@@ -247,11 +433,77 @@ class BusinessError(AppError):
         message: str,
         error_code: str = "BIZ-0001",
         status_code: int = status.HTTP_400_BAD_REQUEST,
+        detail: Optional[dict[str, Any]] = None,
+        category: str = "business",
+        retryable: bool = False,
+        recovery: Optional[dict[str, Any]] = None,
+        correlation_id: str | None = None,
     ) -> None:
         super().__init__(
             status_code=status_code,
             error_code=error_code,
             message=message,
+            detail=detail,
+            category=category,
+            retryable=retryable,
+            recovery=recovery,
+            correlation_id=correlation_id,
+        )
+
+
+class RecoveryIssueNotFoundError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="恢复问题不存在或不可访问",
+            error_code="RECOVERY_ISSUE_NOT_FOUND",
+            status_code=status.HTTP_404_NOT_FOUND,
+            category="not_found",
+        )
+
+
+class RecoveryActionNotAllowedError(BusinessError):
+    def __init__(self, reason_code: str = "RECOVERY_ACTION_NOT_ALLOWED") -> None:
+        super().__init__(
+            message="当前问题不允许执行该恢复动作",
+            error_code="RECOVERY_ACTION_NOT_ALLOWED",
+            status_code=status.HTTP_409_CONFLICT,
+            category="conflict",
+            detail={"reason_code": reason_code},
+        )
+
+
+class RecoveryVersionConflictError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="问题状态已更新，请刷新后重试",
+            error_code="CONCURRENT_VERSION_CONFLICT",
+            status_code=status.HTTP_409_CONFLICT,
+            category="conflict",
+        )
+
+
+class ContentFileMissingError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料记录仍在，但原文件当前不可用",
+            error_code="CONTENT_FILE_MISSING",
+            status_code=status.HTTP_409_CONFLICT,
+            category="data_integrity",
+            recovery={
+                "issue_ref": None,
+                "retry_after_seconds": None,
+                "actions": [],
+            },
+        )
+
+
+class ContentChecksumMismatchError(BusinessError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="原文件完整性校验失败，未执行重试",
+            error_code="DATABASE_INTEGRITY_FAILED",
+            status_code=status.HTTP_409_CONFLICT,
+            category="data_integrity",
         )
 
 

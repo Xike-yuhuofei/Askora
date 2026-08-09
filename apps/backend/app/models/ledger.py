@@ -191,12 +191,65 @@ class OutboxTaskRecord(Base):
     )
 
 
+class RecoveryEventRecord(Base):
+    """SYS08 append-only operational incident and recovery-action event."""
+
+    __tablename__ = "recovery_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    pseudonym_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.pseudonym_id", ondelete="CASCADE"), nullable=False
+    )
+    issue_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    issue_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    code: Mapped[str] = mapped_column(String(100), nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    source_system: Mapped[str] = mapped_column(String(30), nullable=False)
+    data_safety: Mapped[str] = mapped_column(String(40), nullable=False)
+    duplicate_risk: Mapped[str] = mapped_column(String(40), nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    summary: Mapped[str] = mapped_column(String(500), nullable=False)
+    resource_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    retry_budget: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    next_eligible_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    action_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    result_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    safe_details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "pseudonym_id", "issue_key", "issue_version", name="uq_recovery_issue_version"
+        ),
+        UniqueConstraint(
+            "pseudonym_id", "idempotency_key", "event_type", name="uq_recovery_action_event"
+        ),
+        Index("ix_recovery_owner_status", "pseudonym_id", "status", "created_at"),
+        Index("ix_recovery_issue_version", "issue_key", "issue_version"),
+    )
+
+
 def _reject_ledger_mutation(_mapper: Any, _connection: Any, target: Any) -> None:
     raise ImmutableLedgerError(
         f"{type(target).__name__} is append-only; append a correction record instead"
     )
 
 
-for _immutable_model in (LearningEventRecord, DecisionTraceRecord, DecisionTraceInputRecord):
+for _immutable_model in (
+    LearningEventRecord,
+    DecisionTraceRecord,
+    DecisionTraceInputRecord,
+    RecoveryEventRecord,
+):
     event.listen(_immutable_model, "before_update", _reject_ledger_mutation)
     event.listen(_immutable_model, "before_delete", _reject_ledger_mutation)

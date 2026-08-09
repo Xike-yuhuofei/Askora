@@ -23,6 +23,13 @@ from app.models.assessment import (
     MasteryEstimateRecord,
 )
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
+from app.models.consent import ConsentRecord, ConsentStatus, ConsentType
+from app.models.data_control import (
+    DataErasureCheckpointRecord,
+    DataErasureReceiptRecord,
+    DataErasureStepRecord,
+    DataErasureWorkflowRecord,
+)
 from app.models.dialog import DialogMessage, DialogSession, MessageRole
 from app.models.document import (
     DocumentChunk,
@@ -52,12 +59,19 @@ from app.models.goal_management import (
     GoalPlanStateRecord,
     GoalStateRecord,
 )
+from app.models.identity import (
+    AuthSessionRecord,
+    IdentityCommandReceiptRecord,
+    RecoveryCredentialRecord,
+    RecoveryThrottleRecord,
+)
 from app.models.knowledge import KnowledgePoint, LearningMaterial
 from app.models.ledger import (
     DecisionTraceInputRecord,
     DecisionTraceRecord,
     LearningEventRecord,
     OutboxTaskRecord,
+    RecoveryEventRecord,
 )
 from app.models.onboarding import (
     OnboardingPreferenceCommandReceiptRecord,
@@ -76,10 +90,22 @@ from app.models.planning import (
     ReviewObservationRecord,
     ReviewScheduleRecord,
 )
+from app.models.privacy import (
+    AccountDeletionPreviewRecord,
+    AccountDeletionRequestRecord,
+    PrivacyTombstoneRecord,
+)
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
 
 __all__ = [
+    "DataErasureCheckpointRecord",
+    "DataErasureReceiptRecord",
+    "DataErasureStepRecord",
+    "DataErasureWorkflowRecord",
+    "ConsentRecord",
+    "ConsentStatus",
+    "ConsentType",
     "ExperimentAssignmentRecord",
     "LearningTrajectoryRecord",
     "OutcomeObservationRecord",
@@ -91,6 +117,13 @@ __all__ = [
     "User",
     "UserRole",
     "UserStatus",
+    "AuthSessionRecord",
+    "IdentityCommandReceiptRecord",
+    "RecoveryCredentialRecord",
+    "RecoveryThrottleRecord",
+    "AccountDeletionPreviewRecord",
+    "AccountDeletionRequestRecord",
+    "PrivacyTombstoneRecord",
     "UserProfile",
     "DialogSession",
     "DialogMessage",
@@ -106,6 +139,7 @@ __all__ = [
     "MasteryEstimateRecord",
     "BookLearningTranscriptTurnRecord",
     "BookLearningAdvanceRecord",
+    "ConsentRecord",
     "LearningActivityRecord",
     "LearningActivityStateRecord",
     "ActivityLifecycleCommandReceiptRecord",
@@ -145,6 +179,7 @@ __all__ = [
     "DecisionTraceRecord",
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
+    "RecoveryEventRecord",
     "OnboardingPreferenceRecord",
     "OnboardingPreferenceCommandReceiptRecord",
 ]

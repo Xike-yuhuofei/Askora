@@ -220,15 +220,11 @@ async def test_start_complete_and_next_available_are_atomic_and_idempotent(tmp_p
         completed = await service.complete(
             user=user, command=command, correlation_id=uuid4(), now=NOW
         )
-        replay = await service.complete(
-            user=user, command=command, correlation_id=uuid4(), now=NOW
-        )
+        replay = await service.complete(user=user, command=command, correlation_id=uuid4(), now=NOW)
         assert replay == completed
         assert completed.data.state.status == "completed"
         assert completed.next_activity_ref is not None
-        next_state = await ActivityLifecycleRepository(session).latest(
-            activities[1].activity_id
-        )
+        next_state = await ActivityLifecycleRepository(session).latest(activities[1].activity_id)
         assert next_state is not None and next_state.status == "available"
         assert next_state.version == 2
         restored = await service.get(
@@ -416,7 +412,7 @@ async def test_transcript_reference_must_match_current_owner_and_activity(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_concurrent_duplicate_start_advances_once(tmp_path) -> None:
+async def test_concurrent_duplicate_start_advances_once(tmp_path, monkeypatch) -> None:
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'activity-race.db'}")
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -451,6 +447,30 @@ async def test_concurrent_duplicate_start_advances_once(tmp_path) -> None:
 
     first, second = await asyncio.gather(invoke(), invoke())
     assert first == second
+
+    async with factory() as replay_session:
+        current_user = await replay_session.get(User, "activity-owner")
+        assert current_user is not None
+        replay_service = ActivityLifecycleService(replay_session)
+        persisted_replay = replay_service._replay
+        replay_attempts = 0
+
+        async def replay_after_preflight_miss(**kwargs):
+            nonlocal replay_attempts
+            replay_attempts += 1
+            if replay_attempts == 1:
+                return None
+            return await persisted_replay(**kwargs)
+
+        monkeypatch.setattr(replay_service, "_replay", replay_after_preflight_miss)
+        delayed_replay = await replay_service.start(
+            user=current_user,
+            command=command,
+            correlation_id=uuid4(),
+        )
+        assert delayed_replay == first
+        assert replay_attempts == 2
+
     async with factory() as verify_session:
         states = await ActivityLifecycleRepository(verify_session).latest_for_plan(
             plan_id=first.data.state.plan_id,
@@ -463,63 +483,6 @@ async def test_concurrent_duplicate_start_advances_once(tmp_path) -> None:
             )
         )
         assert started_events == 1
-    await engine.dispose()
-
-
-@pytest.mark.asyncio
-async def test_duplicate_start_rechecks_receipt_after_state_advanced(
-    tmp_path,
-    monkeypatch,
-) -> None:
-    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'activity-replay.db'}")
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-
-    async with factory() as first_session:
-        user, _other, goal, _plan, activities = await _seed(first_session)
-        service = ActivityLifecycleService(first_session)
-        selected = await service.select_next(
-            user=user,
-            goal_id=goal.goal_id,
-            idempotency_key="select-replay",
-            correlation_id=uuid4(),
-        )
-        command = StartLearningActivityV1(
-            activity_id=activities[0].activity_id,
-            expected_state_version=selected.data.state.version,
-            idempotency_key="start-replay",
-        )
-        started = await service.start(
-            user=user,
-            command=command,
-            correlation_id=uuid4(),
-        )
-        await first_session.commit()
-
-    async with factory() as replay_session:
-        current_user = await replay_session.get(User, "activity-owner")
-        assert current_user is not None
-        replay_service = ActivityLifecycleService(replay_session)
-        persisted_replay = replay_service._replay
-        replay_calls = 0
-
-        async def stale_first_lookup(**kwargs):
-            nonlocal replay_calls
-            replay_calls += 1
-            if replay_calls == 1:
-                return None
-            return await persisted_replay(**kwargs)
-
-        monkeypatch.setattr(replay_service, "_replay", stale_first_lookup)
-        duplicate = await replay_service.start(
-            user=current_user,
-            command=command,
-            correlation_id=uuid4(),
-        )
-
-    assert duplicate == started
-    assert replay_calls == 2
     await engine.dispose()
 
 
@@ -536,9 +499,7 @@ async def test_postgres_lifecycle_state_event_and_outbox_are_transactional() -> 
     async with factory() as session:
         transaction = await session.begin()
         try:
-            initial_outbox_count = await session.scalar(
-                select(func.count(OutboxTaskRecord.id))
-            )
+            initial_outbox_count = await session.scalar(select(func.count(OutboxTaskRecord.id)))
             user, _other, goal, _plan, activities = await _seed(
                 session,
                 owner_suffix=suffix,
@@ -563,11 +524,14 @@ async def test_postgres_lifecycle_state_event_and_outbox_are_transactional() -> 
                 now=NOW,
             )
             assert started.data.state.status == "active"
-            assert await session.scalar(
-                select(func.count(LearningEventRecord.event_id)).where(
-                    LearningEventRecord.aggregate_id == str(activities[0].activity_id)
+            assert (
+                await session.scalar(
+                    select(func.count(LearningEventRecord.event_id)).where(
+                        LearningEventRecord.aggregate_id == str(activities[0].activity_id)
+                    )
                 )
-            ) == 2
+                == 2
+            )
             assert await session.scalar(select(func.count(OutboxTaskRecord.id))) == (
                 initial_outbox_count + 2
             )

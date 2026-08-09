@@ -96,6 +96,20 @@ def _book_turn_lock(key: str) -> asyncio.Lock:
 class BookLearningApplicationError(ValueError):
     """Fail-closed application error mapped by the transport layer."""
 
+    def __init__(
+        self,
+        code: str,
+        *,
+        category: str = "business",
+        retryable: bool = False,
+        retry_after_seconds: int | None = None,
+    ) -> None:
+        self.code = code
+        self.category = category
+        self.retryable = retryable
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__(code)
+
 
 BookLearningPolicyRuntime = PolicyRuntimeSelection
 
@@ -706,7 +720,12 @@ class BookLearningApplication:
                 )
             )
         except ModelRenderingError as exc:
-            raise BookLearningApplicationError(str(exc)) from exc
+            raise BookLearningApplicationError(
+                exc.code,
+                category=("transient" if exc.retryable else "dependency"),
+                retryable=exc.retryable,
+                retry_after_seconds=exc.retry_after_seconds,
+            ) from exc
         if (
             result.teaching_action_v03 is None
             or result.decision_trace_v03 is None

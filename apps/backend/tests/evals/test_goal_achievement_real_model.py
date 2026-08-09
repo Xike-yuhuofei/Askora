@@ -25,7 +25,13 @@ def _configured_model() -> tuple[Settings, LLMProvider, str]:
         LLMProvider.DOUBAO: (configured.llm_doubao_api_key, configured.llm_doubao_model),
         LLMProvider.ZHIPU: (configured.llm_zhipu_api_key, configured.llm_zhipu_model),
     }
-    preferred = (LLMProvider.DEEPSEEK, configured.llm_default_provider, LLMProvider.ZHIPU, LLMProvider.QWEN, LLMProvider.DOUBAO)
+    preferred = (
+        LLMProvider.DEEPSEEK,
+        configured.llm_default_provider,
+        LLMProvider.ZHIPU,
+        LLMProvider.QWEN,
+        LLMProvider.DOUBAO,
+    )
     for provider in dict.fromkeys(preferred):
         candidate_key, candidate_model = candidates[provider]
         if candidate_key:
@@ -40,9 +46,16 @@ async def test_real_configured_model_double_grades_goal_open_response(tmp_path) 
     configured, provider_name, model_name = _configured_model()
     original = settings.model_dump()
     for name in (
-        "llm_qwen_api_key", "llm_deepseek_api_key", "llm_doubao_api_key", "llm_zhipu_api_key",
-        "llm_qwen_model", "llm_deepseek_model", "llm_doubao_model", "llm_zhipu_model",
-        "llm_zhipu_base_url", "llm_zhipu_thinking_enabled",
+        "llm_qwen_api_key",
+        "llm_deepseek_api_key",
+        "llm_doubao_api_key",
+        "llm_zhipu_api_key",
+        "llm_qwen_model",
+        "llm_deepseek_model",
+        "llm_doubao_model",
+        "llm_zhipu_model",
+        "llm_zhipu_base_url",
+        "llm_zhipu_thinking_enabled",
     ):
         setattr(settings, name, getattr(configured, name))
     settings.llm_default_provider = provider_name
@@ -58,7 +71,9 @@ async def test_real_configured_model_double_grades_goal_open_response(tmp_path) 
         policy_id=uuid5(NAMESPACE_URL, "askora:goal-achievement-policy:real-e2e"),
         policy_version=1,
         name="real model E2E policy",
-        delay_seconds={process: 0 for process in ("recall", "understand", "explain", "apply", "transfer")},
+        delay_seconds={
+            process: 0 for process in ("recall", "understand", "explain", "apply", "transfer")
+        },
         minimum_score=0.75,
         minimum_assessment_confidence=0.7,
         maximum_grader_disagreement=0.2,
@@ -106,8 +121,12 @@ async def test_real_configured_model_double_grades_goal_open_response(tmp_path) 
                     {
                         "provider": provider_name.value,
                         "model": model_name,
-                        "evaluator_versions": outcome.result.evaluator_versions if outcome.result else [],
-                        "assessment_confidence": outcome.result.assessment_confidence if outcome.result else None,
+                        "evaluator_versions": (
+                            outcome.result.evaluator_versions if outcome.result else []
+                        ),
+                        "assessment_confidence": (
+                            outcome.result.assessment_confidence if outcome.result else None
+                        ),
                         "result": outcome.status,
                     },
                     ensure_ascii=False,

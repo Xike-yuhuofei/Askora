@@ -108,12 +108,8 @@ async def test_new_user_journey_uses_owner_facts_and_single_next_action(sqlite_f
             idempotency_key="ack-1",
         )
         service = OnboardingPreferenceService(session, journey_query=_query(session))
-        acknowledged = await service.apply(
-            user=user, command=command, correlation_id="journey-2"
-        )
-        replay = await service.apply(
-            user=user, command=command, correlation_id="journey-3"
-        )
+        acknowledged = await service.apply(user=user, command=command, correlation_id="journey-2")
+        replay = await service.apply(user=user, command=command, correlation_id="journey-3")
         assert acknowledged.preference.preference_version == 2
         assert replay.preference.preference_version == 2
         assert replay.next_action.action_code == "OPEN_LIBRARY"
@@ -232,19 +228,19 @@ async def test_first_activity_requires_latest_completed_state_and_transcript_ref
         session.add_all(
             [
                 LearningActivityStateRecord(
-                id=f"{activity_id}:2",
-                activity_id=str(activity_id),
-                version=2,
-                plan_id=str(plan_id),
-                plan_version=1,
-                status="completed",
-                previous_status="active",
-                transition_reason="LEARNER_FINISHED_TRANSCRIPT_BACKED_ACTIVITY",
-                source_refs=[transcript_ref.model_dump(mode="json")],
-                actor_type="learner",
-                completed_at=NOW,
-                correlation_id=str(uuid4()),
-                created_at=NOW,
+                    id=f"{activity_id}:2",
+                    activity_id=str(activity_id),
+                    version=2,
+                    plan_id=str(plan_id),
+                    plan_version=1,
+                    status="completed",
+                    previous_status="active",
+                    transition_reason="LEARNER_FINISHED_TRANSCRIPT_BACKED_ACTIVITY",
+                    source_refs=[transcript_ref.model_dump(mode="json")],
+                    actor_type="learner",
+                    completed_at=NOW,
+                    correlation_id=str(uuid4()),
+                    created_at=NOW,
                 ),
             ]
         )
@@ -291,14 +287,10 @@ async def test_goal_without_current_eligible_material_mapping_is_stale(
             ]
         )
         await session.flush()
-        view = await _query(session).get_journey(
-            user, correlation_id="stale-goal-mapping"
-        )
+        view = await _query(session).get_journey(user, correlation_id="stale-goal-mapping")
         assert view.steps[1].state == "COMPLETE"
         assert view.steps[2].state == "STALE"
-        assert view.steps[2].source_status[0].reason_codes == (
-            "GOAL_SOURCE_MAPPING_UNAVAILABLE",
-        )
+        assert view.steps[2].source_status[0].reason_codes == ("GOAL_SOURCE_MAPPING_UNAVAILABLE",)
 
 
 @pytest.mark.asyncio
@@ -456,9 +448,7 @@ async def test_journey_does_not_expose_another_users_material(sqlite_factory) ->
             ]
         )
         await session.flush()
-        view = await _query(session).get_journey(
-            current_user, correlation_id="cross-user"
-        )
+        view = await _query(session).get_journey(current_user, correlation_id="cross-user")
         assert view.steps[1].state == "NOT_STARTED"
         assert foreign_document_id not in view.model_dump_json()
 
@@ -471,9 +461,9 @@ async def test_unavailable_owner_ports_are_partial_and_do_not_force_welcome(
         user = _user()
         session.add(user)
         await session.flush()
-        view = await OnboardingJourneyQueryService(
-            session, clock=lambda: NOW
-        ).get_journey(user, correlation_id="dependency-partial")
+        view = await OnboardingJourneyQueryService(session, clock=lambda: NOW).get_journey(
+            user, correlation_id="dependency-partial"
+        )
         assert view.journey_state == "PARTIAL"
         assert view.should_enter_welcome is False
         assert view.steps[0].source_status[0].reason_codes == (
@@ -528,9 +518,7 @@ async def test_concurrent_first_query_creates_one_active_preference(sqlite_facto
         async with sqlite_factory() as session:
             current_user = await session.get(User, user_id)
             assert current_user is not None
-            view = await _query(session).get_journey(
-                current_user, correlation_id=uuid4().hex
-            )
+            view = await _query(session).get_journey(current_user, correlation_id=uuid4().hex)
             await session.commit()
             return view.preference.preference_version, view.preference.visibility
 

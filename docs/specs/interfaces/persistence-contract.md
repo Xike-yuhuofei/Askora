@@ -2,7 +2,7 @@
 
 > Spec ID：`PERSIST-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.1
+> 版本：v0.1 + P1-03 additive recovery contract
 
 ## 1. 基线
 
@@ -120,11 +120,11 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 
 ### PERSIST-081 — Durable Identity and Privacy State
 
-`AuthSession`、`RecoveryCredential`、`AccountDeletionRequest`、subject manifest、owner step receipt 与 privacy tombstone MUST 持久化于 SQLite/PostgreSQL compatible store。Redis、renderer local state 或只存在内存的 token blacklist MUST NOT 成为唯一 truth。
+`AuthSession`、`RecoveryCredential`、`AccountDeletionRequest`、subject manifest 与 privacy tombstone projection MUST 持久化于 SQLite/PostgreSQL compatible store。owner step/workflow/receipt/checkpoint 唯一持久化 truth 是 P1-03 `DataErasureWorkflowV1` records；P1-05 request 只保存其 refs。Redis、renderer local state 或只存在内存的 token blacklist MUST NOT 成为唯一 truth。
 
 ### PERSIST-082 — Privacy Erasure
 
-隐私删除 MUST 使用 frozen manifest、per-owner idempotent step 与 reconciliation。普通 immutable repository 继续拒绝 delete；只有携带 deletion request/manifest 的 privacy-only repository MAY 按 `EVENT-071` 删除受保护 ledger。
+隐私删除 MUST 使用固定 scope、registered subject manifest、P1-03 per-owner idempotent step/receipt/checkpoint 与 reconciliation。普通 immutable repository 继续拒绝 delete；只有携带 canonical erasure workflow 与 accepted account authorization/manifest 的 privacy-only adapter MAY 按 `EVENT-071` 删除受保护 ledger。
 
 ### PERSIST-083 — Restore Barrier
 
@@ -147,6 +147,24 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 
 双写仅允许短期迁移，必须在 EXEC Plan 指定 canonical truth、reconciliation 和停止条件。
 
+## 11A. P1-03 Backup / Restore
+
+### PERSIST-100 — Physical Snapshot Boundary
+
+私人桌面 SQLite recovery point MUST 在 maintenance write-stop boundary 创建，并同时覆盖数据库、受管 raw assets、恢复 PII 所需 KEK material、manifest/checksum 与 erasure checkpoint。普通目录复制或只备份数据库不满足本要求。
+
+### PERSIST-101 — Staging Restore
+
+Restore MUST 先在 private staging 完成 authenticated decrypt、schema/SQLite/file/reference/checkpoint validation 与必要 forward migration，再 atomic activate；失败不得改变 active data。详细合同见 `data-control-contract.md`。
+
+### PERSIST-102 — Migration Protection
+
+破坏性 desktop migration MUST 有当前 VERIFIED PRE_MIGRATION recovery point，并在 staging 验证后激活。恢复优先使用 rescue/forward-fix，不把 blind Alembic downgrade 当数据安全保证。
+
+### PERSIST-103 — Erasure Checkpoint
+
+明确删除后，managed recovery catalog 与 projection rebuild MUST 消费单调 erasure checkpoint；无法证明不会复活被删事实的旧恢复点不得激活。
+
 ## 12. Failure Semantics
 
 - transient DB lock/network → bounded retry；
@@ -154,6 +172,24 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - migration mismatch → fail startup/health gate；
 - outbox delivery failure → durable retry；
 - projection failure → mark stale, canonical truth preserved。
+
+### PERSIST-092 — Operational recovery ledger
+
+Recovery incident/action audit MAY 由 SYS08 以 append-only ledger 持久化，但它不是文档、计划、
+learner state 或原 outbox task 的 current truth。至少保存 stable code、safe resource ref、status
+event、attempt/budget、correlation、idempotency 与 timestamps；MUST NOT 保存 secret、完整 Prompt、
+绝对路径、SQL/traceback 或 provider 原始 body。
+
+同一 issue 的 current projection必须 deterministic fold append-only events。Manual replay 必须创建
+带 `recovery_of` 的 replacement task/run，原 dead-letter row/history 不得重置或删除。重复 action
+idempotency key 返回同一 result。
+
+### PERSIST-093 — Startup compatibility gate
+
+Local desktop startup MUST verify database connectivity and migration compatibility before `/ready`。
+Mismatch/failure must fail readiness and publish a sanitized bootstrap diagnostic. Migration recovery
+MUST route to P1-03 verified snapshot/restore/forward-fix capability; startup code MUST NOT silently run
+destructive repair or continue against an unknown schema.
 
 ## 13. Tests
 
@@ -168,6 +204,10 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - migration upgrade on representative fixture；
 - rollback/forward-fix path；
 - Redis unavailable degradation（相关功能）。
+- recovery event fold、action idempotency、replacement lineage 与 restart；
+- startup migration mismatch/forward-fix and sanitized diagnostic。
+- encrypted recovery round trip、tamper/wrong-key/path/limit；
+- staging restore、rescue rollback、erasure no-resurrection。
 
 ## 14. Forbidden Implementations
 
@@ -179,6 +219,7 @@ Redis 不可用时核心教学闭环 SHOULD 能降级运行，除非明确功能
 - 业务状态更新成功但 outbox 靠另一个非原子事务写；
 - SQLite 本地版依赖 Kafka 才能启动；
 - migration 丢弃历史版本/证据而无显式设计批准。
+- 恢复直接覆盖 active path、明文/自包含 key recovery package、删除后继续激活不安全旧恢复点。
 
 ## 15. P1-06 Presentation Preference Persistence
 

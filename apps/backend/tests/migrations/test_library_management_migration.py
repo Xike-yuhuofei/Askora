@@ -48,7 +48,10 @@ async def test_library_migration_backfills_current_visible_search_and_is_recover
                     "revision_id": revision_id,
                     "source_spans": [
                         {"span_id": visible_span_id, "text": "迁移后可搜索的热力学正文"},
-                        {"span_id": hidden_span_id, "text": "[grader-only] reference answer: hidden"},
+                        {
+                            "span_id": hidden_span_id,
+                            "text": "[grader-only] reference answer: hidden",
+                        },
                     ],
                 }
             ],

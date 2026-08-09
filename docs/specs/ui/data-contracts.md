@@ -49,7 +49,42 @@ observed_at: datetime|null
 | 富文本回答 | `message.render_payload` | Markdown/math/cards/citations | 必须继续保留 `content` fallback |
 | 学习画像 | `/api/v1/users/profile` | 学习证据迁移入口 | 仅 `profile.mastery` 为 canonical SYS03；其余多为 legacy |
 | 文档 | `/api/v1/documents/**` | 资料库列表、上传、状态 | 当前不等于 canonical KnowledgeUnit map query |
-| 本地运行状态 | `/health/config` | 设置 | 只返回 mode/ready 类非敏感事实 |
+| 本地运行状态 | `/health/config` | 设置 | 只返回 mode/ready 与 sanitized provider/model/source/revision；不返回 credential |
+
+### UI-DATA-013 — Desktop Model Settings Bridge
+
+Electron preload 只暴露版本化窄 bridge：`getModelSettings()`、`applyModelSettings(ModelConfigApplyCommandV1)`、`clearModelSettings(ModelConfigClearCommandV1)`。成功 response 的 `settings` MUST 直接复用 `MODEL-CONFIG-010`，不得定义第二套 UI truth：
+
+```yaml
+schema_version: "1.0"
+state: ACTIVE|DISABLED|EXTERNAL_READ_ONLY|UNCONFIGURED|DEGRADED
+provider: string|null
+model: string|null
+source: DESKTOP_VAULT|EXTERNAL_ENVIRONMENT|NONE
+revision: integer|null
+verified_at: datetime|null
+runtime_ready: boolean
+runtime_revision: integer|null
+reason_codes: [string]
+```
+
+bridge 使用 strict envelope：成功为 `{ok: true, settings: ModelRouteProfileSummaryV1}`；失败为 `{ok: false, error: StableError, rollback_succeeded?: boolean, settings?: ModelRouteProfileSummaryV1}`。`APPLYING / APPLY_FAILED_RESTORED / ROLLBACK_FAILED` 是 renderer transaction display state，不得写回或伪装成 SYS08 profile state。
+
+```yaml
+ModelConfigApplyCommandV1:
+  schema_version: "1.0"
+  provider: qwen|deepseek|doubao|zhipu
+  model: string
+  api_key: string
+  expected_revision: integer|null
+
+ModelConfigClearCommandV1:
+  schema_version: "1.0"
+  expected_revision: integer|null
+  recovery_confirmation: "RESET_UNREADABLE_VAULT"  # 仅显式不可读 vault 恢复时存在
+```
+
+bridge response、frontend store、DOM、analytics 与普通 HTTP client MUST NOT 包含 credential/ciphertext/control token。candidate credential 只在用户提交时从当前表单传给 Electron main，不得写 localStorage/sessionStorage/indexedDB。
 
 ### UI-DATA-011 — Frozen Additive Query Plan
 
@@ -86,6 +121,30 @@ UI-02C 通过 ADR-0007、`SYS06 Activity Lifecycle and Completion` 与独立 Ver
 冻结 `StartLearningActivityV1`、`CompleteLearningActivityV1` 和 activity query。该授权仅在
 EXEC-030 dependency gate 满足后生效，不扩大 Goal/Plan/mastery 编辑范围。
 
+P1-03 通过 ADR-0103 与 `interfaces/data-control-contract.md` 单独冻结 data-control status、export、erasure preview/confirm/report 以及 desktop typed backup/verify/restore IPC。该协调层不成为 UI 或第九业务 state owner。
+
+### UI-DATA-013 — DataControlStatusV1
+
+```yaml
+schema_version: "1.0"
+protection_state: NOT_PROTECTED|READY|IN_PROGRESS|PARTIAL|ERROR|UNSUPPORTED
+supported_mode: PRIVATE_DESKTOP_SQLITE|UNSUPPORTED
+last_verified:
+  backup_id: uuid|null
+  reason: string|null
+  created_at: datetime|null
+  verified_at: datetime|null
+  size_bytes: integer|null
+automatic_backup:
+  enabled: boolean
+  next_due_at: datetime|null
+  last_error_code: string|null
+erasure_checkpoint: integer
+reason_codes: [string]
+```
+
+Frontend 不得把文件存在推断为 VERIFIED，也不得缓存 Recovery Key、confirmation token 或 restore success 作为 canonical status。
+
 ## 3. Common Response Envelope
 
 ### UI-DATA-020
@@ -105,6 +164,10 @@ correlation_id: string
 ```
 
 未知 major version MUST 明确拒绝或进入安全页面级 fallback；不得猜测字段语义。
+
+### UI-DATA-023 — Model Settings Revision Conflict
+
+apply/clear 必须携带最后读取的 `expectedRevision`。`MODEL_CONFIG_REVISION_CONFLICT` 时 UI 重新读取脱敏状态并要求用户确认，不得自动覆盖较新配置。
 
 ### UI-DATA-021 — Partial Success
 
@@ -453,6 +516,7 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 - `UI-DATA-AC-008`：退出/换用户后 frontend cache 不泄漏上一用户学习数据。
 - `UI-DATA-AC-009`：未冻结的新 commands 不会以假按钮或 frontend-only state 出现。
 - `UI-DATA-AC-010`：只有 ACTIVE/RESUMABLE activity 才携带可进入工作台的 canonical session link。
+- `UI-DATA-AC-011`：data-control status 来自 catalog/report exact refs；frontend 不自行判断 backup integrity 或 erasure completion。
 
 ## 12. Forbidden Implementations
 

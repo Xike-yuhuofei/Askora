@@ -26,6 +26,8 @@ Structured logs 至少 SHOULD 包含 timestamp、level、component/system、even
 
 DecisionTrace 按 `decision-contract.md`；ModelInference 至少记录 provider/model/snapshot、task、prompt version、latency、usage、fallback、validation、error；retrieval observability 必须包含 candidates/routes/ranks/filters/selected evidence/index versions/citation validation/leakage reason。
 
+Model configuration 事件只可记录 schema/source/revision、sanitized provider/model、probe/apply/rollback outcome、latency 与稳定 error code。MUST NOT 记录 credential、ciphertext、control token、完整 synthetic prompt 或原始 provider body。
+
 ## 3. v0.3 Decision vs Outcome
 
 ### OBS-200
@@ -150,7 +152,7 @@ Telemetry MUST 按 privacy classification 最小化采集；raw content 非必�
 
 ## 11. Tests
 
-测试 MUST 覆盖 DecisionTrace/Outcome separation；primary vs process metric classification；delayed outcome no last-touch；attribution enum；actual assistance/exposure observability；deterministic probability fields；trace correlation；missing semantics；privacy redaction。
+测试 MUST 覆盖 DecisionTrace/Outcome separation；primary vs process metric classification；delayed outcome no last-touch；attribution enum；actual assistance/exposure observability；deterministic probability fields；trace correlation；missing semantics；privacy redaction；model configuration probe/apply/rollback 脱敏事件与 secret-negative assertions。
 
 ## 12. Acceptance Criteria
 
@@ -170,6 +172,7 @@ Telemetry MUST 按 privacy classification 最小化采集；raw content 非必�
 - `OBS-AC-204`：delayed outcome 不自动 last-touch attribution。
 - `OBS-AC-205`：deterministic B3 可检测任何 non-null `action_propensity` 异常。
 - `OBS-AC-206`：SYS05 decision 可关联 exact context/bundle 与后续 outcome，而不混淆 ownership。
+- `OBS-AC-207`：可审计 desktop model configuration revision/apply/rollback，且日志/trace 不含 secret/ciphertext/control token。
 
 ## 13. Forbidden Implementations
 

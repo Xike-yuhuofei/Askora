@@ -139,7 +139,7 @@ async def test_production_model_renderer_rejects_empty_or_mock_output() -> None:
             CapturingModelRouter(empty_provider)
         )
     )
-    with pytest.raises(ModelRenderingError, match="AI_MODEL_OUTPUT_INVALID"):
+    with pytest.raises(ModelRenderingError, match="AI_OUTPUT_VALIDATION_FAILED"):
         await empty_facade.run_turn(adaptive_request())
 
     mock_provider = CapturingModelProvider()
@@ -149,7 +149,7 @@ async def test_production_model_renderer_rejects_empty_or_mock_output() -> None:
             CapturingModelRouter(mock_provider)
         )
     )
-    with pytest.raises(ModelRenderingError, match="AI_MODEL_REAL_PROVIDER_REQUIRED"):
+    with pytest.raises(ModelRenderingError, match="AI_PROVIDER_KEY_MISSING"):
         await mock_facade.run_turn(adaptive_request())
 
 

@@ -15,8 +15,11 @@ import GoalDetail from './pages/GoalDetail'
 import GoalEditor from './pages/GoalEditor'
 import LearningPath from './pages/LearningPath'
 import Settings from './pages/Settings'
+import RecoveryCenter from './pages/RecoveryCenter'
 import Unavailable from './pages/Unavailable'
+import StartupRecovery from './pages/StartupRecovery'
 import { Navigate, useLocation } from './router'
+import { useEffect, useState } from 'react'
 
 const legacyRedirects = {
   '/': '/today',
@@ -33,6 +36,8 @@ const standardPages = {
   '/evidence': Evidence,
   '/history': History,
   '/settings': Settings,
+  '/settings/models': Settings,
+  '/settings/recovery': RecoveryCenter,
 }
 
 function decodeRouteParam(value) {
@@ -85,6 +90,7 @@ export function resolveRoute(pathname) {
 function AppRoutes() {
   const { pathname } = useLocation()
   if (pathname === '/login') return <Login />
+  if (pathname === '/settings/delete-account') return <AccountDeletion />
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />
@@ -107,6 +113,36 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [bootstrap, setBootstrap] = useState(() => (
+    window.electronAPI?.getBackendStartupState ? { status: 'checking' } : { status: 'browser' }
+  ))
+
+  useEffect(() => {
+    if (!window.electronAPI?.getBackendStartupState) return undefined
+    let active = true
+    window.electronAPI.getBackendStartupState().then((state) => {
+      if (active) setBootstrap(state)
+    })
+    const unsubscribe = window.electronAPI.onBackendStartupState?.((state) => {
+      if (active) setBootstrap(state)
+    })
+    return () => {
+      active = false
+      unsubscribe?.()
+    }
+  }, [])
+
+  const retryBackend = async () => {
+    const state = await window.electronAPI.retryBackendStartup()
+    setBootstrap(state)
+  }
+
+  if (bootstrap.status === 'checking' || bootstrap.status === 'starting') {
+    return <main className="startup-recovery" role="status">正在启动 Askora 本地服务…</main>
+  }
+  if (bootstrap.status === 'failed') {
+    return <StartupRecovery diagnostic={bootstrap} onRetry={retryBackend} />
+  }
   return (
     <AuthProvider>
       <AppRoutes />

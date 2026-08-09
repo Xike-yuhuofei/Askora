@@ -103,7 +103,7 @@ async def test_zhipu_stream_parses_openai_compatible_sse(monkeypatch) -> None:
     assert client.url.endswith("/chat/completions")
     assert client.payload["stream"] is True
     assert client.payload["thinking"] == {"type": "disabled"}
-    assert "max_tokens" not in client.payload
+    assert client.payload["max_tokens"] == settings.llm_max_tokens
     assert "".join(chunk.content for chunk in chunks) == "你好"
     assert chunks[-1].is_final is True
 
@@ -117,6 +117,35 @@ def test_explicit_default_and_math_routes_select_zhipu(monkeypatch) -> None:
 
     assert isinstance(router.route_for_subject("science"), ZhipuProvider)
     assert isinstance(router.route_for_subject("数学"), ZhipuProvider)
+
+
+def test_desktop_vault_route_never_silently_switches_provider(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "model_config_source", "DESKTOP_VAULT")
+    monkeypatch.setattr(settings, "model_config_state", "ACTIVE")
+    monkeypatch.setattr(settings, "llm_default_provider", LLMProvider.ZHIPU)
+    monkeypatch.setattr(settings, "llm_math_provider", LLMProvider.DEEPSEEK)
+    monkeypatch.setattr(settings, "llm_zhipu_api_key", "configured-test-key")
+    monkeypatch.setattr(settings, "llm_deepseek_api_key", "other-key")
+
+    router = ModelRouter()
+
+    assert isinstance(router.get_provider("deepseek"), ZhipuProvider)
+    assert isinstance(router.route_for_subject("数学"), ZhipuProvider)
+    assert isinstance(router.route_for_cost("high"), ZhipuProvider)
+
+
+@pytest.mark.asyncio
+async def test_disabled_desktop_route_rejects_without_returning_a_mock(monkeypatch) -> None:
+    """MODEL-CONFIG-070/071: disabled vault must not masquerade as a usable model."""
+    monkeypatch.setattr(settings, "model_config_source", "DESKTOP_VAULT")
+    monkeypatch.setattr(settings, "model_config_state", "DISABLED")
+    monkeypatch.setattr(settings, "llm_default_provider", LLMProvider.ZHIPU)
+    monkeypatch.setattr(settings, "llm_zhipu_api_key", "")
+
+    router = ModelRouter()
+
+    with pytest.raises(RuntimeError, match="MODEL_NOT_AVAILABLE"):
+        await router.chat_completion_with_fallback([ChatMessage(role="user", content="测试")])
 
 
 @pytest.mark.asyncio

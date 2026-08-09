@@ -113,6 +113,7 @@ const mapPayload = {
 
 describe('UI02A 资料库', () => {
   beforeEach(() => {
+    window.location.hash = '#/library'
     workspaceApi.getLibraryWorkspace.mockReset()
     workspaceApi.getKnowledgeMap.mockReset()
     documentApi.uploadDocument.mockReset()
@@ -344,6 +345,91 @@ describe('UI02A 资料库', () => {
       expect.objectContaining({ expected_version: 1, display_title: '函数与映射' }),
     ))
     expect(await screen.findByText('资料信息已保存；原文件与知识 revision 未改变。')).toBeInTheDocument()
+  })
+
+  it('扫描 PDF 必须人工接受候选后才发布', async () => {
+    const pdfDocument = { ...documentView, title: '扫描讲义.pdf', media_type: 'application/pdf' }
+    workspaceApi.getLibraryWorkspace.mockResolvedValue({
+      ...libraryPayload,
+      data: { ...libraryPayload.data, documents: [pdfDocument] },
+    })
+    const pending = {
+      run_id: '55555555-5555-4555-8555-555555555555',
+      document_id: pdfDocument.document_id,
+      status: 'pending',
+      candidates: [],
+    }
+    const ready = {
+      ...pending,
+      status: 'review_required',
+      page_count: 1,
+      candidate_count: 1,
+      candidates: [{
+        candidate_id: '66666666-6666-4666-8666-666666666666',
+        page_number: 1,
+        block_index: 0,
+        bbox: [10, 20, 300, 70],
+        text: '扫描候选文字',
+        confidence: 82,
+        image_hash: 'a'.repeat(64),
+        status: 'candidate',
+        corrected_text: null,
+        version: 1,
+      }],
+    }
+    documentApi.requestDocumentOcr.mockResolvedValue(pending)
+    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
+    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
+    documentApi.reviewDocumentOcrRun.mockResolvedValue({ ...ready, status: 'accepted' })
+    render(<Library />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '识别扫描 PDF' }))
+    expect(await screen.findByText('扫描 PDF 文字复核', {}, { timeout: 4000 })).toBeInTheDocument()
+    const publish = screen.getByRole('button', { name: '发布已复核文字' })
+    expect(publish).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox', { name: '接受这段文字' }))
+    fireEvent.click(publish)
+
+    await waitFor(() => expect(documentApi.reviewDocumentOcrRun).toHaveBeenCalledWith(
+      pending.run_id,
+      expect.objectContaining({
+        publish: true,
+        decisions: [expect.objectContaining({ action: 'ACCEPT', corrected_text: '扫描候选文字' })],
+      }),
+    ))
+    expect(await screen.findByText('复核文本已发布为新的可追溯 revision。')).toBeInTheDocument()
+  }, 6000)
+
+  it('从恢复中心深链当前 owner 的 OCR run 并直接展示人工复核', async () => {
+    const runId = '55555555-5555-4555-8555-555555555555'
+    const ready = {
+      run_id: runId,
+      document_id: documentView.document_id,
+      status: 'review_required',
+      page_count: 1,
+      candidate_count: 1,
+      candidates: [{
+        candidate_id: '66666666-6666-4666-8666-666666666666',
+        page_number: 1,
+        block_index: 0,
+        bbox: [10, 20, 300, 70],
+        text: '待人工核对的 OCR 文字',
+        confidence: 72,
+        image_hash: 'a'.repeat(64),
+        status: 'candidate',
+        corrected_text: null,
+        version: 1,
+      }],
+    }
+    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
+    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
+    window.location.hash = `#/library?document=${documentView.document_id}&ocrRun=${runId}`
+
+    render(<Library />)
+
+    expect(await screen.findByRole('heading', { name: '扫描 PDF 文字复核' })).toBeInTheDocument()
+    expect(documentApi.getDocumentOcrRun).toHaveBeenCalledWith(runId)
+    expect(screen.getByDisplayValue('待人工核对的 OCR 文字')).toBeInTheDocument()
   })
 
   it('扫描 PDF 必须人工接受候选后才发布', async () => {
