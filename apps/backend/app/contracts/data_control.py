@@ -52,6 +52,34 @@ class ExportScope(str, Enum):
     MODEL_EXECUTION = "MODEL_EXECUTION"
 
 
+class UserExportManifestFileV1(ContractModel):
+    path: str = Field(min_length=1, max_length=1024)
+    media_type: str = Field(min_length=1, max_length=200)
+    size_bytes: int = Field(ge=0)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class UserExportManifestV1(ContractModel):
+    format: Literal["askora-user-export"] = "askora-user-export"
+    schema_version: Literal["1.0"] = "1.0"
+    export_id: UUID
+    created_at: datetime
+    user_ref: str = Field(min_length=16, max_length=100)
+    scopes: tuple[ExportScope, ...] = Field(min_length=1)
+    includes_document_originals: bool = False
+    files: tuple[UserExportManifestFileV1, ...] = Field(min_length=1)
+
+
+class UserExportReadyV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    export_id: UUID
+    created_at: datetime
+    expires_at: datetime
+    download_token: str = Field(min_length=32, max_length=200)
+    file_count: int = Field(ge=1)
+    size_bytes: int = Field(ge=0)
+
+
 class RecoveryManifestFileV1(ContractModel):
     relative_path: str = Field(min_length=1, max_length=1024)
     size_bytes: int = Field(ge=0)
