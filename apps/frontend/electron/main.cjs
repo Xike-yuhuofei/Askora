@@ -6,6 +6,14 @@ const path = require('path')
 const { spawn } = require('child_process')
 const { createAppMenu } = require('./app-menu.cjs')
 const bootstrapDiagnostics = require('./bootstrap-diagnostics.cjs')
+const {
+  EncryptedModelVault,
+  ModelSettingsController,
+  ModelSettingsError,
+  applyModelProfileToEnvironment,
+  externalSummaryFromEnv,
+  isAllowedModelSettingsSender,
+} = require('./model-settings.cjs')
 
 const isDev = !app.isPackaged
 if (process.platform !== 'win32') process.umask(0o077)
@@ -29,6 +37,9 @@ let readyBackendURL = null
 let backendStartPromise = null
 let backendDiagnosticBuffer = ''
 let backendStartupState = bootstrapDiagnostics.starting({ attempt: -1 })
+let desktopControlToken = null
+let modelSettingsController = null
+let activeLaunchProfile = null
 
 function getBackendBinaryPath() {
   if (isDev) {
@@ -131,20 +142,8 @@ function consumeBackendDiagnostics(data) {
   }
 }
 
-async function startLocalBackendAttempt() {
-  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
-  backendDiagnosticBuffer = ''
-  const backendInfo = getBackendBinaryPath()
-  if (!backendInfo) {
-    console.error('[Askora] Local backend executable was not found')
-    setBackendFailure('BOOTSTRAP_BACKEND_BINARY_MISSING', { retryable: false })
-    return null
-  }
-
-  const localSecrets = loadOrCreateLocalSecrets()
-  const databasePath = path.join(userDataPath, 'askora.db')
-  const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
-  const env = {
+function buildBackendEnvironment(profile, localSecrets, databasePath, controlToken) {
+  const baseEnvironment = {
     ...process.env,
     APP_ENV: 'local',
     PRIVATE_APP: 'true',
@@ -159,8 +158,26 @@ async function startLocalBackendAttempt() {
     KEK_MASTER_KEY: localSecrets.kekSecret,
     ENABLE_ORCHESTRATOR_DEBUG_API: 'false',
     WORKER_ENABLED: 'false',
+    DESKTOP_CONTROL_TOKEN: controlToken,
+  }
+  return applyModelProfileToEnvironment(baseEnvironment, profile)
+}
+
+async function startLocalBackendAttempt(profile = activeLaunchProfile) {
+  publishBackendStartupState(bootstrapDiagnostics.starting(backendStartupState))
+  backendDiagnosticBuffer = ''
+  const backendInfo = getBackendBinaryPath()
+  if (!backendInfo) {
+    console.error('[Askora] Local backend executable was not found')
+    setBackendFailure('BOOTSTRAP_BACKEND_BINARY_MISSING', { retryable: false })
+    return null
   }
 
+  const localSecrets = loadOrCreateLocalSecrets()
+  const databasePath = path.join(userDataPath, 'askora.db')
+  const backendURL = `http://127.0.0.1:${BACKEND_PORT}`
+  desktopControlToken = crypto.randomBytes(48).toString('base64url')
+  const env = buildBackendEnvironment(profile, localSecrets, databasePath, desktopControlToken)
   const spawnedProcess = spawn(backendInfo.command, backendInfo.args, {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -187,6 +204,7 @@ async function startLocalBackendAttempt() {
     }
     backendProcess = null
     readyBackendURL = null
+    desktopControlToken = null
   })
 
   const ready = await waitForBackend(backendURL, BACKEND_STARTUP_TIMEOUT)
@@ -195,19 +213,20 @@ async function startLocalBackendAttempt() {
     if (backendStartupState.status === 'starting') {
       setBackendFailure('BOOTSTRAP_BACKEND_START_TIMEOUT', { retryable: true })
     }
-    stopLocalBackend()
+    await stopLocalBackend()
     return null
   }
 
   readyBackendURL = backendURL
+  activeLaunchProfile = profile
   publishBackendStartupState(bootstrapDiagnostics.ready(backendStartupState))
   console.log('[Askora] Local backend is ready')
   return backendURL
 }
 
-function startLocalBackend() {
+function startLocalBackend(profile = activeLaunchProfile) {
   if (backendStartPromise) return backendStartPromise
-  backendStartPromise = startLocalBackendAttempt().finally(() => {
+  backendStartPromise = startLocalBackendAttempt(profile).finally(() => {
     backendStartPromise = null
   })
   return backendStartPromise
@@ -232,14 +251,142 @@ async function retryLocalBackend() {
 function stopLocalBackend() {
   const processToStop = backendProcess
   readyBackendURL = null
-  if (!processToStop || processToStop.exitCode !== null) return
+  desktopControlToken = null
+  if (!processToStop || processToStop.exitCode !== null) return Promise.resolve()
 
-  try {
-    processToStop.kill('SIGTERM')
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    processToStop.once('exit', finish)
+    try {
+      processToStop.kill('SIGTERM')
+    } catch {
+      finish()
+      return
+    }
     setTimeout(() => {
-      if (processToStop.exitCode === null) processToStop.kill('SIGKILL')
+      if (processToStop.exitCode === null) {
+        try {
+          processToStop.kill('SIGKILL')
+        } catch {}
+      }
+      setTimeout(finish, 500)
     }, 3000)
-  } catch {}
+  })
+}
+
+function requestBackendJSON({ method = 'GET', pathname, body = null, token = null, timeoutMs = 15000 }) {
+  return new Promise((resolve, reject) => {
+    const encoded = body === null ? null : Buffer.from(JSON.stringify(body), 'utf8')
+    const request = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: BACKEND_PORT,
+        path: pathname,
+        method,
+        headers: {
+          ...(encoded ? { 'content-type': 'application/json', 'content-length': encoded.length } : {}),
+          ...(token ? { 'x-askora-desktop-control': token } : {}),
+        },
+      },
+      (response) => {
+        const chunks = []
+        response.on('data', (chunk) => chunks.push(chunk))
+        response.on('end', () => {
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+            resolve({ statusCode: response.statusCode || 500, payload })
+          } catch {
+            reject(new Error('invalid backend response'))
+          }
+        })
+      },
+    )
+    request.setTimeout(timeoutMs, () => request.destroy(new Error('backend request timeout')))
+    request.on('error', reject)
+    if (encoded) request.write(encoded)
+    request.end()
+  })
+}
+
+async function probeModelCandidate(candidate) {
+  if (!readyBackendURL || !desktopControlToken) {
+    throw new ModelSettingsError(
+      'MODEL_PROVIDER_UNAVAILABLE',
+      'dependency',
+      '本地模型服务尚未就绪',
+      true,
+    )
+  }
+  const result = await requestBackendJSON({
+    method: 'POST',
+    pathname: '/_desktop/model-configuration/probe',
+    body: candidate,
+    token: desktopControlToken,
+  })
+  if (result.statusCode !== 200 || !result.payload?.ok) {
+    const error = result.payload?.error || {}
+    throw new ModelSettingsError(
+      typeof error.code === 'string' ? error.code : 'MODEL_PROVIDER_UNAVAILABLE',
+      typeof error.category === 'string' ? error.category : 'dependency',
+      typeof error.message === 'string' ? error.message : '模型连接测试失败',
+      Boolean(error.retryable),
+    )
+  }
+  return result.payload
+}
+
+async function getBackendRuntimeSummary() {
+  if (!readyBackendURL) throw new Error('runtime configuration unavailable')
+  const result = await requestBackendJSON({ pathname: '/health/config', timeoutMs: 5000 })
+  if (result.statusCode !== 200 || !result.payload?.model_configuration) {
+    throw new Error('runtime configuration unavailable')
+  }
+  return result.payload.model_configuration
+}
+
+async function restartBackendWithProfile(profile) {
+  await stopLocalBackend()
+  const url = await startLocalBackend(profile)
+  if (!url) throw new Error('backend restart failed')
+  return getBackendRuntimeSummary()
+}
+
+function isAllowedRenderer(event) {
+  if (!mainWindow) return false
+  return isAllowedModelSettingsSender(event, mainWindow.webContents, {
+    isDev,
+    devURL: 'http://localhost:5173/',
+    allowedFilePath: path.join(__dirname, '..', 'dist', 'index.html'),
+  })
+}
+
+function registerModelSettingsIPC() {
+  const denied = () => ({
+    ok: false,
+    error: {
+      code: 'MODEL_CONFIG_IPC_DENIED',
+      category: 'security',
+      message: '模型配置请求未获授权',
+      retryable: false,
+    },
+  })
+  for (const channel of ['model-settings:get', 'model-settings:apply', 'model-settings:clear']) {
+    ipcMain.removeHandler(channel)
+  }
+  ipcMain.handle('model-settings:get', (event) =>
+    isAllowedRenderer(event) ? modelSettingsController.getSettings() : denied(),
+  )
+  ipcMain.handle('model-settings:apply', (event, command) =>
+    isAllowedRenderer(event) ? modelSettingsController.apply(command) : denied(),
+  )
+  ipcMain.handle('model-settings:clear', (event, command) =>
+    isAllowedRenderer(event) ? modelSettingsController.clear(command) : denied(),
+  )
 }
 
 function stopLocalBackendForMaintenance() {
@@ -446,8 +593,28 @@ async function chooseAndRestoreBackup() {
 }
 
 async function createWindow() {
+  if (!modelSettingsController) {
+    const vault = new EncryptedModelVault({
+      safeStorage,
+      filePath: path.join(userDataPath, 'model-route-profile.v1.enc.json'),
+    })
+    modelSettingsController = new ModelSettingsController({
+      vault,
+      probeCandidate: probeModelCandidate,
+      restartBackend: restartBackendWithProfile,
+      getRuntimeSummary: getBackendRuntimeSummary,
+      externalSummary: () => externalSummaryFromEnv(process.env),
+    })
+  }
+  let launchProfile
+  try {
+    launchProfile = await modelSettingsController.getLaunchProfile()
+  } catch {
+    // An unreadable existing vault must not silently reactivate inherited environment keys.
+    launchProfile = { state: 'DISABLED', revision: null, verified_at: null }
+  }
   await runScheduledBackupIfDue()
-  await startLocalBackend()
+  await startLocalBackend(launchProfile)
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -463,6 +630,8 @@ async function createWindow() {
       webSecurity: true,
     },
   })
+
+  registerModelSettingsIPC()
 
   Menu.setApplicationMenu(createAppMenu(mainWindow))
   if (isDev) {
@@ -530,8 +699,10 @@ app.on('activate', () => {
 })
 
 app.on('window-all-closed', () => {
-  stopLocalBackend()
+  void stopLocalBackend()
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('before-quit', stopLocalBackend)
+app.on('before-quit', () => {
+  void stopLocalBackend()
+})

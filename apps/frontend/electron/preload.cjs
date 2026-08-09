@@ -29,4 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('data-control:restored', listener)
     return () => ipcRenderer.removeListener('data-control:restored', listener)
   },
+  getModelSettings: () => ipcRenderer.invoke('model-settings:get'),
+  applyModelSettings: (command) => ipcRenderer.invoke('model-settings:apply', command),
+  clearModelSettings: (command) => ipcRenderer.invoke('model-settings:clear', command),
 })
