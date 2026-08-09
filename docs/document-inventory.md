@@ -43,6 +43,7 @@
 | `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN | UI-02B read scope、objective missing semantics 与 owner-safe evidence label 决策 |
 | `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
 | `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN | P1-04 SYS01 metadata/search/dedup/OCR governance |
+| `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/releases/README.md` | CURRENT-UPDATED | 本次新增历史证据索引 |
 | `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
 | `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
@@ -59,6 +60,7 @@
 | `docs/design/README.md` | CURRENT-UPDATED | 本次新增 Design 层索引 |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/p1-06-fact-driven-first-use-journey.md` | CANONICAL-RETAIN | P1-06 事实驱动、可恢复的首次学习旅程设计 |
 | `docs/design/research/README.md` | CURRENT-UPDATED | Research Delta 改为已完成历史输入 |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN | 独立研究证据 |
@@ -102,6 +104,7 @@
 | `docs/specs/interfaces/content-ingestion-contract.md` | CANONICAL-RETAIN | SPEC-D01；结构保真 ingestion / source locator / replay 冻结合同 |
 | `docs/specs/interfaces/error-contract.md` | CANONICAL-RETAIN | 仍适用的 error contract |
 | `docs/specs/interfaces/persistence-contract.md` | CANONICAL-RETAIN | 仍适用的 persistence contract |
+| `docs/specs/interfaces/onboarding-contract.md` | CANONICAL-RETAIN | P1-06 presentation preference、readiness、single next action 与 route contract |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN | v0.3.1 rich response rendering contract |
 | `docs/specs/interfaces/schema-versioning.md` | CANONICAL-RETAIN | 仍适用的 versioning contract |
 | `docs/specs/quality/testing-standard.md` | CANONICAL-RETAIN | v0.3 quality contract |
@@ -142,6 +145,7 @@
 | `docs/specs/vertical-slices/p1-04a-library-organization.md` | CANONICAL-RETAIN | P1-04A search/metadata/organization Slice |
 | `docs/specs/vertical-slices/p1-04b-library-deduplication.md` | CANONICAL-RETAIN | P1-04B duplicate governance Slice |
 | `docs/specs/vertical-slices/p1-04c-library-ocr-review.md` | CANONICAL-RETAIN | P1-04C OCR candidate/review Slice |
+| `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
 
 ## 5. EXEC 历史合同
 
@@ -182,6 +186,8 @@
 | `docs/exec-plans/completed/EXEC-031-p1-04a-library-organization.md` | HISTORICAL-RETAIN | P1-04A completed execution contract |
 | `docs/exec-plans/completed/EXEC-032-p1-04b-library-deduplication.md` | HISTORICAL-RETAIN | P1-04B completed execution contract |
 | `docs/exec-plans/completed/EXEC-033-p1-04c-library-ocr-review.md` | HISTORICAL-RETAIN | P1-04C completed execution contract |
+| `docs/exec-plans/active/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | CANONICAL-RETAIN | P1-06 preference/readiness active EXEC |
+| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
 
 ## 6. Release Evidence
 

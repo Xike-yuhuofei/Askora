@@ -205,3 +205,17 @@ RELEASE_ELIGIBLE
 ## 12. Final v0.3 Gate
 
 当且仅当 Engineering Gate、Policy Correctness Gate 满足，release 所需学习证据状态被诚实标记、实验数据基础正确、无 blocking SPEC GAP 时，implementation MAY 进入相应 release/experimental stage。学习证据不足时 MAY 工程迭代，但 MUST 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。
+
+## 13. P1-06 Completion Gate
+
+### DOD-300
+
+P1-06 只有在 P1-02/P1-03/P1-07 真实依赖、EXEC-1061/1062 独立 commits、全量自动门禁、真实
+provider/App restart、deep-link/recovery/accessibility 与无内部知识首次用户验收全部有当前证据后才可
+标 DONE。样例资料保持关闭不构成缺项。
+
+### DOD-301
+
+Engineering、Security/Privacy、Product Usability 与 Learning Evidence 必须分开。Onboarding 完成、
+activity completion 或真实模型可用均不得把 Learning Evidence 从
+`LEARNING_EVIDENCE_INSUFFICIENT` 改为有效。
