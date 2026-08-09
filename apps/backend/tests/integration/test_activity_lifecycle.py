@@ -416,7 +416,7 @@ async def test_transcript_reference_must_match_current_owner_and_activity(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_concurrent_duplicate_start_advances_once(tmp_path) -> None:
+async def test_concurrent_duplicate_start_advances_once(tmp_path, monkeypatch) -> None:
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'activity-race.db'}")
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as connection:
@@ -451,6 +451,30 @@ async def test_concurrent_duplicate_start_advances_once(tmp_path) -> None:
 
     first, second = await asyncio.gather(invoke(), invoke())
     assert first == second
+
+    async with factory() as replay_session:
+        current_user = await replay_session.get(User, "activity-owner")
+        assert current_user is not None
+        replay_service = ActivityLifecycleService(replay_session)
+        persisted_replay = replay_service._replay
+        replay_attempts = 0
+
+        async def replay_after_preflight_miss(**kwargs):
+            nonlocal replay_attempts
+            replay_attempts += 1
+            if replay_attempts == 1:
+                return None
+            return await persisted_replay(**kwargs)
+
+        monkeypatch.setattr(replay_service, "_replay", replay_after_preflight_miss)
+        delayed_replay = await replay_service.start(
+            user=current_user,
+            command=command,
+            correlation_id=uuid4(),
+        )
+        assert delayed_replay == first
+        assert replay_attempts == 2
+
     async with factory() as verify_session:
         states = await ActivityLifecycleRepository(verify_session).latest_for_plan(
             plan_id=first.data.state.plan_id,

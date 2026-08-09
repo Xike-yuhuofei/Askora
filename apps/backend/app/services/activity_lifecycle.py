@@ -223,6 +223,17 @@ class ActivityLifecycleService:
         state = await self._require_state(command.activity_id, lock=True)
         self._require_current_plan(context)
         if state.version != command.expected_state_version:
+            # A matching command can commit after the preflight receipt lookup but
+            # before this locked state read. Replay that winner instead of turning a
+            # successful idempotent duplicate into a version conflict.
+            await self._session.rollback()
+            replay = await self._replay_after_concurrent_conflict(
+                user_id=owner_id,
+                idempotency_key=command.idempotency_key,
+                digest=digest,
+            )
+            if replay is not None:
+                return replay
             raise _error("ACTIVITY_STATE_VERSION_CONFLICT", "活动状态已更新，请刷新后重试")
         if state.status != "available":
             code = (
