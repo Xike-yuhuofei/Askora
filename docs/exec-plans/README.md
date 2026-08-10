@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
 > 状态：既有 UI-02C、P1-01～07 等基线已完成；当前存在独立 active/blocked 队列
-> Active / Frozen Queue：EXEC-042、EXEC-048～051、EXEC-043～046、EXEC-052～058
+> Active / Frozen Queue：EXEC-048～051、EXEC-043～046、EXEC-052～058
 > Local Identity chain：`EXEC-047 DONE → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`
 > UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
 > CI v2 chain：`EXEC-052 → (EXEC-051 DONE) → EXEC-053 → EXEC-054 → EXEC-055 → {EXEC-056 after EXEC-046, EXEC-057} → EXEC-058`
@@ -24,7 +24,6 @@ PRODUCT-POSITIONING
 
 | EXEC | Task | Status | Dependency / Concurrency |
 |---|---|---|---|
-| [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md) | v0.3 Production Sequential Teaching Policy Closure | FROZEN / ACTIVE | backend/policy 独立任务域 |
 | [EXEC-048](active/EXEC-048-backend-no-auth-loopback-cutover.md) | Backend No-Auth & Loopback Cutover | FROZEN / ACTIVE | EXEC-047 DONE；dependency satisfied |
 | [EXEC-049](active/EXEC-049-frontend-settings-onboarding-deaccounting.md) | Frontend / Settings / Onboarding De-accounting | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-048 DONE |
 | [EXEC-050](active/EXEC-050-auth-persistence-configuration-cleanup.md) | Auth Persistence & Configuration Cleanup | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-049 DONE |
@@ -43,7 +42,7 @@ PRODUCT-POSITIONING
 
 ### Concurrency Rule
 
-`EXEC-042` 只处理 backend Teaching Policy production closure，可与文档治理并行，但不得扩大到 Local Identity、CI runtime cutover 或 frontend Interaction Architecture。
+`EXEC-042`（已归档 DONE）处理 backend Teaching Policy production closure，可并行文档治理，但不得扩大到 Local Identity、CI runtime cutover 或 frontend Interaction Architecture。
 
 `EXEC-052` 只处理 CI governance / test-oracle classification / document lifecycle，可在当前实现链旁执行；不得修改 production runtime 或产品 UI。
 
@@ -105,7 +104,7 @@ EXEC-055 Migration / Recovery / Rebuild
 |---|---|---|
 | v0.2 First Vertical Learning Loop | EXEC-001～006 | DONE |
 | v0.3 Adaptive Teaching Loop historical implementation | EXEC-007～013 | DONE / historical snapshot |
-| v0.3 Production Sequential Teaching Policy Closure | EXEC-042 | FROZEN / ACTIVE |
+| v0.3 Production Sequential Teaching Policy Closure | EXEC-042 | DONE / archived 2026-08-10 |
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
@@ -176,7 +175,7 @@ PostgreSQL / Docker / real-provider compatibility MAY 保留为 Optional/Schedul
 
 ## 6. v0.3 Current Conformance Closure
 
-当前 v0.3 production conformance 仍由 EXEC-042 独立管理。Local Identity、UI-03 与 CI v2 不得借各自任务修复或改写 Teaching Policy。
+当前 v0.3 production conformance 已由 EXEC-042 关闭并归档 DONE（2026-08-10）：GAP-V03-001 / GAP-V03-002 CLOSED，见 [`../releases/v0.3-production-sequential-policy-closure.md`](../releases/v0.3-production-sequential-policy-closure.md)。Local Identity、UI-03 与 CI v2 不得借各自任务修复或改写 Teaching Policy。
 
 Engineering、Policy Correctness 与 Learning Evidence 必须继续独立报告；身份/UI/CI 改善不得改变 `LEARNING_EVIDENCE_INSUFFICIENT`。
 

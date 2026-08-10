@@ -154,6 +154,32 @@ class LearnerModelRepository:
         ).all()
         return [LearnerEvidence.model_validate(record.payload) for record in records]
 
+    async def latest_evidence_across_units(
+        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...]
+    ) -> LearnerEvidence | None:
+        """Return the single most recent accepted canonical evidence in scope.
+
+        Used by SYS05 production hydration to surface a genuine recent
+        AssessmentResult reference into TeachingContext without guessing from
+        free text or transcript copies.
+        """
+        if not knowledge_unit_ids:
+            return None
+        record = await self._session.scalar(
+            select(LearnerEvidenceRecord)
+            .where(
+                LearnerEvidenceRecord.user_id == str(user_id),
+                LearnerEvidenceRecord.knowledge_unit_id.in_(
+                    [str(item) for item in knowledge_unit_ids]
+                ),
+                LearnerEvidenceRecord.status == "accepted",
+                LearnerEvidenceRecord.invalidated_at.is_(None),
+            )
+            .order_by(LearnerEvidenceRecord.created_at.desc(), LearnerEvidenceRecord.id.desc())
+            .limit(1)
+        )
+        return LearnerEvidence.model_validate(record.payload) if record else None
+
     async def invalidate_evidence(self, evidence_id: UUID) -> None:
         record = await self._session.get(LearnerEvidenceRecord, str(evidence_id))
         if record is None:

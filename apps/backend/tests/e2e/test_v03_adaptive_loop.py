@@ -22,7 +22,6 @@ from app.domains.learner_model import (
     WeightedBKTProjector,
 )
 from app.domains.review_scheduler import ReviewScheduler
-from app.domains.teaching_policy import TeachingPolicyKernel
 from app.domains.teaching_policy.outcome_evaluation import (
     OutcomeAttributionProfile,
     OutcomeAttributionValidator,
@@ -141,11 +140,23 @@ async def test_policy_to_actual_assistance_to_learner_evidence_e2e() -> None:
         ),
         action,
     )
-    next_decision = TeachingPolicyKernel().decide(
+    # Second+ production decision MUST go through SequentialTeachingPolicy via
+    # the production reconstruction helper, never a direct kernel call.
+    from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
+    from app.domains.teaching_policy.time_source import FixedTimeSource
+    from app.orchestration.learning_facade import _reconstruct_sequential_policy_state
+
+    sequential_state = _reconstruct_sequential_policy_state(
+        previous_action=action,
+        previous_trace=turn.decision_trace_v03,
+    )
+    next_decision = SequentialTeachingPolicy(FixedTimeSource(NOW)).decide(
         context=next_context,
         bundle=make_bundle(profile),
         profile=profile,
-    )
+        state=sequential_state,
+        signals=(),
+    ).decision
     assert next_decision.action.strategy_family is StrategyFamily.RETRIEVAL_PRACTICE
 
     action_ref = VersionedRef(

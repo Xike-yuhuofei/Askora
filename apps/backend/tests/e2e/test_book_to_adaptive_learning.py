@@ -343,6 +343,27 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
     )
     assert second.teaching_action.action_id != first.teaching_action.action_id
     assert second.teaching_action.teaching_context_ref != first.teaching_action.teaching_context_ref
+    # Production HOLD: the second canonical decision goes through the
+    # SequentialTeachingPolicy (BookLearningApplication -> facade). The held
+    # decision still emits a fresh immutable TeachingAction/DecisionTrace envelope
+    # with a complete anti-oscillation payload and the exact previous action ref.
+    second_trace = second.decision_trace_v03
+    assert second_trace is not None
+    assert second_trace.previous_teaching_action_ref is not None
+    assert second_trace.previous_teaching_action_ref.entity_id == str(
+        first.teaching_action.action_id
+    )
+    assert second_trace.behavior_policy_type == "DETERMINISTIC"
+    second_anti = second_trace.anti_oscillation_decision
+    assert second_anti is not None
+    # The fresh correct assessment passes minimum dwell (>=2 material
+    # opportunities), but the kernel still proposes the same legal candidate, so
+    # anti-oscillation correctly HOLDS rather than oscillating.
+    assert second_anti["decision"] == "HOLD"
+    assert second_anti["reason_code"] == "HOLD_SAME_LEGAL_CANDIDATE"
+    assert second_anti["evidence_opportunities_since_transition"] >= 2
+    assert second_trace.material_evidence_refs is not None
+    assert len(second_trace.material_evidence_refs) >= 2
     second_context = await db.get(
         TeachingContextRecord,
         second.teaching_action.teaching_context_ref.entity_id,
@@ -350,6 +371,33 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
     assert second_context is not None
     context_source_ids = {item["entity_id"] for item in second_context.payload["source_refs"]}
     assert str(estimate.estimate_id) in context_source_ids
+
+    # A further production turn after the HOLD: with the same canonical evidence
+    # already observed, no new material opportunity appears and the policy must
+    # continue to hold deterministically (no direct-kernel second+ bypass).
+    third = await app.start_teaching_round(
+        user=user,
+        goal_id=goal_id,
+        plan_id=UUID(plan["plan_id"]),
+        plan_version=plan["version"],
+        activity_id=UUID(activity["activity_id"]),
+        session_id=session_id,
+        turn_id="exec024-turn-3",
+        learner_text="请继续。",
+        idempotency_key="exec024:teaching:third",
+        correlation_id=correlation_id,
+        now=NOW,
+    )
+    third_trace = third.decision_trace_v03
+    assert third_trace is not None
+    assert third_trace.previous_teaching_action_ref is not None
+    assert third_trace.previous_teaching_action_ref.entity_id == str(
+        second.teaching_action.action_id
+    )
+    third_anti = third_trace.anti_oscillation_decision
+    assert third_anti is not None
+    assert third_anti["decision"] == "HOLD"
+    assert str(third_anti["reason_code"]).startswith("HOLD_")
 
     # Replay uses pinned exact context/bundle/profile and remains deterministic
     # while the online model entry is patched to fail.

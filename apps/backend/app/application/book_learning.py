@@ -681,16 +681,38 @@ class BookLearningApplication:
             raise BookLearningApplicationError(str(exc)) from exc
         runtime.profile.assert_matches(runtime.bundle)
         previous_action: TeachingActionV03 | None = None
-        previous_trace = None
+        previous_trace: DecisionTraceV03 | None = None
         if existing_activity_turns:
             last_turn = existing_activity_turns[-1]
             last_payload = BookLearningTeachingResponseV1.model_validate(last_turn.response_payload)
-            previous_action = last_payload.teaching_action
-            previous_trace = await DecisionTraceV03Repository(self._db).get(
-                previous_action.decision_id
-            )
-            if previous_trace is None:
-                previous_action = None
+            prior = last_payload.teaching_action
+            # P0-1: a canonical previous TeachingAction already exists; the exact
+            # DecisionTrace is REQUIRED for a sequential decision. Any missing /
+            # mismatched / out-of-scope prior evidence must fail closed, never
+            # silently downgrade to a first-turn bootstrap kernel.
+            if prior.learning_activity_ref.entity_id != str(activity.activity_id):
+                raise BookLearningApplicationError(
+                    "SEQUENTIAL_PREVIOUS_ACTION_SCOPE_MISMATCH",
+                    category="integrity",
+                )
+            prior_trace = await DecisionTraceV03Repository(self._db).get(prior.decision_id)
+            if prior_trace is None:
+                raise BookLearningApplicationError(
+                    "SEQUENTIAL_PREVIOUS_DECISION_TRACE_MISSING",
+                    category="integrity",
+                )
+            selected = prior_trace.selected_teaching_action_ref
+            if (
+                selected is None
+                or selected.entity_id != str(prior.action_id)
+                or str(selected.version) != prior.action_schema_version
+            ):
+                raise BookLearningApplicationError(
+                    "SEQUENTIAL_PREVIOUS_TRACE_ACTION_MISMATCH",
+                    category="integrity",
+                )
+            previous_action = prior
+            previous_trace = prior_trace
         context = await self._teaching_context(
             user=user,
             goal=goal,
@@ -1210,6 +1232,10 @@ class BookLearningApplication:
             knowledge_unit_ids=tuple(activity.knowledge_unit_ids),
         )
         state = await self._learner_repo.latest_learner_state(canonical_user_id(user.id))
+        recent_evidence = await self._learner_repo.latest_evidence_across_units(
+            user_id=canonical_user_id(user.id),
+            knowledge_unit_ids=tuple(activity.knowledge_unit_ids),
+        )
         refs = [
             VersionedRef(
                 entity_type="LearningGoal", entity_id=str(goal.goal_id), version=goal.version
@@ -1238,6 +1264,21 @@ class BookLearningApplication:
             )
         mastery_refs = tuple(self._mastery_ref(item) for item in estimates)
         refs.extend(mastery_refs)
+        recent_assessment_result_ref: VersionedRef | None = None
+        recent_assessment_value: ValueWithAvailability | None = None
+        if recent_evidence is not None and recent_evidence.result_id is not None:
+            recent_assessment_result_ref = VersionedRef(
+                entity_type="AssessmentResult",
+                entity_id=str(recent_evidence.result_id),
+                version=1,
+            )
+            recent_assessment_value = ValueWithAvailability(
+                value=recent_evidence.score,
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=recent_evidence.confidence,
+                source_refs=(recent_assessment_result_ref,),
+            )
+            refs.append(recent_assessment_result_ref)
         source_refs = tuple(refs)
         missing = ValueWithAvailability(availability=AvailabilityStatus.MISSING)
         activity_value = ValueWithAvailability(
@@ -1317,8 +1358,13 @@ class BookLearningApplication:
             "prerequisite_state_refs": mastery_refs,
             "prerequisite_confidence": mastery_value,
             "evidence_sufficiency": missing,
-            "correctness_score": missing,
-            "assessment_confidence": missing,
+            "correctness_score": (
+                recent_assessment_value if recent_assessment_value is not None else missing
+            ),
+            "assessment_confidence": (
+                recent_assessment_value if recent_assessment_value is not None else missing
+            ),
+            "recent_assessment_result_ref": recent_assessment_result_ref,
             "error_type": missing,
             "diagnostic_confidence": missing,
             "needs_probe": missing,

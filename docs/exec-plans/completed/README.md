@@ -21,7 +21,7 @@
 > P1-06A Onboarding Readiness Foundation 收口日期：2026-08-09
 > Book-to-Learning 执行日期：2026-08-08
 > P1-02B 模型设置产品闭环收口日期：2026-08-09
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02 EXEC-040～041、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02 EXEC-040～041、P1-06A EXEC-1061、P1-07 EXEC-037、EXEC-042 DONE
 
 ## Completion Matrix
 
@@ -75,6 +75,7 @@
 | EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
 | EXEC-1061 — P1-06 Onboarding Readiness Foundation | DONE | `4747000` |
 | EXEC-047 — LocalOwner Foundation & Migration | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
+| EXEC-042 — v0.3 Production Sequential Teaching Policy Closure | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
 
 ## Release Gate
 

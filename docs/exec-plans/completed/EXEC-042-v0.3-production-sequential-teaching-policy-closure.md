@@ -713,3 +713,158 @@ Status: BLOCKED_BY_SPEC_GAP
 此时必须停止产品代码扩展，报告所需 Design/ADR/Spec delta，不得创建临时 durable tutor state。
 
 **Freeze Result：READY_FOR_EXECUTION**
+
+---
+
+## Completion Report（2026-08-10 归档）
+
+```text
+Status: DONE
+
+Baseline:
+- start commit: 93667cd93a1e88659cab56e3bfa697f8e3c21741 (EXEC-042 frozen baseline)
+- implementation HEAD: b8b25d8 (pre-closure WIP base)
+- final archived commit: 见 Git 历史 / 交付回执（EXEC-042 closure commit, 2026-08-10）
+
+Gap closure:
+- GAP-V03-001 (production adaptive path bypasses SequentialTeachingPolicy): CLOSED
+  → verified against final closure commit: production adaptive path routes
+    second+ decisions through SequentialTeachingPolicy (fail-closed gate), never
+    a direct kernel fallback.
+- GAP-V03-002 (production TeachingContext / sequential evidence hydration
+  incomplete): CLOSED
+  → verified against final closure commit: Book production TeachingContext
+    hydrates recent AssessmentResult + correctness/assessment-confidence from
+    canonical owner records with exact VersionedRefs; MISSING stays explicit.
+
+Production decision composition:
+- bootstrap path: no previous_teaching_action_ref -> deterministic
+  TeachingPolicyKernel (AC-001).
+- second+ sequential path: previous_teaching_action_ref present -> require exact
+  previous TeachingAction + DecisionTrace -> reconstruct SequentialPolicyState ->
+  project typed EvidenceSignals -> SequentialTeachingPolicy with FixedTimeSource
+  (context.decision_time) (AC-002/003/013).
+- fail-closed cases: missing action, missing trace, trace selects different
+  action, scope mismatch, ambiguous reconstruction -> typed deterministic errors
+  (ValueError / ValidationError / BookLearningApplicationError), never bootstrap
+  downgrade (AC-003).
+
+Sequential reconstruction (_reconstruct_sequential_policy_state):
+- previous action / trace: from canonical previous action + DecisionTraceV03.
+- evidence-opportunity reconstruction: baseline from previous anti-oscillation
+  payload evidence_opportunities_since_transition.
+- observed material evidence dedup: exact (kind, entity_type, entity_id, version)
+  keys persisted in anti-oscillation material_evidence and restored on replay.
+- validation obligation: preserved from reconstructed state (unchanged semantics).
+- Determinism: process restart + same persisted records -> same reconstructed
+  state; no in-memory/mutable turn counter (AC-005/013).
+
+TeachingContext hydration (BookLearningApplication._teaching_context):
+- recent_assessment_result_ref -> SYS04 accepted LearnerEvidence.result_id ->
+  exact VersionedRef -> AVAILABLE.
+- correctness_score / assessment_confidence -> same canonical evidence ->
+  ValueWithAvailability(value=score, confidence, source_refs=(result_ref)) ->
+  AVAILABLE.
+- previous_teaching_action_ref -> SYS05 previous action exact ref -> AVAILABLE.
+- All other owner facts without canonical evidence remain explicit MISSING
+  (never 0/false/independent) (AC-004).
+
+Material Evidence projection (_build_evidence_signals):
+- ASSESSMENT_RESULT <- recent_assessment_result_ref exact ref.
+- LEARNER_STATE_UPDATE <- canonical LearnerState ref in source_refs.
+- ASSISTANCE_EVENT <- assisted_success_history exact refs.
+- INDEPENDENT_ATTEMPT <- independent_success_history exact refs.
+- EXPLICIT_USER_REQUEST <- only when structured direct_answer_request flag.
+- DIAGNOSTIC_PROBE <- UNKNOWN error_type signal (conservative probe).
+- Dedup identity: exact (kind, entity_type, entity_id, version); same evidence
+  ref counted once (AC-005/010/011). CHAT_TURN kept only as non-material
+  fallback observation and never adds a dwell opportunity.
+
+Production traces:
+- HOLD example: Book-to-Learning E2E second+third turns -> HOLD with complete
+  anti-oscillation payload and exact previous ref (AC-006/007).
+- SWITCH example: production-composition repeated-failure override ->
+  TRANSITION_REPEATED_FAILURE_OVERRIDE (AC-008/009).
+- anti_oscillation payload: decision, reason_code, previous/proposed action key,
+  material_evidence, evidence_opportunities_since_transition, score_delta,
+  switch_margin, fixed_decision_time (AC-012).
+- action_propensity: null (DETERMINISTIC behavior_policy_type) (AC-012).
+
+Replay:
+- persisted inputs: TeachingContextRecord + PolicyBundle exact version/profile +
+  previous TeachingAction + previous DecisionTrace + material evidence refs.
+- fixed decision time: TeachingContext.decision_time (no wall clock).
+- expected == actual: same semantic TeachingAction / DecisionTrace.
+- online model call count: 0 (online ModelRouter entry patched to fail) (AC-013).
+
+Ownership / integrity:
+- SYS05 owns final TeachingAction/DecisionTrace composition.
+- SYS02 / SYS08 tightening-only execution unchanged.
+- SYS04 actual assistance unchanged.
+- SYS03 owns LearnerState/MasteryEstimate.
+- legacy v0.2 path cannot emit canonical v0.3 TeachingAction.
+- DKT challenger remains non-canonical writer (AC-015/016).
+
+AC Matrix:
+- EXEC042-AC-001 PASS  bootstrap deterministic kernel (first turn no previous)
+- EXEC042-AC-002 PASS  second+ sequential routing + fail-closed (no kernel fallback)
+- EXEC042-AC-003 PASS  exact previous action/trace match; mismatch fail closed
+- EXEC042-AC-004 PASS  Book TeachingContext hydration; missing stays explicit
+- EXEC042-AC-005 PASS  stable exact-version evidence identity; dedup no 2nd dwell
+- EXEC042-AC-006 PASS  no-new-material -> HOLD_NO_MATERIAL_EVIDENCE / HOLD payload
+- EXEC042-AC-007 PASS  minimum dwell on evidence opportunity, not chat turn
+- EXEC042-AC-008 PASS  switch-margin hysteresis; hard constraint overrides
+- EXEC042-AC-009 PASS  repeated-failure ceiling overrides sticky/dwell/hysteresis
+- EXEC042-AC-010 PASS  structured explicit-user-request only from canonical flag
+- EXEC042-AC-011 PASS  actual assistance/assessment/learner-update projection
+- EXEC042-AC-012 PASS  DecisionTrace has prev ref, transition reason, material
+                       refs, anti-oscillation, DETERMINISTIC, action_propensity null
+- EXEC042-AC-013 PASS  fixed decision_time; persisted replay no wall clock / no LLM
+- EXEC042-AC-014 PASS  Book-to-Learning E2E: production HOLD; SWITCH via
+                       production composition; persistence + replay
+- EXEC042-AC-015 PASS  architecture regression blocks second+ direct-kernel bypass
+- EXEC042-AC-016 PASS  SYS08 tightening-only / validation / SYS03/SYS04/SYS05 /
+                       legacy / DKT boundary all pass
+- EXEC042-AC-017 PASS  no new DB migration / public contract / canonical owner
+- EXEC042-AC-018 PARTIAL  targeted tests + ruff + mypy + docs + diff pass for
+                       EXEC-042 scope; repository-wide CI still has unrelated
+                       pre-existing failures (see release evidence) -> Engineering
+                       Gate NOT reclassified
+- EXEC042-AC-019 PASS  no undeclared blocking SPEC GAP; no TODO/mock shortcut
+
+Tests (EXEC-042 targeted gate):
+- 37 tests passed: architecture/test_v03_adaptive_owner_cutover.py,
+  integration/test_v03_policy_sequential.py,
+  evals/test_v03_policy_anti_oscillation.py,
+  e2e/test_book_to_adaptive_learning.py, e2e/test_v03_adaptive_loop.py,
+  integration/test_exec042_production_fail_closed_replay.py,
+  integration/test_exec042_production_composition_regression.py,
+  integration/test_exec042_production_sequential_policy.py
+
+Repository-wide CI:
+- current status: full backend pytest 462 passed / 10 failed / 6 skipped.
+- unrelated pre-existing failures (not EXEC-042 scope), all from the EXEC-048 /
+  Local Identity in-flight working-tree changes mixed in the same checkout:
+  * tests/architecture/test_onboarding_boundary.py (1)  model_router in onboarding query
+  * tests/integration/test_account_deletion.py (3)      CurrentPasswordInvalidError (EXEC-048 auth cutover)
+  * tests/integration/test_identity_sessions.py (2)     LocalOwnerContext provenance fresh/reused (EXEC-047/048)
+  * tests/recovery/test_document_reinspection.py (1)    LocalOwnerAmbiguousError (EXEC-051)
+  * tests/security/test_account_deletion_security.py (2) deletion API 404 (EXEC-048/051)
+  * tests/unit/test_dev_auto_login.py (1)               local owner bootstrap idempotency (EXEC-048)
+  * check_docs: PASS (after EXEC-042 archive + release evidence registered)
+  * ruff: 6 errors all in EXEC-048 scope (app/main.py, app/services/onboarding.py,
+    app/api/v1/onboarding.py, tests/integration/test_account_deletion.py)
+  * git diff --check: trailing whitespace in main.py / test_goal_management_api.py
+    (EXEC-048 in-flight changes)
+  * mypy: all errors in EXEC-048 scope (app/api/v1/** OwnerProjection vs User);
+    EXEC-042 app files (book_learning / learning_facade / learning_records) clean
+
+Release Gate after EXEC-042:
+- Policy Correctness: PASS
+- Engineering: NOT RECLASSIFIED (repository-wide CI has unrelated pre-existing
+  failures outside EXEC-042 scope)
+- Learning Evidence: LEARNING_EVIDENCE_INSUFFICIENT
+
+SPEC GAP:
+- none
+```

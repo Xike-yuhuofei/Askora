@@ -157,10 +157,11 @@ class LearningOrchestrationFacade:
         decision: Any
         sequential_state: SequentialPolicyState | None = None
         transition_reason: str | None = None
-        if (
-            request.sequential_policy_state_v03 is not None
-            or request.previous_teaching_action_v03 is not None
-        ):
+        # P0-1 authoritative routing: the immutable TeachingContext declares whether
+        # a canonical previous TeachingAction exists. When it does, a sequential
+        # decision is REQUIRED and any missing/mismatched prior evidence must fail
+        # closed (never silently fall back to a first-turn bootstrap kernel).
+        if context.previous_teaching_action_ref is not None:
             state = request.sequential_policy_state_v03
             if state is None:
                 prev_action = request.previous_teaching_action_v03
@@ -170,7 +171,7 @@ class LearningOrchestrationFacade:
                         "Sequential decision requires previous TeachingAction and DecisionTrace"
                     )
                 state = _reconstruct_sequential_policy_state(prev_action, prev_trace)
-            signals = _build_evidence_signals(context, profile)
+            signals = _build_evidence_signals(context)
             decision_time = context.decision_time
             if decision_time.tzinfo is None:
                 decision_time = decision_time.replace(tzinfo=timezone.utc)
@@ -369,11 +370,11 @@ def _reconstruct_sequential_policy_state(
     )
 
 
-def _build_evidence_signals(
-    context: TeachingContextV03, profile: PolicyRuntimeProfile
-) -> tuple[EvidenceSignal, ...]:
+def _build_evidence_signals(context: TeachingContextV03) -> tuple[EvidenceSignal, ...]:
     signals: list[EvidenceSignal] = []
-    now = datetime.now(tz=timezone.utc)
+    now = context.decision_time
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
 
     fingerprint = context.context_fingerprint
     base_ref = context.learning_objective_ref
@@ -384,6 +385,25 @@ def _build_evidence_signals(
                 signal_id=f"assessment:{fingerprint}",
                 kind=EvidenceSignalKind.ASSESSMENT_RESULT,
                 evidence_ref=context.recent_assessment_result_ref,
+                occurred_at=context.decision_time,
+                attributes={"source": "teaching_context_v03"},
+            )
+        )
+
+    # A canonical SYS03 LearnerState ref is itself a fresh learner-update fact.
+    # Its exact (type, id, version) identity is stable, so a repeated turn with
+    # the same learner-state version is deduplicated and never adds a second
+    # dwell opportunity.
+    learner_state_ref = next(
+        (source for source in context.source_refs if source.entity_type == "LearnerState"),
+        None,
+    )
+    if learner_state_ref is not None:
+        signals.append(
+            EvidenceSignal(
+                signal_id=f"learner-state:{fingerprint}",
+                kind=EvidenceSignalKind.LEARNER_STATE_UPDATE,
+                evidence_ref=learner_state_ref,
                 occurred_at=context.decision_time,
                 attributes={"source": "teaching_context_v03"},
             )
@@ -433,23 +453,6 @@ def _build_evidence_signals(
                 attributes={"source": "teaching_context_v03"},
             )
         )
-
-    if context.review_context.value is not None and context.review_context.value:
-        elapsed_attrs = context.delayed_independent_evidence.attributes or {}
-        elapsed = float(elapsed_attrs.get("delay_seconds", 0))
-        if elapsed >= profile.meaningful_delay_seconds:
-            signals.append(
-                EvidenceSignal(
-                    signal_id=f"review-delay:{fingerprint}",
-                    kind=EvidenceSignalKind.REVIEW_DELAY_TRANSITION,
-                    evidence_ref=base_ref,
-                    occurred_at=context.decision_time,
-                    attributes={
-                        "source": "teaching_context_v03",
-                        "delay_started_at": (context.decision_time.timestamp() - elapsed),
-                    },
-                )
-            )
 
     if not signals:
         signals.append(

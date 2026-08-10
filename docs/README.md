@@ -91,7 +91,7 @@ External AI APIs
 | [`design/`](design/README.md) | Canonical Design / current conformance audit | current + historical mixed | 必须服从 Product Positioning；Design Delta 不能隐式扩大 v1 scope |
 | [`adr/`](adr/README.md) | Architecture Decision Records | accepted + partially superseded history | 必须服从 Product Positioning；历史 ADR 保留并标记 supersession，不反向覆盖上位边界 |
 | [`specs/`](specs/README.md) | Canonical Implementation Contract | v0.3 Learning Core + v1 alignment | 直接约束实现；必须与 Product/Design/ADR 一致 |
-| [`exec-plans/`](exec-plans/README.md) | Implementation Task Contracts | active/completed | active EXEC 必须服从最新 Spec；实时状态以该目录索引为准 |
+| [`exec-plans/`](exec-plans/README.md) | Implementation Task Contracts | active/completed（EXEC-042 已归档 DONE） | active EXEC 必须服从最新 Spec；实时状态以该目录索引为准 |
 | [`releases/`](releases/README.md) | Release / Verification Evidence | historical/current snapshots | 历史测试结果不得当作当前 checkout 自动继续通过 |
 | [`design/research/`](design/research/README.md) | Research Evidence / Synthesis | historical/supporting | 支持设计依据，不是直接实现合同 |
 | [`document-inventory.md`](document-inventory.md) | 文档处置清单 | current | 文档治理后维护 disposition；部分 superseded ADR 可继续 retain 为决策历史 |
@@ -138,6 +138,10 @@ Local Observability
 ```
 
 Workspace 负责 scope/isolation，不取得 SYS01～SYS08 的领域写权限。
+
+Learning Core closure 已归档：
+- [`EXEC-042 — v0.3 Production Sequential Teaching Policy Closure`](exec-plans/completed/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md)：P0 Policy Correctness closure（已归档 DONE）；
+- [`EXEC-1062 — P1-06B Onboarding Product Closure`](exec-plans/completed/EXEC-1062-p1-06b-onboarding-product-closure.md)：独立 P1-06 产品任务域。
 
 ### 4.3 Historical Supersession
 

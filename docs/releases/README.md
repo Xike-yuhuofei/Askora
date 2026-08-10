@@ -25,5 +25,6 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | P1-06 First-use Onboarding | [Completion Report](p1-06-first-use-onboarding.md) | Engineering PASS / Security, Product Usability PASS / Manual Acceptance PASS / Learning Evidence Insufficient |
 | P1-07 Error Recovery Center | [Completion Report](p1-07-error-recovery-center.md) | Engineering PASS / Policy, Ownership, Security, Product Usability PASS / Learning Evidence Insufficient |
 | P1-02 Secure Model Settings | [Completion Report](p1-02-model-settings.md) | Engineering PASS / Security, Ownership PASS / Real Provider Product PASS / Learning Evidence Insufficient |
+| v0.3 Production Sequential Teaching Policy Closure | [Completion Report](v0.3-production-sequential-policy-closure.md) | Policy Correctness PASS / Engineering NOT RECLASSIFIED / Learning Evidence Insufficient |
 
 任何新的发布声明都必须基于候选 SHA 的当前测试、迁移、构建和必要外部检查，不能只引用本目录中的历史结果。

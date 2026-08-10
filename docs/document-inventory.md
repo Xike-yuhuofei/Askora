@@ -23,6 +23,7 @@
 | `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN | EXEC-042 执行代理提示词 |
 | `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN | EXEC-1062 执行代理提示词 |
 | `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN | EXEC-047 执行代理提示词 |
+| `Askora EXEC-042 剩余收口执行提示词.md` | SUPPORT-RETAIN | EXEC-042 剩余收口执行提示词 |
 | `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
 | `apps/frontend/README.md` | CURRENT-UPDATED | 当前前端说明；Desktop/Electron 历史内容不得覆盖 v1 Local Web 产品定位 |
 | `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 历史后端资源目录说明；非 v1 canonical runtime |
@@ -196,7 +197,7 @@
 |---|---|---|
 | `docs/exec-plans/README.md` | CURRENT-UPDATED | 当前 active/completed EXEC 队列索引；实时状态以该文件为准 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
-| `docs/exec-plans/active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | CANONICAL-RETAIN | v0.3 production sequential policy closure contract；实时完成状态以文件与 release evidence 为准 |
+| `docs/exec-plans/completed/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | ARCHIVED-RETAIN | EXEC-042 DONE（2026-08-10 归档）；含完整 Completion Report；关闭 GAP-V03-001 / GAP-V03-002 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -262,6 +263,7 @@
 | `docs/releases/p1-05-account-lifecycle.md` | HISTORICAL-RETAIN | **Account Lifecycle historical release evidence；current product semantics superseded** |
 | `docs/releases/p1-02-model-settings.md` | HISTORICAL-RETAIN | **Desktop model-settings historical release evidence；current Local Web contract supersedes runtime mechanics** |
 | `docs/releases/p1-06-first-use-onboarding.md` | CURRENT-UPDATED | P1-06 首次使用 Engineering/Security/Product 与 Learning Evidence 分离报告 |
+| `docs/releases/v0.3-production-sequential-policy-closure.md` | CURRENT-UPDATED | EXEC-042 Policy Correctness / Engineering / Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 
