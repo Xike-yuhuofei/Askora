@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.database import Base
+from app.data_control.export import UserDataExporter
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.dependencies import get_current_owner_projection
 from app.services.local_identity import ensure_local_owner
@@ -39,6 +40,15 @@ async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path)
             assert projection.password_hash is None
             assert projection.wechat_openid_encrypted is None
             assert projection.real_name_encrypted is None
+
+            # Concrete legacy-consumer regression from the PR review: PROFILE
+            # export must be able to read the complete compatibility projection
+            # without AttributeError or fabricated personal data.
+            exported_profile = await UserDataExporter(session)._profile(projection)
+            assert exported_profile["nickname"] is None
+            assert exported_profile["phone"] is None
+            assert exported_profile["email"] is None
+            assert exported_profile["real_name"] is None
 
             # The projection is deliberately transient: LocalOwner remains the
             # only durable identity truth and no compatibility User row is added.
