@@ -2,7 +2,7 @@
 
 > 状态：Current  
 > 校准日期：2026-08-10
-> 基线提交：`241dce1ba91f422f13bd07d224e34f48cf6cc098`  
+> 基线提交：`658b4796bc60df53073dd635174850e0dd052211`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
 处置代码：
@@ -143,6 +143,7 @@
 | `docs/specs/quality/security-standard.md` | CANONICAL-RETAIN | security contract |
 | `docs/specs/quality/ci-infrastructure-standard.md` | CANONICAL-RETAIN | 当前 CI/Test Infrastructure 标准；必须服从 v1 Local Web/Product Positioning |
 | `docs/specs/quality/v1-local-web-quality-reconciliation.md` | CANONICAL-RETAIN | v1 Local Web quality gate 与历史 Desktop/服务化测试基线 reconciliation contract |
+| `docs/specs/quality/test-oracle-classification.md` | CANONICAL-RETAIN | CI v2 Required/Optional/Historical 测试 oracle 分类合同 |
 | `docs/specs/systems/01-content-knowledge.md` | CANONICAL-RETAIN | SYS01 content/knowledge contract |
 | `docs/specs/systems/01-content-granularity.md` | CANONICAL-RETAIN | SPEC-D02；多粒度内容模型冻结合同 |
 | `docs/specs/systems/01-knowledge-publish-pipeline.md` | CANONICAL-RETAIN | SPEC-D03；知识候选验证/发布冻结合同 |
@@ -197,6 +198,8 @@
 |---|---|---|
 | `docs/exec-plans/README.md` | CURRENT-UPDATED | 当前 active/completed EXEC 队列索引；实时状态以该文件为准 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
+| `docs/exec-plans/CHAIN-A-UI-03-PROMPT.md` | SUPPORT-RETAIN | UI-03 链执行代理提示词；不得替代 frozen EXEC/Spec |
+| `docs/exec-plans/CHAIN-B-CI-V2-PROMPT.md` | SUPPORT-RETAIN | CI v2 链执行代理提示词；不得替代 frozen EXEC/Spec |
 | `docs/exec-plans/completed/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | ARCHIVED-RETAIN | EXEC-042 DONE（2026-08-10 归档）；含完整 Completion Report；关闭 GAP-V03-001 / GAP-V03-002 |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -246,6 +249,12 @@
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
 | `docs/exec-plans/completed/EXEC-1062-p1-06b-onboarding-product-closure.md` | HISTORICAL-RETAIN | P1-06 product closure historical EXEC |
 | `docs/exec-plans/completed/EXEC-047-local-owner-foundation-migration.md` | HISTORICAL-RETAIN | LocalOwner Foundation & Migration completed historical contract |
+| `docs/exec-plans/completed/EXEC-048-backend-no-auth-loopback-cutover.md` | HISTORICAL-RETAIN | Local Web backend no-auth/loopback completed contract |
+| `docs/exec-plans/completed/EXEC-049-frontend-settings-onboarding-deaccounting.md` | HISTORICAL-RETAIN | Frontend/Settings/Onboarding de-accounting completed contract |
+| `docs/exec-plans/completed/EXEC-050-auth-persistence-configuration-cleanup.md` | HISTORICAL-RETAIN | Auth persistence/configuration cleanup completed contract |
+| `docs/exec-plans/completed/EXEC-051-local-identity-release-closure.md` | HISTORICAL-RETAIN | Local Identity acceptance/release closure completed contract |
+| `docs/exec-plans/completed/EXEC-052-ci-governance-test-oracle-classification.md` | HISTORICAL-RETAIN | CI governance/test-oracle classification completed contract |
+| `docs/exec-plans/completed/EXEC-053-production-local-runtime-cutover.md` | HISTORICAL-RETAIN | Production Local runtime cutover completed contract |
 | `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 erasure integration historical contract |
 
 ## 6. Release Evidence
