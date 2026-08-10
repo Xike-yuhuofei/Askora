@@ -95,30 +95,13 @@ class StaticDataControlQuery:
 
 
 class UnavailableModelConfigurationQuery(StaticModelConfigurationQuery):
+    """Explicit dependency-unavailable projection until SYS08 publishes its public summary."""
+
     def __init__(self) -> None:
         super().__init__(
             ModelConfigurationObservation(
                 availability="MISSING",
                 reason_codes=("MODEL_CONFIGURATION_QUERY_UNAVAILABLE",),
-            )
-        )
-
-
-class DatabaseModelConfigurationQuery(StaticModelConfigurationQuery):
-    """Fail closed until SYS08 exposes its canonical public profile summary.
-
-    Onboarding must never infer activation/readiness from provider credentials or
-    runtime-private state. The frozen MODEL-CONFIG contract requires SYS08 to own
-    revision, verification, activation and the non-sensitive public summary.
-    """
-
-    def __init__(self, session: AsyncSession) -> None:
-        del session
-        super().__init__(
-            ModelConfigurationObservation(
-                availability="MISSING",
-                state="UNCONFIGURED",
-                reason_codes=("MODEL_CONFIGURATION_PUBLIC_SUMMARY_UNAVAILABLE",),
             )
         )
 
