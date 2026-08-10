@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Interaction Architecture Frozen / Awaiting Dependency Gate
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Interaction Architecture Frozen / Awaiting Dependency Gate + ADR-0015 Local Identity v2 Frozen / Awaiting EXEC
 
 ## 1. Purpose
 
@@ -42,9 +42,21 @@ Interactive Element System Canonical Design Delta
 → UI-03 Release Evidence
 ```
 
+ADR-0015 Local Single-User Identity formation chain：
+
+```text
+Local Single-User Identity & Authentication Removal Canonical Design Delta
+→ ADR-0015 accepted
+→ platform/identity-privacy-lifecycle.md v2.0 (LID-*)
+→ Authentication Removal Vertical Slice / EXEC
+→ Implementation + Migration + Release Evidence
+```
+
 当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
 
 当前 UI-03 状态：**SPEC FROZEN / BLOCKED_BY_DEPENDENCY_GATE**。UI-03 代码实施必须等待 `EXEC-1062 DONE`，之后按 EXEC-043→046 严格串行。`EXEC-042` 为独立 backend/policy closure，不因 UI-03 改变边界。
+
+当前 Local Identity 状态：**SPEC FROZEN / AWAITING EXEC**。旧 P1-05 Account Lifecycle 已降级为 historical implemented baseline；当前身份实现只能服从 ADR-0015 + `LID-*`，不得通过自动登录、demo token 或隐藏 Login 的方式保留旧认证系统。
 
 实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。用户已委托架构自治时，Codex MAY 代表该目标接受新的 superseding/additive ADR，并在同步更新 Spec/EXEC 后继续实现；不得用代码事实反向追认设计。
 
@@ -65,7 +77,7 @@ Interactive Element System Canonical Design Delta
 
 ### Platform
 
-- [Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — P1-05 本地优先账号、durable session、离线恢复、owner-safe 删除与 restore barrier
+- [Local Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — ADR-0015 / `LID-*`：单一 LocalOwnerContext、无 Login/JWT/AuthSession、loopback-only 安全边界、旧 learner ownership 无损迁移与去账号化数据治理
 
 ### Systems
 
@@ -88,8 +100,8 @@ Interactive Element System Canonical Design Delta
 - [API Contract](interfaces/api-contract.md)
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
-- [Data Control and Recovery](interfaces/data-control-contract.md) — P1-03 加密恢复、导出与 owner 协调删除合同
-- [First-use Onboarding Contract](interfaces/onboarding-contract.md) — P1-06 presentation preference、owner-fact readiness、single next action 与 deep-link contract
+- [Data Control and Recovery](interfaces/data-control-contract.md) — P1-03 加密恢复、导出与 owner 协调删除合同；账号认证语义由 ADR-0015 / LID-* supersede
+- [First-use Onboarding Contract](interfaces/onboarding-contract.md) — P1-06 presentation preference、owner-fact readiness、single next action 与 deep-link contract；首次 journey 不再依赖 register/login
 - [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
 - [Schema Versioning](interfaces/schema-versioning.md)
 
@@ -109,9 +121,9 @@ Interactive Element System Canonical Design Delta
 - [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
 - [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
 - [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 已完成
-- [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — macOS 私人桌面备份、恢复、导出与删除闭环；EXEC-1031～1034
-- [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen
-- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — 修改密码、会话管理、本地恢复与账号删除完整闭环；EXEC-034～036 已完成
+- [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — 本地恢复、导出与删除闭环；账号语义服从 ADR-0015
+- [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen；LocalOwner bootstrap supersede register/login prerequisite
+- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — **SUPERSEDED / HISTORICAL IMPLEMENTED BASELINE**；不得再作为当前实现合同
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040/041 DONE
 - [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 历史实现基线；EXEC-029 已完成；其 L0 IA 已由 ADR-0014 supersede
@@ -136,7 +148,7 @@ Interactive Element System Canonical Design Delta
 ### UI Experience（Frozen — ADR-0014）
 
 - [UI Spec Index](ui/README.md) — ADR-0014 Interaction Architecture 当前 UI 合同入口
-- [Interactive Element System](ui/interactive-element-system.md) — 7 类 semantic primitives、L0～L5 hierarchy、pattern qualification、跨平台语义
+- [Interactive Element System](ui/interactive-element-system.md) — 7 类 semantic primitives、L0-L5 hierarchy、pattern qualification、跨平台语义
 - [Information Architecture](ui/information-architecture.md) — Today/Learning/Library 三域、Learning facets、canonical routes 与 legacy redirects
 - [Screen Contracts](ui/screen-contracts.md) — Today/Learning/Goal/Plan/Progress/History/Workspace/Library/Settings task/state/action contracts
 - [Data Contracts](ui/data-contracts.md) — Query/API、来源标记与系统所有权边界
@@ -175,6 +187,17 @@ Interactive Element System Canonical Design Delta
 | Library progressive disclosure | ADR-0014 | `UI-SCREEN-090..095`, `UI-VIS-090` |
 | Hierarchical Settings | ADR-0014 | `UI-SCREEN-100..110`, `UI-VIS-100..101` |
 | Route migration | ADR-0014 | `UI-IA-030..033`, `UI-MIG-012` |
+
+### ADR-0015 Local Identity Traceability
+
+| Decision | ADR | Canonical Spec |
+|---|---|---|
+| No Account/Login authentication | ADR-0015 | `LID-001`, `LID-030..042` |
+| One durable LocalOwner | ADR-0015 | `LID-002`, `LID-010..013` |
+| Loopback-only no-auth security boundary | ADR-0015 | `LID-020..023` |
+| Preserve learner ownership during migration | ADR-0015 | `LID-050..054` |
+| Data governance without account semantics | ADR-0015 | `LID-060..063` |
+| Settings/Onboarding de-accounting | ADR-0015 | `LID-070..071` |
 
 ## 4. SD-01～SD-11 Resolution Matrix
 
@@ -229,6 +252,8 @@ Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 I
 
 `UI-IES-*` 是 ADR-0014 新增的 Interaction Architecture requirement family；不得复用旧 `UI-IA-*` / `UI-SCREEN-*` ID 改写既有不同语义。已 supersede 的旧 UI IA 选择由 ADR-0014 + 当前 Spec 文档显式替代。
 
+`LID-*` 是 ADR-0015 的 Local Identity v2 requirement family。旧 `IDP-*` v1 作为 Git/history 中的 account/auth contract 被整体 supersede；不得让旧 IDP requirement 在 production path 重新生效。
+
 ## 8. v0.3 Canonical Invariants
 
 ```text
@@ -271,6 +296,16 @@ Progress vocabulary != second Evidence truth
 Chat/Tutor != L0 Product Domain
 ```
 
+Local Identity additionally freezes：
+
+```text
+LocalOwner != Account
+Learner identity != Credential identity
+No authentication != Network exposure
+browser/device fingerprint != ownership truth
+Data erasure != Account deletion
+```
+
 ## 9. Versioned Parameters
 
 mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST remain versioned/traceable configurable parameters. No Spec may claim arbitrary fixed values are universal learning-science constants.
@@ -283,7 +318,7 @@ Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex I
 
 B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
 
-UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or P1-02/03/05/07 security/data rewrite。
+UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or unrelated security/data rewrite。ADR-0015 对 authentication/local identity 的显式 superseding change 不受 UI-03 的旧 P1-05 freeze 限制，但必须独立按 LID/EXEC 执行。
 
 ## 11. Vertical Slice Gate
 
@@ -347,4 +382,16 @@ Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Froze
 
 UI-03 不建立新的 domain owner、不新增数据库 truth、不改变 Learning Evidence Gate。完成后只允许分别声明 UI Engineering、UI Contract Correctness、Accessibility/Security；不得把 UI 简化或点击减少称为真人学习效果。
 
-后续变化仍只能先生成新的 ADR/Spec/EXEC（若需要）再实现。不得用 code-first 方式恢复旧 IA 或静默扩大 UI-03 范围。
+## 14. ADR-0015 Local Identity Freeze
+
+| Asset | Status | Boundary |
+|---|---|---|
+| Local Single-User Identity Design Delta | FROZEN | local single-user product/identity design |
+| ADR-0015 | ACCEPTED | no-auth LocalOwner + loopback-only boundary |
+| `LID-*` v2 | FROZEN | runtime identity / migration / privacy contract |
+| P1-05 Account Lifecycle | SUPERSEDED / HISTORICAL | old auth implementation reference only |
+| Authentication Removal EXEC | NOT YET FROZEN | next required step |
+
+当前禁止 code-first 删除 Login。下一步必须先冻结 Authentication Removal Vertical Slice / EXEC，覆盖 frontend、backend、persistence migration、Settings/Onboarding、network boundary 与 release evidence。
+
+后续变化仍只能先生成新的 ADR/Spec/EXEC（若需要）再实现。不得用 code-first 方式恢复旧 IA、旧 Account Lifecycle 或静默扩大范围。
