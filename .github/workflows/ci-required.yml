@@ -74,7 +74,7 @@ jobs:
         run: uv run ruff check app tests
 
       - name: Black check
-        run: uv run black --check app tests
+        run: uv run black --check --diff app tests
 
       - name: Mypy check
         run: uv run mypy app --no-error-summary

@@ -11,11 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.models.user import User, UserRole, UserStatus
+from app.models.user import User
 from app.services.local_identity import (
     LocalOwnerAmbiguousError,
     LocalOwnerContext,
     LocalOwnerError,
+    LocalOwnerMigrationFailedError,
     _ensure_fresh_local_owner,
     ensure_local_owner,
     get_local_owner_context,
@@ -47,15 +48,20 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Get the LocalOwner projection for service layer compatibility.
+    """Return the LID-013 ORM compatibility row for legacy service/FK boundaries.
 
-    Returns a credential-free User projection (the users table is the documented
-    LocalOwner compatibility projection, not an account/credential principal).
+    The projection is expunged from the session so that callers can safely
+    read identity attributes after a rollback without triggering lazy-load
+    greenlet errors. LocalOwner remains the only durable identity truth;
+    this compatibility row has no login credential or PII.
     """
     ctx = await get_current_owner(db)
-    return User(
-        id=ctx.canonical_owner_id,
-        role=UserRole.USER,
-        status=UserStatus.ACTIVE,
-        pseudonym_id=ctx.legacy_pseudonym_id or ctx.owner_id.hex,
-    )
+    projection_id = ctx.legacy_user_id or ctx.canonical_owner_id
+    projection = await db.get(User, projection_id)
+    if projection is None:
+        raise LocalOwnerMigrationFailedError(
+            "LocalOwner compatibility learner row is missing",
+            detail={"projection_user_id": projection_id},
+        )
+    db.expunge(projection)
+    return projection

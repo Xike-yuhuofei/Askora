@@ -78,7 +78,7 @@ def _validate_loopback_host(host: str) -> None:
 def _is_loopback_origin(origin: str | None) -> bool:
     """Check if an HTTP origin is loopback-only (EXEC-048)."""
     if not origin:
-        return True  # Same-origin / no-origin requests allowed (loopback default)
+        return True
     return (
         origin in LOOPBACK_ORIGINS
         or origin.startswith("http://127.0.0.1:")
@@ -200,7 +200,6 @@ async def lifespan(app: FastAPI):
     logger.info("app_shutdown_complete")
 
 
-# 创建 FastAPI 应用
 app = FastAPI(
     title="苏格拉底式教学 App 后端 API",
     description="个人版 - 精简苏格拉底式对话学习引擎",

@@ -15,7 +15,9 @@ from app.services.owner.dependencies import get_current_owner_projection
 @pytest.mark.required
 @pytest.mark.sqlite_integration
 @pytest.mark.asyncio
-async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path) -> None:
+async def test_fresh_local_owner_projection_is_complete_compatibility_user(
+    tmp_path,
+) -> None:
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'owner-projection.db'}")
     try:
         async with engine.begin() as connection:
@@ -31,6 +33,11 @@ async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path)
             assert projection.role == UserRole.USER
             assert projection.status == UserStatus.ACTIVE
 
+            # LID-003/LID-054: the fresh compatibility projection is not an
+            # Account identity and never fabricates credential/PII material.
+            # Concrete legacy-consumer regression from the PR review: PROFILE
+            # export must be able to read the complete compatibility projection
+            # without AttributeError or fabricated personal data.
             exported_profile = await UserDataExporter(session)._profile(projection)
             account = exported_profile["account"]
             assert account["nickname"] is None
@@ -38,5 +45,16 @@ async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path)
             assert "phone" not in account
             assert "email" not in account
             assert "real_name" not in account
+
+            # LID-053: the compatibility User row is durable so that historical
+            # user_id / pseudonym_id FK columns keep referential integrity
+            # during migration. LocalOwner remains the only identity truth;
+            # this row carries no login credential or PII.
+            durable_row = await session.get(User, owner.canonical_owner_id)
+            assert durable_row is not None
+            assert durable_row.id == owner.canonical_owner_id
+            assert durable_row.pseudonym_id == owner.owner_id.hex
+            assert durable_row.role == UserRole.USER
+            assert durable_row.status == UserStatus.ACTIVE
     finally:
         await engine.dispose()
