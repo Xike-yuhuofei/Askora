@@ -3,7 +3,7 @@
 > Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
 > Priority: P0 Interaction Architecture  
 > Governing: ADR-0014, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, UI-03 Vertical Slice  
-> Depends on: `EXEC-1062 DONE`
+> Depends on: `EXEC-1062 DONE` + `EXEC-051 DONE`
 
 ## Objective
 
@@ -11,11 +11,14 @@
 
 本 EXEC 不改 Today 内容层级、不改 Library 管理方式、不重构 Settings 业务页面；这些属于后续 EXEC。
 
+本 EXEC 必须基于 ADR-0015 已完成的 no-auth LocalOwner shell，不得恢复 Login、ProtectedRoute、AuthProvider 或账号 utility。
+
 ## Dependency Gate
 
 执行前必须确认：
 
 - EXEC-1062 已归档 DONE；
+- EXEC-047～051 已归档 DONE，ADR-0015 / `LID-*` release evidence PASS；
 - P1-06 default route/deep-link/Settings reopen tests 当前绿色；
 - UI Specs 当前 FROZEN；
 - 无其他 active EXEC 修改本 EXEC Allowed Files。
@@ -26,6 +29,8 @@
 
 - `AGENTS.md`
 - `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`
+- `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md`
+- `docs/specs/platform/identity-privacy-lifecycle.md`
 - `docs/specs/ui/interactive-element-system.md`
 - `docs/specs/ui/information-architecture.md`
 - `docs/specs/ui/screen-contracts.md`
@@ -36,9 +41,9 @@
 
 ## Current Reality
 
-当前 `App.jsx` canonical standard pages 仍直接暴露 `/goals`、`/path`、`/evidence`、`/history`；`Sidebar.jsx` 把 Today/Goals/Path/Library/Evidence/History/Settings 作为同级 nav items。
+进入本 EXEC 时，Authentication Removal 必须已完成：App 无 Login/AuthProvider/ProtectedRoute，frontend/backend 使用 LocalOwnerContext；本 EXEC 只能在该 baseline 上重构 IA。
 
-Goal create/detail/edit 已实现，必须迁移 route 而非降级为只读。
+当前 UI-03 baseline 的 Goal create/detail/edit 已实现，必须迁移 route 而非降级为只读。
 
 ## Allowed Files
 
@@ -86,7 +91,8 @@ docs/exec-plans/completed/README.md
 - 删除 `/quick/:sessionId` compatibility workspace；
 - 用 route state 持久化 focused goal；
 - 新增 global search；
-- 恢复七项平级 navigation。
+- 恢复七项平级 navigation；
+- 恢复 Login/Account/AuthSession/ProtectedRoute/AuthProvider 等被 ADR-0015 supersede 的语义。
 
 ## Implementation Tasks
 
@@ -98,8 +104,9 @@ docs/exec-plans/completed/README.md
 6. 将 Path/Evidence/History canonical routes 迁到 `/learning/plan|progress|history`。
 7. 保留 `/goals/**`、`/path`、`/evidence`、`/history`、`/profile` 的无副作用 redirect，并保留参数。
 8. 验证 `/welcome`、`/today`、explicit deep links 与 P1-06 contract 不回归。
-9. 完成 keyboard/focus/360px navigation tests。
-10. 跑 required gates；全部 AC 后独立 commit 并归档 EXEC-043。
+9. 验证 no-auth LocalOwner baseline 不回归。
+10. 完成 keyboard/focus/360px navigation tests。
+11. 跑 required gates；全部 AC 后独立 commit 并归档 EXEC-043。
 
 ## Acceptance Criteria
 
@@ -111,6 +118,7 @@ docs/exec-plans/completed/README.md
 - `EXEC043-AC-006`：`/welcome` 和 explicit deep-link preservation 不回归。
 - `EXEC043-AC-007`：360/768/1024/1440 下 navigation 可操作；keyboard focus 可见。
 - `EXEC043-AC-008`：无 backend/public schema change。
+- `EXEC043-AC-009`：ADR-0015 no-auth LocalOwner baseline 不回归。
 
 ## Required Tests
 
@@ -125,8 +133,8 @@ python3 .github/workflows/check_docs.py
 git diff --check
 ```
 
-至少提供 route resolver、Sidebar/Learning navigation、legacy redirect、Goal route、keyboard/accessibility 的 targeted test evidence。
+至少提供 route resolver、Sidebar/Learning navigation、legacy redirect、Goal route、keyboard/accessibility、no-auth shell regression 的 targeted test evidence。
 
 ## Completion Report Format
 
-报告：base/final commit、修改文件、UI03/EXEC AC、测试命令结果、route matrix、responsive/keyboard evidence、P1-06 regression evidence、未完成项、SPEC GAP。
+报告：base/final commit、修改文件、UI03/EXEC AC、测试命令结果、route matrix、responsive/keyboard evidence、P1-06 regression evidence、ADR-0015 regression evidence、未完成项、SPEC GAP。
