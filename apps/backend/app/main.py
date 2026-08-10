@@ -15,7 +15,6 @@ from __future__ import annotations
 import ipaddress
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -51,7 +50,7 @@ ERASURE_FAIL_CLOSED_MARKER = (
 )
 
 # EXEC-048: Loopback-only network boundary
-LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 LOOPBACK_ORIGINS = {
     "http://127.0.0.1",
     "http://localhost",
@@ -67,12 +66,6 @@ def _validate_loopback_host(host: str) -> None:
     Only loopback addresses are permitted.
     """
     if host in LOOPBACK_HOSTS:
-        if host == "0.0.0.0" and not settings.is_development:
-            raise ValueError(
-                "LOCAL_NETWORK_BOUNDARY_VIOLATION: "
-                "Production mode does not allow binding to 0.0.0.0. "
-                "Use 127.0.0.1 for loopback-only access."
-            )
         return
 
     # Check if it's a valid loopback IP
@@ -463,16 +456,11 @@ if settings.enable_orchestrator_debug_api:
 else:
     logger.info("orchestrator_debug_api_disabled")
 
-# EXEC-048: Disabled dev auto-login in no-auth mode
-# If development auth is needed temporarily, enable via explicit flag
+# EXEC-048: dev auto-login remains disabled in no-auth mode.
 if settings.dev_auto_login_enabled and settings.is_development:
-    from app.api.v1.dev_auth import router as dev_auth_router
-
     logger.warning(
         "dev_auto_login_enabled_deprecated", message="Dev auto-login is deprecated in no-auth mode."
     )
-    # Temporarily re-enable for development testing only
-    # app.include_router(dev_auth_router, prefix="/api/v1")
 
 
 # ========== 启动入口 ==========
