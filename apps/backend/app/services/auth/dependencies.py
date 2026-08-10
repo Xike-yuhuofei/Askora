@@ -7,8 +7,7 @@ EXEC-048: 迁移到 LocalOwnerContext，移除 JWT/AuthSession 依赖
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TypeAlias
 
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,39 +15,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import InvalidTokenError
-from app.models.user import User, UserRole, UserStatus
+from app.models.user import User
 from app.services.auth.auth_service import AuthService
 from app.services.local_identity import (
     LocalOwnerAmbiguousError,
     LocalOwnerContext,
     LocalOwnerError,
+    LocalOwnerMigrationFailedError,
     _ensure_fresh_local_owner,
     ensure_local_owner,
     get_local_owner_context,
 )
 
-
-@dataclass(frozen=True)
-class OwnerProjection:
-    """Compatibility projection from LocalOwnerContext to service layer expectations."""
-
-    id: str
-    role: UserRole = UserRole.USER
-    status: UserStatus = UserStatus.ACTIVE
-    pseudonym_id: str | None = None
-    is_verified: bool = True
-    account_lifecycle: str = "active"
-
-    @classmethod
-    def from_context(cls, ctx: LocalOwnerContext) -> "OwnerProjection":
-        return cls(
-            id=ctx.canonical_owner_id,
-            pseudonym_id=ctx.legacy_pseudonym_id,
-        )
-
-    @property
-    def canonical_id(self) -> str:
-        return self.id
+OwnerProjection: TypeAlias = User
 
 
 async def get_current_owner(
@@ -76,15 +55,23 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> OwnerProjection:
-    """Get OwnerProjection for service layer compatibility.
+    """Return the LID-013 ORM compatibility row for legacy service/FK boundaries.
 
-    EXEC-048: Provides backward-compatible user-like object for services
-    that expect .id, .pseudonym_id, .role, .status attributes.
-
-    In test/development environments, auto-bootstraps LocalOwner if missing.
+    The projection is expunged from the session so that callers can safely
+    read identity attributes after a rollback without triggering lazy-load
+    greenlet errors. LocalOwner remains the only durable identity truth;
+    this compatibility row has no login credential or PII.
     """
     ctx = await get_current_owner(db)
-    return OwnerProjection.from_context(ctx)
+    projection_id = ctx.legacy_user_id or ctx.canonical_owner_id
+    projection = await db.get(User, projection_id)
+    if projection is None:
+        raise LocalOwnerMigrationFailedError(
+            "LocalOwner compatibility learner row is missing",
+            detail={"projection_user_id": projection_id},
+        )
+    db.expunge(projection)
+    return projection
 
 
 async def get_current_user_ws(
