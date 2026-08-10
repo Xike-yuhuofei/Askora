@@ -71,9 +71,7 @@ def _validate_loopback_host(host: str) -> None:
     try:
         ip = ipaddress.ip_address(host)
     except ValueError as exc:
-        raise ValueError(
-            f"LOCAL_NETWORK_BOUNDARY_VIOLATION: Invalid host address: {host}"
-        ) from exc
+        raise ValueError(f"LOCAL_NETWORK_BOUNDARY_VIOLATION: Invalid host address: {host}") from exc
 
     if not ip.is_loopback:
         raise ValueError(
