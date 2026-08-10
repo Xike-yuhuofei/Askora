@@ -1,278 +1,400 @@
-# Askora Platform Identity and Privacy Lifecycle Specification
+# Askora Local Identity and Privacy Lifecycle Specification
 
-> Spec ID：`IDP-*`
-> 状态：FROZEN
-> 版本：v1.0
-> Governing decision：ADR-0009 + ADR-0107
+> Spec ID：`LID-*`  
+> 状态：FROZEN  
+> 版本：v2.0  
+> Governing decision：ADR-0015  
+> Supersedes：本文件 v1.0 `IDP-*` account/authentication contract
 
-## 1. Scope and Ownership
+## 1. Scope
 
-### IDP-001 — Platform Boundary
+### LID-001 — Product Boundary
 
-Identity & Privacy 是平台横切边界，不是第九学习系统。它 MUST NOT 写入 KnowledgeUnit、EvidenceBundle、LearnerState、AssessmentResult、TeachingAction、LearningPlan/Activity、ReviewSchedule 或 Workflow/ModelExecution 的普通业务 truth。
+Askora 当前是 local single-user product。
 
-### IDP-002 — Identity-owned State
+Runtime MUST NOT require：
 
-Identity 是以下状态的唯一 writer：
+- login / register / logout；
+- password / password recovery；
+- JWT access/refresh token；
+- AuthSession / token family；
+- authentication device fingerprint；
+- recovery credential / recovery kit；
+- account deletion lifecycle。
 
-```text
-User credential_version / password_changed_at / account lifecycle
-AuthSession / token family / refresh generation
-RecoveryCredential / recovery throttling
-```
+Identity & Privacy 仍是平台横切边界，不是第九学习系统。
 
-### IDP-003 — Privacy-owned State
+### LID-002 — Canonical Identity Truth
 
-Privacy Coordinator 是以下治理记录的唯一 writer：
-
-```text
-DeletionPreview
-AccountDeletionRequest
-PrivacySubjectManifest / blocking issue
-PrivacyTombstone / RestoreBarrier
-```
-
-它 MUST 通过 P1-03 `DataErasureWorkflowV1/ALL_PERSONAL_DATA` 清除学习数据，MUST NOT 维护第二套 owner step/receipt/checkpoint truth，也 MUST NOT 通过普通 shared ORM session 任意 patch 八系统状态。
-
-## 2. Password Policy
-
-### IDP-010
-
-`password-policy-v2` 对新注册、修改和恢复后的密码要求：15～128 Unicode code points；接受空格和 Unicode；不要求字符种类组合；不得截断。密码与当前密码相同 MUST 拒绝。
-
-### IDP-011
-
-新 hash MUST 使用 Argon2id 并记录 scheme/parameters。历史 bcrypt hash MAY 读取；成功认证时若 `needs_rehash` MUST 在同一 identity transaction 更新为 Argon2id。任何日志/事件 MUST NOT 保存密码或 hash。
-
-### IDP-012 — Change Password
-
-`ChangePasswordV1` 输入至少包含 current password、new password、idempotency key、current session version。成功 MUST：
-
-1. 验证 current password 与 account ACTIVE；
-2. 写新 hash、`credential_version + 1`、`password_changed_at`；
-3. 撤销其他 sessions；
-4. 轮换当前 token family 并返回新 tokens/session version；
-5. 重复幂等键返回原/等价结果，不重复递增 version。
-
-## 3. Durable Auth Session
-
-### IDP-020 — AuthSessionV1
+唯一 durable local identity truth 是：
 
 ```yaml
-auth_session:
-  session_id: uuid
-  user_id: uuid
-  version: integer
-  token_family_id: uuid
-  current_refresh_jti_digest: string
-  client_instance_digest: string|null
-  client_label: string
-  credential_version: integer
+local_owner:
+  owner_id: uuid
+  schema_version: "1.0"
   created_at: datetime
-  last_seen_at: datetime
-  refresh_expires_at: datetime
-  revoked_at: datetime|null
-  revoke_reason: string|null
 ```
 
-客户端 label 是展示信息，不是认证因子；MUST 限长和转义。原始 fingerprint、IP 或完整 user-agent MUST NOT 作为默认持久化数据。
+`owner_id` 表示本地数据归属主体，不表示 credential principal。
 
-### IDP-021 — Token Binding
+### LID-003 — Learner Boundary
 
-access/refresh token MUST 包含 `sid`、`fam`、`cv`、`jti`、`type`、`iat`、`exp`、`iss`。受保护请求 MUST 验证 exact active session、family 与 credential version。Redis MAY cache，但数据库是唯一 truth。
+Learner/Profile/learning state MAY 使用 `owner_id` 作为 canonical subject key。
 
-### IDP-022 — Refresh Rotation and Replay
+nickname、presentation preference、学习偏好属于 LearnerProfile / Settings，不属于 LocalOwner。
 
-refresh 必须在一个 database transaction 内 compare current JTI digest → consume → write next digest/version。旧/并发 refresh 再次出现 MUST 将 session 标记 revoked/replay，且不得发新 token。
+`LocalOwner` MUST NOT 保存 phone、email、password、token、recovery secret、wechat id、device fingerprint 等认证材料。
 
-### IDP-023 — Session Commands
+## 2. LocalOwner Lifecycle
 
-必须提供 current-user scoped：list sessions、revoke one、revoke others、logout current。未授权/不存在不可枚举。撤销当前 session 后 access/refresh 立即不可用。
+### LID-010 — Bootstrap
 
-### IDP-024 — Session Limit
-
-session limit 只统计 durable active、未过期 sessions。达到上限返回稳定 conflict，并提供 session-management recovery action；Redis 不可用不得跳过限制或放行 revoked session。
-
-## 4. Recovery Credential
-
-### IDP-030 — Recovery Kit
-
-Recovery secret MUST 由 CSPRNG 生成，至少 128 bits entropy；只在 issuance/rotation/successful recovery response 展示一次。数据库只保存 keyed digest、created/used/revoked timestamps 和 throttling metadata。
-
-### IDP-031 — Registration and Existing Accounts
-
-新注册 MUST 原子创建首份 recovery credential，并返回一次性 recovery kit。既有账号在设置中通过 current password 创建/轮换；创建新 credential MUST 撤销旧 credential。
-
-### IDP-032 — Recover Password
-
-`RecoverPasswordV1` 输入 phone、recovery secret、new password、client instance 与 idempotency key。无论 phone 是否存在，都 MUST 执行近似同成本验证并使用不枚举文案。成功 MUST：
-
-- consume 当前 recovery credential；
-- 设置符合 `password-policy-v2` 的新 hash并递增 credential version；
-- revoke all sessions；
-- 生成并只返回一次新 recovery kit；
-- 要求用户重新登录。
-
-### IDP-033 — Throttling
-
-登录、current-password、recovery 与 deletion confirmation 的失败尝试 MUST server-side bounded throttling。首版策略固定到 `identity-security-policy-v1`：每账号/动作连续 5 次失败后 15 分钟冷却；成功验证清零。未知账号使用不可反查的 identifier digest 和相同 throttle path。
-
-## 5. Deletion Commands and Lifecycle
-
-### IDP-040 — Product Semantics
-
-UI/API MUST 分开：
+App 启动 MUST 在任何 learner-owned query/command 前完成：
 
 ```text
-LogoutCurrentSession
-RevokeAuthSession
-DeleteAllLearningDataV1
-DeleteAccountV1
+load LocalOwner
+OR
+atomically create LocalOwner
+→ expose LocalOwnerContext
 ```
 
-退出/撤销 session MUST NOT 删除学习数据。`DeleteAllLearningDataV1` MUST NOT 删除账号 credential。`DeleteAccountV1` MUST 包含全量用户数据清除和最终 identity 去标识化。
+首次创建不是 registration，不要求联网，不产生 token/session。
 
-### IDP-041 — Preview
+### LID-011 — Cardinality
 
-Deletion preview MUST strict/versioned/current-user/no-store，至少返回：
+一个 canonical local data store MUST 最多存在一个 active LocalOwner。
 
-```yaml
-preview_id: uuid
-schema_version: "1.0"
-policy_version: "account-deletion-v1"
-generated_at: datetime
-expires_at: datetime
-counts_by_owner: object
-file_count: integer
-pending_task_count: integer
-projection_count: integer
-blocking_issues: [object]
-explicit_exclusions: [string]
-recovery_boundary: string
-preview_digest: string
-```
+新空数据存储不存在 owner 时 MAY 原子创建一个 UUID。
 
-preview 有 blocking issue 时 MUST NOT 接受删除请求。
+### LID-012 — Stability
 
-### IDP-042 — Request
+LocalOwner `owner_id` 在正常使用、App 重启、版本升级和普通数据导出期间 MUST 稳定。
 
-`DeleteAccountV1` MUST 要求 current password、精确确认短语 `永久删除我的 Askora 账号`、preview id/digest、policy version 和 idempotency key。preview stale/expired 或数据版本变化返回 conflict，不得静默扩大/缩小范围。
+browser fingerprint、machine id、process id、frontend storage key MUST NOT 替代 `owner_id`。
 
-### IDP-043 — Lifecycle
+### LID-013 — Runtime Dependency
 
-允许转换仅：
+Canonical dependency：
 
 ```text
-ACTIVE → DELETION_PENDING
-DELETION_PENDING → ACTIVE (cancel)
-DELETION_PENDING → PURGING (due)
-PURGING → DELETED
-PURGING → DELETION_BLOCKED
-DELETION_BLOCKED → PURGING (explicit retry)
+get_local_owner_context()
+→ LocalOwnerContext(owner_id)
 ```
 
-默认 grace 为 `account-deletion-v1/grace=24h`，服务端时钟决定。进入 pending 必须 revoke all ordinary sessions，issue 单用途 deletion-control token；token 只能 query/cancel deletion。
+所有原 `get_current_user` business dependencies MUST 迁移到 LocalOwnerContext 或由它生成的 learner context。
 
-### IDP-044 — Cancel
+兼容层 MAY 临时返回旧 `User` ORM projection，但：
 
-只有 pending 且未到 purging 的 request 可取消。取消后账号回 ACTIVE，但所有旧 session 保持 revoked，用户必须重新登录。重复 cancel 幂等。
+- 不得验证 token；
+- 不得创建 auth session；
+- projection 必须唯一映射到同一个 LocalOwner；
+- compatibility layer 必须有明确退役点。
 
-## 6. Subject Manifest and Erasure
+## 3. Network Security Boundary
 
-### IDP-050 — Manifest
+### LID-020 — Loopback Only
 
-manifest MUST 由 explicit registry 基于 direct `user_id`、`pseudonym_id`、owner reference 与结构化 JSON reference 构造。每个 entry 包含 owner、record type/id、storage class 与 deletion order。单用户部署事实不是 ownership 证据。
+无认证 runtime MUST 只监听 loopback：
 
-### IDP-051 — Ambiguity
+```text
+127.0.0.1
+::1
+localhost-resolved loopback
+```
 
-记录同时关联其他 user、无法解析 subject 或超出 registry 时必须创建 blocking issue。MUST NOT 猜测、跳过后仍报告完成或删除其他用户数据。
+`0.0.0.0`、LAN address、public interface MUST fail startup。
 
-### IDP-052 — Canonical Owner Erasure
+### LID-021 — Frontend Origins
 
-`DeleteAccountV1` 到期后 MUST 调用 P1-03 固定 `ALL_PERSONAL_DATA` scope。每个 owner handler MUST 幂等删除自己的 rows/files/projections、取消能重建数据的 pending task并将最小结果写入 P1-03 durable step/receipt/checkpoint；普通业务 repository 不获得跨 owner delete 权限。P1-05 MUST NOT 写第二套 owner receipt。
+CORS MUST explicit allowlist local frontend origins only。
 
-### IDP-053 — Immutable Records
+不得因 single-user 模式使用 `*`。
 
-`EVENT-071` 隐私删除 MAY 物理删除受保护 immutable ledger。实现必须使用 privacy-only repository/Core path并要求 manifest + deletion request；普通 update/delete listener 继续 fail closed。
+### LID-022 — WebSocket Boundary
 
-### IDP-054 — Reconciliation
+WebSocket MUST 使用与 HTTP 相同的 loopback/origin trust boundary，不得要求或接受 auth token 作为 owner identity。
 
-所有 canonical owner steps 完成后 MUST 重新 inventory。数据库 records、文件、pending task、cache/projection 对目标 subject 均为零，且 P1-03 receipt/checkpoint 与适用的 no-resurrection maintenance 完成后，账号才可进入 `DELETED`。bounded retry 耗尽或 P1-03 partial/terminal failure 进入 `DELETION_BLOCKED`，账号保持不可用。
+### LID-023 — Remote Mode Prohibited
 
-### IDP-055 — Tombstone
+当前 no-auth profile MUST NOT 被宣称支持：
 
-tombstone MAY 保存 request id、policy/schema version、时间、P1-03 workflow/receipt/checkpoint digest、最终状态与不可逆边界；MUST NOT 保存 phone/email/nickname/password/hash/recovery secret、原始 user content、Prompt/model output 或可逆身份。tombstone 是 canonical receipt 的最小投影，不是第二 erasure truth。
+- LAN sharing；
+- remote browser access；
+- multi-device service；
+- multi-user deployment。
 
-### IDP-056 — Restore Barrier
+未来新增上述能力 MUST 先通过新的 Canonical Design + ADR 重新定义 authentication。
 
-完成删除 MUST 先满足 P1-03 erasure checkpoint/no-resurrection contract，再原子/可恢复写数据库外 subject restore barrier。认证与 startup recovery 在普通业务启动前检查；App 管理的旧 snapshot 命中 barrier 时 MUST fail closed并按 canonical checkpoint 重新执行清除，MUST NOT 恢复 ACTIVE 登录。
+## 4. Frontend Contract
 
-## 7. API / Error / Observability
+### LID-030 — No Auth Shell
 
-### IDP-060
+Frontend MUST 删除：
 
-公共 request/response 使用 `extra=forbid`、strict v1、unknown major reject。写命令必须 current-user 或 single-purpose deletion-control scoped，并传播 correlation/idempotency。
+- `/login`；
+- Login/Register/Recover UI；
+- ProtectedRoute；
+- AuthProvider / auth-only hooks；
+- auth redirect；
+- logout action。
 
-### IDP-061 — Stable Errors
+App root MUST 直接进入 local bootstrap / product routing。
+
+### LID-031 — No Token Storage
+
+Frontend MUST NOT 持久化：
+
+```text
+access_token
+refresh_token
+auth session
+current authenticated user cache
+auth device fingerprint
+```
+
+普通非认证 UI preference 不受本条限制。
+
+### LID-032 — API Client
+
+Request interceptor MUST NOT 附加 `Authorization: Bearer ...`。
+
+Response interceptor MUST NOT：
+
+- refresh token；
+- retry using rotated token；
+- clear auth storage；
+- redirect `/login`。
+
+401 不再属于“session expired”产品语义。
+
+## 5. Backend Contract
+
+### LID-040 — Retired Routes
+
+Production application MUST NOT register：
+
+```text
+/auth/*
+account-login/recovery/session routes
+dev auto-login
+account deletion lifecycle routes
+```
+
+旧路径 MAY 返回 normal 404；不得保留隐藏自动登录 compatibility service。
+
+### LID-041 — Retired Runtime Services
+
+以下服务不得存在于 production request path：
+
+- AuthService；
+- TokenService；
+- password verifier/hasher solely for account auth；
+- auth session repository；
+- recovery credential service；
+- auth throttle service；
+- account deletion runtime。
+
+### LID-042 — Retired Configuration
+
+认证退役后 production config MUST 删除或停止要求：
+
+- JWT secret/algorithm/expiry；
+- auth session timeout；
+- dev auto-login flag；
+- account deletion grace/polling config；
+- auth-only secret validation。
+
+### LID-043 — Business APIs
+
+Documents、Goals、Workspace、Dialog、Onboarding、Data Control、Profile、Assessment/Planning 等 learner-owned APIs MUST 在无 Authorization header 下工作，并通过 LocalOwnerContext 确定唯一 subject。
+
+## 6. Persistence and Migration
+
+### LID-050 — Migration Order
+
+认证移除 migration MUST 严格遵循：
+
+```text
+1. inventory existing learner subjects
+2. resolve one LocalOwner
+3. verify owner reference integrity
+4. cut runtime to LocalOwnerContext
+5. remove auth runtime/routes/config
+6. remove auth-only schema/columns
+7. validate replay/data-control integrity
+```
+
+MUST NOT 先 drop auth/user tables 再尝试恢复 ownership。
+
+### LID-051 — Unique Legacy Subject
+
+若 legacy datastore 可以唯一确定一个真实 learner subject：
+
+- MUST 复用其稳定 UUID；或使用有记录、确定性的 canonical mapping；
+- MUST 保留 documents/goals/dialogs/profiles/learning records/DecisionTrace ownership；
+- MUST NOT 创建新的空 learner 取代旧数据。
+
+### LID-052 — Ambiguous Legacy Subject
+
+若存在多个无法安全区分/合并的真实 learner subjects：
+
+- migration MUST fail closed；
+- stable issue code：`LOCAL_OWNER_AMBIGUOUS`；
+- MUST NOT 依据“最后登录”“最大数据量”或随机顺序静默选择；
+- MUST NOT 删除未解析 subject 数据。
+
+测试/demo fixture 可通过明确 fixture metadata 排除，不能靠名字猜测。
+
+### LID-053 — Compatibility Columns
+
+历史列名 `user_id` / `pseudonym_id` MAY 暂时保留以降低一次性 schema 风险，但它们的 canonical semantics MUST 是 LocalOwner/Learner ownership。
+
+新实现不得再次引入 Account credential semantics。
+
+### LID-054 — Auth Secret Erasure
+
+LocalOwner migration 成功后，以下数据 SHOULD 被物理删除：
+
+- password hashes；
+- phone/email/wechat auth identifiers；
+- access/refresh/session state；
+- recovery secret digests；
+- auth throttle state；
+- authentication command receipts；
+- account lifecycle-only state。
+
+日志和 migration report MUST NOT 输出 secret material。
+
+## 7. Data Control and Privacy
+
+### LID-060 — Preserve Useful Data Governance
+
+认证退役 MUST NOT 删除：
+
+- user-readable/local data export；
+- document erasure；
+- learning-record erasure；
+- model-execution erasure；
+- owner-safe erasure workflow；
+- recovery center；
+- durable receipt/checkpoint/no-resurrection safety where applicable。
+
+### LID-061 — No Account Deletion
+
+产品/API MUST 不再使用 `DeleteAccount` 语义。
+
+如果提供全量本地清除，canonical command 应是 `ResetLocalWorkspace` 或等价明确本地数据语义。
+
+### LID-062 — Destructive Confirmation
+
+危险数据删除仍 MUST：
+
+1. 读取真实影响 preview；
+2. 使用短时/版本化 preview；
+3. 要求精确 typed confirmation；
+4. 使用 idempotency key；
+5. durable report/receipt；
+6. fail closed on partial failure。
+
+不得要求 current password，因为不存在 credential identity。
+
+### LID-063 — Owner Preservation During Partial Erasure
+
+普通 scoped erasure MUST 保留 LocalOwner identity，以保证剩余数据仍有稳定归属。
+
+完整 workspace reset 若选择 rotate owner_id，必须在旧 owner 全量 erasure + no-resurrection checkpoint 完成之后创建新 owner，禁止两个 canonical owner 并存。
+
+## 8. Settings and Onboarding
+
+### LID-070 — Settings
+
+Settings MUST 删除：
+
+- 账号信息/状态；
+- 手机号；
+- 修改密码；
+- session/device management；
+- recovery kit；
+- logout；
+- delete account；
+- JWT/session 安全说明。
+
+Settings SHOULD 组织为：AI/模型、本地数据、存储与运行状态、错误恢复中心、隐私、关于。
+
+### LID-071 — Onboarding
+
+First-use journey：
+
+```text
+LocalOwner bootstrap
+→ readiness
+→ model/material/goal
+→ first learning activity
+```
+
+不得依赖 register/login/recovery kit。
+
+## 9. Error Contract
+
+### LID-080 — Stable Local Identity Errors
 
 至少冻结：
 
 ```text
-AUTH_CURRENT_PASSWORD_INVALID
-AUTH_PASSWORD_POLICY_REJECTED
-AUTH_SESSION_REQUIRED
-AUTH_SESSION_NOT_FOUND
-AUTH_SESSION_REVOKED
-AUTH_REFRESH_REPLAY_DETECTED
-AUTH_RECOVERY_INVALID
-AUTH_RECOVERY_RATE_LIMITED
-ACCOUNT_DELETION_PREVIEW_STALE
-ACCOUNT_DELETION_CONFIRMATION_INVALID
-ACCOUNT_DELETION_IN_PROGRESS
-ACCOUNT_DELETION_NOT_CANCELLABLE
-ACCOUNT_DELETION_BLOCKED
-PRIVACY_SUBJECT_AMBIGUOUS
-PRIVACY_RECONCILIATION_FAILED
-PRIVACY_RESTORE_BLOCKED
+LOCAL_OWNER_MISSING
+LOCAL_OWNER_AMBIGUOUS
+LOCAL_OWNER_MIGRATION_FAILED
+LOCAL_NETWORK_BOUNDARY_VIOLATION
+LOCAL_DATA_RESET_PARTIAL
 ```
 
-### IDP-062
+正常新空 datastore 的 `LOCAL_OWNER_MISSING` 应由 bootstrap 原子创建解决，不应成为普通用户错误页。
 
-日志只保存 stable code、request/session/deletion id 的最小必要片段和 count/digest；MUST NOT 保存 password、recovery/deletion token、phone、原始文件名/content 或删除数据正文。
+## 10. Observability and Privacy
 
-## 8. UI Contract
+### LID-090
 
-### IDP-070
+日志 MAY 记录最小必要 owner UUID/request id/operation id，但不得重新引入 phone/email/device fingerprint/token 等认证遥测。
 
-`/settings` 必须提供账号安全、恢复套件状态、设备/会话和危险操作四个明确区域。当前 session 有明确标记；撤销动作有 loading/result/error；不得把 app-instance label 宣称为可信硬件身份。
+### LID-091
 
-### IDP-071
+移除 authentication 不得改变：
 
-Login 必须支持登录、注册和“使用恢复套件重设密码”。注册/恢复产生的新 recovery kit 必须要求用户确认已保存后才离开结果视图；不得自动写入普通 localStorage/user cache。
+- TeachingAction；
+- DecisionTrace policy inputs；
+- learner mastery semantics；
+- OutcomeObservation；
+- experiment assignment；
+- learning evidence hierarchy。
 
-### IDP-072
+身份迁移只改变 ownership resolution，不改变教学决策 truth。
 
-删除账号至少两阶段：preview → re-auth/typed confirmation。pending 页面显示执行时间、可取消边界和“关闭本地 App 会延迟本地清除，重启后继续”；purging 后不得显示取消。
+## 11. Acceptance Criteria
 
-### IDP-073
+- `LID-AC-001`：冷启动无 Login，直接进入 local bootstrap/product flow。
+- `LID-AC-002`：frontend bundle/runtime 不读写 access/refresh token。
+- `LID-AC-003`：主要 learner-owned API 无 Authorization header 全部正常。
+- `LID-AC-004`：`/auth/*`、dev auto-login、account deletion routes 未注册。
+- `LID-AC-005`：backend 配置为 `0.0.0.0` 或非 loopback 地址时 startup fail closed。
+- `LID-AC-006`：WebSocket 在合法 local origin 无 token 工作；非法 origin 被拒绝。
+- `LID-AC-007`：legacy 单 learner migration 后关键 owner-owned records 数量/引用保持一致。
+- `LID-AC-008`：multiple-real-subject fixture 返回 `LOCAL_OWNER_AMBIGUOUS` 且不执行 destructive cleanup。
+- `LID-AC-009`：auth-only secret/session/recovery persistence 被删除或确认无 production references。
+- `LID-AC-010`：Settings 无账号/密码/session/recovery/delete-account UI。
+- `LID-AC-011`：data export、scoped erasure、Recovery Center 回归通过。
+- `LID-AC-012`：DecisionTrace/replay/learning evidence 回归无语义变化。
+- `LID-AC-013`：frontend test/build、backend pytest/ruff/mypy、migration tests、browser E2E 全部通过。
 
-360px、200% zoom、keyboard、focus、live status/error、reduced motion 与 destructive confirmation 都必须可访问。
+## 12. Release Gate
 
-## 9. Acceptance Criteria
+不得以以下方式声明完成：
 
-- `IDP-AC-001`：password change 后旧 session/refresh 不可用，当前 session 使用新 family。
-- `IDP-AC-002`：Redis 丢失/重启不恢复 revoked session，session limit 仍正确。
-- `IDP-AC-003`：refresh replay revoke family，concurrent refresh 最多一个成功。
-- `IDP-AC-004`：recovery secret 明文不持久化、单次使用、限流且不枚举账号。
-- `IDP-AC-005`：四类用户动作的数据/身份/会话语义无混淆。
-- `IDP-AC-006`：cross-user session/deletion request 不可枚举。
-- `IDP-AC-007`：duplicate/stale deletion command 不产生重复删除或范围漂移。
-- `IDP-AC-008`：restart 后 pending/purging 从 durable step 恢复。
-- `IDP-AC-009`：representative all-owner fixture 删除后 DB/files/tasks/projections 零残留，其他用户/全局 policy 不受影响。
-- `IDP-AC-010`：tombstone/log 无 PII/content/secret。
-- `IDP-AC-011`：旧 snapshot 命中 restore barrier 时不能登录或继续处理旧数据。
-- `IDP-AC-012`：真实 UI 完成 change password、session revoke、recovery 和 delete lifecycle，且错误可恢复。
+- 只隐藏 Login 页面；
+- 保留 AuthProvider 自动注入 demo token；
+- 保留 JWT/session 但称为“本地身份”；
+- 硬编码固定 demo user；
+- 删除 `user_id` 导致历史学习数据脱离 owner；
+- backend 可从 LAN/public interface 访问；
+- 删除 data export/erasure/recovery safety 以简化实现。
 
-## 10. Forbidden Implementations
-
-禁止：Redis/renderer state 作为 session truth；logout 只删前端 token；recovery 明文落库；安全问题；按单用户假设删除 unscoped ledger；直接 cascade User 并声称全部删除；删除失败后恢复 ACTIVE；pending outbox 重建已删数据；普通 immutable delete 开洞；tombstone 保存 PII/content；旧备份静默复活；用 UI/test pass 声称学习效果。
+Engineering 与 Policy/Ownership gate 必须 PASS。Learning Evidence 对本变更为 `NOT_APPLICABLE`；不得借本变更提高学习效果声明。
