@@ -4,31 +4,35 @@
 > 当前基线：v0.3 Adaptive Teaching Loop  
 > 最近校准：2026-08-10
 
-`docs/` 保存 Askora 的实现合同、架构决策、正式设计、研究证据、执行归档和发布证据。同一事实只能有一个权威来源；当前说明、冻结合同和历史记录不得混为一类。
+`docs/` 保存 Askora 的上位产品定位、实现合同、架构决策、正式设计、研究证据、执行归档和发布证据。同一事实只能有一个权威来源；当前说明、冻结合同和历史记录不得混为一类。
 
 ## 1. 权威顺序
 
 发生冲突时按以下顺序处理：
 
 ```text
-docs/specs/
+docs/product/PRODUCT-POSITIONING.md
+→ docs/specs/
 → docs/adr/
 → docs/design/ 中的 Canonical Design
 → 当前代码、配置、迁移与可执行测试
 → Research / 历史说明
 ```
 
-代码与 Spec 冲突时默认属于实现偏差，不得反向修改 Spec 迁就代码。Research 解释“为什么这样设计”，不能直接作为实现接口合同。
+[`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 是 Askora 产品级最高约束，冻结产品本质、v1 Scope、Non-goals 与 Hard Constraints。任何 Canonical Design、ADR、Spec、EXEC 或代码都不得自行 supersede 它；若必须突破，应先形成 Product Positioning Delta，并由用户接受后重新冻结，再同步下位治理文档。
+
+代码与 Spec 冲突时默认属于实现偏差，不得反向修改 Spec 迁就代码。Spec / ADR / Canonical Design 与 Product Positioning 冲突时，默认属于下位治理待收敛项。Research 解释“为什么这样设计”，不能直接作为实现接口合同。
 
 ## 2. 目录与生命周期
 
 | 路径 | 性质 | 当前状态 | 更新规则 |
 |---|---|---|---|
-| [`specs/`](specs/README.md) | Canonical Implementation Contract | v0.3 frozen | 语义变化必须遵循 Spec/ADR 流程 |
-| [`adr/`](adr/README.md) | 已接受架构决策 | ADR-0001/0002/0003 accepted | 作为决策历史保留，不改写当时理由 |
-| [`design/`](design/README.md) | Canonical Design / current conformance audit | v0.3 frozen + current snapshot | Design 保持与 ADR/Spec 一致；审计不能覆盖合同 |
+| [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) | Product Boundary / Top-level Constraint | frozen baseline | 只有明确 Product Positioning Delta 且经用户接受后才能变更 |
+| [`specs/`](specs/README.md) | Canonical Implementation Contract | v0.3 frozen | 必须服从 Product Positioning；语义变化遵循 Spec/ADR 流程 |
+| [`adr/`](adr/README.md) | 已接受架构决策 | ADR-0001/0002/0003 accepted | 必须服从 Product Positioning；作为决策历史保留，不改写当时理由 |
+| [`design/`](design/README.md) | Canonical Design / current conformance audit | v0.3 frozen + current snapshot | Design 必须服从 Product Positioning，并保持与 ADR/Spec 一致 |
 | [`design/research/`](design/research/README.md) | Evidence / Synthesis | historical and supporting | 保留独立证据价值，明确历史阶段 |
-| [`exec-plans/`](exec-plans/README.md) | 实施任务合同 | EXEC-042、EXEC-1062 active | completed 文件保持历史原貌；active 可来自独立任务域 |
+| [`exec-plans/`](exec-plans/README.md) | 实施任务合同 | EXEC-042、EXEC-1062 active | completed 文件保持历史原貌；active 不得突破 Product Positioning |
 | [`releases/`](releases/README.md) | 发布与验收证据 | 当前与历史 snapshots 并存 | 不把历史测试结果宣称为当前重新验证 |
 | [`document-inventory.md`](document-inventory.md) | 文档处置清单 | current | 每次文档治理后更新 |
 
@@ -77,14 +81,21 @@ Learning Evidence 继续保持 `LEARNING_EVIDENCE_INSUFFICIENT`；Engineering �
 
 ## 4. 当前说明与历史说明
 
+- [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 定义产品级上位边界；
 - 根 [`README.md`](../README.md) 和应用级 README 描述当前稳定代码基线；
-- Specs、Canonical Design 和 Accepted ADR 定义系统应满足的语义；
+- Specs、Canonical Design 和 Accepted ADR 定义系统应满足的下位语义，但不得突破 Product Positioning；
 - current conformance audit 负责指出当前代码相对冻结合同的偏差；
 - completed EXEC、Release Report、候选范围和研究议程记录历史形成过程；
 - 标记为历史的材料即使包含“下一阶段”“当前缺口”等措辞，也不得被解释为当前项目状态；
 - 没有独立证据、设计或审计价值的过时临时说明应删除，而不是长期保留多个“最新版”。
 
-## 5. 文档质量门禁
+## 5. 设计系统边界
+
+顶层导航、首页职责、页面布局、页面级 IA、交互入口、控件与具体 UX Flow 不在 Product Positioning 中冻结；这些事项继续由 **设计系统 → 交互元素（Interactive Elements）** 的 Canonical Design / ADR / UI Specs 冻结。
+
+Product Positioning 只约束这些设计不得突破产品边界，不替代交互设计本身。
+
+## 6. 文档质量门禁
 
 ```bash
 python3 .github/workflows/check_docs.py
