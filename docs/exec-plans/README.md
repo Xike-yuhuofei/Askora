@@ -107,13 +107,15 @@ EXEC-055 Migration / Recovery / Rebuild
 | P1-05 Identity / Recovery / Deletion | EXEC-034～036 + integration EXEC-037 | DONE / historical, superseded by ADR-0015 |
 | P1-07 Error Recovery Center | historical EXEC-037 task-domain file | DONE |
 | P1-01 Goal Management | EXEC-038～039 | DONE |
-| P1-02 Model Settings | EXEC-040～041 | DONE / desktop-specific evidence historical where superseded |
+| P1-02 Model Settings | EXEC-040～041 | DONE / Desktop-specific evidence historical；current Local Web capability reopened |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
-| P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | DONE / archived 2026-08-10 |
+| P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE / historical foundation |
+| P1-06 Onboarding Product Closure | EXEC-1062 | historical DONE / **current Local Web model-config dependency reopened** |
 | Local Single-User Authentication Removal | EXEC-047～051 | DONE |
 | UI-03 Interactive Element System Refactor | EXEC-043～046 | ACTIVE / dependency-gated |
 | CI v2 / Test Infrastructure Realignment | EXEC-052～058 | EXEC-052～053 DONE；EXEC-054 READY |
+
+P1-06 的 `EXEC-1062` 与对应 Release Evidence 保留为生成时的历史完成快照，不得被解释为当前 Local Web 已具备可验证的模型配置闭环。当前 production onboarding 在 SYS08 canonical public model configuration summary 缺失时必须报告 dependency `PARTIAL` 且不得强制首次用户进入 `/welcome`；只有当前 `MODEL-CONFIG-*` Local Web capability 完成并提供真实 revision / verification / activation evidence 后，才能重新声明完整 P1-06 产品闭环。
 
 ## 3. Local Identity Governance Chain
 
