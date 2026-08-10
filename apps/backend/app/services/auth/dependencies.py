@@ -7,8 +7,8 @@ EXEC-048: 迁移到 LocalOwnerContext，移除 JWT/AuthSession 依赖
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, TypeAlias, cast
+from datetime import datetime, timezone
+from typing import Optional, TypeAlias
 
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,46 +21,16 @@ from app.services.auth.auth_service import AuthService
 from app.services.local_identity import (
     LocalOwnerContext,
     LocalOwnerError,
+    LocalOwnerMigrationFailedError,
     ensure_local_owner,
     get_local_owner_context,
 )
 
-
-@dataclass(frozen=True)
-class _OwnerProjectionRuntime:
-    """Runtime compatibility projection for legacy services still shaped around User."""
-
-    id: str
-    role: UserRole = UserRole.USER
-    status: UserStatus = UserStatus.ACTIVE
-    pseudonym_id: str | None = None
-    is_verified: bool = True
-    account_lifecycle: str = "active"
-
-    @classmethod
-    def from_context(cls, ctx: LocalOwnerContext) -> "_OwnerProjectionRuntime":
-        return cls(
-            id=ctx.canonical_owner_id,
-            pseudonym_id=ctx.legacy_pseudonym_id,
-        )
-
-    @property
-    def canonical_id(self) -> str:
-        return self.id
-
-
-# Transitional LocalOwner cutover boundary:
-# legacy application services are still nominally typed as ``User`` even though
-# production APIs now resolve a LocalOwner projection. During static checking we
-# deliberately expose this compatibility projection as the legacy ``User`` type,
-# so the boundary is centralized here instead of scattering dozens of ignores or
-# casts across endpoints. Runtime keeps the small immutable projection above.
-# This alias should disappear when service signatures are migrated to a shared
-# owner protocol / LocalOwnerContext in the dedicated cleanup work.
-if TYPE_CHECKING:
-    OwnerProjection: TypeAlias = User
-else:
-    OwnerProjection = _OwnerProjectionRuntime
+# LID-013 explicitly allows a temporary legacy ``User`` ORM projection while
+# learner-owned services are migrated to LocalOwnerContext / learner protocols.
+# Keep the type truthful at runtime: callers receive an actual User ORM object,
+# never a smaller dataclass masquerading as User for static checking.
+OwnerProjection: TypeAlias = User
 
 
 async def get_current_owner(
@@ -84,9 +54,47 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> OwnerProjection:
-    """Get the LocalOwner compatibility projection for legacy service boundaries."""
+    """Return the temporary LID-013 ``User`` ORM compatibility projection.
+
+    A migrated legacy store reuses the exact legacy ORM row so historical
+    ``user_id`` / ``pseudonym_id`` columns continue to resolve the same learner.
+    A fresh LocalOwner receives a complete *transient* ORM projection with no
+    credential or PII material. The transient object is never added to the
+    session and therefore does not create an Account identity truth.
+    """
     ctx = await get_current_owner(db)
-    return cast(OwnerProjection, _OwnerProjectionRuntime.from_context(ctx))
+
+    if ctx.legacy_user_id is not None:
+        legacy_user = await db.get(User, ctx.legacy_user_id)
+        if legacy_user is None:
+            raise LocalOwnerMigrationFailedError(
+                "LocalOwner references a legacy learner row that no longer exists",
+                detail={"legacy_user_id": ctx.legacy_user_id},
+            )
+        return legacy_user
+
+    now = datetime.now(timezone.utc)
+    return User(
+        id=ctx.canonical_owner_id,
+        role=UserRole.USER,
+        status=UserStatus.ACTIVE,
+        account_lifecycle="active",
+        phone_encrypted=None,
+        phone_hash=None,
+        email_encrypted=None,
+        nickname=None,
+        password_hash=None,
+        credential_version=1,
+        password_changed_at=None,
+        wechat_openid_encrypted=None,
+        real_name_encrypted=None,
+        is_verified=False,
+        pseudonym_id=ctx.owner_id.hex,
+        created_at=now,
+        updated_at=now,
+        last_login_at=None,
+        deleted_at=None,
+    )
 
 
 async def get_current_user_ws(
