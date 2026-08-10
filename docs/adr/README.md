@@ -83,6 +83,7 @@ Codex 可以为该目标创建并接受 ADR，并继续同步 Spec、EXEC、代�
 | `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
 | `ADR-0012` | Unified Recovery Control Plane and Bootstrap Diagnostics | accepted | 2026-08-09 |
 | `ADR-0013` | Desktop Model Credential and Activation | accepted | 2026-08-09 |
+| `ADR-0014` | User-job-driven Information and Interaction Architecture | accepted | 2026-08-10 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | accepted | 2026-08-09 |
