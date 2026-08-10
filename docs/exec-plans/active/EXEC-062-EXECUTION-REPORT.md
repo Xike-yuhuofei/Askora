@@ -5,7 +5,7 @@
 
 ## COMMITS
 - **BASE_COMMIT**: `dd6be65b80639b4d44382469dafbd8a3c0f47dc8` (`origin/main`)
-- **FINAL_COMMIT**: `b3be19e8373f19c51b7a17b6a7ccb0b9aa0a1843`
+- **FINAL_COMMIT**: `26d4eda73eb998542ab59c139df4f224972e7785` (implementation; report doc committed on top)
 - **BRANCH**: `codex/xik-177-exec-062` (dedicated worktree `../Askora-xik-177`, not shared with EXEC-063/065)
 - **ALEMBIC_REVISION**: `x062d0e0a001` (single head; revises `w171d0e0a001`)
 
