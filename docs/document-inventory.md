@@ -279,6 +279,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/EXEC-051-local-identity-release-closure.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-052-ci-governance-test-oracle-classification.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-053-production-local-runtime-cutover.md` | HISTORICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-062-EXECUTION-REPORT.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-1031-p1-03-recovery-foundation.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-1032-p1-03-verified-restore.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-1033-p1-03-user-data-export.md` | HISTORICAL-RETAIN |
