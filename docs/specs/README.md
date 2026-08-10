@@ -1,403 +1,300 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Frozen / Awaiting Local Identity Gate + ADR-0015 Local Identity v2 + EXEC-047～051 Frozen / Blocked by EXEC-1062
+> 上位产品基线：`docs/product/PRODUCT-POSITIONING.md`  
+> 当前架构基线：v0.3 Learning Core + v1 Local Web / LocalOwner / Workspace / Local-first Alignment
 
-## 1. Purpose
+## 1. Authority and Purpose
 
-`docs/specs/**` 将已冻结 Canonical Design 与 Accepted ADR 转换为可直接约束实现、测试、迁移、replay 与 release 的合同。
+`docs/specs/**` 将已冻结产品定位、Canonical Design 与 Accepted ADR 转换为可直接约束实现、测试、迁移、replay 与 release 的合同。
 
-v0.3 authoritative formation chain：
+权威链固定为：
+
+```text
+PRODUCT-POSITIONING.md
+        ↓
+Canonical Design / Design Delta
+        ↓
+Accepted ADR
+        ↓
+Implementation Specs
+        ↓
+Vertical Slice / EXEC
+        ↓
+Code / Test / Release Evidence
+```
+
+任何下位 Spec / Vertical Slice / EXEC / code 与 `PRODUCT-POSITIONING.md` 冲突时，必须先按上位约束收敛下位文档；不得用历史 ADR、已实现代码或测试反向覆盖产品定位。
+
+当前 v1 上位硬约束包括：
+
+- 单用户、单设备；
+- Local Web Application：Browser → loopback Local Server；
+- 无 Account/Login/RBAC/Tenant；
+- LocalOwner 是本地数据长期归属主体；
+- Workspace 是高层隔离边界，不是 Tenant/Organization；
+- SQLite + managed local files 是 production-local baseline；
+- Redis/PostgreSQL/Docker/Kafka/Kubernetes 不得成为最终用户运行前提；
+- Import = ingest + copy；
+- LearningEvidence 是 LearnerState 的事实基础；LearnerState 是可重建 canonical projection；
+- SourceChunk/Embedding/Index 是可重建 derived data；
+- BYOK，secret 仅本地安全存储；
+- v1 core import：EPUB、文本 PDF、Markdown、TXT；完整 OCR 非 v1 core；
+- LLM 不直接写 canonical state；
+- SYS01～SYS08 Learning Core 继续保持 single-writer ownership。
+
+## 2. Current Formation Chains
+
+### v0.3 Adaptive Teaching Loop
 
 ```text
 Research Synthesis
 → Canonical Design
-→ Accepted ADR-0001 / ADR-0002
-→ Updated v0.3 Specs
+→ ADR-0001 / ADR-0002
+→ v0.3 Specs
 → v0.3 Vertical Slice
 → EXEC-007+
-→ Implementation
+→ Implementation / verification
 ```
 
-Book-to-Learning Bootstrap formation chain：
+v0.3 Teaching Policy、Assessment、Learner Model、Review 等学习内核语义不因 v1 Local Web 产品定位而重做；外围 runtime/data/platform contracts 必须服从最新 Product Positioning。
+
+### Book-to-Learning
 
 ```text
-Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
-→ Gap Analysis
+Product Positioning
++ Canonical Design
++ v0.3 Learning Core
 → SPEC-D01～D06
-→ Spec Freeze
-→ EXEC-017～024
-→ Implemented Baseline
+→ EXEC
+→ Implementation / verification
 ```
 
-ADR-0014 Interaction Architecture formation chain：
+其中 SPEC-D01 已对齐 managed SourceFile、Workspace scope、阶段化 local job 与 v1 core formats。
+
+### Local Single-User Identity
 
 ```text
-Interactive Element System Canonical Design Delta
-→ ADR-0014 accepted
-→ UI-IES / UI-IA / UI-SCREEN / UI-VIS / UI-QUAL
-→ UI-03 Vertical Slice
-→ EXEC-1062 DONE
-→ EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051 DONE
-→ EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046
-→ UI-03 Release Evidence
+Product Positioning
+→ Local Single-User Identity Canonical Design Delta
+→ ADR-0015
+→ LID-* v2
+→ Authentication Removal Vertical Slice / EXEC
+→ Implementation / Migration / Release Evidence
 ```
 
-ADR-0015 Local Single-User Identity formation chain：
+旧 Account/AuthSession/P1-05 只允许作为 historical migration reference。
 
-```text
-Local Single-User Identity & Authentication Removal Canonical Design Delta
-→ ADR-0015 accepted
-→ platform/identity-privacy-lifecycle.md v2.0 (LID-*)
-→ Local Single-User Authentication Removal Vertical Slice
-→ EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051
-→ Implementation + Migration + Release Evidence
-```
+### Interactive Elements / UI
 
-当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
+导航、首页职责、页面布局与具体 Interactive Elements 不由 Product Positioning 本文冻结；它们继续由 ADR-0014 + `docs/specs/ui/**` 管理，但不得突破 Local Web、Workspace、LocalOwner 等产品边界。
 
-当前 Local Identity 状态：**SPEC FROZEN / EXEC-047～051 FROZEN / BLOCKED_BY_EXEC_1062**。旧 P1-05 Account Lifecycle 已降级为 historical implemented baseline；当前身份实现只能服从 ADR-0015 + `LID-*`，不得通过自动登录、demo token 或隐藏 Login 的方式保留旧认证系统。
-
-当前 UI-03 状态：**SPEC FROZEN / BLOCKED_BY_DEPENDENCY_GATE**。UI-03 代码实施必须等待 `EXEC-1062 DONE + EXEC-051 DONE`，之后按 EXEC-043→046 严格串行。`EXEC-042` 为独立 backend/policy closure，不因 Local Identity/UI-03 改变边界。
-
-实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。用户已委托架构自治时，Codex MAY 代表该目标接受新的 superseding/additive ADR，并在同步更新 Spec/EXEC 后继续实现；不得用代码事实反向追认设计。
-
-## 2. Spec Index
+## 3. Canonical Spec Index
 
 ### Domain
 
-- [Domain Model](domain/domain-model.md) — canonical objects、ontology、TeachingContext、PolicyBundle、Outcome/Experiment、migration
-- [Decision Contract](domain/decision-contract.md) — DecisionTrace v0.3、probability、replay
-- [Event Contract](domain/event-contract.md) — LearningEvent、assistance/outcome/experiment event semantics
-- [Lifecycle State Machines](domain/lifecycle-state-machines.md) — lifecycle contracts
+- [Domain Model](domain/domain-model.md) — SYS01～SYS08 公共对象；v1 新增规范解释：LocalOwner、Workspace、Material/SourceFile、LearningProject、LearningSession、RetrievalScope、Durable/Derived、local jobs、Trash/Permanent Delete。
+- [Decision Contract](domain/decision-contract.md) — DecisionTrace v0.3、probability、replay。
+- [Event Contract](domain/event-contract.md) — LearningEvent、assistance/outcome/experiment event semantics。
+- [Lifecycle State Machines](domain/lifecycle-state-machines.md) — lifecycle contracts；若旧生命周期与两阶段删除/去账号化冲突，以上位 Product Positioning 与最新 Data Control contract 为准。
 
 ### Architecture
 
-- [State Ownership](architecture/state-ownership.md) — SYS01～SYS08 single-writer ownership
-- [System Architecture](architecture/system-architecture.md)
-- [Dependency Rules](architecture/dependency-rules.md)
+- [System Architecture](architecture/system-architecture.md) — **v1 正式 runtime：Browser → loopback Local Server；SQLite/local files/local jobs；SYS01～SYS08 Learning Core。**
+- [State Ownership](architecture/state-ownership.md) — Learning Core single-writer + LocalOwner/Workspace platform owner；LearnerState 为 canonical rebuildable projection。
+- [Dependency Rules](architecture/dependency-rules.md) — LocalOwnerContext → WorkspaceContext → owner service；production-local 不依赖 Electron/Redis/PostgreSQL/Docker/Kafka。
 
 ### Platform
 
-- [Local Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — ADR-0015 / `LID-*`：单一 LocalOwnerContext、无 Login/JWT/AuthSession、loopback-only 安全边界、旧 learner ownership 无损迁移与去账号化数据治理
+- [Local Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — ADR-0015 / `LID-*`：单一 LocalOwnerContext、无 Login/JWT/AuthSession、loopback-only 安全边界、旧 learner ownership 无损迁移与去账号化数据治理。
 
 ### Systems
 
-- [SYS01 Content & Knowledge](systems/01-content-knowledge.md)
-- [SYS01 Library Management, Deduplication and OCR](systems/01-library-management.md) — P1-04 metadata/search/organization/dedup/OCR additive contract
-- [SYS02 Retrieval](systems/02-retrieval.md)
-- [SYS03 Learner Model](systems/03-learner-model.md)
-- [SYS04 Assessment](systems/04-assessment.md)
-- [SYS05 Teaching Policy](systems/05-teaching-policy.md)
-- [SYS06 Learning Planner](systems/06-learning-planner.md)
-- [SYS06 Goal Management](systems/06-goal-management.md) — versioned definition/state/draft/replan 与 evidence-gated achievement
-- [SYS06 Activity Lifecycle and Completion](systems/06-activity-lifecycle.md) — versioned start/resume/completion 与 next-activity progression
-- [SYS07 Review Scheduler](systems/07-review-scheduler.md)
-- [SYS08 AI Orchestration](systems/08-ai-orchestration.md)
-- [SYS08 Model Configuration](systems/08-model-configuration.md) — desktop vault、provider probe、atomic activation/rollback 与 DISABLED tombstone
+- [SYS01 Content & Knowledge](systems/01-content-knowledge.md) — content/knowledge canonical owner。
+- [SYS01 Workspace Material Management](systems/01-library-management.md) — Workspace-scoped Material/search/dedup/Trash/Project relation；**OCR 仅 legacy/optional，不是 v1 core/release prerequisite**。
+- [SYS02 Retrieval](systems/02-retrieval.md) — `workspace_id` 是 production RetrievalScope hard boundary；no Global Material Library；indexes rebuildable。
+- [SYS03 Learner Model](systems/03-learner-model.md) — LearnerEvidence acceptance、MasteryEstimate、LearnerState；结合 State/Domain contract 解释为 evidence-backed canonical projection。
+- [SYS04 Assessment](systems/04-assessment.md) — Attempt/AssessmentResult/diagnosis/actual assistance。
+- [SYS05 Teaching Policy](systems/05-teaching-policy.md) — six StrategyFamily、deterministic B3 policy、anti-oscillation、DecisionTrace；**保持 v0.3 冻结语义**。
+- [SYS06 Learning Planner](systems/06-learning-planner.md) — Goal/Objectives/Activities/Plan；Goal 必须 workspace scoped，Project association 可选。
+- [SYS06 Goal Management](systems/06-goal-management.md) — versioned definition/state/draft/replan 与 evidence-gated achievement。
+- [SYS06 Activity Lifecycle](systems/06-activity-lifecycle.md) — start/resume/completion 与 next-activity progression。
+- [SYS07 Review Scheduler](systems/07-review-scheduler.md) — deterministic/explainable review scheduling owner。
+- [SYS08 AI Orchestration](systems/08-ai-orchestration.md) — execution/model/tool orchestration，不能取得学习领域 truth ownership。
+- [SYS08 Model Configuration](systems/08-model-configuration.md) — **Local Web BYOK + loopback API + Local SecretStore**；ADR-0013 的 Electron/Desktop mechanics 已 superseded。
 
 ### Interfaces
 
-- [Recovery Contract](interfaces/recovery-contract.md) — P1-07 统一 issue/action/result 与 bootstrap diagnostic
-- [API Contract](interfaces/api-contract.md)
-- [Error Contract](interfaces/error-contract.md)
-- [Persistence Contract](interfaces/persistence-contract.md)
-- [Data Control and Recovery](interfaces/data-control-contract.md) — P1-03 加密恢复、导出与 owner 协调删除合同；账号认证语义由 ADR-0015 / LID-* supersede
-- [First-use Onboarding Contract](interfaces/onboarding-contract.md) — P1-06 presentation preference、owner-fact readiness、single next action 与 deep-link contract；首次 journey 不再依赖 register/login
-- [Rich Response Rendering](interfaces/render-content-contract.md) — RenderPayloadV1、Markdown/math/cards/citations、安全降级
-- [Schema Versioning](interfaces/schema-versioning.md)
+- [Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — managed source copy、Workspace scope、阶段化 pipeline、partial/retry/rebuild、EPUB/PDF(text)/Markdown/TXT。
+- [Persistence Contract](interfaces/persistence-contract.md) — **SQLite production baseline**、managed local data directory、Durable/Derived、local jobs、Backup/Restore/Migration、Trash/erasure/no-resurrection。
+- [API Contract](interfaces/api-contract.md) — transport contract；身份/网络边界必须服从 LID-* 与 loopback Local Web。
+- [Error Contract](interfaces/error-contract.md) — stable error semantics。
+- [Recovery Contract](interfaces/recovery-contract.md) — unified recovery issue/action/result。
+- [Data Control and Recovery](interfaces/data-control-contract.md) — Backup/Export/erasure/recovery；账号认证语义由 Product Positioning + ADR-0015/LID-* supersede。
+- [First-use Onboarding](interfaces/onboarding-contract.md) — LocalOwner bootstrap 后 model→material→goal→first activity readiness；无 register/login。
+- [Rich Response Rendering](interfaces/render-content-contract.md) — presentation rendering，不取得 TeachingAction/LearningEvidence ownership。
+- [Schema Versioning](interfaces/schema-versioning.md) — schema/version evolution；必须与 v1 startup compatibility gate 对齐。
 
 ### Quality
 
-- [Testing Standard](quality/testing-standard.md) — L0～L6 + OPVE/G0/G1/G2
-- [Observability Standard](quality/observability-standard.md) — decision/outcome observability + learning outcome hierarchy
-- [Definition of Done](quality/definition-of-done.md) — Engineering/Policy/Learning Evidence release gates
-- [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only security boundary
+- [Testing Standard](quality/testing-standard.md) — L0～L6 + OPVE/G0/G1/G2。
+- [Observability Standard](quality/observability-standard.md) — local diagnostics + decision/outcome observability；不得把 remote analytics 设为 runtime prerequisite。
+- [Definition of Done](quality/definition-of-done.md) — Engineering / Policy Correctness / Learning Evidence 三类 Gate。
+- [Security Standard](quality/security-standard.md) — hard-rule / answer-exposure / grader-only；并服从 loopback/secret/local-data privacy 上位约束。
 
-### Vertical Slices
+### UI
 
-- [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — ADR-0015：LocalOwner → backend no-auth/loopback → frontend de-accounting → auth persistence cleanup → release closure；EXEC-047～051
-- [UI-03 Interactive Element System Refactor](vertical-slices/ui-03-interactive-element-system-refactor.md) — ADR-0014 三域 IA、Learning facets、Today/Library/Settings 重构；requires EXEC-1062 + EXEC-051 DONE 后执行 EXEC-043→046
-- [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-039 DONE
-- [P1-01A Goal Definition, Draft and Safe Replan](vertical-slices/p1-01a-goal-definition-draft-replan.md) — multi-source/explicit target/preview/boundary apply；EXEC-038 DONE
-- [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
-- [P1-04B Library Deduplication](vertical-slices/p1-04b-library-deduplication.md) — evidence-bound duplicate suggestions；EXEC-032 已完成
-- [P1-04A Library Search and Organization](vertical-slices/p1-04a-library-organization.md) — search/metadata/tag/collection/batch/archive；EXEC-031 已完成
-- [P1-07 Error Recovery Center](vertical-slices/p1-07-error-recovery-center.md) — 双入口、单合同、Owner Command；EXEC-037 已完成
-- [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — 本地恢复、导出与删除闭环；账号语义服从 ADR-0015
-- [P1-06 Fact-driven First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — 首次 model→material→goal→activity→Today 可恢复闭环；EXEC-1061～1062 frozen；LocalOwner bootstrap supersede register/login prerequisite
-- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — **SUPERSEDED / HISTORICAL IMPLEMENTED BASELINE**；不得再作为当前实现合同
-- [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
-- [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040/041 DONE
-- [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 历史实现基线；EXEC-029 已完成；其 L0 IA 已由 ADR-0014 supersede
-- [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
-- [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成
-- [UI-02B1 Material-to-Learning Launch](vertical-slices/ui-02b1-material-learning-launch.md) — 单份资料→Goal→诊断→计划→canonical 教学启动；EXEC-025 已完成
-- [UI-02A Canonical Library and Scoped Knowledge Map](vertical-slices/ui-02a-library-knowledge-map.md) — frozen library slice；EXEC-016 已完成
-- [UI-01 Learning Shell and Compatibility Tutor Workspace](vertical-slices/ui-01-learning-shell-workspace.md) — frozen UI implementation slice；EXEC-015 已完成
-- [v0.3.1 Rich Response Rendering](vertical-slices/v0.3.1-rich-response-rendering.md) — additive presentation slice；EXEC-014 已完成
-- [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — **current frozen v0.3 implementation slice**；EXEC-007～013 已按此完成
-- [v0.2 Learning Loop](vertical-slices/v0.2-learning-loop.md) — historical v0.2 slice；与 v0.3 ontology/support/probability contracts 冲突时由 v0.3 canonical specs supersede
+- [UI Spec Index](ui/README.md)
+- [Interactive Element System](ui/interactive-element-system.md)
+- [Information Architecture](ui/information-architecture.md)
+- [Screen Contracts](ui/screen-contracts.md)
+- [Data Contracts](ui/data-contracts.md)
+- [Visual System](ui/visual-system.md)
+- [Quality and Migration](ui/quality-and-migration.md)
 
-### Book-to-Learning Bootstrap（Frozen / Implemented Baseline）
+UI 具体导航、首页职责、页面层级与控件继续在设计系统中冻结，不在本 Index 反向定义。
 
-- [SPEC-D01 Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — structure-preserving ingestion、DocumentIR/DocumentNode、source locator/replay
-- [SPEC-D02 Multi-Granularity Content Model](systems/01-content-granularity.md) — EvidenceSpan/SemanticUnit/RetrievalChunk/HierarchyNode 边界
-- [SPEC-D03 Knowledge Candidate Verification & Publish](systems/01-knowledge-publish-pipeline.md) — candidate→verify→publish、hard prerequisite gate
-- [SPEC-D04 LearningGoal → Knowledge Mapping](systems/06-goal-knowledge-mapping.md) — natural-language goal、target KU mapping、goal subgraph
-- [SPEC-D05 Prerequisite Diagnostic Bootstrap](systems/06-prerequisite-diagnostic-bootstrap.md) — SYS06/SYS04/SYS03 diagnostic bootstrap 边界
-- [SPEC-D06 Book-to-Adaptive-Learning Vertical Slice](vertical-slices/book-to-adaptive-learning.md) — EPUB upload → first/next canonical TeachingAction E2E
+## 4. Vertical Slice Status and Supersession Rules
 
-### UI Experience（Frozen — ADR-0014）
+以下 Vertical Slice 仍是有效学习/迁移参考，但必须受最新 Product Positioning 约束：
 
-- [UI Spec Index](ui/README.md) — ADR-0014 Interaction Architecture 当前 UI 合同入口
-- [Interactive Element System](ui/interactive-element-system.md) — 7 类 semantic primitives、L0-L5 hierarchy、pattern qualification、跨平台语义
-- [Information Architecture](ui/information-architecture.md) — Today/Learning/Library 三域、Learning facets、canonical routes 与 legacy redirects
-- [Screen Contracts](ui/screen-contracts.md) — Today/Learning/Goal/Plan/Progress/History/Workspace/Library/Settings task/state/action contracts
-- [Data Contracts](ui/data-contracts.md) — Query/API、来源标记与系统所有权边界
-- [Visual System](ui/visual-system.md) — semantic-before-component、层级、rows/cards、contextual actions 与无障碍约束
-- [Quality and Migration](ui/quality-and-migration.md) — UI-03 dependency、串行执行、测试、安全、迁移与声明边界
+- [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — Learning Core canonical slice。
+- [Book-to-Adaptive-Learning](vertical-slices/book-to-adaptive-learning.md) — Book learning E2E；资料/identity/runtime semantics 服从最新 v1 contracts。
+- [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — current identity migration slice。
+- [UI-03 Interactive Element System](vertical-slices/ui-03-interactive-element-system-refactor.md) — current UI architecture slice，依赖 Local Identity gate。
+- [P1-03 Data Control and Recovery](vertical-slices/p1-03-data-control-recovery.md) — 本地数据治理；account semantics superseded。
+- [P1-06 First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — LocalOwner/no-auth semantics apply。
 
-## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
+历史/部分 superseded：
+
+- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — **HISTORICAL / SUPERSEDED**，不得作为当前产品实现合同。
+- [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — **HISTORICAL IMPLEMENTED OPTIONAL CAPABILITY**；完整 OCR 不属于 v1 core，不得阻塞 v1 release。
+- [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — 历史 model-settings implementation baseline；**Desktop/Electron mechanics 已被 Local Web `MODEL-CONFIG-*` supersede**，后续修改不得继续扩大 desktop vault/IPC 依赖。
+
+其他 UI-02 / Goal / Library slices仍可作为实现历史与迁移证据，但与 Workspace/LocalOwner/Local Web/Trash/core-format 发生冲突时由最新 v1 contracts supersede。
+
+EXEC 的实时 active/completed 状态以 `docs/exec-plans/README.md` 为准，本 Spec Index 不复制易失的任务队列状态。
+
+## 5. v0.3 Canonical Decisions → Spec Traceability
 
 | Canonical Decision | ADR | Canonical Spec Requirements |
 |---|---|---|
-| `V03-CD-002` six Strategy Families | ADR-0001 | `DOMAIN-083/086`, `SYS05-201` |
-| `V03-CD-003` four-layer ontology | ADR-0001 | `DOMAIN-083..085`, `SYS05-202/203` |
-| `V03-CD-005` TeachingContext | ADR-0002 | `DOMAIN-088`, `SYS05-210..212` |
-| `V03-CD-006` ErrorType | — | `DOMAIN-072..074`, `SYS04-220..224` |
-| `V03-CD-007` hard/soft/experiment | ADR-0002 | `SYS05-240..242`, `DECISION-240` |
-| `V03-CD-008` support/exposure | ADR-0001 | `DOMAIN-061..063`, `SYS05-220/221`, `SYS04-210/211` |
-| `V03-CD-009` validation obligation | — | `DOMAIN-091`, `SYS05-222`, `SYS03-230/231`, `SYS04-230..232` |
-| `V03-CD-010` deterministic policy | ADR-0002 | `SYS05-230/231`, `SYS05-290/291`, `DECISION-210` |
-| `V03-CD-011` anti-oscillation | ADR-0002 | `SYS05-280..285`, `TEST-240..242` |
-| `V03-CD-012` PolicyBundle | ADR-0002 | `DOMAIN-089`, `SYS05-300..303` |
-| `V03-CD-013` DecisionTrace probability/replay | ADR-0002 | `DECISION-200..222`, `SYS05-310..312` |
-| `V03-CD-014` Outcome data model | — | `DOMAIN-111..113`, `OBS-200..221` |
-| `V03-CD-015` OPVE / outcome hierarchy | — | `TEST-200..281`, `OBS-210..213` |
-| `V03-CD-017` release gate | — | `DOD-200..260` |
+| six Strategy Families | ADR-0001 | `DOMAIN-083/086`, `SYS05-201` |
+| four-layer ontology | ADR-0001 | `DOMAIN-083..085`, `SYS05-202/203` |
+| TeachingContext | ADR-0002 | `DOMAIN-088`, `SYS05-210..212` |
+| ErrorType | — | `DOMAIN-072..074`, `SYS04-220..224` |
+| hard/soft/experiment separation | ADR-0002 | `SYS05-240..242`, Decision Contract |
+| support/exposure orthogonality | ADR-0001 | `DOMAIN-061..063`, SYS02/03/04/05/08 |
+| validation obligation | — | `DOMAIN-091`, SYS03/04/05 |
+| deterministic policy | ADR-0002 | SYS05 + Decision Contract |
+| anti-oscillation | ADR-0002 | SYS05 + Testing Standard |
+| PolicyBundle | ADR-0002 | `DOMAIN-089`, SYS05 |
+| DecisionTrace replay/probability | ADR-0002 | Decision Contract + SYS05 |
+| Outcome/Experiment | — | `DOMAIN-111..113`, Event/Observability contracts |
+| release gate separation | — | Definition of Done |
 
-### ADR-0014 Interaction Architecture Traceability
-
-| Decision | ADR | Canonical Spec |
-|---|---|---|
-| 7 semantic interaction primitives | ADR-0014 | `UI-IES-010..016` |
-| 3 L0 Product Domains | ADR-0014 | `UI-IES-030`, `UI-IA-010` |
-| Goal/Plan/Progress/History → Learning L1 | ADR-0014 | `UI-IES-031`, `UI-IA-020..022` |
-| Settings/Recovery as App Utility | ADR-0014 | `UI-IA-011`, `UI-IA-080..081` |
-| Today single Primary Task | ADR-0014 | `UI-IA-050`, `UI-SCREEN-011` |
-| Quick Start demotion | ADR-0014 | `UI-SCREEN-015` |
-| Library progressive disclosure | ADR-0014 | `UI-SCREEN-090..095`, `UI-VIS-090` |
-| Hierarchical Settings | ADR-0014 | `UI-SCREEN-100..110`, `UI-VIS-100..101` |
-| Route migration | ADR-0014 | `UI-IA-030..033`, `UI-MIG-012` |
-
-### ADR-0015 Local Identity Traceability
-
-| Decision | ADR | Canonical Spec |
-|---|---|---|
-| No Account/Login authentication | ADR-0015 | `LID-001`, `LID-030..042` |
-| One durable LocalOwner | ADR-0015 | `LID-002`, `LID-010..013` |
-| Loopback-only no-auth security boundary | ADR-0015 | `LID-020..023` |
-| Preserve learner ownership during migration | ADR-0015 | `LID-050..054` |
-| Data governance without account semantics | ADR-0015 | `LID-060..063` |
-| Settings/Onboarding de-accounting | ADR-0015 | `LID-070..071` |
-
-## 4. SD-01～SD-11 Resolution Matrix
-
-| SD | Status | Primary Specs |
-|---|---|---|
-| SD-01 Strategy Ontology | RESOLVED | domain-model, SYS05 |
-| SD-02 TeachingContext | RESOLVED | domain-model, SYS05, DecisionTrace |
-| SD-03 Assessment | RESOLVED | domain-model, SYS04 |
-| SD-04 Error Diagnosis | RESOLVED | domain-model, SYS04, SYS03/SYS05 boundary |
-| SD-05 Support/Hint/Exposure/Assistance | RESOLVED | domain-model, SYS02/03/04/05/08, events |
-| SD-06 Anti-Oscillation | RESOLVED | SYS05, testing |
-| SD-07 PolicyBundle / Policy Stack | RESOLVED | domain-model, SYS05 |
-| SD-08 DecisionTrace v0.3 | RESOLVED | decision-contract, SYS05 |
-| SD-09 Outcome / Experiment | RESOLVED | domain-model, event, ownership, observability |
-| SD-10 Testing / OPVE | RESOLVED | testing-standard |
-| SD-11 Observability / DoD / Release Gate | RESOLVED | observability-standard, definition-of-done |
-
-## 5. Breaking Change Register — Spec Resolution
-
-| BC | Resolution |
-|---|---|
-| BC-001 Strategy enum | six StrategyFamily is only v0.3 canonical top-level enum; old nine values read-only/audit |
-| BC-002 TeachingAction semantics | immutable four-layer action contract + exact context/bundle pinning |
-| BC-003 Support / exposure | canonical orthogonal scaffold/hint/exposure/assistance model |
-| BC-004 Policy configuration | immutable/versioned PolicyBundle; no executable/free-form rules |
-| BC-005 DecisionTrace probability / replay | deterministic `action_propensity=null`; assignment probability separated; explicit replayability |
-| BC-006 Legacy Socratic selector | bounded InteractionMove provider/legacy adapter only; SYS05 owns final TeachingAction |
-
-All six are **RESOLVED IN SPEC**。Implementation migration MUST follow `vertical-slices/v0.3-adaptive-teaching-loop.md`。
-
-## 6. Migration Candidate Register — Contract Resolution
-
-| Candidate | Canonical target | Compatibility read | Classification / ambiguity | Replayability | Retirement condition |
-|---|---|---|---|---|---|
-| historical strategy records | six StrategyFamily | legacy audit allowed | ambiguous mapping must be explicit | FULL/PARTIAL by refs | supported history migrated/archived |
-| historical TeachingAction | v0.3 immutable action | read adapter | non-lossless semantics marked | usually PARTIAL when fields absent | no active v0.2 workflow |
-| old `scaffold_level` | `scaffold_control` | read adapter | lossy/unknown marked | PARTIAL if inference required | no active writer + migrated history |
-| old `hint_level` | `hint_specificity` | read adapter | lossy/unknown marked | PARTIAL if inference required | no active writer + migrated history |
-| old answer exposure scale | `answer_exposure` | read adapter | lossy mapping marked | PARTIAL if inference required | no active writer + migrated history |
-| legacy Socratic selector/state machine | bounded InteractionMove provider/legacy adapter | bounded compatibility | never final owner | replay only behind fixed SYS05 contract | canonical path covers supported flows |
-| old policy config | immutable PolicyBundle | audit/import only | executable config never executed | exact bundle required for FULL | migrated/retired configs |
-| old DecisionTrace propensity | separated assignment/action probability | raw audit allowed | ambiguous → null/unknown + reason | PARTIAL | historical migrator complete |
-| historical replay | exact historical refs | best effort | missing versions never guessed | FULL/PARTIAL/NON_REPLAYABLE | explicit status retained |
-
-All nine migration candidates have canonical target、compatibility read、ambiguity、replayability 与 retirement semantics。Permanent dual truth is forbidden。
-
-## 7. Spec-ID Governance
-
-Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 IDs remain visible in each affected Spec's superseded/legacy register; v0.3 additions use new unused ranges (principally `*-2xx/3xx`)。v0.3 Vertical Slice 使用 `VSLICE-3xx`。
-
-`SPEC-D01～D06` 是 Book-to-Learning additive contract pack；内部要求使用 `D01-*`～`D06-*`，不得复用现有 SYS/DOMAIN/ADR requirement ID 改变原语义。
-
-`UI-IES-*` 是 ADR-0014 新增的 Interaction Architecture requirement family；不得复用旧 `UI-IA-*` / `UI-SCREEN-*` ID 改写既有不同语义。已 supersede 的旧 UI IA 选择由 ADR-0014 + 当前 Spec 文档显式替代。
-
-`LID-*` 是 ADR-0015 的 Local Identity v2 requirement family。旧 `IDP-*` v1 作为 Git/history 中的 account/auth contract 被整体 supersede；不得让旧 IDP requirement 在 production path 重新生效。
-
-## 8. v0.3 Canonical Invariants
-
-```text
-Knowledge truth / relations     → SYS01
-EvidenceBundle                  → SYS02
-LearnerState / MasteryEstimate  → SYS03
-AssessmentResult                → SYS04
-TeachingAction                  → SYS05
-LearningPlan / Activity         → SYS06
-ReviewSchedule / next_due       → SYS07
-Model / Tool execution          → SYS08
-```
-
-And:
+v0.3 Teaching Policy invariants继续有效：
 
 ```text
 TeachingStage != LearnerState
+AssessmentResult != MasteryEstimate
 DecisionTrace != OutcomeObservation
 Experiment assignment probability != action selection propensity
-SYS08/SYS02 may tighten but may not expand TeachingAction envelope
-LLM/Agent never owns final TeachingAction or canonical learner/assessment/plan/review truth
+SYS02/SYS08 may tighten but not expand TeachingAction envelope
+LLM/Agent never owns final TeachingAction or learner/assessment/plan/review truth
 ```
 
-Book-to-Learning additionally freezes：
+## 6. v1 Product Positioning → Spec Traceability
+
+| Product Constraint | Primary Specs |
+|---|---|
+| Local Web Browser → loopback Local Server | System Architecture, Dependency Rules, LID-* |
+| No Account/Login/RBAC/Tenant | LID-*, State Ownership, Domain Model |
+| LocalOwner stable ownership | LID-*, State Ownership, Domain Model, Persistence |
+| Workspace isolation | Domain Model, State Ownership, SYS01, SYS02, Persistence |
+| Material ↔ Project many-to-many | Domain Model, SYS01 Material Management |
+| Import = ingest + copy | SPEC-D01, Persistence |
+| SQLite production baseline | System Architecture, Persistence |
+| No Redis/Postgres/Docker runtime prerequisite | Architecture, Dependency Rules, Persistence |
+| Durable vs Derived | Domain Model, State Ownership, Persistence, SYS02 |
+| LearnerState rebuildable from Evidence | Domain Model, State Ownership, SYS03 |
+| Trash → Permanent Delete | Domain Model, Persistence, Data Control, SYS01 Material Management |
+| BYOK / local secret | MODEL-CONFIG, Architecture, Persistence/Security |
+| Source-grounded provenance | Domain Model, SPEC-D01, SYS02 |
+| RAG is infrastructure | SYS02, Architecture |
+| local persistent background jobs | Architecture, Persistence, SPEC-D01 |
+| Backup != Export / formal Migration | Persistence, Data Control, Schema Versioning |
+| v1 core formats only | SPEC-D01, SYS01 Material Management |
+| Full OCR not v1 core | SYS01 Material Management, ADR-0008 supersession |
+| No open-ended autonomous Agent | Architecture, SYS08, Teaching Policy |
+
+## 7. ADR Supersession Relevant to Current Specs
+
+### ADR-0008
+
+**Partially superseded by Product Positioning.**
+
+Superseded mechanics：OCR-as-v1-core、global/current-user library scope、archive-as-primary-delete。
+
+Retained：SYS01 metadata/content ownership、provenance、duplicate-as-suggestion、rebuildable search projection、optional OCR candidate safety。
+
+### ADR-0013
+
+**Partially superseded by Product Positioning.**
+
+Superseded mechanics：Electron safeStorage requirement、desktop vault/main/preload IPC、desktop launcher/child-backend mechanics、macOS App-only release path。
+
+Retained：SYS08 routing owner、secret/routing separation、safe local secret storage、probe、revision/concurrency、rollback、no silent failover、no secret leak。
+
+### ADR-0015
+
+Current authority for local identity/authentication removal. Account/Login/JWT/AuthSession/Recovery Kit/Account Deletion product semantics are superseded; owner-safe data governance remains.
+
+## 8. Migration and Compatibility Rules
+
+- Legacy fields MAY remain read-compatible only with explicit canonical target and retirement condition。
+- `user_id` / `pseudonym_id` MAY temporarily represent LocalOwner/Learner storage compatibility；不得恢复 Account semantics。
+- legacy `SourceDocument/document_id` MAY remain SYS01 compatibility identity；new product scope MUST resolve Material + Workspace。
+- old global retrieval/cache MUST migrate to workspace-scoped keys；不得成为 permanent dual truth。
+- old Desktop credential/vault mechanics MAY be read/migrated only to Local SecretStore/Profile；不得继续成为 v1 new-write path。
+- historical OCR data MAY remain immutable/audit/optional；v1 new material ingest不得要求 OCR。
+- PostgreSQL/Redis development compatibility MAY remain；production-local correctness不得依赖它们。
+- old archive lifecycle MAY migrate to Trash semantics where product object matches；不得自动物理删除 durable SourceFile。
+
+## 9. Spec-ID Governance
+
+Existing requirement IDs MUST NOT be reused to change unrelated meaning. 新的 v1 alignment requirement 已使用现有文档内未占用 ranges（例如 `ARCH-008+`、`STATE-005+`、`DOMAIN-200+`、`PERSIST-*` additive IDs、`SYS02-100+`）。
+
+历史 superseded requirement 应在原 ADR/Spec 中保留可追踪记录，而不是删除后让 Git history 成为唯一解释入口。
+
+## 10. Release Claim Boundary
+
+所有 release 必须区分：
 
 ```text
-SourceChunk != KnowledgeUnit
-GoalSpecificKnowledgeSubgraph != KnowledgeGraph truth
-DiagnosticNeed != LearnerState
-Book bootstrap != second Teaching Loop
+Engineering Gate
+Policy / Contract Correctness Gate
+Learning Evidence Gate
 ```
 
-Interaction Architecture additionally freezes：
+产品定位、架构对齐、UI 简化、Local Web migration、SQLite/Workspace correctness 或 OCR/desktop 退役都**不能**被宣称为真实学习效果已经得到证明。
 
-```text
-Domain Object != Information Architecture
-Information Architecture != Interactive Element
-Navigation != Business Command
-Progress vocabulary != second Evidence truth
-Chat/Tutor != L0 Product Domain
-```
+真人学习效果仍以：
 
-Local Identity additionally freezes：
+- no-hint independent success；
+- delayed independent performance；
+- independent transfer；
+- unit-time capability gain；
 
-```text
-LocalOwner != Account
-Learner identity != Credential identity
-No authentication != Network exposure
-browser/device fingerprint != ownership truth
-Data erasure != Account deletion
-```
+为主要结果变量。engagement、对话轮次、使用时长、点击数等不得成为核心学习 KPI。
 
-## 9. Versioned Parameters
+## 11. Implementation Rule
 
-mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST remain versioned/traceable configurable parameters. No Spec may claim arbitrary fixed values are universal learning-science constants.
+任何新的 Codex / engineering task 开始前 MUST：
 
-Book-to-Learning 的 extraction/publication/mapping/diagnostic thresholds 与 budgets 同样 MUST versioned；不得写成普适常数。
-
-## 10. v0.3 Out of Scope
-
-Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。
-
-B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
-
-UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or unrelated security/data rewrite。ADR-0015 对 authentication/local identity 的显式 superseding change 必须在 UI-03 前通过 EXEC-047～051 独立完成。
-
-## 11. Vertical Slice Gate
-
-v0.3 Vertical Slice is frozen when：
-
-```text
-Scope is narrow and end-to-end
-No new Canonical Design decision introduced
-No ADR conflict
-No Spec conflict
-All six breaking changes have implementation path
-All nine migration candidates have executable verification path
-Single-writer ownership remains intact
-Engineering / Policy / Learning Evidence claims remain separated
-```
-
-Vertical Slice Gate：**PASS**。EXEC-007～013 已完成并归档；当前实现证据见 [v0.3 Release Report](../releases/v0.3-adaptive-teaching-loop.md)。
-
-Local Identity Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062**。解除后只能按 EXEC-047→051 串行执行。
-
-UI-03 Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062_AND_EXEC_051**。解除后只能按 EXEC-043→046 串行执行。
-
-## 12. Book-to-Learning Spec Freeze
-
-| Spec | Status | Primary Boundary |
-|---|---|---|
-| SPEC-D01 | FROZEN | structure-preserving ingestion / source replay |
-| SPEC-D02 | FROZEN | multi-granularity content model |
-| SPEC-D03 | FROZEN | knowledge verification / publication |
-| SPEC-D04 | FROZEN | LearningGoal → Knowledge mapping |
-| SPEC-D05 | FROZEN | prerequisite diagnostic bootstrap |
-| SPEC-D06 | FROZEN | Book-to-Adaptive-Learning E2E slice |
-
-Consistency check：
-
-```text
-Accepted ADR conflict                     PASS
-Canonical Design conflict                 PASS
-UI-02A baseline compatibility             PASS
-v0.3 Teaching Loop compatibility          PASS
-SYS01～SYS08 single-writer ownership       PASS
-Second truth / second Teaching Loop       NONE
-New learning efficacy claim               NONE
-```
-
-**Book-to-Learning Spec Freeze Gate：PASS**。
-
-Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Frozen 状态，也不构成真人学习效果结论。
-
-## 13. ADR-0014 Interaction Architecture Freeze
-
-| Asset | Status | Boundary |
-|---|---|---|
-| Interactive Element System Design Delta | FROZEN | Product/IA design input |
-| ADR-0014 | ACCEPTED | 3-domain IA + semantic interaction decision |
-| UI-IES | FROZEN | 7 primitives / L0-L5 / pattern qualification |
-| UI-IA | FROZEN | routes/navigation/shell |
-| UI-SCREEN | FROZEN | page/task/action behavior |
-| UI-VIS | FROZEN | semantic visual hierarchy |
-| UI-QUAL | FROZEN | migration/test/security gates |
-| UI-03 Vertical Slice | FROZEN / BLOCKED | requires EXEC-1062 + EXEC-051 DONE |
-| EXEC-043～046 | FROZEN / BLOCKED | serial implementation contracts |
-
-UI-03 不建立新的 domain owner、不新增数据库 truth、不改变 Learning Evidence Gate。完成后只允许分别声明 UI Engineering、UI Contract Correctness、Accessibility/Security；不得把 UI 简化或点击减少称为真人学习效果。
-
-## 14. ADR-0015 Local Identity Freeze
-
-| Asset | Status | Boundary |
-|---|---|---|
-| Local Single-User Identity Design Delta | FROZEN | local single-user product/identity design |
-| ADR-0015 | ACCEPTED | no-auth LocalOwner + loopback-only boundary |
-| `LID-*` v2 | FROZEN | runtime identity / migration / privacy contract |
-| Authentication Removal Vertical Slice | FROZEN / BLOCKED | requires EXEC-1062 DONE |
-| EXEC-047～051 | FROZEN / BLOCKED | strict serial implementation chain |
-| P1-05 Account Lifecycle | SUPERSEDED / HISTORICAL | old auth implementation reference only |
-
-当前 implementation gate：`EXEC-1062 DONE → EXEC-047 → 048 → 049 → 050 → 051`。在 EXEC-051 release closure 完成前，UI-03 EXEC-043 不得开始。
-
-后续变化仍只能先生成新的 ADR/Spec/EXEC（若需要）再实现。不得用 code-first 方式恢复旧 IA、旧 Account Lifecycle 或静默扩大范围。
+1. 读取 `docs/product/PRODUCT-POSITIONING.md`；
+2. 确认涉及的 canonical Spec；
+3. 检查历史 ADR 是否已部分 superseded；
+4. 若代码事实与 Spec 不同，默认视为 implementation drift；
+5. 若必须突破 Product Positioning，停止并报告 PRODUCT POSITIONING GAP，而不是自行实现；
+6. 若仅是现有 Spec 的机械落地，按 EXEC 执行并用测试证明，不重新发明架构。
