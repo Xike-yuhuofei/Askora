@@ -133,7 +133,7 @@ def upgrade() -> None:
     rows = bind.execute(
         text(
             "SELECT id, storage_path, is_deleted, deleted_at "
-            "FROM user_documents WHERE is_deleted = 1"
+            "FROM user_documents WHERE is_deleted = TRUE"
         )
     ).all()
 
