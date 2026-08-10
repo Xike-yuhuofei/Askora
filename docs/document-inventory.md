@@ -20,11 +20,14 @@
 |---|---|---|
 | `AGENTS.md` | CANONICAL-RETAIN | Codex 强制执行合同 |
 | `README.md` | CURRENT-UPDATED | 当前产品、实现、运行和验证入口 |
+| `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN | EXEC-042 执行代理提示词 |
+| `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN | EXEC-1062 执行代理提示词 |
 | `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
 | `apps/frontend/README.md` | CURRENT-UPDATED | 本次新增前端/Electron 当前说明 |
 | `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 后端资源目录说明 |
 | `apps/backend/.trae/documents/seed_data_plan.md` | DELETED | 一次性计划已实现；旧策略分类会误导当前语义 |
 | `apps/backend/tests/fixtures/malicious_document.md` | EXCLUDED | 安全测试输入，不是说明文档 |
+| `apps/backend/data/documents/user_pseudo_001/6dcb2a02-322a-4e35-b33a-54708b8d5904_3673b0a7.md` | EXCLUDED | 测试种子数据，不是项目说明 |
 | `.design_library/Askora/README.md` | SUPPORT-RETAIN | UI 设计资产，不是 Canonical Design |
 | `.design_library/Askora/SKILL.md` | SUPPORT-RETAIN | 设计工具指令，不是项目实现合同 |
 

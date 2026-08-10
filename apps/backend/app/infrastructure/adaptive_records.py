@@ -185,39 +185,6 @@ class AdaptiveContractRepository:
         await self._session.flush()
         return activation
 
-    async def save_action(self, action: TeachingActionV03) -> TeachingActionV03:
-        context = await self._session.get(
-            TeachingContextRecord, action.teaching_context_ref.entity_id
-        )
-        if context is None:
-            raise KeyError(f"teaching context not found: {action.teaching_context_ref.entity_id}")
-        bundle = await self._session.get(PolicyBundleRecord, action.policy_bundle_ref.entity_id)
-        if bundle is None:
-            raise KeyError(f"policy bundle not found: {action.policy_bundle_ref.entity_id}")
-        if str(action.teaching_context_ref.version) != context.schema_version:
-            raise ValueError("TEACHING_CONTEXT_EXACT_VERSION_MISMATCH")
-        if str(action.policy_bundle_ref.version) != bundle.policy_version:
-            raise ValueError("POLICY_BUNDLE_EXACT_VERSION_MISMATCH")
-        existing = await self._session.get(TeachingActionV03Record, str(action.action_id))
-        if existing is not None:
-            if not _same_payload(existing.payload, action):
-                raise ImmutableContractConflict("teaching action semantic overwrite")
-            return TeachingActionV03.model_validate(existing.payload)
-        self._session.add(
-            TeachingActionV03Record(
-                action_id=str(action.action_id),
-                schema_version=action.action_schema_version,
-                decision_id=str(action.decision_id),
-                context_id=action.teaching_context_ref.entity_id,
-                policy_bundle_id=action.policy_bundle_ref.entity_id,
-                strategy_family=action.strategy_family.value,
-                payload=action.model_dump(mode="json"),
-                created_at=action.created_at,
-            )
-        )
-        await self._session.flush()
-        return action
-
     async def save_experiment_assignment(
         self, assignment: ExperimentAssignmentV03
     ) -> ExperimentAssignmentV03:
@@ -569,12 +536,6 @@ class DecisionTraceV03Repository:
         self._session.add(record)
         await self._session.flush()
         return trace
-
-    async def get(self, decision_id: UUID | str) -> DecisionTraceV03 | None:
-        record = await self._session.get(DecisionTraceRecord, str(decision_id))
-        if record is None or record.v03_payload is None:
-            return None
-        return DecisionTraceV03.model_validate(record.v03_payload)
 
     async def query_by_context(self, context_id: UUID | str) -> list[DecisionTraceV03]:
         records = (

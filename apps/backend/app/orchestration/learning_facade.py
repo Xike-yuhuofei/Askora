@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.contracts.adaptive import (
     EvidenceBundleV03,
     ExperimentAssignmentV03,
@@ -33,7 +31,7 @@ from app.domains.teaching_policy import PolicyRuntimeProfile, TeachingPolicyKern
 from app.domains.teaching_policy.evidence import EvidenceSignal, EvidenceSignalKind
 from app.domains.teaching_policy.models import SequentialPolicyState
 from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
-from app.domains.teaching_policy.time_source import FixedTimeSource, TimeSource
+from app.domains.teaching_policy.time_source import FixedTimeSource
 from app.engines import FlowStage, LearnerTurn, LearningFlowOrchestrator, get_orchestrator
 from app.infrastructure.adaptive_records import AdaptiveContractRepository
 from app.orchestration.adaptive_execution import (
@@ -115,9 +113,7 @@ class LearningOrchestrationFacade:
     ) -> None:
         self._orchestrator = orchestrator or get_orchestrator()
         self._policy_kernel = policy_kernel or TeachingPolicyKernel()
-        self._sequential_policy = sequential_policy or SequentialTeachingPolicy(
-            _SystemTimeSource()
-        )
+        self._sequential_policy = sequential_policy or SequentialTeachingPolicy(_SystemTimeSource())
         self._adaptive_retriever = adaptive_retriever or AdaptiveEvidenceRetriever()
         self._adaptive_executor = adaptive_executor or AdaptiveExecutionService()
         self._adaptive_renderer = adaptive_renderer or (
@@ -450,9 +446,7 @@ def _build_evidence_signals(
                     occurred_at=context.decision_time,
                     attributes={
                         "source": "teaching_context_v03",
-                        "delay_started_at": (
-                            context.decision_time.timestamp() - elapsed
-                        ),
+                        "delay_started_at": (context.decision_time.timestamp() - elapsed),
                     },
                 )
             )

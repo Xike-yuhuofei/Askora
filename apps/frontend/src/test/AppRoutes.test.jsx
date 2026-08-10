@@ -54,4 +54,27 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
       type: 'goal-editor', editGoalId: 'goal 1',
     })
   })
+
+  it('recognises /welcome as the protected first-use onboarding page without redirect', () => {
+    expect(resolveRoute('/welcome')).toMatchObject({
+      type: 'page',
+      Page: expect.anything(),
+      shell: 'standard',
+    })
+  })
+
+  it.each([
+    ['/today', 'page'],
+    ['/goals', 'page'],
+    ['/library', 'page'],
+    ['/evidence', 'page'],
+    ['/history', 'page'],
+    ['/settings', 'page'],
+    ['/learn/activity-1', 'activity-learning'],
+    ['/book-learning/doc-1', 'book-learning'],
+    ['/settings/recovery', 'page'],
+  ])('preserves explicit deep link %s as %s instead of forcing /welcome', (path, expectedType) => {
+    const result = resolveRoute(path)
+    expect(result.type).toBe(expectedType)
+  })
 })

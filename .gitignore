@@ -38,6 +38,7 @@ pnpm-debug.log*
 *.db-*
 *.sqlite
 *.sqlite3
+*.rdb
 apps/backend/data/
 
 # IDE and temporary files

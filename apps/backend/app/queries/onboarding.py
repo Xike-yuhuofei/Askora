@@ -104,6 +104,46 @@ class UnavailableModelConfigurationQuery(StaticModelConfigurationQuery):
         )
 
 
+class DatabaseModelConfigurationQuery:
+    """Real model configuration query backed by the runtime model router."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_summary(self, user: User) -> ModelConfigurationObservation:
+        try:
+            from app.services.llm.model_router import get_model_router
+
+            router = get_model_router()
+            providers = router._providers
+            available_providers = [
+                p for p in providers.values()
+                if getattr(p, "api_key", None)
+            ]
+            if not available_providers:
+                return ModelConfigurationObservation(
+                    availability="MISSING",
+                    reason_codes=(),
+                )
+            return ModelConfigurationObservation(
+                availability="AVAILABLE",
+                state="ACTIVE",
+                revision=1,
+                runtime_ready=True,
+                runtime_revision=1,
+                verified_at=_now(),
+                source_ref="ModelRouter:current",
+                reason_codes=(),
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("ModelConfigurationQuery error: %s", e, exc_info=True)
+            return ModelConfigurationObservation(
+                availability="MISSING",
+                reason_codes=("MODEL_CONFIGURATION_QUERY_UNAVAILABLE",),
+            )
+
+
 class UnavailableDataControlQuery(StaticDataControlQuery):
     def __init__(self) -> None:
         super().__init__(
@@ -111,6 +151,35 @@ class UnavailableDataControlQuery(StaticDataControlQuery):
                 availability="MISSING",
                 reason_codes=("DATA_CONTROL_QUERY_UNAVAILABLE",),
             )
+        )
+
+
+class DatabaseDataControlQuery:
+    """Real data control query backed by onboarding preferences."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_capability(self, user: User) -> DataControlObservation:
+        from app.repositories.onboarding_preferences import OnboardingPreferenceRepository
+
+        repo = OnboardingPreferenceRepository(self._session)
+        prefs = await repo.get(user_id=str(user.id), journey_id=JOURNEY_ID)
+
+        if prefs is None:
+            return DataControlObservation(
+                availability="MISSING",
+                reason_codes=(),
+            )
+
+        boundary_ack = prefs.boundary_notice_version_acknowledged
+        route = "settings" if not boundary_ack else None
+
+        return DataControlObservation(
+            availability="AVAILABLE",
+            route=route,
+            source_ref=f"OnboardingPreference:{user.id}",
+            reason_codes=(),
         )
 
 
