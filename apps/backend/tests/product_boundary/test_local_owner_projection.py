@@ -16,9 +16,7 @@ from app.services.local_identity import ensure_local_owner
 @pytest.mark.sqlite_integration
 @pytest.mark.asyncio
 async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path) -> None:
-    engine = create_async_engine(
-        f"sqlite+aiosqlite:///{tmp_path / 'owner-projection.db'}"
-    )
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'owner-projection.db'}")
     try:
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.create_all)
