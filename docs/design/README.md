@@ -2,6 +2,10 @@
 
 > 状态：Canonical Design 索引
 
+所有 Canonical Design 在形成或修改前，必须先读取并服从 [`../product/PRODUCT-POSITIONING.md`](../product/PRODUCT-POSITIONING.md)。Product Positioning 是 Design 的上位产品约束；Canonical Design 可以细化产品如何实现，但不得自行扩大 v1 Scope、突破 Non-goals 或改写 Hard Constraints。
+
+若设计任务必须突破 Product Positioning，必须先提出 Product Positioning Delta，并由用户接受后更新、重新冻结上位文档，再继续形成 Canonical Design / ADR / Spec。
+
 `docs/design/` 保留正式设计基线与经用户授权形成的增量 Canonical Design：
 
 - [Local Single-User Identity & Authentication Removal Canonical Design Delta](Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md)：冻结 Askora 本地单用户、无 Account/Login/JWT/AuthSession 的身份模型，建立 LocalOwnerContext、loopback-only 安全边界、旧学习数据 ownership migration 与 Settings/Onboarding 去账号化；在身份语义上 supersede 旧账号生命周期设计；
@@ -17,28 +21,47 @@
 
 - [v0.3 Current Main Conformance Gap Analysis](v0.3-Current-Main-Conformance-Gap-Analysis.md)：基于指定 `main` commit 对 frozen v0.3 Design/Spec 与真实 production path 的一致性快照；它不是新的 Canonical Design 或实现合同。
 
+## 上下游形成链
+
+Askora 的标准治理链固定为：
+
+```text
+Product Positioning
+→ Canonical Design
+→ Accepted ADR
+→ Canonical Specs
+→ Vertical Slice / EXEC
+→ Implementation
+```
+
+任何下游层级不得反向覆盖 Product Positioning。
+
 Interactive Element System Delta 的后续形成链固定为：
 
 ```text
-Interactive Element System Canonical Design Delta
+PRODUCT-POSITIONING（只提供产品边界，不冻结页面级 UX）
+→ Interactive Element System Canonical Design Delta
 → Accepted UI Information / Interaction Architecture ADR
 → 更新 docs/specs/ui/**
 → Vertical Slice / EXEC
 → Frontend Implementation
 ```
 
+**顶层导航、首页职责、页面布局、页面级信息架构、按钮/入口与具体 UX Flow 继续在 Interactive Elements 设计系统中冻结，不在 Product Positioning 中冻结。**
+
 Local Single-User Identity formation chain：
 
 ```text
-Local Single-User Identity Canonical Design Delta
+PRODUCT-POSITIONING（Single-user / no-login / Local Web boundary）
+→ Local Single-User Identity Canonical Design Delta
 → ADR-0015 accepted
 → docs/specs/platform/identity-privacy-lifecycle.md v2.0 (LID-*)
 → Authentication Removal Vertical Slice / EXEC
 → Implementation / Migration / Release Evidence
 ```
 
-当前身份实现必须服从 ADR-0015 + `LID-*`；旧 P1-05 Account Lifecycle 只作为历史 implemented baseline，不得作为新代码合同。
+当前身份实现必须服从 Product Positioning + ADR-0015 + `LID-*`；旧 P1-05 Account Lifecycle 只作为历史 implemented baseline，不得作为新代码合同。
 
-其他既有设计分别通过 ADR-0001/0002、ADR-0009、ADR-0103、ADR-0106、ADR-0107、ADR-0014 与 ADR-0015 等转换为实现合同。实现时仍以 [`../specs/README.md`](../specs/README.md) 与各目标 Spec 最新状态为直接权威来源。
+其他既有设计分别通过 ADR-0001/0002、ADR-0009、ADR-0103、ADR-0106、ADR-0107、ADR-0014 与 ADR-0015 等转换为实现合同。实现时仍以 [`../product/PRODUCT-POSITIONING.md`](../product/PRODUCT-POSITIONING.md) 为产品级最高约束，并以 [`../specs/README.md`](../specs/README.md) 与各目标 Spec 最新状态为直接实现合同。
 
-[`research/`](research/README.md) 保存设计证据、历史诊断和研究推导。Research 不是第三份 Canonical Design，也不能覆盖 Spec。
+[`research/`](research/README.md) 保存设计证据、历史诊断和研究推导。Research 不是第三份 Canonical Design，也不能覆盖 Product Positioning 或 Spec。
