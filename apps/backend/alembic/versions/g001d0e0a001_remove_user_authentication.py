@@ -155,6 +155,11 @@ def downgrade() -> None:
         )
         batch_op.create_index("ix_users_account_lifecycle", ["account_lifecycle"], unique=False)
 
+    # phone_hash carries a unique index that the earlier chain
+    # (7a6ff3390755.downgrade) drops. The upgrade() removed it, so restore it here.
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.create_index("ix_users_phone_hash", ["phone_hash"], unique=True)
+
     # credential_version carries a CHECK constraint that f34a91b807d1.downgrade drops.
     with op.batch_alter_table("users") as batch_op:
         batch_op.create_check_constraint(

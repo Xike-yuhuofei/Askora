@@ -80,6 +80,4 @@ class User(Base):
     dialog_sessions: Mapped[list["DialogSession"]] = relationship(
         "DialogSession", back_populates="user", cascade="all, delete-orphan"
     )
-    __table_args__ = (
-        Index("idx_users_role_status", "role", "status"),
-    )
+    __table_args__ = (Index("idx_users_role_status", "role", "status"),)

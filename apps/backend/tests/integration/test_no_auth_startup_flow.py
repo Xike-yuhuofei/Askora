@@ -55,9 +55,7 @@ async def test_app_start_resolves_local_owner_without_any_credential(
         assert ctx.canonical_owner_id == owner.canonical_owner_id
 
         # Exactly one owner row exists; no users/accounts/sessions tables used.
-        count = await session.scalar(
-            select(func.count(LocalOwnerRecord.singleton_key))
-        )
+        count = await session.scalar(select(func.count(LocalOwnerRecord.singleton_key)))
         assert count == 1
 
 
@@ -128,7 +126,8 @@ async def test_core_learning_data_persists_across_restarts(sqlite_factory) -> No
         )
         doc_count = await session.scalar(
             select(func.count(UserDocument.id)).where(
-                UserDocument.pseudonym_id == (owner_after.legacy_pseudonym_id or owner_after.owner_id.hex)
+                UserDocument.pseudonym_id
+                == (owner_after.legacy_pseudonym_id or owner_after.owner_id.hex)
             )
         )
         assert session_count == 1

@@ -24,6 +24,7 @@
 | `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN |
 | `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN |
 | `Askora EXEC-042 剩余收口执行提示词.md` | SUPPORT-RETAIN |
+| `Askora CI v2 + Local Web Baseline 全链路自主执行提示词.md` | SUPPORT-RETAIN |
 | `apps/backend/README.md` | CURRENT-UPDATED |
 | `apps/frontend/README.md` | CURRENT-UPDATED |
 | `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN |
