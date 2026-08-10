@@ -2,13 +2,21 @@
 
 > Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
 > Priority：P1 Reliable Private Product  
-> Governing：ADR-0106、ADR-0014（routing / interaction hierarchy only）、`ONBOARD-*`、最新 `UI-IA-*` / `UI-SCREEN-*`、P1-06 Vertical Slice
+> Governing：ADR-0106、ADR-0014（routing / interaction hierarchy only）、ADR-0015（identity transition boundary only）、`ONBOARD-*`、最新 `UI-IA-*` / `UI-SCREEN-*`、P1-06 Vertical Slice
 
 ## Objective
 
 在 EXEC-1061 与真实 P1-02/P1-03/P1-07 依赖之上完成 `/welcome`、路由/恢复、四步真实主链、App restart 与首次用户验收，并关闭 P1-06。
 
-本 EXEC 不负责实施完整 ADR-0014 Interactive Element System 重构；只必须保证其 onboarding/default-entry/deep-link/Settings reopen 改动与最新三域 IA 不冲突。完整 UI-03 由 EXEC-043→046 在本 EXEC DONE 后执行。
+本 EXEC 不负责实施完整 ADR-0014 Interactive Element System 重构，也不负责实施 ADR-0015 Authentication Removal；只必须保证 onboarding/default-entry/deep-link/Settings reopen 改动不新增或加深 Account/Login/AuthSession 耦合，并为后续 EXEC-047～051 留出无冲突迁移边界。
+
+完成链：
+
+```text
+EXEC-1062 DONE
+→ EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051
+→ UI-03 EXEC-043 → 044 → 045 → 046
+```
 
 ## Dependency Gate
 
@@ -18,7 +26,7 @@
 - P1-07 已发布本路径稳定 recovery actions；
 - UI-02C completion baseline 保持通过；
 - P1-02/P1-07 ADR 编号/历史治理无 unresolved blocking conflict；
-- 执行时必须重新读取最新 `docs/specs/ui/**`，不得按 2026-08-08 的旧七项 L0 navigation 设计实现。
+- 执行时必须重新读取最新 `docs/specs/ui/**` 与 ADR-0015 / `LID-*`，不得按 2026-08-08 的旧七项 L0 navigation 或旧长期 Account 设计扩展实现。
 
 未满足任一项时，本 EXEC 不授权以 placeholder、disabled action 或 mock 完成产品代码。
 
@@ -42,6 +50,19 @@ explicit deep links preserved
 - 提前实施 UI-03 Library/Today/Settings 全量重构。
 
 如果 P1-06 的现有 route expectation 与最新 `UI-IA-*` 冲突，以最新 Spec 为准，并只做 P1-06 所需最小适配；其余留给 EXEC-043→046。
+
+## ADR-0015 Transition Invariants
+
+EXEC-1062 发生在 Authentication Removal 之前，因此当前代码中旧 Auth shell MAY 暂时仍存在；但本 EXEC：
+
+- MUST NOT 新增 Login/Register/Password/Session/RecoveryKit 能力；
+- MUST NOT 新增 AuthProvider/ProtectedRoute/token/device-fingerprint 依赖；
+- MUST NOT 把 onboarding completion/readiness 写入 auth session 或 browser auth cache；
+- MUST NOT 使用“当前登录 session”作为 onboarding owner truth；
+- SHOULD 通过现有 canonical owner/learner query boundary 获取事实；
+- `/welcome` 的 P1-06 业务状态必须能在后续 EXEC-049 删除 Auth shell 后保持不变。
+
+如果当前 shell 已对 `/welcome` 使用旧 protected wrapper，本 EXEC MAY 保持现状以避免跨 scope 重构，但不得新增该依赖；其移除由 EXEC-049 负责。
 
 ## Allowed Files
 
@@ -88,30 +109,34 @@ apps/frontend/package.json
 - 用 mock/连接成功冒充第一节完成；
 - 改写 SYS01～SYS08 owner semantics；
 - 混入 shared worktree 其他任务文件；
-- 实施 UI-03 其余范围（Today hierarchy、Learning shell、Library progressive disclosure、Settings full hierarchy）。
+- 实施 UI-03 其余范围（Today hierarchy、Learning shell、Library progressive disclosure、Settings full hierarchy）；
+- 新增或强化 Account/Login/JWT/AuthSession/RecoveryKit 依赖；
+- 用 auth session/localStorage 作为 onboarding durable truth。
 
 ## Tasks
 
 1. 审计全部 dependency commits/contracts/真实证据并解除 gate。
-2. 重新读取 ADR-0014 和最新 UI IA/Screen Specs，记录 P1-06 所需最小 route compatibility delta。
+2. 重新读取 ADR-0014、ADR-0015 和最新 UI/Local Identity Specs，记录 P1-06 所需最小 route/identity compatibility delta。
 3. 先写 route/component/accessibility/security RED tests。
-4. 实现 protected `/welcome`、default entry 与 deep-link preservation。
+4. 实现 `/welcome` supporting route、default entry 与 deep-link preservation；不得新增 authentication wrapper。
 5. 实现四步状态、单一主动作、boundary copy、dismiss/reopen/finish。
 6. 集成 P1-02 summary、P1-03 route/capability、P1-07 actions 和真实 Book Learning/UI-02C。
 7. 确保 completion 进入 `/today`，Settings reopen 仍通过 App Utility 可发现；不得恢复旧七项 L0。
-8. 验证回退、partial/stale/error、reload/relogin/App restart 与无重复副作用。
-9. 完成 deterministic browser、真实 provider、responsive/accessibility 和首次用户验收。
-10. 运行 full gates、形成 release report；全部 AC 后更新 register、归档并独立 commit。
+8. 验证回退、partial/stale/error、reload/App restart 与无重复副作用；不得把 re-login 作为新的产品验收条件。
+9. 验证 onboarding durable/readiness state 不依赖 token/session/browser auth cache，为 EXEC-049 删除 Auth shell 做回归准备。
+10. 完成 deterministic browser、真实 provider、responsive/accessibility 和首次用户验收。
+11. 运行 full gates、形成 release report；全部 AC 后更新 register、归档并独立 commit。
 
 ## Acceptance Criteria
 
-- `EXEC1062-AC-001`：`P106-AC-001..009` 全部满足。
+- `EXEC1062-AC-001`：`P106-AC-001..009` 全部满足；若旧 P106 wording 与 ADR-0015 冲突，以最新 ADR-0015 / LID-* 为准并记录 supersession。
 - `EXEC1062-AC-002`：clean profile 无开发者入口完成真实四步与 Today next action。
-- `EXEC1062-AC-003`：dismiss/reopen/deep link/restart/回退/恢复状态有机器和真实体验证据。
+- `EXEC1062-AC-003`：dismiss/reopen/deep link/restart/回退/恢复状态有机器和真实体验证据，且不依赖 auth session durable truth。
 - `EXEC1062-AC-004`：数据/模型说明与实际 P1-02/P1-03 行为一致，无样例/secret/path 泄漏。
 - `EXEC1062-AC-005`：Welcome/default route/Settings utility 与最新 `UI-IA-*` 一致，不恢复旧 7-item L0。
-- `EXEC1062-AC-006`：full backend/frontend/security/docs/migration gates PASS。
-- `EXEC1062-AC-007`：P1-06 register=DONE；Engineering/Security/Product PASS；Learning Evidence 仍 insufficient。
+- `EXEC1062-AC-006`：未新增 Account/Login/JWT/AuthSession/RecoveryKit coupling；后续 EXEC-049 可删除 Auth shell 而不重写 onboarding domain state。
+- `EXEC1062-AC-007`：full backend/frontend/security/docs/migration gates PASS。
+- `EXEC1062-AC-008`：P1-06 register=DONE；Engineering/Security/Product PASS；Learning Evidence 仍 insufficient。
 
 ## Required Tests
 
@@ -136,4 +161,4 @@ git diff --check
 
 ## Completion Report
 
-分别报告 Engineering、Security/Privacy、Product Usability、Real Provider Product Gate、Learning Evidence；逐项列 P1-06 AC、ADR-0014 route compatibility、dependency commits、测试、真实页面/App/restart、人工验收、commit、未完成项和 SPEC GAP。
+分别报告 Engineering、Security/Privacy、Product Usability、Real Provider Product Gate、Learning Evidence；逐项列 P1-06 AC、ADR-0014 route compatibility、ADR-0015 transition compatibility、dependency commits、测试、真实页面/App/restart、人工验收、commit、未完成项和 SPEC GAP。
