@@ -141,6 +141,7 @@ async def test_exec018_epub_granularities_trace_and_rebuild_independently(
 
     knowledge_map = await WorkspaceLibraryQueryService(db).get_knowledge_map(
         user,
+        workspace_id=document.workspace_id,
         document_id=UUID(document.id),
         correlation_id="exec018-map",
     )

@@ -129,6 +129,7 @@ async def test_metadata_search_and_batch_are_versioned_idempotent_and_owner_scop
 
         result = await WorkspaceLibraryQueryService(session).list_library(
             owner,
+            workspace_id=document.workspace_id,
             status=None,
             subject="physics",
             query_text="熵增原理",
@@ -161,6 +162,7 @@ async def test_metadata_search_and_batch_are_versioned_idempotent_and_owner_scop
         )
         active = await WorkspaceLibraryQueryService(session).list_library(
             owner,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             page=1,
@@ -169,6 +171,7 @@ async def test_metadata_search_and_batch_are_versioned_idempotent_and_owner_scop
         )
         archived = await WorkspaceLibraryQueryService(session).list_library(
             owner,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             archived=True,

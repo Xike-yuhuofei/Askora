@@ -266,6 +266,23 @@ class AdaptiveEvidenceRetriever:
             ),
         )
 
+    @staticmethod
+    def _scope_workspace_id(source_scope: dict[str, object]) -> str:
+        """Extract the Workspace from the scope for the cache identity.
+
+        Production SYS02 entry points (``load_adaptive_input`` /
+        ``build_evidence_bundle``) resolve an exact ``workspace_id`` before
+        building the scope (EXEC063-AC-001), so the Workspace is always present
+        on the production path. The retriever is a pure algorithm and does not
+        enforce Workspace ownership; it only folds the already-injected
+        Workspace (when present) into the cache identity so a cached bundle can
+        never be reused across Workspace or exposure boundaries
+        (EXEC063-AC-005). A missing Workspace maps to an explicit sentinel so
+        unscoped algorithm-level calls still share a stable key.
+        """
+        raw = source_scope.get("workspace_id")
+        return str(raw) if raw else "<no-workspace>"
+
     def cache_identity(
         self,
         *,
@@ -275,9 +292,14 @@ class AdaptiveEvidenceRetriever:
         source_scope: dict[str, object],
         index_versions: dict[str, str],
     ) -> str:
-        """Build the SYS02-031 identity; this does not make cache a truth source."""
+        """Build the SYS02-031 identity; this does not make cache a truth source.
+
+        The Workspace is a required component of the cache identity so a cached
+        bundle can never be reused for a different Workspace (EXEC063-AC-005).
+        """
         payload = {
             "algorithm_version": self.algorithm_version,
+            "workspace_id": self._scope_workspace_id(source_scope),
             "request_semantics": " ".join(query.casefold().split()),
             "answer_exposure": teaching_action.answer_exposure.value,
             "source_scope": source_scope,

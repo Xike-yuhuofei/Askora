@@ -2,6 +2,11 @@
 
 The legacy document RAG service remains a v0.2 read adapter.  This module is the
 v0.3 path and delegates all ranking/selection to the existing hybrid SYS02 owner.
+
+EXEC-063 / XIK-172: every ordinary production retrieval MUST resolve an exact
+``workspace_id`` before SYS02 execution. The Workspace is the required owner
+scope; ``pseudonym_id`` remains the ownership projection context but is NEVER a
+RetrievalScope by itself.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from app.domains.retrieval import (
     AdaptiveEvidenceBuildResult,
     AdaptiveEvidenceRetriever,
     AdaptiveRetrievalCandidate,
+    retrieval_scope,
 )
 from app.models.document import (
     DocumentChunk,
@@ -54,6 +60,7 @@ class PublishedKnowledgeRAGService:
     async def build_evidence_bundle(
         self,
         *,
+        workspace_id: str,
         pseudonym_id: str,
         query: str,
         teaching_action: TeachingActionV03,
@@ -62,6 +69,7 @@ class PublishedKnowledgeRAGService:
         max_chunks: int = 5,
     ) -> AdaptiveEvidenceBuildResult:
         prepared = await self.load_adaptive_input(
+            workspace_id=workspace_id,
             pseudonym_id=pseudonym_id,
             source_scope=source_scope,
         )
@@ -78,20 +86,36 @@ class PublishedKnowledgeRAGService:
     async def load_adaptive_input(
         self,
         *,
+        workspace_id: str,
         pseudonym_id: str,
         source_scope: dict[str, object] | None = None,
     ) -> PublishedAdaptiveRetrievalInput:
-        """Load only current-user, approved, current-revision candidates.
+        """Load only this Workspace's approved, current-revision candidates.
+
+        The exact Workspace is required (EXEC063-AC-001). ``pseudonym_id`` is
+        retained only as the ownership projection context; the document query is
+        filtered by ``workspace_id`` so a caller can never read Material/KU from
+        another Workspace (EXEC063-AC-002/004).
 
         Ranking and answer-exposure tightening remain owned by the existing
         ``AdaptiveEvidenceRetriever`` invoked by the canonical facade.
         """
-        documents = await self._available_documents(pseudonym_id)
+        scope = retrieval_scope(
+            workspace_id=workspace_id,
+            material_ids=self._material_ids_from_source_scope(source_scope),
+        )
+        documents = await self._available_documents(
+            pseudonym_id=pseudonym_id,
+            workspace_id=scope.workspace_id,
+        )
         requested_scope = dict(source_scope or {})
         requested_scope["pseudonym_id"] = pseudonym_id
+        requested_scope["workspace_id"] = scope.workspace_id
         raw_requested_ids = requested_scope.get("document_ids")
         if isinstance(raw_requested_ids, (list, tuple, set)):
             requested_ids = {str(item) for item in raw_requested_ids}
+            # ``documents`` is already Workspace-exact; narrowing can only ever
+            # remove candidates, never pull in another Workspace's Material.
             documents = [item for item in documents if item.id in requested_ids]
 
         document_ids = [item.id for item in documents]
@@ -136,12 +160,27 @@ class PublishedKnowledgeRAGService:
             index_versions=index_versions,
         )
 
-    async def _available_documents(self, pseudonym_id: str) -> list[UserDocument]:
+    @staticmethod
+    def _material_ids_from_source_scope(source_scope: dict[str, object] | None) -> list[str]:
+        if not source_scope:
+            return []
+        raw = source_scope.get("document_ids")
+        if not isinstance(raw, (list, tuple, set)):
+            return []
+        return [str(item) for item in raw]
+
+    async def _available_documents(
+        self,
+        *,
+        pseudonym_id: str,
+        workspace_id: str,
+    ) -> list[UserDocument]:
         return list(
             (
                 await self.db.scalars(
                     select(UserDocument).where(
                         UserDocument.pseudonym_id == pseudonym_id,
+                        UserDocument.workspace_id == workspace_id,
                         UserDocument.processing_status == ProcessingStatus.COMPLETED,
                         UserDocument.moderation_status == ModerationStatus.APPROVED,
                         UserDocument.is_deleted.is_(False),

@@ -60,6 +60,7 @@ from app.infrastructure.planning_records import (
 )
 from app.models.adaptive import TeachingContextRecord
 from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTranscriptTurnRecord
+from app.models.document import UserDocument
 from app.models.planning import LearningActivityRecord, LearningPlanRecord
 from app.models.user import User
 from app.orchestration.learning_facade import CanonicalTurnRequest, LearningOrchestrationFacade
@@ -725,6 +726,10 @@ class BookLearningApplication:
             previous_trace=previous_trace,
         )
         inputs = await self._retrieval.load_adaptive_input(
+            workspace_id=await self._resolve_material_workspace(
+                user=user,
+                source_document_ids=goal.source_document_ids,
+            ),
             pseudonym_id=user.pseudonym_id,
             source_scope={"document_ids": [str(item) for item in goal.source_document_ids]},
         )
@@ -1144,6 +1149,37 @@ class BookLearningApplication:
         if goal is None:
             raise BookLearningApplicationError("LEARNING_GOAL_NOT_FOUND")
         return goal
+
+    async def _resolve_material_workspace(
+        self,
+        *,
+        user: User,
+        source_document_ids: tuple[UUID, ...],
+    ) -> str:
+        """Resolve the exact Workspace for a Goal's source Materials (EXEC063-AC-001).
+
+        All source Materials must belong to the same exact Workspace; any
+        missing, cross-Workspace, or foreign Material fails closed before SYS02
+        retrieval so a Goal can never pull evidence from another Workspace.
+        """
+        if not source_document_ids:
+            raise BookLearningApplicationError("LEARNING_GOAL_SOURCE_SCOPE_EMPTY")
+        rows = await self._db.execute(
+            select(UserDocument).where(
+                UserDocument.id.in_([str(item) for item in source_document_ids]),
+                UserDocument.pseudonym_id == user.pseudonym_id,
+                UserDocument.is_deleted.is_(False),
+            )
+        )
+        documents = rows.scalars().all()
+        if len(documents) != len(set(source_document_ids)):
+            raise BookLearningApplicationError("LEARNING_GOAL_SOURCE_SCOPE_FOREIGN")
+        workspaces = {item.workspace_id for item in documents}
+        if None in workspaces or len(workspaces) != 1:
+            raise BookLearningApplicationError("LEARNING_GOAL_SOURCE_SCOPE_WORKSPACE_AMBIGUOUS")
+        resolved = next(iter(workspaces))
+        assert resolved is not None
+        return resolved
 
     async def _require_book_state(self, *, user: User, goal: LearningGoalV1, expected: str) -> None:
         if not goal.source_document_ids:
