@@ -10,7 +10,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import inspect, select
+from sqlalchemy import insert, inspect, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.contracts.learning import LearningActivity, LearningPlan
@@ -92,17 +92,22 @@ async def test_exec030_backfill_uses_accepted_owner_transcript_without_completio
         status="planned",
     )
     async with factory() as session:
+        # The goal fixture is inserted at the pre-workspace revision
+        # (a80d4f9c2b61), which predates the XIK-171 ``workspace_id`` column, so
+        # it must be written with explicit columns that exist at that revision.
+        await session.execute(
+            insert(LearningGoalRecord.__table__).values(
+                id=f"{goal_id}:1",
+                goal_id=str(goal_id),
+                user_id=str(user_id),
+                version=1,
+                status="active",
+                idempotency_key="migration-goal",
+                payload=goal.model_dump(mode="json"),
+            )
+        )
         session.add_all(
             [
-                LearningGoalRecord(
-                    id=f"{goal_id}:1",
-                    goal_id=str(goal_id),
-                    user_id=str(user_id),
-                    version=1,
-                    status="active",
-                    idempotency_key="migration-goal",
-                    payload=goal.model_dump(mode="json"),
-                ),
                 LearningPlanRecord(
                     id=f"{plan_id}:1",
                     plan_id=str(plan_id),

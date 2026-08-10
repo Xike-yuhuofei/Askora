@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     event,
     func,
+    null,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -171,6 +172,9 @@ class OutboxTaskRecord(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     type: Mapped[str] = mapped_column(String(100), nullable=False)
     schema_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
     idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -145,6 +145,23 @@ async def lifespan(app: FastAPI):
         await session.commit()
     logger.info("local_owner_initialized", owner_id=owner.canonical_owner_id)
 
+    # XIK-171: ensure the deterministic default Workspace and migrate legacy
+    # LocalOwner-global data into it (idempotent, non-destructive).
+    from app.services.workspace.bootstrap import WorkspaceBootstrapService
+
+    async with session_factory() as session:
+        bootstrap = WorkspaceBootstrapService(session)
+        ws = await bootstrap.ensure_default_workspace(owner.canonical_owner_id)
+        migrate = await bootstrap.migrate_legacy_to_default(owner.canonical_owner_id, workspace=ws)
+        await session.commit()
+    logger.info(
+        "workspace_bootstrap_initialized",
+        workspace_id=ws.workspace_id,
+        backfilled_rows=sum(migrate.backfilled.values()),
+        source_files_created=migrate.source_files_created,
+        recovery_issues=len(migrate.recovery_issues),
+    )
+
     # Redis 是可选优化：未配置或不可用时，Askora 仍可正常启动、服务与持久化。
     try:
         await init_redis()

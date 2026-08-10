@@ -21,6 +21,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    null,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -60,6 +61,16 @@ class DialogSession(Base):
     # 用户关联（使用假名化 ID，学习数据域与 PII 物理隔离）
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), index=True)
+
+    # WSP-021: Workspace attribution. Backfilled at bootstrap. ``learning_session_id``
+    # is a nullable canonical LearningSession ref: it stays NULL when a real
+    # LearningSession cannot be reconstructed from legacy data (no guessing).
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
+    learning_session_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
 
     # 会话信息
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -140,6 +151,9 @@ class DialogMessage(Base):
         String(36), ForeignKey("dialog_sessions.id"), index=True
     )
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
 
     # 消息基本信息
     role: Mapped[MessageRole] = mapped_column(Enum(MessageRole), index=True)

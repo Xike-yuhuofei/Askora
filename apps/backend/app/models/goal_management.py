@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Index, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, DateTime, Index, Integer, String, UniqueConstraint, func, null
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -15,6 +15,9 @@ class GoalDefinitionRecord(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     goal_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     definition_version: Mapped[int] = mapped_column(Integer)
     semantic_fingerprint: Mapped[str] = mapped_column(String(64), index=True)
     payload: Mapped[dict] = mapped_column(JSON)
@@ -29,6 +32,9 @@ class GoalStateRecord(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     goal_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     state_version: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(24), index=True)
     definition_version: Mapped[int] = mapped_column(Integer)
@@ -84,6 +90,9 @@ class FocusedGoalStateRecord(Base):
     __tablename__ = "focused_learning_goal_state_versions"
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     focus_version: Mapped[int] = mapped_column(Integer)
     goal_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     payload: Mapped[dict] = mapped_column(JSON)
@@ -95,6 +104,9 @@ class GoalManagementCommandReceiptRecord(Base):
     __tablename__ = "goal_management_command_receipts"
     receipt_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     command_type: Mapped[str] = mapped_column(String(60))
     idempotency_key: Mapped[str] = mapped_column(String(200))
     payload_digest: Mapped[str] = mapped_column(String(64))

@@ -449,6 +449,26 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         refs=("goal_id",),
         json=("payload",),
     ),
+    "learning_projects": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_scope",
+        refs=("workspace_id",),
+        propagate=("project_id",),
+    ),
+    "learning_session_materials": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_scope",
+        refs=("session_id", "material_id"),
+    ),
+    "learning_sessions": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_scope",
+        refs=("workspace_id",),
+        propagate=("session_id",),
+    ),
     "learning_trajectories": _entry(
         "SYS08_LEDGER",
         _E,
@@ -490,6 +510,13 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     ),
     "policy_bundle_activations": _entry("SYS05", _G, "global_policy"),
     "policy_bundles": _entry("SYS05", _G, "global_policy"),
+    "project_materials": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_scope",
+        refs=("project_id", "material_id"),
+        propagate=("project_id",),
+    ),
     "recovery_events": _entry(
         "SYS08_LEDGER",
         _E,
@@ -504,6 +531,13 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     ),
     "review_schedule_versions": _entry(
         "SYS07", _E, "canonical", subject=("user_id",), json=("payload",)
+    ),
+    "source_files": _entry(
+        "SYS01",
+        _E,
+        "canonical_file",
+        refs=("material_id",),
+        within_order=0,
     ),
     "strategy_templates": _entry("SYS05", _G, "global_policy"),
     "teaching_action_versions": _entry(
@@ -538,6 +572,13 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("favorite_subjects", "mastery_summary", "metacognition", "affective"),
     ),
     "users": _entry("IDENTITY_FINALIZE", _I, "identity", subject=("id", "pseudonym_id")),
+    "workspaces": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_scope",
+        refs=("owner_id",),
+        propagate=("workspace_id",),
+    ),
     "data_erasure_workflows": _entry("DATA_CONTROL", _V, "privacy_governance"),
     "data_erasure_steps": _entry("DATA_CONTROL", _V, "privacy_governance"),
     "data_erasure_receipts": _entry("DATA_CONTROL", _V, "privacy_governance"),

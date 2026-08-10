@@ -87,6 +87,14 @@ from app.models.planning import (
 )
 from app.models.profile import UserProfile
 from app.models.user import User, UserRole, UserStatus
+from app.models.workspace import (
+    LearningProject,
+    LearningSession,
+    LearningSessionMaterial,
+    ProjectMaterial,
+    SourceFile,
+    Workspace,
+)
 
 __all__ = [
     "DataErasureCheckpointRecord",
@@ -166,4 +174,10 @@ __all__ = [
     "RecoveryEventRecord",
     "OnboardingPreferenceRecord",
     "OnboardingPreferenceCommandReceiptRecord",
+    "Workspace",
+    "LearningProject",
+    "ProjectMaterial",
+    "LearningSession",
+    "LearningSessionMaterial",
+    "SourceFile",
 ]
