@@ -130,6 +130,9 @@ async def lifespan(app: FastAPI):
 
     _check_runtime_config()
 
+    from app.core.database import ensure_data_directory
+
+    ensure_data_directory()
     await init_db()
     logger.info("database_initialized")
 
@@ -142,15 +145,12 @@ async def lifespan(app: FastAPI):
         await session.commit()
     logger.info("local_owner_initialized", owner_id=owner.canonical_owner_id)
 
+    # Redis 是可选优化：未配置或不可用时，Askora 仍可正常启动、服务与持久化。
     try:
         await init_redis()
         logger.info("redis_initialized")
     except Exception as e:
-        if settings.auto_create_tables:
-            logger.info("redis_optional_unavailable", error_type=type(e).__name__)
-        else:
-            logger.error("redis_init_failed", error_type=type(e).__name__)
-            raise
+        logger.info("redis_optional_unavailable", error_type=type(e).__name__)
 
     from app.services.llm.model_router import get_model_router
 

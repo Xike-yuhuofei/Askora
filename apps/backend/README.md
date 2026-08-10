@@ -50,8 +50,9 @@ uv run alembic check
 
 ## 运行边界
 
-- 本地模式允许 SQLite 和无 Redis 的单进程降级；
-- 服务/生产模式要求 PostgreSQL、Redis 和非示例密钥；
+- 正常 Local Web 默认使用 Askora 管理的本地 SQLite（`./data/askora.db`），无需 Docker/PostgreSQL/Redis/登录；
+- Redis 为可选优化：未配置或不可用时，Askora 仍可正常启动、服务与持久化；
+- PostgreSQL 仅用于 CI / 兼容性验证 / 未来可选服务模式，不是 v1 production-local 运行依赖；
 - 真实 LLM Key 只能放在未跟踪的 `.env` 或桌面应用私有数据目录；
 - replay 不调用在线 LLM；
 - 模型、retrieval 或基础设施失败不得记录为学习者失败；

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from pydantic import model_validator
@@ -40,7 +41,8 @@ class Settings(BaseSettings):
     )
 
     # 基础配置
-    app_env: AppEnv = AppEnv.DEVELOPMENT
+    # v1 的正常产品运行形态是 Local Web：单用户、loopback、本地数据。
+    app_env: AppEnv = AppEnv.LOCAL
     app_name: str = "socratic-learning-backend"
     app_version: str = "0.1.0"
     debug: bool = False
@@ -56,14 +58,22 @@ class Settings(BaseSettings):
         "http://localhost:4173,http://127.0.0.1:4173,null,file://"
     )
 
-    # 数据库
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/socratic_learning"
+    # Askora 管理的本地数据目录（PERSIST-003）。
+    # 逻辑结构：{askora_data_dir}/askora.db、documents/、indexes/、cache/、jobs/、logs/。
+    # 最终用户无需配置；如需迁移数据位置，可设置 ASKORA_DATA_DIR。
+    askora_data_dir: str = "./data"
+
+    # 数据库：v1 production-local 默认使用 Askora 管理的本地 SQLite。
+    # 若未显式提供 DATABASE_URL，则解析为 {askora_data_dir}/askora.db。
+    # PostgreSQL 仅用于 CI / 兼容性验证 / 未来可选服务模式，不是 v1 最终用户运行依赖。
+    database_url: str = ""
     database_echo: bool = False
     database_pool_size: int = 20
     database_max_overflow: int = 10
 
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    # Redis：可选，仅用于开发 / 缓存 / 兼容性优化，不是 v1 产品运行 requirement。
+    # 默认留空：正常 Local Web 启动不会尝试连接 Redis。
+    redis_url: str = ""
     redis_password: Optional[str] = None
     redis_pool_size: int = 50
 
@@ -125,7 +135,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_keys(self) -> "Settings":
-        """生产环境强制校验密钥强度，防止使用默认/示例密钥"""
+        """生产环境强制校验密钥强度，防止使用默认/示例密钥。"""
+        # 未显式提供 DATABASE_URL 时，解析到 Askora 管理的本地 SQLite。
+        if not self.database_url:
+            self.database_url = self.default_database_url
         if self.app_env == AppEnv.PRODUCTION:
             if not self.kek_master_key or len(self.kek_master_key) < 32:
                 raise ValueError("KEK_MASTER_KEY must be at least 32 characters in production")
@@ -164,6 +177,16 @@ class Settings(BaseSettings):
     @property
     def auto_create_tables(self) -> bool:
         return self.app_env in {AppEnv.LOCAL, AppEnv.DEVELOPMENT, AppEnv.TEST}
+
+    @property
+    def data_directory(self) -> Path:
+        """Askora 管理的本地数据根目录（PERSIST-003）。"""
+        return Path(self.askora_data_dir).resolve()
+
+    @property
+    def default_database_url(self) -> str:
+        """未显式配置 DATABASE_URL 时使用的默认 SQLite 路径。"""
+        return f"sqlite+aiosqlite:///{self.data_directory / 'askora.db'}"
 
     @property
     def cors_origins(self) -> list[str]:
