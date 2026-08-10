@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Bootstrap Frozen / Implemented Baseline
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Interaction Architecture Frozen / Awaiting Dependency Gate
 
 ## 1. Purpose
 
@@ -30,7 +30,21 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 → Implemented Baseline
 ```
 
+ADR-0014 Interaction Architecture formation chain：
+
+```text
+Interactive Element System Canonical Design Delta
+→ ADR-0014 accepted
+→ UI-IES / UI-IA / UI-SCREEN / UI-VIS / UI-QUAL
+→ UI-03 Vertical Slice
+→ EXEC-1062 DONE dependency gate
+→ EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046
+→ UI-03 Release Evidence
+```
+
 当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
+
+当前 UI-03 状态：**SPEC FROZEN / BLOCKED_BY_DEPENDENCY_GATE**。UI-03 代码实施必须等待 `EXEC-1062 DONE`，之后按 EXEC-043→046 严格串行。`EXEC-042` 为独立 backend/policy closure，不因 UI-03 改变边界。
 
 实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。用户已委托架构自治时，Codex MAY 代表该目标接受新的 superseding/additive ADR，并在同步更新 Spec/EXEC 后继续实现；不得用代码事实反向追认设计。
 
@@ -71,7 +85,6 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 ### Interfaces
 
 - [Recovery Contract](interfaces/recovery-contract.md) — P1-07 统一 issue/action/result 与 bootstrap diagnostic
-
 - [API Contract](interfaces/api-contract.md)
 - [Error Contract](interfaces/error-contract.md)
 - [Persistence Contract](interfaces/persistence-contract.md)
@@ -89,6 +102,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 
 ### Vertical Slices
 
+- [UI-03 Interactive Element System Refactor](vertical-slices/ui-03-interactive-element-system-refactor.md) — ADR-0014 三域 IA、Learning facets、Today/Library/Settings 重构；EXEC-1062 DONE 后执行 EXEC-043→046
 - [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-039 DONE
 - [P1-01A Goal Definition, Draft and Safe Replan](vertical-slices/p1-01a-goal-definition-draft-replan.md) — multi-source/explicit target/preview/boundary apply；EXEC-038 DONE
 - [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
@@ -100,7 +114,7 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — 修改密码、会话管理、本地恢复与账号删除完整闭环；EXEC-034～036 已完成
 - [UI-02C Canonical Activity Lifecycle](vertical-slices/ui-02c-canonical-activity-lifecycle.md) — start/resume/complete/next 闭环；EXEC-030 已完成
 - [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — App 内安全配置、验证、激活、恢复与真实 provider/relaunch 闭环；EXEC-040/041 DONE
-- [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 只读产品闭环；EXEC-029 已完成
+- [UI-02B Goals, Learning Path and Evidence](vertical-slices/ui-02b-goals-path-evidence.md) — Goals/Path/Evidence 历史实现基线；EXEC-029 已完成；其 L0 IA 已由 ADR-0014 supersede
 - [UI-02B3 Real-model Guided Learning](vertical-slices/ui-02b3-real-model-guided-learning.md) — production configured-model rendering 与真实浏览器/DB E2E；EXEC-027 已完成
 - [UI-02B2 Guided Book Learning](vertical-slices/ui-02b2-guided-book-learning.md) — 系统自动准备→第一节可恢复 canonical 教学；EXEC-026 已完成
 - [UI-02B1 Material-to-Learning Launch](vertical-slices/ui-02b1-material-learning-launch.md) — 单份资料→Goal→诊断→计划→canonical 教学启动；EXEC-025 已完成
@@ -119,14 +133,15 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 - [SPEC-D05 Prerequisite Diagnostic Bootstrap](systems/06-prerequisite-diagnostic-bootstrap.md) — SYS06/SYS04/SYS03 diagnostic bootstrap 边界
 - [SPEC-D06 Book-to-Adaptive-Learning Vertical Slice](vertical-slices/book-to-adaptive-learning.md) — EPUB upload → first/next canonical TeachingAction E2E
 
-### UI Experience（Frozen）
+### UI Experience（Frozen — ADR-0014）
 
-- [UI Redesign Spec Index](ui/README.md) — 学习闭环优先的 UI 重设计 Canonical Contract
-- [Information Architecture](ui/information-architecture.md) — 导航、路由、页面层级与响应式信息架构
-- [Screen Contracts](ui/screen-contracts.md) — 页面状态、内容优先级、交互边界与验收条件
-- [Data Contracts](ui/data-contracts.md) — 只读 Query/API、来源标记与系统所有权边界
-- [Visual System](ui/visual-system.md) — macOS-first 视觉语言、tokens、组件与无障碍约束
-- [Quality and Migration](ui/quality-and-migration.md) — 三阶段执行、测试门禁、迁移与延后决策登记
+- [UI Spec Index](ui/README.md) — ADR-0014 Interaction Architecture 当前 UI 合同入口
+- [Interactive Element System](ui/interactive-element-system.md) — 7 类 semantic primitives、L0～L5 hierarchy、pattern qualification、跨平台语义
+- [Information Architecture](ui/information-architecture.md) — Today/Learning/Library 三域、Learning facets、canonical routes 与 legacy redirects
+- [Screen Contracts](ui/screen-contracts.md) — Today/Learning/Goal/Plan/Progress/History/Workspace/Library/Settings task/state/action contracts
+- [Data Contracts](ui/data-contracts.md) — Query/API、来源标记与系统所有权边界
+- [Visual System](ui/visual-system.md) — semantic-before-component、层级、rows/cards、contextual actions 与无障碍约束
+- [Quality and Migration](ui/quality-and-migration.md) — UI-03 dependency、串行执行、测试、安全、迁移与声明边界
 
 ## 3. v0.3 Canonical Decisions → ADR → Spec Traceability
 
@@ -146,6 +161,20 @@ Canonical Design + v0.3 implemented baseline + UI-02A implemented baseline
 | `V03-CD-014` Outcome data model | — | `DOMAIN-111..113`, `OBS-200..221` |
 | `V03-CD-015` OPVE / outcome hierarchy | — | `TEST-200..281`, `OBS-210..213` |
 | `V03-CD-017` release gate | — | `DOD-200..260` |
+
+### ADR-0014 Interaction Architecture Traceability
+
+| Decision | ADR | Canonical Spec |
+|---|---|---|
+| 7 semantic interaction primitives | ADR-0014 | `UI-IES-010..016` |
+| 3 L0 Product Domains | ADR-0014 | `UI-IES-030`, `UI-IA-010` |
+| Goal/Plan/Progress/History → Learning L1 | ADR-0014 | `UI-IES-031`, `UI-IA-020..022` |
+| Settings/Recovery as App Utility | ADR-0014 | `UI-IA-011`, `UI-IA-080..081` |
+| Today single Primary Task | ADR-0014 | `UI-IA-050`, `UI-SCREEN-011` |
+| Quick Start demotion | ADR-0014 | `UI-SCREEN-015` |
+| Library progressive disclosure | ADR-0014 | `UI-SCREEN-090..095`, `UI-VIS-090` |
+| Hierarchical Settings | ADR-0014 | `UI-SCREEN-100..110`, `UI-VIS-100..101` |
+| Route migration | ADR-0014 | `UI-IA-030..033`, `UI-MIG-012` |
 
 ## 4. SD-01～SD-11 Resolution Matrix
 
@@ -198,6 +227,8 @@ Existing requirement IDs MUST NOT be reused to change meaning. Superseded v0.2 I
 
 `SPEC-D01～D06` 是 Book-to-Learning additive contract pack；内部要求使用 `D01-*`～`D06-*`，不得复用现有 SYS/DOMAIN/ADR requirement ID 改变原语义。
 
+`UI-IES-*` 是 ADR-0014 新增的 Interaction Architecture requirement family；不得复用旧 `UI-IA-*` / `UI-SCREEN-*` ID 改写既有不同语义。已 supersede 的旧 UI IA 选择由 ADR-0014 + 当前 Spec 文档显式替代。
+
 ## 8. v0.3 Canonical Invariants
 
 ```text
@@ -230,6 +261,16 @@ DiagnosticNeed != LearnerState
 Book bootstrap != second Teaching Loop
 ```
 
+Interaction Architecture additionally freezes：
+
+```text
+Domain Object != Information Architecture
+Information Architecture != Interactive Element
+Navigation != Business Command
+Progress vocabulary != second Evidence truth
+Chat/Tutor != L0 Product Domain
+```
+
 ## 9. Versioned Parameters
 
 mastery threshold、failure ceiling、minimum dwell、switch margin、hint sequence、scaffold fade amount、diagnostic confidence cutoff、transfer novelty threshold、delay windows、policy weights、practical harm margin MUST remain versioned/traceable configurable parameters. No Spec may claim arbitrary fixed values are universal learning-science constants.
@@ -241,6 +282,8 @@ Book-to-Learning 的 extraction/publication/mapping/diagnostic thresholds 与 bu
 Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。
 
 B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
+
+UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or P1-02/03/05/07 security/data rewrite。
 
 ## 11. Vertical Slice Gate
 
@@ -258,6 +301,8 @@ Engineering / Policy / Learning Evidence claims remain separated
 ```
 
 Vertical Slice Gate：**PASS**。EXEC-007～013 已完成并归档；当前实现证据见 [v0.3 Release Report](../releases/v0.3-adaptive-teaching-loop.md)。
+
+UI-03 Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062**。解除后只能按 EXEC-043→046 串行执行。
 
 ## 12. Book-to-Learning Spec Freeze
 
@@ -280,13 +325,26 @@ v0.3 Teaching Loop compatibility          PASS
 SYS01～SYS08 single-writer ownership       PASS
 Second truth / second Teaching Loop       NONE
 New learning efficacy claim               NONE
-EXEC number pre-allocation                NONE
 ```
 
 **Book-to-Learning Spec Freeze Gate：PASS**。
 
 Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Frozen 状态，也不构成真人学习效果结论。
 
-后续变化仍只能先生成新的 EXEC Plan 再实现。未获用户架构自治委托时，Codex 不得从
-D01～D06 自行扩大范围；已获委托时，Codex MAY 先接受所需 ADR、更新并冻结新增 Spec/
-Vertical Slice/EXEC，再在新边界内实现，且不得静默改写 D01～D06 的历史冻结语义。
+## 13. ADR-0014 Interaction Architecture Freeze
+
+| Asset | Status | Boundary |
+|---|---|---|
+| Interactive Element System Design Delta | FROZEN | Product/IA design input |
+| ADR-0014 | ACCEPTED | 3-domain IA + semantic interaction decision |
+| UI-IES | FROZEN | 7 primitives / L0-L5 / pattern qualification |
+| UI-IA | FROZEN | routes/navigation/shell |
+| UI-SCREEN | FROZEN | page/task/action behavior |
+| UI-VIS | FROZEN | semantic visual hierarchy |
+| UI-QUAL | FROZEN | migration/test/security gates |
+| UI-03 Vertical Slice | FROZEN / BLOCKED | implementation scope |
+| EXEC-043～046 | FROZEN / BLOCKED | serial implementation contracts |
+
+UI-03 不建立新的 domain owner、不新增数据库 truth、不改变 Learning Evidence Gate。完成后只允许分别声明 UI Engineering、UI Contract Correctness、Accessibility/Security；不得把 UI 简化或点击减少称为真人学习效果。
+
+后续变化仍只能先生成新的 ADR/Spec/EXEC（若需要）再实现。不得用 code-first 方式恢复旧 IA 或静默扩大 UI-03 范围。
