@@ -78,19 +78,26 @@ Codex 可以为该目标创建并接受 ADR，并继续同步 Spec、EXEC、代�
 | `ADR-0006` | Workspace Read-model Scope and Missing Objective Metadata | accepted | 2026-08-09 |
 | `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
 | `ADR-0008` | Library Management, Deduplication and OCR Governance | accepted | 2026-08-09 |
-| `ADR-0009` | Local-first Identity and Privacy Lifecycle | accepted | 2026-08-09 |
+| `ADR-0009` | Local-first Identity and Privacy Lifecycle | partially superseded by ADR-0015 | 2026-08-09 |
 | `ADR-0010` | Goal Definition, State, Draft and Safe Replan | accepted | 2026-08-09 |
 | `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
 | `ADR-0012` | Unified Recovery Control Plane and Bootstrap Diagnostics | accepted | 2026-08-09 |
 | `ADR-0013` | Desktop Model Credential and Activation | accepted | 2026-08-09 |
 | `ADR-0014` | User-job-driven Information and Interaction Architecture | accepted | 2026-08-10 |
+| `ADR-0015` | Local Single-User Identity Without Authentication | accepted | 2026-08-10 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
-| `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | accepted | 2026-08-09 |
+| `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
 
 ### v0.3 ADR-C Resolution
 
 `TeachingEpisode`、`LearningTrajectory`、`OutcomeObservation`、`ExperimentAssignment` 当前仍是 additive Design / Spec Delta，不改变八系统事实所有权，也没有形成新的核心 aggregate/service owner，因此该议题当时**不需要新增 ADR**。`ADR-0003` 后续用于独立的 Policy Runtime Profile 来源与激活解析决策。
+
+### Local Single-User Identity Supersession
+
+ADR-0015 明确 supersede ADR-0009 / ADR-0107 中以下当前产品语义：Account、Login、Password、JWT、AuthSession、Recovery Kit、Account Deletion Lifecycle。
+
+owner-safe erasure、privacy/no-resurrection 等仍有独立数据治理价值的原则继续由最新 `LID-*` 与 P1-03 合同承接。
 
 ## 6. v0.3 ADR Breaking Change Register
 
