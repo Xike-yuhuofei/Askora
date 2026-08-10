@@ -1,8 +1,8 @@
 # EXEC-047 — LocalOwner Foundation & Migration
 
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
+> Status：FROZEN / ACTIVE  
 > Governing：ADR-0015、`LID-*`、Local Single-User Authentication Removal Vertical Slice  
-> Dependency：EXEC-1062 DONE  
+> Dependency：EXEC-1062 DONE（satisfied 2026-08-10）  
 > Next：EXEC-048
 
 ## Objective
@@ -17,7 +17,7 @@
 - 当前 DB migration heads clean；
 - 工作树无未归属 identity migration。
 
-未满足时返回 `BLOCKED_BY_DEPENDENCY`。
+`EXEC-1062` dependency 已由 completed archive + P1-06 release evidence 满足。执行开始时仍必须重新确认其余 runtime/migration 前置条件；若不满足，返回 `BLOCKED_BY_DEPENDENCY`。
 
 ## Required Specs
 
