@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
-> 状态：UI-02C、P1-01、P1-02、P1-03、P1-04、P1-05、P1-07 DONE；P1-06B 按独立冻结队列推进
-> Active：EXEC-1062（P1-06B）
+> 状态：UI-02C、P1-01、P1-02、P1-03、P1-04、P1-05、P1-07 DONE；v0.3 sequential policy closure 与 P1-06B 按独立冻结队列推进  
+> Active：EXEC-042（v0.3 Policy Correctness Closure）、EXEC-1062（P1-06B）  
 > 已完成：EXEC-001～EXEC-041、EXEC-1031～1034、EXEC-1061（其中 EXEC-037 有两个历史任务域文件）
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -19,7 +19,7 @@ Accepted ADR / Canonical Design
 
 | 目录 | 当前状态 | 规则 |
 |---|---|---|
-| `active/` | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 不得越过真实依赖或已冻结 owner 边界 |
+| `active/` | [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md)、[EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | 两个独立任务域；不得越过冻结 owner/spec 边界或混合 scope |
 | [`completed/`](completed/README.md) | EXEC-001～041、EXEC-1031～1034、EXEC-1061（EXEC-037 含两个历史任务域文件） | 保留执行任务合同及其显式决策记录 |
 
 归档 EXEC 文件头中的 `READY_*` 是历史入口条件，不代表当前状态。最终状态、实现提交和验证证据以 [completed 索引](completed/README.md) 与 [Release Evidence](../releases/README.md) 为准。
@@ -29,7 +29,8 @@ Accepted ADR / Canonical Design
 | Baseline | EXEC | Final status |
 |---|---|---|
 | v0.2 First Vertical Learning Loop | EXEC-001～006 | DONE |
-| v0.3 Adaptive Teaching Loop | EXEC-007～013 | DONE |
+| v0.3 Adaptive Teaching Loop historical implementation | EXEC-007～013 | DONE / historical snapshot |
+| v0.3 Production Sequential Teaching Policy Closure | [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md) | FROZEN / ACTIVE |
 | v0.3.1 Rich Response Rendering | EXEC-014 | DONE |
 | UI-01 Learning Shell and Compatibility Tutor Workspace | EXEC-015 | DONE |
 | UI-02A Canonical Library and Scoped Knowledge Map | EXEC-016 | DONE |
@@ -54,9 +55,38 @@ Accepted ADR / Canonical Design
 | P1-02B Model Settings Product Closure | [EXEC-041](completed/EXEC-041-p1-02b-model-settings-product-closure.md) | DONE |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
 | P1-06 Onboarding Readiness Foundation | [EXEC-1061](completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md) | DONE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / ACTIVE |
+| P1-06 Onboarding Product Closure | [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | FROZEN / ACTIVE |
 
-## 2A. P1-03 Execution Chain
+## 2A. v0.3 Current Conformance Closure
+
+历史 v0.3 release snapshot 曾记录：
+
+```text
+Engineering Gate: PASS
+Policy Correctness Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+该状态仅代表当时 release evidence。2026-08-10 的 current-main conformance audit 已重新判定：
+
+```text
+Engineering Gate: ENGINEERING_GATE_FAILED
+Policy Correctness Gate: POLICY_CORRECTNESS_GATE_FAILED
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+冻结缺口：
+
+```text
+GAP-V03-001 — Production adaptive path bypasses SequentialTeachingPolicy
+GAP-V03-002 — Production TeachingContext / sequential evidence hydration incomplete
+```
+
+对应唯一 P0 实现闭包为 [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md)。EXEC-042 不重写 Teaching Policy 算法，不修改 Canonical Design / ADR / Spec，不引入新的 durable TutorState；若现有 immutable owner facts 无法无歧义重建 sequential state，则必须返回 `BLOCKED_BY_SPEC_GAP`。
+
+current Engineering Gate 还必须在 EXEC-042 之外重新获得 repository-wide 绿色 CI；EXEC-042 不允许混入审计中已识别的 scope 外 Black formatting 文件。
+
+## 2B. P1-03 Execution Chain
 
 ```text
 ADR-0103 + DATA-* + P1-03 Vertical Slice
@@ -67,16 +97,6 @@ ADR-0103 + DATA-* + P1-03 Vertical Slice
 ```
 
 P1-03 使用任务域保留编号，避免与并行 P1 工作流的普通连续编号碰撞。四个 EXEC 已按依赖顺序完成并使用独立本地 commit；验证证据见 [P1-03 Release Report](../releases/p1-03-data-control-recovery.md)。
-
-v0.3 最终状态：
-
-```text
-Engineering Gate: PASS
-Policy Correctness Gate: PASS
-Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
-```
-
-这表示实现与 policy correctness 达到当次冻结要求，不表示 Adaptive Teaching Loop 已被证明改善真人学习效果。
 
 ## 3. Book-to-Learning EXEC Completion
 
@@ -111,7 +131,7 @@ EXEC-020 ──────────────────────┤
                            EXEC-024
 ```
 
-EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有 active Book-to-Learning EXEC。
+EXEC-020 与 EXEC-021 在 EXEC-019 DONE 后并行完成；其余任务按 dependency gate 串行完成。当前没有新的 Book-to-Learning feature EXEC；EXEC-042 只修复 frozen v0.3 policy production composition，不重新设计 Book-to-Learning pipeline。
 
 P1-05 dependency graph：
 
@@ -127,8 +147,7 @@ ADR-0009 + IDP Spec
 
 用户于 2026-08-09 显式采纳 P1-05 推荐方案并授权完成实现。EXEC-034～036 已在冻结的 Allowed Files/owner 边界内串行完成；EXEC-037 已将账号删除收敛到 P1-03 canonical erasure single truth 并通过 PR CI。P1-05 当前为 DONE，证据见 `docs/releases/p1-05-account-lifecycle.md`。
 
-P1-05/P1-03 integration 与 P1-07 在并行历史中都使用了 `EXEC-037`；两份已归档合同以完整文件路径
-区分，禁止据此重写已接受的合同或提交历史。
+P1-05/P1-03 integration 与 P1-07 在并行历史中都使用了 `EXEC-037`；两份已归档合同以完整文件路径区分，禁止据此重写已接受的合同或提交历史。
 
 P1-06 dependency graph：
 
@@ -142,15 +161,15 @@ P1-02/P1-03/P1-07 integration gate
     EXEC-1062 → P1-06 DONE
 ```
 
-用户于 2026-08-09 显式采纳事实驱动 onboarding，并授权真正关闭 P1-06。EXEC-1061 可独立实现
-preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用 placeholder 或 mock 绕过。
+用户于 2026-08-09 显式采纳事实驱动 onboarding，并授权真正关闭 P1-06。EXEC-1061 可独立实现 preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用 placeholder 或 mock 绕过。
 
 ## 4. Queue Contract
 
-- Book-to-Learning 本轮从 EXEC-017 连续编号至 EXEC-024，符合 SPEC-D06 编号治理。
-- EXEC-017～024 只实现 SPEC-D01～D06；不得重新设计 v0.3 Adaptive Teaching Loop。
+- EXEC-042 与 EXEC-1062 属于两个独立任务域；不得互相扩大 Allowed Files 或借对方任务修改冻结语义。
+- EXEC-042 只关闭 `GAP-V03-001` + `GAP-V03-002` 及对应 production-path tests/replay，不得混入 P1-06、Desktop/DMG、data-control Black formatting 或新教学算法。
+- Book-to-Learning 历史实现从 EXEC-017 连续编号至 EXEC-024；这些 completed EXEC 保持历史原貌。
 - 每个 EXEC 完成后必须先满足自身 Acceptance Criteria / Required Tests / DoD，再归档到 `completed/`。
-- 后序 EXEC 在依赖未 DONE 时应报告 `BLOCKED_BY_DEPENDENCY`，不得越序实现。
+- 后序依赖未 DONE 时应报告 `BLOCKED_BY_DEPENDENCY`，不得越序实现。
 - 遇到公共语义、owner、schema、生产依赖等未冻结选择，按 `AGENTS.md` 报告 `BLOCKED_BY_SPEC_GAP`。
 - Active EXEC 的文档生命周期由本索引治理；归档后进入 `completed/README.md` 与 release evidence 历史清单。
 
@@ -160,4 +179,4 @@ preference/readiness foundation；EXEC-1062 必须等待真实依赖，不能用
 
 执行前必须读取根 `AGENTS.md`、本 EXEC 引用的全部 Spec，并核对当前代码和 Git 状态。遇到无法在现有 Spec 内无歧义实现的公共语义，必须报告 `BLOCKED_BY_SPEC_GAP`；不得由执行代理自行重设计。
 
-只有满足前一任务的 DONE gate 才能进入后续依赖任务。完成后按 [Definition of Done](../specs/quality/definition-of-done.md) 返回状态，并将任务移入 `completed/`。
+只有满足任务自己的 dependency gate 才能执行。完成后按 [Definition of Done](../specs/quality/definition-of-done.md) 返回状态，并将任务移入 `completed/`。
