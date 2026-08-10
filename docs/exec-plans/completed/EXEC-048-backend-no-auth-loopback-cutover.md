@@ -1,6 +1,6 @@
 # EXEC-048 — Backend No-Auth & Loopback Cutover
 
-> Status：FROZEN / ACTIVE  
+> Status：**DONE**（2026-08-10）  
 > Governing：ADR-0015、`LID-*`、Authentication Removal Vertical Slice  
 > Dependency：EXEC-047 DONE（satisfied 2026-08-10）  
 > Next：EXEC-049

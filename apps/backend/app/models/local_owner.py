@@ -42,6 +42,4 @@ class LocalOwnerRecord(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    __table_args__ = (
-        CheckConstraint("singleton_key = 1", name="ck_local_owners_single_row"),
-    )
+    __table_args__ = (CheckConstraint("singleton_key = 1", name="ck_local_owners_single_row"),)

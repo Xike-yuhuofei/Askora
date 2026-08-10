@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        dependency-type: direct
+
+  - package-ecosystem: pip
+    directory: "/apps/backend"
+    schedule:
+      interval: weekly
+    groups:
+      pip-runtime:
+        dependency-type: production
+      pip-dev:
+        dependency-type: development
+
+  - package-ecosystem: npm
+    directory: "/apps/frontend"
+    schedule:
+      interval: weekly
+    groups:
+      npm-runtime:
+        dependency-type: production
+      npm-dev:
+        dependency-type: development

@@ -1,6 +1,6 @@
 # EXEC-049 — Frontend / Settings / Onboarding De-accounting
 
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
+> Status：**DONE**（2026-08-10）  
 > Governing：ADR-0015、`LID-*`、ADR-0014（仅保持既有 IA 边界，不实施完整 UI-03）  
 > Dependency：EXEC-048 DONE  
 > Next：EXEC-050

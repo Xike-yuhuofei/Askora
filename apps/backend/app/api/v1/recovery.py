@@ -11,9 +11,8 @@ from app.contracts.recovery import (
     RecoveryResultV1,
 )
 from app.core.database import get_db
-from app.models.user import User
 from app.queries.recovery import RecoveryQueryService
-from app.services.auth.dependencies import get_current_user
+from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
 from app.services.recovery import RecoveryActionService
 
 router = APIRouter(prefix="/recovery", tags=["错误恢复"])
@@ -23,7 +22,7 @@ router = APIRouter(prefix="/recovery", tags=["错误恢复"])
 async def list_recovery_issues(
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> RecoveryIssueListResponseV1:
     result = await RecoveryQueryService(db).list_issues(
@@ -39,7 +38,7 @@ async def execute_recovery_action(
     command: RecoveryCommandV1,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> RecoveryResultV1:
     result = await RecoveryActionService(db).execute(

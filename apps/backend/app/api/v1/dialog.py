@@ -14,11 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions import AppError, ResourceNotFoundError
 from app.core.logging import get_logger
-from app.models.user import User
 from app.services.auth.authorization_service import (
     AuthorizationService,
 )
-from app.services.auth.dependencies import get_current_user
+from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
 from app.services.dialog.dialog_service import DialogService
 
 router = APIRouter(prefix="/dialog", tags=["对话"])
@@ -78,7 +77,7 @@ def _coerce_stream_content(
 @router.post("/sessions", summary="创建新会话")
 async def create_session(
     req: CreateSessionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """创建一个新的对话会话"""
@@ -108,7 +107,7 @@ async def create_session(
 async def list_sessions(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取当前用户的会话列表"""
@@ -144,7 +143,7 @@ async def list_sessions(
 @router.get("/sessions/{session_id}", summary="获取会话详情")
 async def get_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取指定会话的详情"""
@@ -183,7 +182,7 @@ async def list_messages(
     session_id: str,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取指定会话的消息列表"""
@@ -231,7 +230,7 @@ async def list_messages(
 async def send_message(
     session_id: str,
     req: SendMessageRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -270,7 +269,7 @@ async def send_message(
 
 async def _stream_common(
     session_id: str,
-    current_user: User,
+    current_user: OwnerProjection,
     db: AsyncSession,
     content: str,
     idempotency_key: str | None = None,
@@ -363,7 +362,7 @@ async def _stream_common(
 async def stream_message_get(
     session_id: str,
     qp: StreamQueryParams = Depends(),
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -386,7 +385,7 @@ async def stream_message_post(
     session_id: str,
     req: Optional[SendMessageRequest] = None,
     qp: StreamQueryParams = Depends(),
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -413,7 +412,7 @@ async def stream_message_post(
 @router.post("/sessions/{session_id}/end", summary="结束会话")
 async def end_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """主动结束对话会话"""

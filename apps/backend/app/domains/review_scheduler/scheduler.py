@@ -87,7 +87,9 @@ class ReviewScheduler:
             model, model_version = self.FALLBACK_MODEL, self.FALLBACK_VERSION
             reasons.append("MEMORY_MODEL_FALLBACK")
 
-        prior_stability = prior.stability if prior and prior.stability else params["initial_stability"]
+        prior_stability = (
+            prior.stability if prior and prior.stability else params["initial_stability"]
+        )
         prior_difficulty = prior.difficulty if prior and prior.difficulty else 5.0
         valid_independent = (
             observation.retrieval_required
@@ -146,7 +148,9 @@ class ReviewScheduler:
             retrievability=retrievability,
             desired_retention=retention,
             last_valid_retrieval_at=(
-                observation.actual_reviewed_at if valid_independent else prior.last_valid_retrieval_at if prior else None
+                observation.actual_reviewed_at
+                if valid_independent
+                else prior.last_valid_retrieval_at if prior else None
             ),
             next_due_at=recommended_due,
             review_priority=max(0.0, 1.0 - retrievability),

@@ -488,6 +488,14 @@
   font-size: 12px;
 }
 
+.library-management--collapsed {
+  opacity: 0.75;
+}
+
+.library-management--collapsed .empty-copy {
+  margin: 8px 0 0;
+}
+
 .duplicate-review {
   border-color: #f2d49c;
 }

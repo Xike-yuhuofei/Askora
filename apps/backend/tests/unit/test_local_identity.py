@@ -35,7 +35,9 @@ async def _session_factory(database_url: str):
     return engine, factory
 
 
-async def _add_user(session, *, user_id: str, pseudonym_id: str, status: UserStatus = UserStatus.ACTIVE) -> None:
+async def _add_user(
+    session, *, user_id: str, pseudonym_id: str, status: UserStatus = UserStatus.ACTIVE
+) -> None:
     session.add(
         User(
             id=user_id,
@@ -56,9 +58,7 @@ async def test_empty_db_first_bootstrap_creates_exactly_one_owner(tmp_path) -> N
         assert isinstance(ctx.owner_id, type(uuid4()))
         assert ctx.provenance == "fresh"
 
-        count = await session.scalar(
-            sa.select(sa.func.count(LocalOwnerRecord.singleton_key))
-        )
+        count = await session.scalar(sa.select(sa.func.count(LocalOwnerRecord.singleton_key)))
         assert count == 1
     await engine.dispose()
 
@@ -90,9 +90,7 @@ async def test_concurrent_bootstrap_yields_exactly_one_owner(tmp_path) -> None:
     owner_ids = {ctx.owner_id for ctx in contexts}
     assert len(owner_ids) == 1
     async with factory() as session:
-        count = await session.scalar(
-            sa.select(sa.func.count(LocalOwnerRecord.singleton_key))
-        )
+        count = await session.scalar(sa.select(sa.func.count(LocalOwnerRecord.singleton_key)))
         assert count == 1
     await engine.dispose()
 

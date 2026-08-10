@@ -31,9 +31,8 @@ from app.contracts.book_learning import (
 from app.contracts.recovery import RecoveryIssueViewV1
 from app.core.database import get_db
 from app.core.exceptions import BusinessError
-from app.models.user import User
 from app.queries.recovery import RecoveryQueryService
-from app.services.auth.dependencies import get_current_user
+from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
 from app.services.recovery import RecoveryIncidentService
 
 router = APIRouter(prefix="/book-learning", tags=["书籍自适应学习"])
@@ -112,7 +111,7 @@ async def get_readiness(
     document_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningReadinessV1:
     result = await application.readiness(
@@ -133,7 +132,7 @@ async def advance_book_learning(
     document_id: UUID,
     body: AdvanceBookLearningRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -158,7 +157,7 @@ async def get_goal(
     goal_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
     result = await _execute(
@@ -179,7 +178,7 @@ async def get_mapping(
     goal_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
     result = await _execute(
@@ -200,7 +199,7 @@ async def get_diagnostic(
     goal_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
     result = await _execute(
@@ -221,7 +220,7 @@ async def get_plan(
     goal_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
     result = await _execute(
@@ -242,7 +241,7 @@ async def create_goal_candidate(
     document_id: UUID,
     body: CreateBookLearningGoalRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -272,7 +271,7 @@ async def confirm_goal(
     goal_id: UUID,
     body: ConfirmBookLearningGoalRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -298,7 +297,7 @@ async def map_goal(
     goal_id: UUID,
     body: MapBookLearningGoalRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -322,7 +321,7 @@ async def map_goal(
 async def start_diagnostic(
     body: StartBookDiagnosticRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -352,7 +351,7 @@ async def submit_diagnostic_response(
     need_id: UUID,
     body: SubmitBookDiagnosticResponseV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -379,7 +378,7 @@ async def submit_diagnostic_response(
 async def generate_plan(
     body: GenerateBookPlanRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -403,7 +402,7 @@ async def generate_plan(
 async def select_next_activity(
     body: SelectBookActivityRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningOperationResponseV1:
@@ -428,7 +427,7 @@ async def get_activity_transcript(
     activity_id: UUID,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningTranscriptV1:
     result = await _execute(
@@ -451,7 +450,7 @@ async def start_teaching_round(
     activity_id: UUID,
     body: StartBookTeachingRequestV1,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    current_user: OwnerProjection = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
     application: BookLearningApplication = Depends(get_book_learning_application),
 ) -> BookLearningTeachingResponseV1:

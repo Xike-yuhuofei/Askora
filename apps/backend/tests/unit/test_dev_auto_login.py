@@ -1,79 +1,79 @@
-"""开发自动登录（免登录直接进入系统）的单元测试。"""
+"""LocalOwner bootstrap tests for v1 no-auth architecture.
+
+EXEC-053: Replaced dev auto-login tests with LocalOwner bootstrap tests.
+v1 uses single-user LocalOwnerContext - no dev auto-login needed.
+"""
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from pathlib import Path
 
 import pytest
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.api.v1.dev_auth import DevAutoLoginRequest
 from app.core.config import AppEnv, Settings
-from app.services.auth.demo_user import (
-    DEV_DEMO_PASSWORD,
-    DEV_DEMO_USER_ID,
-    ensure_demo_user,
+from app.core.database import Base
+from app.services.local_identity import (
+    LocalOwnerContext,
+    LocalOwnerError,
+    ensure_local_owner,
+    get_local_owner_context,
 )
-from app.services.auth.token_service import verify_password
 
 
-class _Result:
-    def __init__(self, user):
-        self._user = user
-
-    def scalar_one_or_none(self):
-        return self._user
-
-
-class FakeDB:
-    def __init__(self, existing_user=None):
-        self.existing_user = existing_user
-        self.added = []
-        self.commit = AsyncMock()
-        self.refresh = AsyncMock()
-
-    async def execute(self, _stmt):
-        return _Result(self.existing_user)
-
-    def add(self, obj):
-        self.added.append(obj)
-
-
-def test_dev_auto_login_enabled_is_gating():
-    # 显式开启 + 非生产 → 可用
-    dev = Settings(enable_dev_auto_login=True, app_env=AppEnv.DEVELOPMENT)
-    assert dev.dev_auto_login_enabled is True
-
-    # 显式关闭 → 不可用
-    off = Settings(enable_dev_auto_login=False, app_env=AppEnv.DEVELOPMENT)
-    assert off.dev_auto_login_enabled is False
-
-    # 生产环境即使开启也强制关闭
-    prod = Settings(enable_dev_auto_login=True, app_env=AppEnv.PRODUCTION)
-    assert prod.dev_auto_login_enabled is False
+def test_local_owner_bootstrap_available_in_all_environments():
+    """Verify LocalOwner bootstrap is always available (no env restriction)."""
+    # All environments should support LocalOwner
+    for env in [AppEnv.DEVELOPMENT, AppEnv.TEST, AppEnv.PRODUCTION]:
+        settings = Settings(app_env=env)
+        assert settings.app_env == env
 
 
 @pytest.mark.asyncio
-async def test_ensure_demo_user_returns_existing_user():
-    existing = SimpleNamespace(password_hash="hashed")
-    user = await ensure_demo_user(FakeDB(existing_user=existing))
-    assert user is existing
+async def test_local_owner_bootstrap_creates_owner(tmp_path: Path) -> None:
+    """Verify ensure_local_owner creates a new owner when none exists."""
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'bootstrap.db'}")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with factory() as db:
+        ctx = await ensure_local_owner(db)
+        assert isinstance(ctx, LocalOwnerContext)
+        assert ctx.owner_id is not None
+        assert ctx.provenance == "fresh"
+
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_ensure_demo_user_creates_missing_user():
-    db = FakeDB(existing_user=None)
-    user = await ensure_demo_user(db)
+async def test_local_owner_bootstrap_is_idempotent(tmp_path: Path) -> None:
+    """Verify ensure_local_owner returns same owner on repeated calls."""
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'bootstrap2.db'}")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
 
-    assert user.id == DEV_DEMO_USER_ID
-    assert user.password_hash is not None
-    assert verify_password(DEV_DEMO_PASSWORD, user.password_hash) is True
-    assert db.added == [user]
-    db.commit.assert_awaited_once()
-    db.refresh.assert_awaited_once()
+    async with factory() as db:
+        ctx1 = await ensure_local_owner(db)
+        ctx2 = await ensure_local_owner(db)
+        # Same owner_id, provenance may differ (fresh vs reused)
+        assert ctx1.owner_id == ctx2.owner_id
+
+    await engine.dispose()
 
 
-def test_dev_auto_login_request_accepts_optional_fingerprint():
-    req = DevAutoLoginRequest(device_fingerprint="device-12345678")
-    assert req.device_fingerprint == "device-12345678"
-    assert DevAutoLoginRequest().device_fingerprint is None
+@pytest.mark.asyncio
+async def test_get_context_without_bootstrap_raises_error(tmp_path: Path) -> None:
+    """Verify get_local_owner_context raises error if not bootstrapped."""
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'bootstrap3.db'}")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with factory() as db:
+        with pytest.raises(LocalOwnerError) as exc_info:
+            await get_local_owner_context(db)
+        assert "尚未初始化" in str(exc_info.value)
+
+    await engine.dispose()

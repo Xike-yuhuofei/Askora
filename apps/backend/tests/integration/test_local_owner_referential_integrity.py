@@ -31,7 +31,14 @@ async def test_legacy_owner_refs_map_with_counts_unchanged(tmp_path) -> None:
     owner_id = str(canonical_user_id(legacy_id))
 
     async with factory() as session:
-        session.add(User(id=legacy_id, role=UserRole.USER, status=UserStatus.ACTIVE, pseudonym_id=pseudonym_id))
+        session.add(
+            User(
+                id=legacy_id,
+                role=UserRole.USER,
+                status=UserStatus.ACTIVE,
+                pseudonym_id=pseudonym_id,
+            )
+        )
         session.add(
             LearningGoalRecord(
                 id=f"learning-goal:{legacy_id}:1",
@@ -64,12 +71,8 @@ async def test_legacy_owner_refs_map_with_counts_unchanged(tmp_path) -> None:
         assert ctx.legacy_pseudonym_id == pseudonym_id
 
         # counts unchanged after owner resolution
-        goal_count = await session.scalar(
-            sa.select(sa.func.count(LearningGoalRecord.id))
-        )
-        doc_count = await session.scalar(
-            sa.select(sa.func.count(UserDocument.id))
-        )
+        goal_count = await session.scalar(sa.select(sa.func.count(LearningGoalRecord.id)))
+        doc_count = await session.scalar(sa.select(sa.func.count(UserDocument.id)))
         assert goal_count == 1
         assert doc_count == 1
 

@@ -67,9 +67,11 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     expect(await screen.findByRole('heading', { name: '今天' })).toBeInTheDocument()
     expect(screen.getByText('还没有可展示的当前计划')).toBeInTheDocument()
     expect(screen.getByText('尚未纳入学习计划')).toBeInTheDocument()
+    expect(screen.queryByText('已掌握')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /快速学习/ }))
     expect(screen.getAllByText('函数与导数').length).toBeGreaterThan(0)
     expect(screen.getAllByText('兼容会话').length).toBeGreaterThan(0)
-    expect(screen.queryByText('已掌握')).not.toBeInTheDocument()
   })
 
   it('creates only an explicitly labelled compatibility session', async () => {
@@ -77,6 +79,7 @@ describe('UI-SCREEN-AC-002 / UI01 Today page', () => {
     render(<RouterProvider><Today /></RouterProvider>)
     await screen.findByRole('heading', { name: '快速学习' })
 
+    fireEvent.click(screen.getByRole('button', { name: /快速学习/ }))
     fireEvent.click(screen.getByRole('button', { name: /开始兼容学习/ }))
     await waitFor(() => expect(dialogApi.createSession).toHaveBeenCalledWith('math', '一元二次方程'))
     await waitFor(() => expect(window.location.hash).toBe('#/quick/session-new'))

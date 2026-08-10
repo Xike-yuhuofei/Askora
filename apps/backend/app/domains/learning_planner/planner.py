@@ -93,7 +93,9 @@ class LearningPlanner:
                     knowledge_unit_id=due.knowledge_unit_id,
                     duration=self.DURATIONS["delayed_review"],
                     priority=self.WEIGHTS["review_urgency"] * due.urgency,
-                    reason_codes=("PLAN_REVIEW_OVERDUE" if due.status == "overdue" else "PLAN_REVIEW_DUE",),
+                    reason_codes=(
+                        "PLAN_REVIEW_OVERDUE" if due.status == "overdue" else "PLAN_REVIEW_DUE",
+                    ),
                 )
             )
 

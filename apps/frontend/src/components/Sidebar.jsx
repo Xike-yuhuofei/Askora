@@ -2,32 +2,28 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink } from '../router'
 import {
   CalendarDays,
-  ChartNoAxesCombined,
-  BookOpen,
+  GraduationCap,
   FolderOpen,
-  History,
-  Route,
   Settings,
   Shield,
-  Target,
   Menu,
   X,
+  BookOpen,
 } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
 import './Sidebar.css'
 
-const navItems = [
-  { path: '/today', label: '今天', icon: CalendarDays },
-  { path: '/goals', label: '学习目标', icon: Target },
-  { path: '/path', label: '学习路径', icon: Route },
-  { path: '/library', label: '资料库', icon: FolderOpen },
-  { path: '/evidence', label: '学习证据', icon: ChartNoAxesCombined },
-  { path: '/history', label: '历史记录', icon: History },
+const productNavItems = [
+  { path: '/today', label: '今天', icon: CalendarDays, match: 'exact' },
+  { path: '/learning', label: '学习', icon: GraduationCap, match: 'prefix' },
+  { path: '/library', label: '资料库', icon: FolderOpen, match: 'prefix' },
+]
+
+const utilityNavItems = [
   { path: '/settings', label: '设置', icon: Settings },
+  { path: '/settings/recovery', label: '恢复中心', icon: Shield },
 ]
 
 export default function Sidebar() {
-  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const menuButtonRef = useRef(null)
   const sidebarRef = useRef(null)
@@ -97,50 +93,56 @@ export default function Sidebar() {
         aria-modal={open ? 'true' : undefined}
         aria-label={open ? '主导航' : undefined}
       >
-      <div className="sidebar-logo">
-        <div className="logo-icon">
-          <BookOpen size={24} />
-        </div>
-        <div className="logo-text">
-          <div className="logo-title">Askora</div>
-          <div className="logo-sub">AI 学习伙伴</div>
-        </div>
-      </div>
-
-      <nav className="sidebar-nav">
-        {navItems.map((item, index) => (
-          <NavLink
-            key={item.path}
-            ref={index === 0 ? firstLinkRef : undefined}
-            to={item.path}
-            className="nav-link"
-            onClick={() => setOpen(false)}
-          >
-            <item.icon size={18} />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="sidebar-footer">
-        {user && (
-          <div className="user-info">
-            <div className="user-avatar">
-              {user.nickname?.[0] || user.phone?.slice(-4) || 'U'}
-            </div>
-            <div className="user-detail">
-              <div className="user-name">{user.nickname || '用户'}</div>
-              <div className="user-role">
-                私人用户
-              </div>
-            </div>
+        <div className="sidebar-logo">
+          <div className="logo-icon">
+            <BookOpen size={24} />
           </div>
-        )}
-        <div className="compliance-badge">
-          <Shield size={12} />
-          <span>私人本地应用</span>
+          <div className="logo-text">
+            <div className="logo-title">Askora</div>
+            <div className="logo-sub">AI 学习伙伴</div>
+          </div>
         </div>
-      </div>
+
+        <nav className="sidebar-nav" aria-label="产品域导航">
+          <div className="sidebar-nav-section">
+            {productNavItems.map((item, index) => (
+              <NavLink
+                key={item.path}
+                ref={index === 0 ? firstLinkRef : undefined}
+                to={item.path}
+                match={item.match}
+                className="nav-link nav-link--product"
+                onClick={() => setOpen(false)}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+
+          <div className="sidebar-nav-divider" role="presentation" />
+
+          <div className="sidebar-nav-section sidebar-nav-section--utility">
+            {utilityNavItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className="nav-link nav-link--utility"
+                onClick={() => setOpen(false)}
+              >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="compliance-badge">
+            <Shield size={12} />
+            <span>私人本地应用</span>
+          </div>
+        </div>
       </aside>
     </>
   )

@@ -2,6 +2,9 @@
 WebSocket API 路由
 提供 WebSocket 连接端点，用于实时推送文档处理进度等事件
 
+EXEC-048: 移除 token 认证，改用 loopback origin + LocalOwnerContext 验证。
+无 token 即可在合法 origin 下连接。
+
 端点：
 - WS /api/v1/ws/documents：文档相关事件推送
 - WS /api/v1/ws/notifications：通用通知推送
@@ -9,13 +12,9 @@ WebSocket API 路由
 客户端使用：
 ```javascript
 const ws = new WebSocket(`ws://127.0.0.1:8000/api/v1/ws/documents`);
-ws.onopen = () => ws.send(JSON.stringify({type: "auth", token, device_fingerprint}));
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    // data.type: document_processing_progress
-    // data.progress: 0.5
-    // data.step: "正在解析文档..."
     console.log(data);
 };
 ```
@@ -23,7 +22,6 @@ ws.onmessage = (event) => {
 
 from __future__ import annotations
 
-import asyncio
 import json
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -31,8 +29,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.models.user import User
-from app.services.auth.dependencies import get_current_user, get_current_user_ws
+from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
 from app.services.websocket import get_ws_manager
 
 logger = get_logger(__name__)
@@ -48,40 +45,29 @@ class WSConnectionInfo(BaseModel):
     connection_id: str
 
 
-async def _authenticate_websocket(websocket: WebSocket) -> User | None:
-    """接受连接后在 5 秒内通过首条 JSON 消息认证，避免令牌出现在 URL。"""
+async def _validate_websocket_origin(websocket: WebSocket) -> str | None:
+    """Validate WebSocket origin is loopback-only (EXEC-048).
+
+    No token authentication needed for local single-user instance.
+    Only loopback origins are allowed.
+    """
     origin = websocket.headers.get("origin")
     if origin and origin not in settings.websocket_origins:
-        await websocket.close(code=4003, reason="来源不允许")
+        logger.warning("ws_origin_rejected", origin=origin)
+        await websocket.close(code=4003, reason="来源不允许 - 仅允许本地回环地址")
         return None
 
     await websocket.accept()
-    try:
-        initial_msg = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
-        message = json.loads(initial_msg)
-        if message.get("type") != "auth" or not message.get("token"):
-            await websocket.close(code=4001, reason="认证失败")
-            return None
-        return await get_current_user_ws(
-            message["token"],
-            device_fingerprint=message.get("device_fingerprint"),
-        )
-    except asyncio.TimeoutError:
-        await websocket.close(code=4002, reason="认证超时")
-    except WebSocketDisconnect:
-        return None
-    except Exception as exc:
-        logger.warning("ws_auth_failed", error_type=type(exc).__name__)
-        await websocket.close(code=4001, reason="认证失败")
-    return None
+    return origin or "loopback"
 
 
 @router.websocket("/documents")
 async def websocket_documents(
     websocket: WebSocket,
+    current_owner: OwnerProjection = Depends(get_current_owner_projection),
 ):
     """
-    文档相关事件 WebSocket 端点
+    文档相关事件 WebSocket 端点 (EXEC-048: no-auth loopback)
 
     推送事件类型：
     - document_processing_started: 文档开始处理
@@ -89,20 +75,19 @@ async def websocket_documents(
     - document_processing_completed: 文档处理完成
     - document_processing_failed: 文档处理失败
 
-    连接后 5 秒内发送首条认证消息：
-    `{"type":"auth","token":"...","device_fingerprint":"..."}`
+    无 token 认证 - 仅验证 origin 是否为 loopback。
     """
     ws_manager = get_ws_manager()
 
-    user = await _authenticate_websocket(websocket)
-    if user is None:
+    origin = await _validate_websocket_origin(websocket)
+    if origin is None:
         return
 
-    # 建立连接
-    user_id = user.pseudonym_id
+    # 使用 LocalOwnerContext 的 pseudonym_id 作为连接标识
+    user_id = current_owner.pseudonym_id or current_owner.id
     await ws_manager.connect(user_id, websocket, already_accepted=True)
 
-    logger.info("ws_documents_connected", user_id=user_id)
+    logger.info("ws_documents_connected", user_id=user_id, origin=origin)
 
     # 保持连接，接收心跳
     try:
@@ -149,19 +134,22 @@ async def websocket_documents(
 @router.websocket("/notifications")
 async def websocket_notifications(
     websocket: WebSocket,
+    current_owner: OwnerProjection = Depends(get_current_owner_projection),
 ):
     """
-    通用通知 WebSocket 端点
+    通用通知 WebSocket 端点 (EXEC-048: no-auth loopback)
 
-    用于推送系统通知、警告等
+    用于推送系统通知、警告等。
+    无 token 认证 - 仅验证 origin 是否为 loopback。
     """
     ws_manager = get_ws_manager()
 
-    user = await _authenticate_websocket(websocket)
-    if user is None:
+    origin = await _validate_websocket_origin(websocket)
+    if origin is None:
         return
 
-    await ws_manager.connect(user.pseudonym_id, websocket, already_accepted=True)
+    user_id = current_owner.pseudonym_id or current_owner.id
+    await ws_manager.connect(user_id, websocket, already_accepted=True)
 
     try:
         while True:
@@ -184,16 +172,16 @@ async def websocket_notifications(
     except Exception as exc:
         logger.exception(
             "ws_notifications_error",
-            user_id=user.pseudonym_id,
+            user_id=user_id,
             error_type=type(exc).__name__,
         )
     finally:
-        await ws_manager.disconnect(user.pseudonym_id, websocket)
+        await ws_manager.disconnect(user_id, websocket)
 
 
 @router.get("/status")
-async def ws_status(_current_user: User = Depends(get_current_user)):
-    """获取 WebSocket 服务状态"""
+async def ws_status(_current_owner: OwnerProjection = Depends(get_current_owner_projection)):
+    """获取 WebSocket 服务状态 (EXEC-048: no-auth)"""
     ws_manager = get_ws_manager()
     return {
         "total_connections": ws_manager.get_connection_count(),

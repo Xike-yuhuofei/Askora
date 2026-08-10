@@ -1,26 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import Sidebar from '../components/Sidebar'
 import { RouterProvider } from '../router'
 
-vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({ user: { nickname: '测试用户' } }),
-}))
-
 describe('UI01-VSLICE-AC-001 responsive navigation', () => {
-  it('exposes exactly the seven canonical destinations without chat-first navigation', () => {
+  it('exposes the three product domains and utility destinations', () => {
     render(<RouterProvider><Sidebar /></RouterProvider>)
 
     const links = screen.getAllByRole('link')
     expect(links.map((link) => link.textContent)).toEqual([
       '今天',
-      '学习目标',
-      '学习路径',
+      '学习',
       '资料库',
-      '学习证据',
-      '历史记录',
       '设置',
+      '恢复中心',
     ])
     expect(screen.queryByText('对话学习')).not.toBeInTheDocument()
   })

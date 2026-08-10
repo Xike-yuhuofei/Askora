@@ -1,8 +1,10 @@
 """
-v1 API 路由包
+v1 API 路由包 (EXEC-048: No-Auth Mode)
+
+Authentication routes are no longer exported for production no-auth mode.
+Legacy auth functionality is preserved in auth.py but not registered.
 """
 
-from app.api.v1.auth import router as auth_router
 from app.api.v1.book_learning import router as book_learning_router
 from app.api.v1.data_control import router as data_control_router
 from app.api.v1.dialog import router as dialog_router
@@ -16,7 +18,6 @@ from app.api.v1.workspace import router as workspace_router
 from app.api.v1.ws import router as ws_router
 
 __all__ = [
-    "auth_router",
     "book_learning_router",
     "data_control_router",
     "dialog_router",

@@ -1,0 +1,14 @@
+# Global default owner
+*   @askora-dev
+
+# Backend core
+/apps/backend/app/   @askora-backend
+
+# Frontend
+/apps/frontend/      @askora-frontend
+
+# CI/CD
+/.github/            @askora-dev
+
+# Documentation
+/docs/               @askora-dev

@@ -150,13 +150,17 @@ async def test_policy_to_actual_assistance_to_learner_evidence_e2e() -> None:
         previous_action=action,
         previous_trace=turn.decision_trace_v03,
     )
-    next_decision = SequentialTeachingPolicy(FixedTimeSource(NOW)).decide(
-        context=next_context,
-        bundle=make_bundle(profile),
-        profile=profile,
-        state=sequential_state,
-        signals=(),
-    ).decision
+    next_decision = (
+        SequentialTeachingPolicy(FixedTimeSource(NOW))
+        .decide(
+            context=next_context,
+            bundle=make_bundle(profile),
+            profile=profile,
+            state=sequential_state,
+            signals=(),
+        )
+        .decision
+    )
     assert next_decision.action.strategy_family is StrategyFamily.RETRIEVAL_PRACTICE
 
     action_ref = VersionedRef(

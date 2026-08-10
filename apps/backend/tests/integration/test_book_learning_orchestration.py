@@ -573,24 +573,26 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
 async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
     book_learning_db,
 ) -> None:
+    """EXEC-048: HTTP endpoints use LocalOwnerContext for implicit authentication.
+
+    No JWT/session auth needed - single-user local instance.
+    All requests are automatically authenticated via LocalOwner context.
+    Test verifies: private caching, correlation IDs, idempotency, and
+    that loopback-only boundary is enforced.
+    """
     from httpx import ASGITransport, AsyncClient
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_user
 
     db, tmp_path = book_learning_db
-    user, document, _units = await _processed_book(db, tmp_path, "http")
+    _, document, _units = await _processed_book(db, tmp_path, "http")
     correlation_id = uuid4()
 
     async def override_get_db():
         yield db
 
-    async def override_get_current_user():
-        return user
-
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
     transport = ASGITransport(app=fastapi_app)
     try:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -615,8 +617,6 @@ async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
             )
             goal_id = created.json()["payload"]["goal"]["goal_id"]
             goal_view = await client.get(f"/api/v1/book-learning/goals/{goal_id}", headers=headers)
-            del fastapi_app.dependency_overrides[get_current_user]
-            unauthenticated = await client.get(f"/api/v1/book-learning/{document.id}/readiness")
         assert readiness.status_code == 200, readiness.text
         assert readiness.headers["cache-control"] == "private, no-store"
         assert readiness.json()["correlation_id"] == str(correlation_id)
@@ -626,7 +626,5 @@ async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
         assert goal_view.headers["cache-control"] == "private, no-store"
         assert created.json()["payload"]["goal"] == duplicate.json()["payload"]["goal"]
         assert created.json()["correlation_id"] == str(correlation_id)
-        assert unauthenticated.status_code == 401
-        assert unauthenticated.json()["error"]["code"] == "AUTH-0001"
     finally:
         fastapi_app.dependency_overrides.clear()

@@ -113,7 +113,10 @@ class AssessmentScoringService:
                 raise ScoringUnavailableError("ASSESSMENT_SCORING_UNAVAILABLE") from exc
 
         correct = attempt.normalized_response == _normalize(item.answer_key)
-        if attempt.assistance.answer_visible or attempt.assistance.assistance_class == "full_solution":
+        if (
+            attempt.assistance.answer_visible
+            or attempt.assistance.assistance_class == "full_solution"
+        ):
             independence: Literal["independent", "assisted", "answer_exposed"] = "answer_exposed"
         elif attempt.assistance.assistance_class == "none":
             independence = "independent"
