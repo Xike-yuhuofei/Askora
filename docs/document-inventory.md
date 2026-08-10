@@ -1,8 +1,8 @@
 # Askora 文档处置清单
 
-> 状态：Current  
-> 校准日期：2026-08-10  
-> 基线提交：`80436354a9a7ef9043113f8b4356b8b2818c2301`  
+> 状态：Current
+> 校准日期：2026-08-10
+> 基线提交：`80436354a9a7ef9043113f8b4356b8b2818c2301`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态仍以对应索引、Linear 和 current `main` 为准。
 
 处置代码：
@@ -61,6 +61,7 @@
 | `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md` | CANONICAL-RETAIN |
 | `docs/adr/ADR-0016-workspace-project-and-learning-session-scope-ownership.md` | CANONICAL-RETAIN |
 | `docs/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md` | CANONICAL-RETAIN |
+| `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | CANONICAL-RETAIN |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN |
@@ -189,6 +190,7 @@
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/ui-03-interactive-element-system-refactor.md` | CANONICAL-RETAIN |
+| `docs/specs/vertical-slices/ui-04-ux-workspace-context.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/p1-05-account-lifecycle.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/p1-04a-library-organization.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/p1-04b-library-deduplication.md` | HISTORICAL-RETAIN |
@@ -220,6 +222,12 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/active/EXEC-057-ci-workflow-quality-supply-chain.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-058-required-gate-main-protection-closure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-059-ui-design-system-component-foundation.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-068-ui-04a-workspace-context-shell-routes.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-069-ui-04b-learning-context-drawer.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-070-ui-04c-usernote-current-material-right-rail.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN |

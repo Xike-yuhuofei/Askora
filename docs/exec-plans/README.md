@@ -1,8 +1,9 @@
 # Askora Execution Plans
 
-> 当前状态：Local Single-User / no-auth 与 CI v2 基线已进入 `main`；UI-03、Quality 与 v1 Product Architecture 为三个独立执行域。  
-> UI-03 chain：`EXEC-043 DONE → 044 → 045 → 046 → 059`  
-> Quality chain：`EXEC-053 DONE → 054 → 055 → {056 after 046, 057} → 058`  
+> 当前状态：Local Single-User / no-auth 与 CI v2 基线已进入 `main`；UI-03、UI-04、Quality 与 v1 Product Architecture 为四个独立执行域。
+> UI-03 chain：`EXEC-043 DONE → 044 → 045 → 046 → 059`
+> UI-04 chain：`EXEC-068 → 069 → 070 → 071 → 072 → 073`（依赖 Workspace Product Architecture issues）
+> Quality chain：`EXEC-053 DONE → 054 → 055 → {056 after 046, 057} → 058`
 > v1 Product Architecture：`060 → 061 → {062,063,065}`，且 `060 → 064`；之后 `066 → 067`
 
 本目录保存可直接交给 TraeCode / Codex 执行的工程任务合同，以及完成后的不可变归档。所有 EXEC 必须服从 [`../product/PRODUCT-POSITIONING.md`](../product/PRODUCT-POSITIONING.md)。EXEC 只能拆解已经冻结且不违反 Product Positioning 的 Spec / ADR / Vertical Slice，不能自行修改上位产品、架构或领域语义。
@@ -51,7 +52,20 @@ Read current main
 | [EXEC-046](active/EXEC-046-ui-03d-settings-legacy-release-closure.md) | UI-03D Settings / Legacy / Release Closure | FROZEN / BLOCKED | 045 DONE |
 | [EXEC-059](active/EXEC-059-ui-design-system-component-foundation.md) | UI Design System & Component Foundation | FROZEN / BLOCKED | 046 DONE |
 
-### 2.2 Quality / CI
+### 2.2 UX Workspace Context (UI-04)
+
+| EXEC | Task | Status | Dependency |
+|---|---|---|---|
+| [EXEC-068](active/EXEC-068-ui-04a-workspace-context-shell-routes.md) | UI-04A Workspace Context / Shell / Route Migration | FROZEN / BLOCKED | ADR-0018 + EXEC-1062 + Workspace Product Arch entry gate |
+| [EXEC-069](active/EXEC-069-ui-04b-learning-context-drawer.md) | UI-04B Learning Context Drawer Query and UI | FROZEN / BLOCKED | 068 DONE |
+| [EXEC-070](active/EXEC-070-ui-04c-usernote-current-material-right-rail.md) | UI-04C UserNote + Current Material Right Rail | FROZEN / BLOCKED | 069 DONE |
+| [EXEC-071](active/EXEC-071-ui-04d-learning-management-exposure-removal.md) | UI-04D Learning Management Exposure Removal | FROZEN / BLOCKED | 070 DONE |
+| [EXEC-072](active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md) | UI-04E Library v1 No-OCR Exposure | FROZEN / BLOCKED | 071 DONE |
+| [EXEC-073](active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md) | UI-04F Responsive / Accessibility / Release Acceptance | FROZEN / BLOCKED | 072 DONE |
+
+UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）。Workspace switch command / UserNote owner 未由上位合同冻结的 EXEC 标记 `BLOCKED_BY_SPEC_GAP`，不得用前端 mock 绕过。
+
+### 2.3 Quality / CI
 
 | EXEC | Task | Status | Dependency |
 |---|---|---|---|

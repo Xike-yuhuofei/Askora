@@ -1,7 +1,7 @@
 # Askora UI Quality and Migration Specification
 
-> Spec ID：`UI-QUAL-*`、`UI-MIG-*`  
-> 状态：`FROZEN`  
+> Spec ID：`UI-QUAL-*`、`UI-MIG-*`
+> 状态：`FROZEN`
 > Governing：`ADR-0014`、`UI-IES-*`、`UI-IA-*`、`UI-SCREEN-*`、`UI-DATA-*`、`UI-VIS-*`、`TEST-*`、`SEC-*`、`DOD-*`
 
 ## 1. Current Baseline
@@ -375,7 +375,107 @@ Goal create/edit/lifecycle 与 canonical activity start/resume 已有正式 cont
 - Settings 看起来更简洁但安全逻辑被复制或删除；
 - UI 指标改善被描述为真实学习效果改善。
 
-## 10. P1-06 Compatibility Gate
+## 11. UX Architecture Migration and Quality Gates (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的迁移与质量 gate。凡与本节冲突的旧条款按 [Supersession Matrix](#12-uxa-supersession-matrix-ui-ia) 处置。
+
+### UXA-MIG-00 — Implementation Approval Chain
+
+产品代码修改必须：
+
+```text
+PRODUCT-POSITIONING 不冲突
+→ ADR-0018 accepted
+→ UI Specs（UXA-* 条款）frozen
+→ UI-04 Vertical Slice frozen
+→ serial EXEC dependency gate（XIK-171/172/177/175/179/165 适用）satisfied
+→ Code/Test
+```
+
+不得直接依据 UX Architecture Delta 修改 React。不得用前端 mock 绕过未完成的 Workspace 产品架构。
+
+### UXA-MIG-01 — Workspace Context / Shell Migration
+
+- 三栏解析同一 canonical `current_workspace_id`；
+- 不得把 route/subject/session/local state 冒充 Workspace truth；
+- Workspace 切换不静默丢弃 draft/stream/note/session/material；
+- 单一 Workspace 不显示虚假 selector。
+
+若 Workspace switch command / UserNote owner 未由现有上位合同唯一确定，对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`。
+
+### UXA-MIG-02 — Learning De-management Migration
+
+- Goals/Path/Progress/History 不再作为常驻管理 facet；
+- 不删除 LearningGoal/LearningPlan/LearnerState/Evidence/ReviewSchedule/History canonical truth；
+- 必要创建/纠正/确认/恢复/审计进入 contextual task flow，不恢复长期管理中心；
+- 旧 `/learning/**` 路由保留 no-side-effect 迁移（见 `UXA-IA-030`）。
+
+### UXA-MIG-03 — Library No-OCR Migration
+
+- Library v1 正常 UI 不暴露 OCR 入口/状态/review/publish/confidence/bbox/hash；
+- 扫描 PDF 诚实显示 `unsupported / partial extraction` 并建议文本型资料；
+- 历史/optional OCR runtime 的保留由 v1 Product Architecture cleanup 决定，v1 正常 UI 不可达。
+
+### UXA-MIG-04 — Deferred Candidates
+
+大纲、Evidence、知识图谱、Progress、AI Summary、Flashcards、错题本不进入 V1，不建立 placeholder/disabled tab/空页面。
+
+### UXA-MIG-05 — Route / Deep-link Migration Gate
+
+- 旧 route redirect 无业务副作用（不创建 session/activity、不触发 command）；
+- deep link 保留；删除旧 route 前满足 retirement condition 并完成历史 deep-link 验证；
+- 迁移后 focus 移到新页面语义起点。
+
+### UXA-QUAL-00 — No Silent Data Loss
+
+Workspace 切换、右栏收起、Drawer 关闭、route 迁移、autosave 失败 MUST 呈现 `saved / saving / failed / recoverable`。浏览器内存不构成 durable recovery；未持久化时不得显示"已保存"。
+
+### UXA-QUAL-01 — Responsive / Accessibility Gate
+
+至少验证 1440×900、1024×768、768×1024、360×800 与 200% zoom：
+
+- 三栏职责在各 breakpoint 成立；
+- 无页面横向滚动；
+- 右栏/Drawer/选项在窄屏为可访问 sheet，不永久消失；
+- keyboard/touch/screen reader 可操作三栏、Drawer、tab、Workspace switch，focus 返回触发点；
+- 无 critical 三层嵌套滚动。
+
+### UXA-QUAL-02 — Engineering Commands
+
+UI-04 EXEC 至少运行：
+
+```bash
+cd apps/frontend
+npm test -- --run
+npm run build
+npm audit --audit-level=high
+
+cd ../..
+python3 .github/workflows/check_docs.py
+git diff --check
+```
+
+若修改 backend query/API，再运行 backend targeted + full gates。全量命令因既有问题失败时区分本次新增失败与预存失败。
+
+### UXA-QUAL-03 — Claim Boundary
+
+UI-04 完成只能声明 `UI Engineering Gate`、`UI Contract Correctness Gate`、`Accessibility / Security Gate`。不得把文档冻结或 UI 可用描述为产品已实现或真人学习效果改善。
+
+### UXA-QUAL-04 — Blocking Conditions
+
+以下任一阻断 UI-04 DONE：
+
+- 未满足 Workspace Product Architecture 依赖即用前端 mock 实现 Workspace；
+- 三栏不同步解析同一 current_workspace_id；
+- Drawer 内容由前端从 chat/heading/probability 推断；
+- 右栏/autosave 有静默数据丢失；
+- Library v1 正常 UI 暴露 OCR；
+- 建立 placeholder/disabled tab 代表 deferred candidates；
+- 旧 route redirect 有业务副作用；
+- 360px/keyboard/error path 与 200% zoom 未验证；
+- MISSING/PARTIAL/STALE 被伪装 READY。
+
+## 12. P1-06 Compatibility Gate
 
 ### UI-MIG-040
 

@@ -1,8 +1,8 @@
 # Askora Interactive Element System Specification
 
-> Spec ID：`UI-IES-*`  
-> 状态：`FROZEN`  
-> Governing：`ADR-0014`、`IES-CD-001..018`  
+> Spec ID：`UI-IES-*`
+> 状态：`FROZEN`
+> Governing：`ADR-0014`、`IES-CD-001..018`
 > Scope：semantic interaction primitives、interaction hierarchy、pattern qualification、cross-platform mapping
 
 ## 1. Governing Principle
@@ -411,7 +411,41 @@ Icon-only control 必须有 accessible name。Status 不得只靠颜色。主要
 
 Contextual action 在 touch/keyboard 下必须有等价发现路径；禁止只依赖 hover。
 
-## 10. Acceptance Criteria
+## 12. UX Architecture Interactive Elements (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的三栏/Workspace/Drawer 交互语义。它不新增顶层 primitive，只把新 surface 映射到既有 7 类 primitive。
+
+### UXA-IES-00 — Workspace Selection Is Selection, Not Navigation
+
+左栏 Workspace selection 使用 `Selection`（当前 Workspace 值）与 `Navigation`（进入 Workspace 上下文）的组合；切换并持久化是显式 `Action`。不得因单击 Workspace 项而静默触发 owner command。单一 Workspace 不得展示虚假 selector。
+
+### UXA-IES-01 — Context Drawer Is Disclosure
+
+Learning Context Drawer 归入 `Disclosure`：expanded/collapsed 只改变 presentation state，不触发 owner command。收起态的一行方向信息是 `StatusFeedback`；展开态内容来自 canonical query，前端不得从 chat/heading/probability 推断。
+
+### UXA-IES-02 — Current Material Tabs Are Tablist
+
+Current Material tabs 使用 `Tablist/Tab/Tabpanel`，打开/切换/关闭是 `Navigation`/`Disclosure`，不产生业务 write，不改变中栏学习内容。跨 Workspace 引用 fail closed。
+
+### UXA-IES-03 — Right Rail Hide/Show Is Control
+
+右栏 hide/show 是 `Control`（presentation preference），使用 `aria-expanded`。隐藏不得移除完成任务所需的唯一引用/帮助/validation obligation。
+
+### UXA-IES-04 — Notes Autosave Is StatusFeedback + Action
+
+Notes autosave 的 `SAVING / SAVED / FAILED / CONFLICT / RECOVERABLE` 是 `StatusFeedback`；保存/重试是 `Action`。未持久化时不得显示"已保存"。
+
+### UXA-IES-05 — Rejected Mapping
+
+以下不得进入 V1：
+
+```text
+OCR 作为 Library 常驻 Action / Status
+Goal/Plan/Progress/History 作为 Learning 常驻 Navigation facet
+deferred candidates 作为 placeholder/disabled tab
+```
+
+## 13. Acceptance Criteria
 
 - `UI-IES-AC-001`：所有核心 interactive element 可归入 7 个 primitive 之一；
 - `UI-IES-AC-002`：没有把 Card/Button/Entry 当作顶层 semantic role；
@@ -423,8 +457,9 @@ Contextual action 在 touch/keyboard 下必须有等价发现路径；禁止只�
 - `UI-IES-AC-008`：contextual action 有 keyboard/touch fallback；
 - `UI-IES-AC-009`：普通 repeated domain object 默认 row/list，而不是 card ocean；
 - `UI-IES-AC-010`：route/navigation change 本身不产生业务副作用。
+- `UXA-IES-AC-001`：Workspace/Drawer/右栏/Notes 交互可归入既有 7 类 primitive，不新增顶层 primitive；Workspace 切换、Drawer 展开、右栏 show/hide 与 tab 操作均不产生隐式业务 write。
 
-## 11. Forbidden Implementations
+## 14. Forbidden Implementations
 
 禁止：
 

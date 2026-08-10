@@ -1,8 +1,8 @@
 # Askora UI Component State Contracts
 
-> Spec ID：`UI-COMP-*`  
-> 状态：`FROZEN`  
-> Governing：`ADR-0014`、`UI-IES-*`、`UI-IA-*`、`UI-SCREEN-*`、`UI-VIS-*`、`UI-QUAL-*`  
+> Spec ID：`UI-COMP-*`
+> 状态：`FROZEN`
+> Governing：`ADR-0014`、`UI-IES-*`、`UI-IA-*`、`UI-SCREEN-*`、`UI-VIS-*`、`UI-QUAL-*`
 > Scope：核心交互组件状态、pointer/keyboard 行为、异步与数据区域状态
 
 ## 1. 基本原则
@@ -273,7 +273,53 @@ Selected、focused、hovered 可以同时成立；视觉系统必须保证：
 - focus ring 始终可识别；
 - hover 不覆盖 selected identity。
 
-## 8. Test Contract
+## 8. UX Architecture Component State Contracts (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的三栏/Workspace/Drawer/右栏/笔记相关组件状态。
+
+### UXA-COMP-070 — Workspace Selection
+
+左栏 Workspace selection 使用 `SELECTED` / `aria-current`。切换 Workspace 本身是用户显式 Action，不是 Navigation 的副作用。切换触发持久化时使用 `LOADING`（single-flight）与 `saved / saving / failed / recoverable` 的可感知状态。单一 Workspace 不得显示虚假 selector。
+
+### UXA-COMP-071 — Drawer Disclosure
+
+Learning Context Drawer 使用 Disclosure pattern：`aria-expanded` 表达展开态，`SELECTED` 仅表达展开，不表达业务 command 成功。expanded/collapsed 只改变 presentation state，不得触发 owner command。
+
+Drawer 内容状态区分 `LOADING / READY / MISSING / PARTIAL / STALE / ERROR`。`MISSING` 不得转换为空或默认内容；`PARTIAL`/`STALE` 不得冒充 READY。
+
+### UXA-COMP-072 — Right Rail Hide / Show
+
+右栏 hide/show 是 Control（presentation preference），使用 `aria-expanded` 表达可见性。隐藏 MUST NOT 移除完成任务所需的唯一引用、帮助状态或 validation obligation。重新打开 MUST 恢复上下文。
+
+### UXA-COMP-073 — Tab Semantics
+
+Current Material tabs 使用 `Tablist/Tab/Tabpanel` 语义。tab 打开/切换/关闭是 Navigation/Disclosure，不产生业务 write，不改变中栏学习内容。跨 Workspace 引用 fail closed。
+
+### UXA-COMP-074 — Autosave Feedback
+
+Notes autosave 使用 `StatusFeedback` + live region，区分 `SAVING / SAVED / FAILED / CONFLICT / RECOVERABLE`。未持久化时不得显示"已保存"。`CONFLICT` 时要求用户确认，不得静默覆盖较新笔记。
+
+### UXA-COMP-075 — Focus Return
+
+Drawer 展开/收起、右栏 hide/show、tab 切换、sheet 关闭后 focus MUST 返回触发点或流程中下一个合理目标。route/deep-link 迁移后 focus 移到新页面语义起点。
+
+### UXA-COMP-076 — Keyboard / Touch Equivalence
+
+左栏切换、Drawer expand/collapse、右栏 hide/show、tab 操作、Workspace switch MUST 有 keyboard 与 touch 等价路径。Drawer/tab/sheet 需 Escape 关闭 transient surface。不得存在 hover-only 或 pointer-only command path。
+
+### UXA-COMP-077 — Narrow-screen Sheet
+
+窄屏右栏/选项 MUST 变为可访问 sheet/section，不得永久消失。Sheet 需要 focus containment、Escape close、focus return，且不隐藏完成任务所需唯一信息。
+
+### UXA-COMP-078 — No Horizontal Scroll / No Critical Nested Scroll
+
+页面/右栏/Drawer 不得出现页面级横向滚动。主要操作区域避免同时出现页面 + 消息 + Drawer 三层关键滚动；任何内部滚动区域须有明确边界与键盘可达。
+
+### UXA-COMP-079 — No Silent Data Loss
+
+Workspace 切换、右栏收起、Drawer 关闭、route 迁移 MUST NOT 静默丢弃未提交 draft、streaming run、未持久化 note、open material tab 或可恢复 active session。未持久化时不得显示"已保存"。
+
+## 9. Test Contract
 
 ### UI-COMP-060 — Component Tests
 
@@ -302,7 +348,7 @@ LOADING / EMPTY / READY / PARTIAL / STALE / ERROR / UNAUTHORIZED
 
 关键路径必须以 keyboard-only 和 pointer 两种方式验证；至少覆盖 Today primary action、Learning facet navigation、Goal/Library list interaction、Workspace submit/help、Settings navigation 与 destructive confirmation。
 
-## 9. Acceptance Criteria
+## 10. Acceptance Criteria
 
 - `UI-COMP-AC-001`：核心组件状态统一使用 DEFAULT/HOVER/FOCUS/PRESSED/SELECTED/DISABLED/LOADING 词汇；
 - `UI-COMP-AC-002`：Loading/Empty/Error 与 `UI-SCREEN-*` 数据状态合同一致；
@@ -312,7 +358,7 @@ LOADING / EMPTY / READY / PARTIAL / STALE / ERROR / UNAUTHORIZED
 - `UI-COMP-AC-006`：所有 persistent state 均可通过 semantic/accessibility state 识别；
 - `UI-COMP-AC-007`：组件测试可直接验证上述状态转换与行为。
 
-## 10. Forbidden Implementations
+## 11. Forbidden Implementations
 
 禁止：
 
