@@ -1,10 +1,12 @@
 # Askora
 
-Askora 是一个**私人自用、不公开发布的本地单机 AI 学习 App**。目标产品形态是最终用户可在单台设备上直接运行的本地 App；当前 Web-first / Web-only 只是开发与验证路径，不代表目标部署形态。默认运行边界是单用户、单设备、本地执行、本地数据，而不是多租户 SaaS 或依赖公共互联网服务才能运行的产品。
+Askora 是一个**面向单用户、长期个人学习的本地运行 AI 学习工具**。Askora v1 的正式产品形态是 **Local Web Application**：浏览器访问运行于用户设备上的 Local Server，核心学习数据默认保存在本机，用户自行配置 AI API Key，并通过互联网调用外部 AI 服务。
 
-最终单机形态不应要求用户手工安装、启动或维护 Docker、Redis、PostgreSQL 或远程后端等基础设施；这些组件可以用于当前开发、测试或可选服务模式，但不得被默认为目标产品的强制运行前置条件。具体约束见 [System Architecture](docs/specs/architecture/system-architecture.md) 的 `ARCH-006`。
+Askora v1 仅提供简体中文 Web UI，暂不提供 macOS / Windows 原生客户端，也不提供 iOS / Android；不依赖 Askora 官方中心服务器，不提供官方云同步，不以公网 SaaS、多租户或团队协作为目标。完整产品边界、Non-goals 与 Hard Constraints 见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)，该文件是 Canonical Design、ADR、Spec、EXEC 和代码之上的产品级最高约束。
 
-私人使用不等于可以忽略安全。本地数据库、上传资料、LLM 密钥、JWT/加密密钥和备份均应按敏感数据处理；不得提交 `.env`、数据库、用户资料或构建产物。
+最终用户运行环境不应要求手工安装、启动或维护 Docker、Redis、PostgreSQL 或远程后端等独立基础设施；这些组件可以继续存在于当前开发、测试或历史兼容运行模式，但不得被解释为 Askora v1 的强制产品运行前置条件。
+
+本地使用不等于可以忽略安全。本地数据库、上传资料、LLM 密钥和备份均应按敏感数据处理；不得提交 `.env`、数据库、用户资料或构建产物。旧实现中残留的账号/JWT/桌面封装等能力属于待收敛实现事实，不得反向定义产品定位。
 
 ## 当前基线
 
@@ -18,7 +20,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 
 这表示工程链路和教学策略约束通过验收，不表示已经证明真人学习效果。完整证据见 [v0.3 Release Report](docs/releases/v0.3-adaptive-teaching-loop.md)。
 
-实现必须服从 [Implementation Specs](docs/specs/README.md)；系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
+所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
 
 ## 当前实现边界
 
@@ -55,7 +57,7 @@ TeachingContext + PolicyBundle
 - `uv 0.9.5`（与 CI 一致）；
 - Node.js 22（CI 版本；Vite 8 的最低兼容版本为 Node.js 20.19+）；
 - npm；
-- Redis 7、PostgreSQL 16 和 Docker Compose 仅在相应运行模式下需要。
+- Redis 7、PostgreSQL 16 和 Docker Compose 仅在相应开发/兼容运行模式下需要，不属于 v1 最终用户强制依赖。
 
 ## 本地源码运行
 
@@ -71,7 +73,7 @@ uv run alembic upgrade head
 uv run python -m app.main
 ```
 
-本地 `APP_ENV=local` 默认可使用 SQLite；Redis 不可用时降级为单进程内存状态。生产/容器模式要求 PostgreSQL、Redis 和非示例密钥可用。
+本地 `APP_ENV=local` 默认可使用 SQLite；Redis 不可用时降级为单进程内存状态。当前生产/容器兼容模式仍可能要求 PostgreSQL、Redis 和非示例密钥可用；该实现事实需要逐步向 v1 Product Positioning 收敛，不构成目标产品运行契约。
 
 前端：
 
@@ -111,9 +113,9 @@ python3 .github/workflows/check_docs.py
 
 45% 是当前全仓覆盖率门禁，不代表关键路径已充分覆盖。格式检查必须使用仓库的 hash-locked Black baseline，不应通过全量格式化扩大文档任务范围。
 
-## Docker（可选）
+## Docker（开发/兼容模式，可选）
 
-根目录 Compose 面向私人单机部署：
+根目录 Compose 只作为当前开发、测试或兼容运行方式之一，不是 Askora v1 最终用户运行前提：
 
 ```bash
 cp .env.example .env
@@ -135,4 +137,4 @@ docker compose up --build
 
 ## 文档规则
 
-文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md) 与 [文档清单](docs/document-inventory.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。
+产品级最高约束见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)。其下的文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md) 与 [文档清单](docs/document-inventory.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。
