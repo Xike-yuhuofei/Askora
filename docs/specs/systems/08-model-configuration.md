@@ -4,6 +4,7 @@
 > 状态：Canonical Implementation Contract / FROZEN  
 > 版本：v1 Local Web / BYOK Alignment  
 > Historical governing decision：ADR-0013（desktop-specific mechanics superseded）  
+> Current secret-store decision：ADR-0017 + `docs/specs/platform/local-secret-store.md`  
 > 上位约束：`docs/product/PRODUCT-POSITIONING.md`
 
 ## 1. Responsibility and Ownership
@@ -66,7 +67,7 @@ summary MUST NOT 包含：
 - API Key；
 - Key fragment/fingerprint；
 - ciphertext；
-- OS credential identifier that can expose secret material；
+- `secret_ref` / OS credential identifier；
 - Authorization header；
 - internal absolute path；
 - provider raw error/body。
@@ -87,6 +88,8 @@ Embedding
 ```
 
 route 选择 MUST 来自用户配置或确定性 versioned routing policy；不得由 LLM 自由决定或静默跨 provider 切换。
+
+一个 profile MAY 内部引用多个 provider credential binding，但 browser/public summary 不得暴露 secret refs。SecretStore 中存在某个 credential 本身不构成 route activation。
 
 ## 3. Configuration Source Precedence
 
@@ -119,7 +122,18 @@ Askora MUST NOT 编辑或删除用户开发环境 `.env`；也 MUST NOT 把 `.en
 
 API Key 仅保存在本机，并通过 `LocalSecretStore` port 隔离具体存储机制。
 
-Production target SHOULD 优先使用 OS-backed secure credential storage。无论具体 adapter 为何：
+v1 production persistent adapter 已由 ADR-0017 / `LSS-*` 冻结：
+
+```text
+macOS   → exact keyring.backends.macOS.Keyring
+Windows → exact keyring.backends.Windows.WinVaultKeyring
+```
+
+Production MUST explicit select + allowlist + fail closed；MUST NOT 把 keyring automatic discovery、Null、third-party、file/plaintext backend 当作安全存储。
+
+Windows persistence MUST 使用 local-machine scope，而不是 enterprise-roaming default。
+
+无论具体 approved adapter 如何：
 
 - MUST NOT plaintext persist；
 - MUST NOT 存入 Workspace/Project普通文件；
@@ -131,19 +145,22 @@ Production target SHOULD 优先使用 OS-backed secure credential storage。无�
 
 ### MODEL-CONFIG-031 — Secret/Profile Separation
 
-`ModelRouteProfileV1` 只保存非敏感 routing metadata 与 exact secret reference/status；SecretStore 保存 secret material。二者必须通过 revision/idempotency application transaction 协调，但 SecretStore 不拥有 provider/model语义。
+`ModelRouteProfileV1` 只保存非敏感 routing metadata 与 internal exact secret binding/status；SecretStore 保存 secret material。二者必须通过 revision/idempotency application transaction 协调，但 SecretStore 不拥有 provider/model语义。
+
+Internal `secret_ref` MUST 是 opaque random identity，不编码 provider/model/key fragment，也不得进入 ordinary browser profile summary/log/export/diagnostic。
 
 ### MODEL-CONFIG-032 — Browser Exposure
 
-Browser MAY 在用户输入时短暂持有候选 API Key，并通过 loopback HTTPS-equivalent local trust boundary/HTTP loopback request 提交给 Local Server；提交完成、失败或离开表单后 SHOULD 清除内存中的敏感值。
+Browser MAY 在用户输入时短暂持有候选 API Key，并通过 loopback HTTP request 提交给 Local Server；提交完成、失败或离开表单后 SHOULD 清除内存中的敏感值。
 
-Browser MUST NOT 提供“显示已保存 Key”能力。
+Browser MUST NOT 提供“显示已保存 Key”能力，也不得把 candidate key 放入 URL/query params、durable client cache 或 browser persistence。
 
 ### MODEL-CONFIG-033 — Logs and Diagnostics
 
 任何 log、telemetry、error response、diagnostic bundle MUST redact：
 
 - Key；
+- secret ref internals；
 - Authorization；
 - request body containing secret；
 - provider raw body that may echo secret。
@@ -177,18 +194,23 @@ probe request/response/log MUST NOT 保存或返回 Key、Authorization header�
 
 ## 6. Activation and Rollback
 
-### MODEL-CONFIG-060
+### MODEL-CONFIG-060 — Apply
 
-apply canonical sequence：
+apply canonical semantic order：
 
 ```text
 validate command/revision
-→ probe candidate
-→ persist secret through LocalSecretStore
-→ persist/activate ModelRouteProfile revision
+→ durable non-secret PREPARED activation journal
+→ probe candidate using in-memory credential
+→ persist secret through approved LocalSecretStore
+→ persist/activate exact ModelRouteProfile revision
 → refresh runtime route
 → verify runtime revision/readiness
+→ complete journal
+→ retire superseded secret only after successful runtime verification
 ```
+
+Detailed phases/recovery MUST follow `LSS-040..073`。
 
 用户不应手工重启 Local Server 才能完成配置生效。
 
@@ -196,15 +218,23 @@ validate command/revision
 
 ### MODEL-CONFIG-061
 
-activation/readiness verify 失败 MUST 恢复 prior profile/secret association 或进入明确 degraded/recovery state；不得留下“UI 显示新配置，runtime 仍使用旧配置”的 split-brain。
+activation/readiness verify 失败 MUST 恢复 exact prior profile/secret association when reconstructible，或进入明确 degraded/recovery state；不得留下“UI 显示新配置，runtime 仍使用旧配置”的 split-brain。
 
-### MODEL-CONFIG-062
+### MODEL-CONFIG-062 — Clear
 
-clear MUST 使用 expected revision + confirmation，创建明确 `DISABLED` / `UNCONFIGURED` profile revision，并删除/retire 对应 secret。重启后不得被 legacy `.env`、browser cache 或旧 process state 静默恢复。
+clear MUST 使用 expected revision + confirmation，先创建明确 `DISABLED` / `UNCONFIGURED` profile revision 并使 runtime 停止路由旧 credential，再删除/retire 对应 secret。
+
+如果 secret cleanup 失败，canonical routing 仍保持 disabled，并产生 recoverable orphan-secret issue。重启后不得被 legacy `.env`、browser cache、旧 secret presence 或旧 process state 静默恢复。
 
 ### MODEL-CONFIG-063
 
 同一 expected revision 的并发 apply/clear 只有一个可提交；后续请求返回 conflict。重复 idempotency key/command fingerprint MUST 返回已提交 summary，不重复 probe/side effect。
+
+### MODEL-CONFIG-064 — Cross-store Crash Consistency
+
+SQLite profile state 与 OS credential store 不存在跨存储原子事务。实现 MUST 使用 ADR-0017 / `LSS-*` durable non-secret activation journal 进行 phase reconciliation。
+
+Startup 在报告 model configuration `runtime_ready=true` 前 MUST reconcile incomplete operations。任何无法证明 exact prior/new state 的情况必须 fail closed/degraded，不得猜测、不得 env fallback。
 
 ## 7. Routing and Fallback
 
@@ -256,6 +286,8 @@ estimated cost
 | Code | Category | Retryable | Required action |
 |---|---|---:|---|
 | `MODEL_CONFIG_STORAGE_UNAVAILABLE` | security/dependency | false | 恢复安全凭据存储或重新输入临时凭据 |
+| `MODEL_CONFIG_SECRET_MISSING` | security/dependency | false | 重新输入并验证 Key |
+| `MODEL_CONFIG_STORAGE_LOCKED` | security/dependency | true/conditional | 解锁 OS credential store 后重试 |
 | `MODEL_CONFIG_SCHEMA_UNSUPPORTED` | validation | false | 升级 Askora 或按迁移流程重建 |
 | `MODEL_CONFIG_REVISION_CONFLICT` | conflict | false | 刷新后重试 |
 | `MODEL_CREDENTIAL_REJECTED` | authorization/dependency | false | 更新 Key |
@@ -265,6 +297,8 @@ estimated cost
 | `MODEL_PROVIDER_UNAVAILABLE` | dependency/transient | true | bounded retry / 稍后再试 |
 | `MODEL_CONFIG_APPLY_FAILED` | internal | true | prior profile restored 时可重试 |
 | `MODEL_CONFIG_ROLLBACK_FAILED` | internal | false | 进入本地恢复流程 |
+
+Raw keyring/OS exceptions MUST map to stable errors and MUST NOT cross the public API.
 
 ## 10. Data and Cost Disclosure
 
@@ -280,7 +314,7 @@ Settings MUST 在 probe 动作前说明该动作只发送固定合成文本、�
 
 ### MODEL-CONFIG-100
 
-至少记录 sanitized：command id/fingerprint、prior/new revision、provider/model/task route、probe status/latency/error code、activation/runtime verify/rollback result、token usage/cost metadata、correlation id。
+至少记录 sanitized：command id/fingerprint、operation id/phase、prior/new revision、provider/model/task route、probe status/latency/error code、activation/runtime verify/rollback result、token usage/cost metadata、correlation id。
 
 MUST NOT 记录 Key/secret reference internals/request body/raw provider error。
 
@@ -290,16 +324,22 @@ MUST NOT 记录 Key/secret reference internals/request body/raw provider error�
 
 - schema/enum/revision；
 - no Electron/Desktop dependency in production-local path；
-- Local SecretStore unavailable/no plaintext fallback；
-- browser no secret persistence；
+- exact macOS/Windows LocalSecretStore backend allowlist；
+- Null/third-party/config/env backend override rejection；
+- Windows local-machine persistence；
+- Local SecretStore unavailable/locked/no plaintext fallback；
+- browser no secret persistence/readback；
 - probe 401/403/404/429/timeout/5xx/empty/mock；
 - probe contains no user material；
-- apply no-write-on-probe-fail；
+- apply no persistent-secret/profile switch on probe failure；
 - activation/runtime revision verify；
+- crash/restart injection after each activation/clear phase；
+- orphan-secret cleanup safety；
 - rollback/degraded handling；
-- disabled/unconfigured state survives restart；
-- development env does not resurrect cleared production config；
-- secret leakage scan for API/log/backup/export/diagnostic；
+- disabled/unconfigured state survives restart and secret-cleanup failure；
+- development env does not resurrect cleared/restored production config；
+- restore with missing secret requires re-entry；
+- secret leakage scan for API/SQLite/log/backup/export/diagnostic；
 - multi-task route deterministic resolution；
 - no silent cross-provider failover；
 - one real provider integration/E2E with BYOK in Local Web flow when release evidence requires it。
@@ -307,15 +347,16 @@ MUST NOT 记录 Key/secret reference internals/request body/raw provider error�
 ## 13. Acceptance Criteria
 
 - `MODEL-CONFIG-AC-001`：用户在 Local Web Settings 内完成 provider/model/Key 配置和真实验证，无 Desktop/Electron prerequisite。
-- `MODEL-CONFIG-AC-002`：Key 不进入 browser persistence/API response/log/Prompt metadata/export/default backup/diagnostic。
-- `MODEL-CONFIG-AC-003`：probe 失败无 active config switch；activation 失败可恢复 prior revision 或明确 fail closed。
-- `MODEL-CONFIG-AC-004`：clear 后重启仍是 DISABLED/UNCONFIGURED，不被 `.env` 复活。
+- `MODEL-CONFIG-AC-002`：Key 不进入 browser persistence/API response/ordinary SQLite/log/Prompt metadata/export/default backup/diagnostic。
+- `MODEL-CONFIG-AC-003`：probe 失败无 persistent secret/new active config；activation 失败可恢复 exact prior revision 或明确 fail closed。
+- `MODEL-CONFIG-AC-004`：clear 后重启仍是 DISABLED/UNCONFIGURED，即使旧 secret cleanup 失败，也不被 `.env`/secret presence 复活。
 - `MODEL-CONFIG-AC-005`：runtime provider/model/revision 与 canonical active summary 一致。
-- `MODEL-CONFIG-AC-006`：provider errors 稳定分类并产生正确恢复动作。
+- `MODEL-CONFIG-AC-006`：provider/storage errors 稳定分类并产生正确恢复动作。
 - `MODEL-CONFIG-AC-007`：无 silent external failover/mock-as-ready/learner failure evidence。
-- `MODEL-CONFIG-AC-008`：退出并重开 Askora Local Server 后 exact verified config 可恢复，前提是安全 SecretStore 可用。
+- `MODEL-CONFIG-AC-008`：退出并重开 Askora Local Server 后 exact verified config 可恢复；若安全 SecretStore 缺失则明确 degraded/reconfigure。
 - `MODEL-CONFIG-AC-009`：真实 provider、自动化、安全和 Local Web UI 门禁有当前证据。
 - `MODEL-CONFIG-AC-010`：不同 task route 实际使用的 provider/model/fallback reason 可审计。
+- `MODEL-CONFIG-AC-011`：implementation satisfies all `LSS-AC-001..010` production secret-store/crash-consistency requirements。
 
 ## 14. Legacy / Supersession
 
@@ -341,20 +382,24 @@ macOS App E2E as only release path
 - no silent failover；
 - no secret leakage。
 
+Concrete current secret mechanism is ADR-0017 + `LSS-*`; implementation agents MUST NOT revive ADR-0013 Desktop mechanics to satisfy current requirements。
+
 ## 15. Forbidden Implementations
 
 禁止：
 
 - UI 编辑 `.env`；
-- Key/Key fragment 回显；
+- Key/Key fragment/secret ref 回显；
 - plaintext fallback；
+- automatic/unverified production keyring backend；
 - browser localStorage/sessionStorage/IndexedDB 保存 Key；
-- ordinary SQLite profile payload 保存明文 Key；
+- ordinary SQLite profile/journal payload 保存明文/ciphertext Key；
 - Electron IPC 成为 v1 必需 model settings 路径；
 - probe 携带用户资料；
-- probe 失败仍激活；
+- probe 失败仍持久化 secret/激活；
 - activation 失败不处理 split-brain；
 - clear 后回落旧环境 Key；
+- secret presence 自动激活 provider；
 - silent cross-provider failover；
 - mock 显示为已连接；
 - provider failure 记 learner error；

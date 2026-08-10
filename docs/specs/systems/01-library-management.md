@@ -3,6 +3,7 @@
 > Spec ID: `LIB-*`  
 > Status: FROZEN / v1 PRODUCT-POSITIONING-ALIGNED  
 > Historical Governing ADR: ADR-0008  
+> Current lifecycle contract: `docs/specs/interfaces/material-lifecycle-contract.md` (`MATLIFE-*`)  
 > Current upper constraint: `docs/product/PRODUCT-POSITIONING.md`  
 > Owner: SYS01 for Material/content metadata; Platform Workspace boundary for Project membership
 
@@ -27,7 +28,7 @@ material_v1:
   author: string|null
   language: string|null
   current_revision_id: uuid|null
-  lifecycle: active|trash|deleted
+  lifecycle: active|trash
 
 source_file_ref_v1:
   asset_id: uuid
@@ -36,6 +37,8 @@ source_file_ref_v1:
   original_filename: string
   managed_storage_ref: string
 ```
+
+`deleted` 是 Permanent Delete 完成后的 logical terminal/tombstone semantics，不要求在 current Material row 中保留用户内容；具体由 `MATLIFE-*` + Data Control receipt/checkpoint 表达。
 
 ### LIB-010
 
@@ -136,7 +139,7 @@ resolution command 幂等。跨 Workspace duplicate detection 默认 MUST NOT �
 
 attach-as-revision 若当前产品流程允许，MUST 重新走 managed copy、安全扫描、parse、SourceSpan 和 projection pipeline；旧 revision 与 SourceFile 不覆盖。
 
-## 7. Trash and Permanent Delete
+## 7. Trash, Restore and Permanent Delete
 
 ### LIB-045 — Two-stage Delete
 
@@ -148,11 +151,39 @@ active
 → permanent delete
 ```
 
-Trash 中 Material 默认不参与普通 search/retrieval/new learning，但其数据仍是 durable、可恢复状态。
+Trash 中 Material 默认不参与普通 search/retrieval/new learning，但其 Material metadata、managed SourceFile、revision/provenance、ProjectMaterial memberships 与 historical learning refs 仍是 durable、可恢复状态。
+
+Trash MUST NOT：
+
+- 删除 managed SourceFile；
+- 写 `processing_status=FAILED` 代表删除；
+- 删除 ProjectMaterial membership；
+- 让旧 background job late result 发布为 current learner-visible output。
+
+完整 command/migration/job/restore rules 服从 `MATLIFE-001..052`。
 
 ### LIB-046 — Permanent Delete
 
-Permanent Delete 必须由用户明确触发或预定义本地清理策略执行，并服从 Data Control/no-resurrection contract。删除 durable Material 后，关联 derived chunks/index/cache MUST invalidated/removed；不得保留能重新生成已删事实的孤立 projection。
+Permanent Delete 必须由用户明确触发或 versioned local cleanup policy 执行，并服从 canonical Data Control `DOCUMENT` erasure + no-resurrection contract。
+
+SYS01 MUST NOT 实现平行的 cross-owner physical-delete cascade。物理 SourceFile 删除只发生在已接受的 Permanent Delete/Data Control workflow 内；owner step 未完成时不得报告永久删除成功。
+
+删除 durable Material 后，关联 derived chunks/index/cache MUST invalidated/removed；不得保留能重新生成已删 source facts 的孤立 projection。
+
+完整 preview/confirmation/idempotency/legacy migration/backup semantics 服从 `MATLIFE-060..112`。
+
+### LIB-047 — Restore
+
+Restore 仅允许 `trash → active`，保留 exact Material identity。恢复前必须验证 retained SourceFile/revision integrity；不得从 stale derived chunk/index 猜测重建丢失 source，也不得无证据把旧 `processing_status=FAILED` 直接改成 READY。
+
+### LIB-048 — Legacy Delete Migration
+
+Legacy `is_deleted` 迁移按 `MATLIFE-080..085`：
+
+- `is_deleted=false` → active；
+- `is_deleted=true + managed source present/valid` → trash；
+- `is_deleted=true + source already removed` → terminal legacy-deleted/tombstone，不从旧 cache/backup 复活，也不自行推断授权更广泛 erasure；
+- `processing_status` 与 lifecycle 分离。
 
 ## 8. OCR Boundary — Deferred from v1 Core
 
@@ -188,6 +219,9 @@ LIBRARY_WORKSPACE_SCOPE_VIOLATION
 DUPLICATE_SUGGESTION_NOT_ACTIONABLE
 MATERIAL_STILL_REFERENCED
 MATERIAL_TRASHED
+MATERIAL_NOT_IN_TRASH
+MATERIAL_SOURCE_MISSING
+MATERIAL_PERMANENT_DELETE_IN_PROGRESS
 SCANNED_PDF_TEXT_EXTRACTION_UNAVAILABLE
 ```
 
@@ -199,11 +233,12 @@ SCANNED_PDF_TEXT_EXTRACTION_UNAVAILABLE
 - `LIB-AC-002`：重命名/分类不创建 MaterialRevision，历史 metadata version 可审计。
 - `LIB-AC-003`：batch 重试不重复副作用，version conflict 不 last-write-wins。
 - `LIB-AC-004`：exact/near/revision duplicate 都只形成候选；无自动 canonical merge。
-- `LIB-AC-005`：Material Trash/Restore 保留 managed SourceFile；Permanent Delete 服从 Data Control/no-resurrection。
+- `LIB-AC-005`：Material Trash/Restore 保留 managed SourceFile、Project relationships 与 exact identity；Permanent Delete 服从 Data Control/no-resurrection。
 - `LIB-AC-006`：从 Project 移除只删除 relationship，不删除 Material。
 - `LIB-AC-007`：同一 Material 可属于同 Workspace 多个 LearningProject；跨 Workspace membership 被拒绝。
 - `LIB-AC-008`：SQLite projection rebuild、worker restart 和 workspace isolation 通过；PostgreSQL 不属于 production requirement。
 - `LIB-AC-009`：v1 没有完整 OCR 依赖；扫描 PDF 可被安全识别为 unsupported/partial 而不破坏 durable source。
+- `LIB-AC-010`：existing compatibility document DELETE 若保留，只执行 Trash，不调用 physical file delete。
 
 ## 11. Forbidden Implementations
 
@@ -213,7 +248,10 @@ SCANNED_PDF_TEXT_EXTRACTION_UNAVAILABLE
 - 用 SourceChunk 当 Material/Knowledge truth；
 - 自动重复合并/删除；
 - Trash 时物理删除 managed SourceFile；
+- Trash 用 processing failure 表示 lifecycle；
 - Project relation removal 级联删除 Material；
+- SYS01 Permanent Delete 越权 cascade 其他 owner state；
+- Restore 从 stale derived data 伪造丢失 SourceFile；
 - 跨 Workspace 默认搜索、dedup reuse 或 metadata 泄露；
 - 未审核 OCR 进入学习；
 - 把完整 OCR Pipeline 宣称为 v1 core requirement；
