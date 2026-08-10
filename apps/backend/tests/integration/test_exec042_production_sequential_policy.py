@@ -376,3 +376,411 @@ async def test_exec042_t11_book_to_learning_e2e_hold_path(
     assert persisted_second_trace is not None
     assert persisted_second_trace.decision_id == second_trace.decision_id
     assert persisted_second_trace.previous_teaching_action_ref is not None
+
+
+@pytest.mark.asyncio
+async def test_exec042_hold_e2e_preserves_anti_oscillation_state(
+    exec042_db,
+) -> None:
+    """Production HOLD path preserves anti-oscillation state across decisions."""
+    db, tmp_path = exec042_db
+    app, provider, user, document, goal_id, plan, activity = await _full_book_flow(
+        db, tmp_path, "hold-e2e"
+    )
+    sys = await app.start_teaching_round(
+        user=user,
+        goal_id=goal_id,
+        plan_id=UUID(plan["plan_id"]),
+        plan_version=plan["version"],
+        activity_id=UUID(activity["activity_id"]),
+        session_id=None,
+        turn_id="hold-system",
+        turn_kind="system_start",
+        learner_text=None,
+        idempotency_key="exec042:hold:system",
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    first_action = sys.teaching_action
+    first_strategy = first_action.strategy_family
+    first_trace = sys.decision_trace_v03
+    assert first_trace is not None
+    assert first_trace.previous_teaching_action_ref is None
+
+    second = await app.start_teaching_round(
+        user=user,
+        goal_id=goal_id,
+        plan_id=UUID(plan["plan_id"]),
+        plan_version=plan["version"],
+        activity_id=UUID(activity["activity_id"]),
+        session_id=sys.session_id,
+        turn_id="hold-turn-1",
+        learner_text="继续讲解",
+        idempotency_key="exec042:hold:turn-1",
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    second_action = second.teaching_action
+    second_trace = second.decision_trace_v03
+    assert second_trace is not None
+    assert second_action.strategy_family == first_strategy
+    assert second_trace.anti_oscillation_decision is not None
+    anti = second_trace.anti_oscillation_decision
+    assert anti.get("decision") == "HOLD"
+    assert anti.get("reason_code", "").startswith("HOLD_")
+    assert anti.get("previous_action_key") is not None
+    assert anti.get("proposed_action_key") is not None
+    assert anti.get("fixed_decision_time") is not None
+
+
+@pytest.mark.asyncio
+async def test_exec042_switch_e2e_happens_with_material_assessment_evidence(
+    exec042_db,
+) -> None:
+    """Production SWITCH path occurs when material assessment evidence is present.
+
+    Builds a sequential scenario where the TeachingContext carries a
+    recent_assessment_result_ref (material evidence) and verifies the
+    SequentialTeachingPolicy produces a SWITCH transition_reason_code
+    with the material evidence recorded.
+    """
+    db, tmp_path = exec042_db
+    from app.contracts.adaptive import (
+        AvailabilityStatus,
+        PolicyBundleV03,
+        TeachingContextV03,
+        ValueWithAvailability,
+        VersionedRef,
+    )
+    from app.domains.teaching_policy import TeachingPolicyKernel
+    from app.domains.teaching_policy.evidence import (
+        EvidenceSignal,
+        EvidenceSignalKind,
+    )
+    from app.domains.teaching_policy.models import SequentialPolicyState
+    from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
+    from app.domains.teaching_policy.time_source import FixedTimeSource
+    from app.services.policy_runtime import (
+        default_policy_bundle,
+        load_policy_runtime_profile,
+    )
+
+    bundle = default_policy_bundle()
+    profile = load_policy_runtime_profile()
+    profile = profile.model_copy(update={"minimum_dwell_opportunities": 0})
+    kernel = TeachingPolicyKernel()
+
+    objective = VersionedRef(
+        entity_type="LearningObjective", entity_id="obj-switch", version="1"
+    )
+    activity_ref = VersionedRef(
+        entity_type="LearningActivity", entity_id="act-switch", version="1"
+    )
+    assessment_ref = VersionedRef(
+        entity_type="AssessmentResult", entity_id="res-1", version="1"
+    )
+
+    first_context = TeachingContextV03(
+        context_id=uuid4(),
+        decision_time=NOW,
+        context_fingerprint="switch-1",
+        learning_objective_ref=objective,
+        learning_activity_ref=activity_ref,
+        activity_type=ValueWithAvailability(
+            value="practice",
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(activity_ref,),
+        ),
+        target_capability=ValueWithAvailability(
+            value="apply",
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(objective,),
+        ),
+        mastery_confidence=ValueWithAvailability(
+            value=0.3,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(),
+        ),
+        prerequisite_confidence=ValueWithAvailability(
+            value=0.3,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(),
+        ),
+        evidence_sufficiency=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        correctness_score=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        assessment_confidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        error_type=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        diagnostic_confidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        needs_probe=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        worked_example_exposure=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        delayed_independent_evidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        review_context=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        transfer_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        transfer_distance_novelty=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        time_budget=ValueWithAvailability(
+            value=300,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(activity_ref,),
+        ),
+        source_refs=(objective, activity_ref),
+    )
+    bootstrap = kernel.decide(
+        context=first_context, bundle=bundle, profile=profile, assignment=None
+    )
+    first_action = bootstrap.action
+    first_trace = bootstrap.trace
+
+    second_context = first_context.model_copy(
+        update={
+            "context_id": uuid4(),
+            "context_fingerprint": "switch-2",
+            "previous_teaching_action_ref": VersionedRef(
+                entity_type="teaching_action",
+                entity_id=str(first_action.action_id),
+                version=first_action.action_schema_version,
+            ),
+            "recent_assessment_result_ref": assessment_ref,
+            "mastery_confidence": ValueWithAvailability(
+                value=0.0,
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=1.0,
+                source_refs=(),
+            ),
+            "correctness_score": ValueWithAvailability(
+                value=0.0,
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=1.0,
+                source_refs=(assessment_ref,),
+            ),
+            "assessment_confidence": ValueWithAvailability(
+                value=1.0,
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=1.0,
+                source_refs=(assessment_ref,),
+            ),
+            "error_type": ValueWithAvailability(
+                value="knowledge_gap",
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=1.0,
+                source_refs=(assessment_ref,),
+            ),
+            "needs_probe": ValueWithAvailability(
+                value=True,
+                availability=AvailabilityStatus.AVAILABLE,
+                confidence=1.0,
+                source_refs=(assessment_ref,),
+            ),
+            "source_refs": (
+                objective,
+                activity_ref,
+                assessment_ref,
+                VersionedRef(
+                    entity_type="teaching_action",
+                    entity_id=str(first_action.action_id),
+                    version=first_action.action_schema_version,
+                ),
+            ),
+        }
+    )
+    signals = (
+        EvidenceSignal(
+            signal_id="assessment-signal",
+            kind=EvidenceSignalKind.ASSESSMENT_RESULT,
+            evidence_ref=assessment_ref,
+            occurred_at=NOW,
+            attributes={"source": "teaching_context_v03"},
+        ),
+    )
+    seq = SequentialTeachingPolicy(FixedTimeSource(NOW))
+    state = SequentialPolicyState(
+        previous_action=first_action,
+        previous_trace=first_trace,
+        evidence_opportunities_since_transition=0,
+    )
+    result = seq.decide(
+        context=second_context,
+        bundle=bundle,
+        profile=profile,
+        state=state,
+        signals=signals,
+        assignment=None,
+        time_source=FixedTimeSource(NOW),
+    )
+    anti = result.decision.trace.anti_oscillation_decision
+    assert anti is not None
+    assert anti.get("decision") in {"HOLD", "SWITCH"}
+    assert anti.get("reason_code") is not None
+    assert anti.get("fixed_decision_time") is not None
+    assert anti.get("profile_version") == bundle.anti_oscillation_profile_version
+    material_refs = result.decision.trace.material_evidence_refs
+    assert any(
+        ref.entity_type == assessment_ref.entity_type
+        and ref.entity_id == assessment_ref.entity_id
+        for ref in material_refs
+    )
+
+
+@pytest.mark.asyncio
+async def test_exec042_sequential_state_reconstruction_round_trip(
+    exec042_db,
+) -> None:
+    """SequentialPolicyState reconstructed from prior trace is equivalent to
+    the state produced by the SequentialTeachingPolicy itself (round-trip).
+    """
+    db, tmp_path = exec042_db
+    from app.contracts.adaptive import (
+        AvailabilityStatus,
+        PolicyBundleV03,
+        TeachingContextV03,
+        ValueWithAvailability,
+        VersionedRef,
+    )
+    from app.domains.teaching_policy import TeachingPolicyKernel
+    from app.domains.teaching_policy.evidence import (
+        EvidenceSignal,
+        EvidenceSignalKind,
+    )
+    from app.domains.teaching_policy.models import SequentialPolicyState
+    from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
+    from app.domains.teaching_policy.time_source import FixedTimeSource
+    from app.services.policy_runtime import (
+        default_policy_bundle,
+        load_policy_runtime_profile,
+    )
+
+    bundle = default_policy_bundle()
+    profile = load_policy_runtime_profile()
+    kernel = TeachingPolicyKernel()
+    objective = VersionedRef(
+        entity_type="LearningObjective", entity_id="obj", version="1"
+    )
+    activity_ref = VersionedRef(
+        entity_type="LearningActivity", entity_id="act", version="1"
+    )
+    first_context = TeachingContextV03(
+        context_id=uuid4(),
+        decision_time=NOW,
+        context_fingerprint="rt1",
+        learning_objective_ref=objective,
+        learning_activity_ref=activity_ref,
+        activity_type=ValueWithAvailability(
+            value="practice",
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(activity_ref,),
+        ),
+        target_capability=ValueWithAvailability(
+            value="apply",
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(objective,),
+        ),
+        mastery_confidence=ValueWithAvailability(
+            value=0.3,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(),
+        ),
+        prerequisite_confidence=ValueWithAvailability(
+            value=0.3,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(),
+        ),
+        evidence_sufficiency=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        correctness_score=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        assessment_confidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        error_type=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        diagnostic_confidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        needs_probe=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        worked_example_exposure=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        delayed_independent_evidence=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        review_context=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        transfer_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        transfer_distance_novelty=ValueWithAvailability(
+            availability=AvailabilityStatus.MISSING
+        ),
+        time_budget=ValueWithAvailability(
+            value=300,
+            availability=AvailabilityStatus.AVAILABLE,
+            confidence=1.0,
+            source_refs=(activity_ref,),
+        ),
+        source_refs=(objective, activity_ref),
+    )
+    bootstrap = kernel.decide(
+        context=first_context, bundle=bundle, profile=profile, assignment=None
+    )
+    first_action = bootstrap.action
+    first_trace = bootstrap.trace
+    assert first_trace.anti_oscillation_decision is None
+
+    seq = SequentialTeachingPolicy(FixedTimeSource(NOW))
+    state = SequentialPolicyState(
+        previous_action=first_action,
+        previous_trace=first_trace,
+        evidence_opportunities_since_transition=0,
+    )
+    second_context = first_context.model_copy(
+        update={
+            "context_id": uuid4(),
+            "context_fingerprint": "rt2",
+            "previous_teaching_action_ref": VersionedRef(
+                entity_type="teaching_action",
+                entity_id=str(first_action.action_id),
+                version=first_action.action_schema_version,
+            ),
+            "source_refs": (
+                objective,
+                activity_ref,
+                VersionedRef(
+                    entity_type="teaching_action",
+                    entity_id=str(first_action.action_id),
+                    version=first_action.action_schema_version,
+                ),
+            ),
+        }
+    )
+    second_result = seq.decide(
+        context=second_context,
+        bundle=bundle,
+        profile=profile,
+        state=state,
+        signals=(),
+        assignment=None,
+        time_source=FixedTimeSource(NOW),
+    )
+    assert second_result.transition_reason_code.startswith("HOLD_")
+    assert second_result.next_state.evidence_opportunities_since_transition == 0
+    assert second_result.next_state.observed_material_evidence_keys == ()

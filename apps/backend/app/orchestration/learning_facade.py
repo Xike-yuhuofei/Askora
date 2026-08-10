@@ -33,7 +33,7 @@ from app.domains.teaching_policy import PolicyRuntimeProfile, TeachingPolicyKern
 from app.domains.teaching_policy.evidence import EvidenceSignal, EvidenceSignalKind
 from app.domains.teaching_policy.models import SequentialPolicyState
 from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
-from app.domains.teaching_policy.time_source import TimeSource
+from app.domains.teaching_policy.time_source import FixedTimeSource, TimeSource
 from app.engines import FlowStage, LearnerTurn, LearningFlowOrchestrator, get_orchestrator
 from app.infrastructure.adaptive_records import AdaptiveContractRepository
 from app.orchestration.adaptive_execution import (
@@ -173,12 +173,11 @@ class LearningOrchestrationFacade:
                     raise ValueError(
                         "Sequential decision requires previous TeachingAction and DecisionTrace"
                     )
-                state = SequentialPolicyState(
-                    previous_action=prev_action,
-                    previous_trace=prev_trace,
-                    evidence_opportunities_since_transition=0,
-                )
+                state = _reconstruct_sequential_policy_state(prev_action, prev_trace)
             signals = _build_evidence_signals(context, profile)
+            decision_time = context.decision_time
+            if decision_time.tzinfo is None:
+                decision_time = decision_time.replace(tzinfo=timezone.utc)
             seq_result = self._sequential_policy.decide(
                 context=context,
                 bundle=bundle,
@@ -186,6 +185,7 @@ class LearningOrchestrationFacade:
                 state=state,
                 signals=signals,
                 assignment=request.experiment_assignment_v03,
+                time_source=FixedTimeSource(decision_time),
             )
             decision = seq_result.decision
             sequential_state = seq_result.next_state
@@ -331,6 +331,46 @@ def get_learning_orchestration_facade() -> LearningOrchestrationFacade:
 class _SystemTimeSource:
     def now(self) -> datetime:
         return datetime.now(tz=timezone.utc)
+
+
+def _reconstruct_sequential_policy_state(
+    previous_action: TeachingActionV03,
+    previous_trace: DecisionTraceV03,
+) -> SequentialPolicyState:
+    """Reconstruct SequentialPolicyState from a prior immutable DecisionTrace.
+
+    This restores the cross-turn continuity (evidence_opportunities_since_transition
+    and observed_material_evidence_keys) from the previous anti-oscillation
+    decision payload so sequential policy decisions remain deterministic.
+    """
+    anti = previous_trace.anti_oscillation_decision or {}
+    raw_material = anti.get("material_evidence", [])
+    if not isinstance(raw_material, list):
+        raw_material = []
+    observed_keys: set[str] = set()
+    for item in raw_material:
+        if not isinstance(item, dict):
+            continue
+        evidence_ref = item.get("evidence_ref")
+        if not isinstance(evidence_ref, dict):
+            continue
+        entity_type = evidence_ref.get("entity_type")
+        entity_id = evidence_ref.get("entity_id")
+        version = evidence_ref.get("version")
+        kind = item.get("kind")
+        if entity_type is None or entity_id is None or version is None or kind is None:
+            continue
+        observed_keys.add(f"{kind}:{entity_type}:{entity_id}:{version}")
+    try:
+        baseline = int(anti.get("evidence_opportunities_since_transition", 0))
+    except (TypeError, ValueError):
+        baseline = 0
+    return SequentialPolicyState(
+        previous_action=previous_action,
+        previous_trace=previous_trace,
+        evidence_opportunities_since_transition=baseline,
+        observed_material_evidence_keys=tuple(sorted(observed_keys)),
+    )
 
 
 def _build_evidence_signals(
