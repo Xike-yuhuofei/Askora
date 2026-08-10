@@ -16,9 +16,7 @@ def test_all_interface_host_is_not_loopback() -> None:
 
 @pytest.mark.required
 def test_production_runtime_fails_closed_on_all_interface_host(monkeypatch) -> None:
-    monkeypatch.setattr(
-        settings, "host", "0.0.0.0"  # noqa: S104 - rejection test input
-    )
+    monkeypatch.setattr(settings, "host", "0.0.0.0")  # noqa: S104 - rejection test input
     monkeypatch.setattr(settings, "app_env", AppEnv.PRODUCTION)
 
     with pytest.raises(RuntimeError, match="LOCAL_NETWORK_BOUNDARY_VIOLATION"):
