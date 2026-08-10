@@ -216,6 +216,7 @@ async def test_sys02_exposure_injection_citation_and_missing_evidence(content_db
     assert document.moderation_status == ModerationStatus.APPROVED
 
     result = await RAGService(db).build_evidence_bundle(
+        workspace_id=document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="水的沸点",
         teaching_action=_action(exposure=1),
@@ -238,6 +239,7 @@ async def test_sys02_exposure_injection_citation_and_missing_evidence(content_db
     assert span is not None
 
     missing = await RAGService(db).build_evidence_bundle(
+        workspace_id=document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="nonexistent quantum zebra topic",
         teaching_action=_action(exposure=0, requirements=["definition"]),
@@ -272,6 +274,7 @@ async def test_sys02_dense_reranker_failure_degrades_and_acl_scope_is_hard(conte
 
     retriever = HybridEvidenceRetriever(dense_scorer=unavailable, reranker=unavailable)
     result = await RAGService(db, retriever=retriever).build_evidence_bundle(
+        workspace_id=owner_doc.workspace_id,
         pseudonym_id=owner.pseudonym_id,
         query="linear equation equality",
         teaching_action=_action(exposure=1),
@@ -284,6 +287,7 @@ async def test_sys02_dense_reranker_failure_degrades_and_acl_scope_is_hard(conte
     ]
 
     denied = await RAGService(db).build_evidence_bundle(
+        workspace_id=owner_doc.workspace_id,
         pseudonym_id=owner.pseudonym_id,
         query="trigonometry",
         teaching_action=_action(exposure=1),
@@ -312,6 +316,7 @@ async def test_quarantined_document_never_enters_retrieval(content_db):
     )
     assert count == 0
     result = await RAGService(db).build_evidence_bundle(
+        workspace_id=document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="malicious executable",
         teaching_action=_action(),

@@ -149,6 +149,7 @@ async def test_legacy_quarantine_reinspection_is_append_only_durable_and_modelab
 
         library = await WorkspaceLibraryQueryService(session).list_library(
             user,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             page=1,
@@ -158,6 +159,7 @@ async def test_legacy_quarantine_reinspection_is_append_only_durable_and_modelab
         assert "CONTENT_REINSPECTION_PENDING" in library.data.documents[0].reason_codes
         blocked_map = await WorkspaceLibraryQueryService(session).get_knowledge_map(
             user,
+            workspace_id=document.workspace_id,
             document_id=document.id,
             correlation_id="reinspection-blocked-map",
         )

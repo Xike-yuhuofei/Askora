@@ -109,6 +109,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
         query = WorkspaceLibraryQueryService(session, clock=lambda: NOW)
         library = await query.list_library(
             user,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             page=1,
@@ -124,6 +125,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
 
         targeted = await query.list_library(
             user,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             document_id=document.id,
@@ -134,6 +136,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
         assert [entry.document_id for entry in targeted.data.documents] == [UUID(document.id)]
         cross_owner_target = await query.list_library(
             user,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             document_id=other_document.id,
@@ -145,6 +148,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
 
         knowledge_map = await query.get_knowledge_map(
             user,
+            workspace_id=document.workspace_id,
             document_id=document.id,
             correlation_id="map-query",
         )
@@ -159,6 +163,7 @@ async def test_ui02a_library_query_is_scoped_source_bound_and_relation_honest(tm
         with pytest.raises(ResourceNotFoundError):
             await query.get_knowledge_map(
                 user,
+                workspace_id=document.workspace_id,
                 document_id=other_document.id,
                 correlation_id="cross-user",
             )
@@ -213,6 +218,7 @@ async def test_epub_processing_persists_scan_record_and_exposes_safe_reason_code
         query = WorkspaceLibraryQueryService(session, clock=lambda: NOW)
         library = await query.list_library(
             user,
+            workspace_id=valid.workspace_id,
             status=None,
             subject=None,
             page=1,

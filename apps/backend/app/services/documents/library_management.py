@@ -553,12 +553,20 @@ class LibraryManagementService:
         )
 
     async def available_labels(
-        self, pseudonym_id: str
+        self,
+        pseudonym_id: str,
+        *,
+        workspace_id: str,
     ) -> tuple[tuple[LibraryTagViewV1, ...], tuple[LibraryCollectionViewV1, ...]]:
         tags = (
             await self.db.scalars(
                 select(LibraryTag)
-                .where(LibraryTag.pseudonym_id == pseudonym_id, LibraryTag.is_archived.is_(False))
+                .where(
+                    LibraryTag.pseudonym_id == pseudonym_id,
+                    # EXEC063-AC-002: labels are scoped to the exact Workspace.
+                    LibraryTag.workspace_id == workspace_id,
+                    LibraryTag.is_archived.is_(False),
+                )
                 .order_by(LibraryTag.normalized_name, LibraryTag.id)
             )
         ).all()
@@ -567,6 +575,7 @@ class LibraryManagementService:
                 select(LibraryCollection)
                 .where(
                     LibraryCollection.pseudonym_id == pseudonym_id,
+                    LibraryCollection.workspace_id == workspace_id,
                     LibraryCollection.is_archived.is_(False),
                 )
                 .order_by(LibraryCollection.normalized_name, LibraryCollection.id)

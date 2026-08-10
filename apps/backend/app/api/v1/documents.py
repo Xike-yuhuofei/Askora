@@ -38,10 +38,12 @@ from app.core.logging import get_logger
 from app.domains.content_knowledge import SAFETY_SCANNER_VERSION
 from app.models.document import ProcessingStatus
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.services.documents import get_document_service, get_rag_service
 from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.ocr import OcrService
 from app.services.owner.dependencies import get_current_owner_projection
+from app.services.workspace.dependencies import get_default_workspace
 
 logger = get_logger(__name__)
 
@@ -513,17 +515,19 @@ async def delete_document(
 @router.post("/rag/query", response_model=RAGQueryResponse)
 async def query_rag(
     request: RAGQueryRequest,
+    default_workspace: Workspace = Depends(get_default_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
     RAG 检索查询
 
-    从用户知识库中检索与查询相关的文档片段
+    从当前精确 Workspace 用户知识库中检索与查询相关的文档片段
     """
     rag_service = get_rag_service(db)
     result = await rag_service.retrieve_context(
         pseudonym_id=current_user.pseudonym_id,
+        workspace_id=default_workspace.workspace_id,
         query=request.query,
         max_chunks=request.max_chunks,
         subject=request.subject,

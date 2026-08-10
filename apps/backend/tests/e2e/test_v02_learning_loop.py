@@ -211,6 +211,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
         action = _teaching_action(initial_activities[0].activity_id)
         action_before = action.model_dump()
         bundle_result = await RAGService(session).build_evidence_bundle(
+            workspace_id=document.workspace_id,
             pseudonym_id=user.pseudonym_id,
             query="标准大气压下水的沸点",
             teaching_action=action,

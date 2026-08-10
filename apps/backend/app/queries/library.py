@@ -86,6 +86,7 @@ class WorkspaceLibraryQueryService:
         self,
         current_user: User,
         *,
+        workspace_id: str,
         status: str | None,
         subject: str | None,
         query_text: str | None = None,
@@ -98,6 +99,8 @@ class WorkspaceLibraryQueryService:
         page_size: int,
         correlation_id: str,
     ) -> LibraryWorkspaceResponseV1:
+        if not workspace_id:
+            raise ValidationInputError("workspace_id 是检索必填的精确 Workspace")
         if status is not None and status not in _PROCESSING_STATUSES:
             raise ValidationInputError("status 不是受支持的文档处理状态")
         if sort not in {"created_desc", "updated_desc", "title_asc"}:
@@ -111,6 +114,8 @@ class WorkspaceLibraryQueryService:
             )
             .where(
                 UserDocument.pseudonym_id == current_user.pseudonym_id,
+                # EXEC063-AC-002: exact Workspace filter, never broader.
+                UserDocument.workspace_id == workspace_id,
                 UserDocument.is_deleted.is_(archived),
             )
         )
@@ -179,7 +184,8 @@ class WorkspaceLibraryQueryService:
             [document.id for document in documents]
         )
         available_tags, available_collections = await management.available_labels(
-            current_user.pseudonym_id
+            current_user.pseudonym_id,
+            workspace_id=workspace_id,
         )
         items = tuple(
             self._document_view(
@@ -237,13 +243,18 @@ class WorkspaceLibraryQueryService:
         self,
         current_user: User,
         *,
+        workspace_id: str,
         document_id: UUID,
         correlation_id: str,
     ) -> KnowledgeMapResponseV1:
+        if not workspace_id:
+            raise ValidationInputError("workspace_id 是检索必填的精确 Workspace")
         document = await self._db.scalar(
             select(UserDocument).where(
                 UserDocument.id == str(document_id),
                 UserDocument.pseudonym_id == current_user.pseudonym_id,
+                # EXEC063-AC-002: an exact Workspace is required to read a Material.
+                UserDocument.workspace_id == workspace_id,
                 UserDocument.is_deleted.is_(False),
             )
         )

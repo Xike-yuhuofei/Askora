@@ -135,6 +135,7 @@ async def test_ocr_survives_worker_restart_requires_review_and_publishes_traceab
 
         before_review = await WorkspaceLibraryQueryService(session).list_library(
             owner,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             query_text="热传导定律",
@@ -189,6 +190,7 @@ async def test_ocr_survives_worker_restart_requires_review_and_publishes_traceab
 
         after_review = await WorkspaceLibraryQueryService(session).list_library(
             owner,
+            workspace_id=document.workspace_id,
             status=None,
             subject=None,
             query_text="复核后的热传导定律",

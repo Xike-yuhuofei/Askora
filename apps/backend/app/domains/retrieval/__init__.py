@@ -11,6 +11,7 @@ from app.domains.retrieval.evidence_service import (
     RetrievalCandidate,
     RetrievalTrace,
 )
+from app.domains.retrieval.scope import RetrievalScope, retrieval_scope
 
 __all__ = [
     "AdaptiveEvidenceBuildResult",
@@ -19,5 +20,7 @@ __all__ = [
     "EvidenceBundleBuildResult",
     "HybridEvidenceRetriever",
     "RetrievalCandidate",
+    "RetrievalScope",
     "RetrievalTrace",
+    "retrieval_scope",
 ]

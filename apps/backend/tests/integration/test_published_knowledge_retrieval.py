@@ -93,6 +93,7 @@ async def test_exec020_published_projection_builds_traceable_bundle_and_rebuilds
     )
 
     result = await PublishedKnowledgeRAGService(db).build_evidence_bundle(
+        workspace_id=document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="Fractions parts whole prerequisite Ratios",
         teaching_action=make_action({"case_id": "exec020", "mastery": 0.9}),
@@ -162,6 +163,7 @@ async def test_exec020_tampered_stale_or_unpublished_projection_is_not_executabl
     await db.commit()
 
     result = await PublishedKnowledgeRAGService(db).build_evidence_bundle(
+        workspace_id=document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="Algebra equality equations",
         teaching_action=make_action({"case_id": "exec020-invalid", "mastery": 0.2}),
@@ -206,6 +208,7 @@ async def test_exec020_review_required_and_grader_only_content_stay_outside_bund
     )
 
     review_result = await PublishedKnowledgeRAGService(db).build_evidence_bundle(
+        workspace_id=review_document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="Unheaded narrative canonical knowledge",
         teaching_action=make_action({"case_id": "exec020-review", "mastery": 0.2}),
@@ -214,6 +217,7 @@ async def test_exec020_review_required_and_grader_only_content_stay_outside_bund
     assert review_result.bundle.items == ()
 
     protected_result = await PublishedKnowledgeRAGService(db).build_evidence_bundle(
+        workspace_id=protected_document.workspace_id,
         pseudonym_id=user.pseudonym_id,
         query="reference answer x equals four",
         teaching_action=make_action(
@@ -252,12 +256,31 @@ def test_exec020_cache_identity_and_hybrid_degrade_obey_security_inputs() -> Non
         "teaching_action": action,
         "query": "fractions evidence",
         "candidates": (candidate,),
-        "source_scope": {"document_ids": [str(candidate.document_id)]},
+        "source_scope": {
+            "workspace_id": "ws-a",
+            "document_ids": [str(candidate.document_id)],
+        },
         "index_versions": {"document:one:material_revision": "revision-1"},
     }
     first = retriever.cache_identity(**base)
     assert first != retriever.cache_identity(
-        **{**base, "source_scope": {"document_ids": [str(fixed_uuid("other"))]}}
+        **{
+            **base,
+            "source_scope": {
+                "workspace_id": "ws-a",
+                "document_ids": [str(fixed_uuid("other"))],
+            },
+        }
+    )
+    # EXEC063-AC-005: a different Workspace must never share a cache identity.
+    assert first != retriever.cache_identity(
+        **{
+            **base,
+            "source_scope": {
+                "workspace_id": "ws-b",
+                "document_ids": [str(candidate.document_id)],
+            },
+        }
     )
     assert first != retriever.cache_identity(
         **{**base, "index_versions": {"document:one:material_revision": "revision-2"}}

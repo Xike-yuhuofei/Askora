@@ -11,6 +11,10 @@ RAG 检索服务 - 文档向量检索
 MVP 阶段：
 - 使用关键词匹配 + TF-IDF 评分作为简化版检索
 - 后续可接入 pgvector / Milvus 等向量数据库
+
+EXEC-063 / XIK-172: this v0.2 read adapter must also resolve an exact
+``workspace_id`` before any retrieval. The Workspace is required scope; a
+``pseudonym_id``-only query is never sufficient.
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ from app.domains.retrieval import (
     EvidenceBundleBuildResult,
     HybridEvidenceRetriever,
     RetrievalCandidate,
+    retrieval_scope,
 )
 from app.models.document import (
     DocumentChunk,
@@ -107,6 +112,7 @@ class RAGService:
     async def build_evidence_bundle(
         self,
         *,
+        workspace_id: str,
         pseudonym_id: str,
         query: str,
         teaching_action: TeachingAction,
@@ -115,16 +121,32 @@ class RAGService:
         max_chunks: int | None = None,
         learner_visible: bool = True,
     ) -> EvidenceBundleBuildResult:
-        """Build the SYS02 structured decision result (SYS02-001/002)."""
-        doc_ids = await self._get_available_document_ids(pseudonym_id=pseudonym_id)
-        scope = source_scope or {"document_ids": doc_ids, "pseudonym_id": pseudonym_id}
+        """Build the SYS02 structured decision result (SYS02-001/002).
+
+        ``workspace_id`` is required; the available document set is never
+        broader than that exact Workspace.
+        """
+        scope = retrieval_scope(
+            workspace_id=workspace_id,
+            material_ids=self._material_ids_from_source_scope(source_scope),
+        )
+        doc_ids = await self._get_available_document_ids(
+            pseudonym_id=pseudonym_id,
+            workspace_id=scope.workspace_id,
+        )
+        built_scope = source_scope or {
+            "workspace_id": scope.workspace_id,
+            "document_ids": doc_ids,
+            "pseudonym_id": pseudonym_id,
+        }
+        built_scope = {**built_scope, "workspace_id": scope.workspace_id}
         if not doc_ids:
             return self.retriever.build_evidence_bundle(
                 request_id=request_id or uuid4(),
                 teaching_action=teaching_action,
                 query=query,
                 candidates=[],
-                source_scope=scope,
+                source_scope=built_scope,
                 index_versions={"segmentation": SEGMENTATION_VERSION, "content": "none"},
                 learner_visible=learner_visible,
                 max_items=max_chunks or self.max_context_chunks,
@@ -169,7 +191,7 @@ class RAGService:
             teaching_action=teaching_action,
             query=query,
             candidates=candidates,
-            source_scope=scope,
+            source_scope=built_scope,
             index_versions={
                 "segmentation": SEGMENTATION_VERSION,
                 "content_revisions": ",".join(sorted(revision_versions)),
@@ -178,6 +200,15 @@ class RAGService:
             learner_visible=learner_visible,
             max_items=max_chunks or self.max_context_chunks,
         )
+
+    @staticmethod
+    def _material_ids_from_source_scope(source_scope: dict[str, object] | None) -> list[str]:
+        if not source_scope:
+            return []
+        raw = source_scope.get("document_ids")
+        if not isinstance(raw, (list, tuple, set)):
+            return []
+        return [str(item) for item in raw]
 
     @classmethod
     def _validated_span_ids(cls, document: UserDocument, metadata: dict) -> list[UUID]:
@@ -210,6 +241,7 @@ class RAGService:
     async def retrieve_context(
         self,
         pseudonym_id: str,
+        workspace_id: str,
         query: str,
         max_chunks: Optional[int] = None,
         subject: Optional[str] = None,
@@ -219,6 +251,7 @@ class RAGService:
 
         Args:
             pseudonym_id: 用户匿名 ID
+            workspace_id: 精确 Workspace（检索必填）
             query: 查询文本（用户的问题）
             max_chunks: 最大返回分块数
             subject: 学科过滤
@@ -229,9 +262,10 @@ class RAGService:
         if max_chunks is None:
             max_chunks = self.max_context_chunks
 
-        # 1. 获取用户可用文档 ID 列表
+        # 1. 获取用户可用文档 ID 列表（限定了精确 Workspace）
         doc_ids = await self._get_available_document_ids(
             pseudonym_id=pseudonym_id,
+            workspace_id=workspace_id,
             subject=subject,
         )
 
@@ -276,6 +310,7 @@ class RAGService:
             logger.info(
                 "rag_retrieval_success",
                 pseudonym_id=pseudonym_id,
+                workspace_id=workspace_id,
                 query_len=len(query),
                 chunks_found=len(chunks),
                 docs_used=len(used_docs),
@@ -286,11 +321,13 @@ class RAGService:
     async def _get_available_document_ids(
         self,
         pseudonym_id: str,
+        workspace_id: str,
         subject: Optional[str] = None,
     ) -> list[str]:
-        """获取用户可用的文档 ID 列表"""
+        """获取用户可用、且属于精确 Workspace 的文档 ID 列表"""
         query = select(UserDocument.id).where(
             UserDocument.pseudonym_id == pseudonym_id,
+            UserDocument.workspace_id == workspace_id,
             UserDocument.processing_status == ProcessingStatus.COMPLETED,
             UserDocument.moderation_status == ModerationStatus.APPROVED,
             UserDocument.is_deleted.is_(False),
