@@ -2,7 +2,7 @@
 
 > Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
 > Governing: `ADR-0014`, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, `UI-VIS-*`, `UI-QUAL-*`  
-> Dependency: `EXEC-1062 DONE`  
+> Dependency: `EXEC-1062 DONE` + `EXEC-051 DONE`  
 > Implementation chain: `EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`  
 > Scope type: presentation / information architecture / interaction architecture
 
@@ -26,6 +26,8 @@ App Utility: Settings / Recovery
 
 本 Slice 不改变任何 SYS01～SYS08 owner、API domain semantics、Teaching Policy、LearningPlan、LearnerState、ReviewSchedule 或 data/security truth。
 
+本 Slice 必须基于 ADR-0015 已完成的 no-auth LocalOwner baseline；不得恢复 Login、Account、AuthSession、ProtectedRoute 或 AuthProvider。
+
 ## 2. Dependency Gate
 
 MUST 满足：
@@ -33,6 +35,7 @@ MUST 满足：
 - `ADR-0014` accepted；
 - `UI-IES/UI-IA/UI-SCREEN/UI-VIS/UI-QUAL` 当前版本 FROZEN；
 - `EXEC-1062` 已归档 DONE，P1-06 `/welcome` / default route / Settings reopen / deep-link contract 有最终实现证据；
+- `EXEC-047～051` 已归档 DONE，ADR-0015 / `LID-*` Local Identity Release Gate PASS；
 - 当前 main 的 frontend tests/build baseline 已记录；
 - 无其他 active EXEC 同时修改当前子 EXEC Allowed Files，或已显式证明 non-overlap。
 
@@ -58,7 +61,8 @@ UI-03 必须优化而不改变以下 jobs：
 
 - Sidebar / responsive navigation 收敛为 Today/Learning/Library；
 - Settings/Recovery 移到 utility group / platform-equivalent command；
-- Product Domain 与 Utility 的视觉层级分离。
+- Product Domain 与 Utility 的视觉层级分离；
+- 保持 ADR-0015 no-auth shell，无任何 Account/Login 入口。
 
 ### 4.2 Learning Domain
 
@@ -84,7 +88,8 @@ UI-03 必须优化而不改变以下 jobs：
 ### 4.5 Settings
 
 - landing 变为 category navigation；
-- model/data/account/recovery/destructive flows 进入对应 secondary destination；
+- model/local-data/storage-runtime/recovery/privacy/about 等进入对应 secondary destination；
+- ADR-0015 已删除的 account/password/session/recovery-kit/delete-account 不得重新出现；
 - 不复制现有 business/security logic；
 - normal runtime status 降低视觉权重，action-required 才提升。
 
@@ -105,9 +110,10 @@ UI-03 必须优化而不改变以下 jobs：
 - `/learning` local shell/facets；
 - canonical `/learning/**` routes；
 - legacy redirect；
-- Goal routes 迁移但不改 Goal business behavior。
+- Goal routes 迁移但不改 Goal business behavior；
+- 保持 ADR-0015 no-auth shell。
 
-退出条件：`UI03-AC-001..005` + route/navigation/accessibility tests PASS。
+退出条件：`UI03-AC-001..005` + route/navigation/accessibility + no-auth regression tests PASS。
 
 ### EXEC-044 — Today Primary Hierarchy
 
@@ -142,7 +148,7 @@ UI-03 必须优化而不改变以下 jobs：
 范围：
 
 - Settings category landing + secondary destinations；
-- P1-02/03/05/07 security regression gates；
+- P1-02 model、P1-03 data control、ADR-0015 `LID-*`、P1-07 recovery regression gates；
 - legacy `Chat.jsx` static proof + removal（若无使用者）；
 - dead old-IA CSS cleanup；
 - full responsive/accessibility/E2E/build/audit/docs gates；
@@ -161,7 +167,8 @@ UI-03 必须优化而不改变以下 jobs：
 - new global search backend；
 - new telemetry；
 - new database schema；
-- P1-02/03/05/07 business/security rewrite；
+- P1-02/03/07 business/security rewrite；
+- ADR-0015 identity/authentication rewrite（必须在本 Slice 前已完成）；
 - Focus mode 新能力；
 - iOS/native implementation 本身（只验证 semantic portability）。
 
@@ -199,6 +206,8 @@ Legacy redirects：
 
 所有 redirect 无业务副作用。
 
+`/login` 不属于 legacy redirect；ADR-0015 后该产品 route 已退役，不得重新加入 canonical route contract。
+
 ## 8. Semantic Element Gate
 
 实现新增/修改的核心交互必须可归入：
@@ -229,7 +238,7 @@ StatusFeedback
 - `UI03-AC-008`：Library 无 selection 时不显示永久 batch management panel；
 - `UI03-AC-009`：Library contextual actions 保留 P1-04 功能和安全语义；
 - `UI03-AC-010`：Settings landing 是 category navigation，高风险/复杂 flow 分层但功能无回归；
-- `UI03-AC-011`：P1-02 model credential、P1-03 erasure/recovery、P1-05 account、P1-07 recovery security gates 无回归；
+- `UI03-AC-011`：P1-02 model credential、P1-03 erasure/recovery、ADR-0015 LocalOwner/no-auth boundary、P1-07 recovery gates 无回归；
 - `UI03-AC-012`：legacy `Chat.jsx` 仅在证明无使用者后删除，`TutorWorkspace` compatibility 保留；
 - `UI03-AC-013`：1440×900、1024×768、768×1024、360×800、200% zoom、keyboard primary paths PASS；
 - `UI03-AC-014`：contextual action 非 hover-only，touch/keyboard 有等价入口；
@@ -247,6 +256,7 @@ StatusFeedback
 - Goal new-route behavior tests；
 - Library selection/contextual action tests；
 - Settings category/secondary route tests；
+- ADR-0015 no-login/no-auth shell regression；
 - legacy Chat import/route absence test or static proof；
 - keyboard/focus/accessibility assertions；
 - narrow-screen E2E。
@@ -268,7 +278,7 @@ git diff --check
 
 ## 11. Migration / Rollback
 
-迁移采用 presentation-only forward migration：
+迁移采用基于 ADR-0015 已完成 baseline 的 presentation-only forward migration：
 
 1. 新 route + redirect；
 2. 3-domain navigation；
@@ -280,9 +290,9 @@ git diff --check
 8. legacy cleanup；
 9. full gates。
 
-不得产生数据库 migration。
+不得产生数据库 migration，不得恢复旧 authentication shell。
 
-若出现阻断性 presentation regression，可 forward-fix shell/route rendering；不得恢复 chat-first default 或建立第二 truth。
+若出现阻断性 presentation regression，可 forward-fix shell/route rendering；不得恢复 chat-first default、Account/Login 或建立第二 truth。
 
 ## 12. Completion Claim
 
