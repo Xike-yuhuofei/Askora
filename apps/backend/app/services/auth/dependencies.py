@@ -8,7 +8,7 @@ EXEC-048: 迁移到 LocalOwnerContext，移除 JWT/AuthSession 依赖
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, TypeAlias, cast
 
 from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +27,8 @@ from app.services.local_identity import (
 
 
 @dataclass(frozen=True)
-class OwnerProjection:
-    """Compatibility projection from LocalOwnerContext to service layer expectations."""
+class _OwnerProjectionRuntime:
+    """Runtime compatibility projection for legacy services still shaped around User."""
 
     id: str
     role: UserRole = UserRole.USER
@@ -38,7 +38,7 @@ class OwnerProjection:
     account_lifecycle: str = "active"
 
     @classmethod
-    def from_context(cls, ctx: LocalOwnerContext) -> "OwnerProjection":
+    def from_context(cls, ctx: LocalOwnerContext) -> "_OwnerProjectionRuntime":
         return cls(
             id=ctx.canonical_owner_id,
             pseudonym_id=ctx.legacy_pseudonym_id,
@@ -47,6 +47,20 @@ class OwnerProjection:
     @property
     def canonical_id(self) -> str:
         return self.id
+
+
+# Transitional LocalOwner cutover boundary:
+# legacy application services are still nominally typed as ``User`` even though
+# production APIs now resolve a LocalOwner projection. During static checking we
+# deliberately expose this compatibility projection as the legacy ``User`` type,
+# so the boundary is centralized here instead of scattering dozens of ignores or
+# casts across endpoints. Runtime keeps the small immutable projection above.
+# This alias should disappear when service signatures are migrated to a shared
+# owner protocol / LocalOwnerContext in the dedicated cleanup work.
+if TYPE_CHECKING:
+    OwnerProjection: TypeAlias = User
+else:
+    OwnerProjection = _OwnerProjectionRuntime
 
 
 async def get_current_owner(
@@ -70,15 +84,9 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> OwnerProjection:
-    """Get OwnerProjection for service layer compatibility.
-
-    EXEC-048: Provides backward-compatible user-like object for services
-    that expect .id, .pseudonym_id, .role, .status attributes.
-
-    In test/development environments, auto-bootstraps LocalOwner if missing.
-    """
+    """Get the LocalOwner compatibility projection for legacy service boundaries."""
     ctx = await get_current_owner(db)
-    return OwnerProjection.from_context(ctx)
+    return cast(OwnerProjection, _OwnerProjectionRuntime.from_context(ctx))
 
 
 async def get_current_user_ws(
