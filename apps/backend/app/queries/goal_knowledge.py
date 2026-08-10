@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
-from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import MaterialLifecycle, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.user import User
 
 
@@ -69,7 +69,7 @@ class GoalKnowledgeQueryService:
                     UserDocument.pseudonym_id == user.pseudonym_id,
                     UserDocument.processing_status == ProcessingStatus.COMPLETED,
                     UserDocument.moderation_status == ModerationStatus.APPROVED,
-                    UserDocument.is_deleted.is_(False),
+                    UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                 )
             )
         ).all()

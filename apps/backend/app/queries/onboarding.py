@@ -23,7 +23,7 @@ from app.contracts.onboarding import (
     SourceObservationV1,
 )
 from app.models.book_learning import BookLearningTranscriptTurnRecord
-from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import MaterialLifecycle, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.planning import (
     LearningActivityStateRecord,
     LearningGoalRecord,
@@ -306,7 +306,7 @@ class OnboardingJourneyQueryService:
                 select(UserDocument)
                 .where(
                     UserDocument.pseudonym_id == user.pseudonym_id,
-                    UserDocument.is_deleted.is_(False),
+                    UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                 )
                 .order_by(UserDocument.created_at, UserDocument.id)
             )

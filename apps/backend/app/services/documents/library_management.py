@@ -38,6 +38,7 @@ from app.models.document import (
     LibraryCommandReceipt,
     LibrarySearchProjection,
     LibraryTag,
+    MaterialLifecycle,
     ModerationStatus,
     ProcessingStatus,
     UserDocument,
@@ -277,12 +278,16 @@ class LibraryManagementService:
             )
             status: Literal["updated", "archived", "restored"] = "updated"
             if archive is True:
-                document.is_deleted = True
-                document.deleted_at = now
+                document.lifecycle = MaterialLifecycle.TRASH
+                document.trashed_at = document.trashed_at or now
+                document.trash_reason = document.trash_reason or "OTHER"
+                document.lifecycle_version += 1
                 status = "archived"
             elif archive is False:
-                document.is_deleted = False
-                document.deleted_at = None
+                document.lifecycle = MaterialLifecycle.ACTIVE
+                document.trashed_at = None
+                document.trash_reason = None
+                document.lifecycle_version += 1
                 status = "restored"
             document.metadata_version += 1
             await self.rebuild_search_projection(document)
@@ -331,7 +336,9 @@ class LibraryManagementService:
                 ),
                 normalized_body=normalize_library_text("\n".join(body_parts)),
                 source_span_refs=span_refs,
-                freshness="MISSING" if document.is_deleted else "AVAILABLE",
+                freshness=(
+                    "MISSING" if document.lifecycle != MaterialLifecycle.ACTIVE else "AVAILABLE"
+                ),
             )
             self.db.add(projection)
         else:
@@ -342,7 +349,9 @@ class LibraryManagementService:
             )
             projection.normalized_body = normalize_library_text("\n".join(body_parts))
             projection.source_span_refs = span_refs
-            projection.freshness = "MISSING" if document.is_deleted else "AVAILABLE"
+            projection.freshness = (
+                "MISSING" if document.lifecycle != MaterialLifecycle.ACTIVE else "AVAILABLE"
+            )
         await self.db.flush()
         return projection
 
@@ -361,7 +370,7 @@ class LibraryManagementService:
                 .where(
                     UserDocument.pseudonym_id == document.pseudonym_id,
                     UserDocument.id != document.id,
-                    UserDocument.is_deleted.is_(False),
+                    UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                 )
             )
         ).all()
@@ -487,8 +496,10 @@ class LibraryManagementService:
             candidate = await self._owned_document(
                 suggestion.candidate_document_id, pseudonym_id, include_archived=True
             )
-            candidate.is_deleted = True
-            candidate.deleted_at = datetime.now(timezone.utc)
+            candidate.lifecycle = MaterialLifecycle.TRASH
+            candidate.trashed_at = datetime.now(timezone.utc)
+            candidate.trash_reason = "DUPLICATE_ARCHIVE"
+            candidate.lifecycle_version += 1
             candidate.metadata_version += 1
             await self.rebuild_search_projection(candidate)
         result = self._suggestion_view(suggestion).model_dump(mode="json")
@@ -602,7 +613,7 @@ class LibraryManagementService:
             UserDocument.pseudonym_id == pseudonym_id,
         ]
         if not include_archived:
-            clauses.append(UserDocument.is_deleted.is_(False))
+            clauses.append(UserDocument.lifecycle == MaterialLifecycle.ACTIVE)
         document = await self.db.scalar(select(UserDocument).where(*clauses))
         if document is None:
             raise ResourceNotFoundError("资料")

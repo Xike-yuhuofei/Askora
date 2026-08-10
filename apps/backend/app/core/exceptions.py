@@ -425,3 +425,120 @@ class OcrReviewVersionConflictError(BusinessError):
             error_code="OCR_REVIEW_VERSION_CONFLICT",
             status_code=status.HTTP_409_CONFLICT,
         )
+
+
+# ========== Material lifecycle (MATLIFE-092) ==========
+
+
+class MaterialLifecycleError(BusinessError):
+    """Base for stable Material lifecycle/trash/restore errors."""
+
+    def __init__(
+        self,
+        *,
+        message: str,
+        error_code: str,
+        status_code: int = status.HTTP_409_CONFLICT,
+        detail: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=status_code,
+            detail=detail,
+            category="business",
+        )
+
+
+class MaterialNotFoundError(MaterialLifecycleError):
+    """MATERIAL_NOT_FOUND / legacy-deleted terminal tombstone (MATLIFE-030)."""
+
+    def __init__(self, *, tombstone: bool = False) -> None:
+        super().__init__(
+            message="资料不存在或不可访问",
+            error_code="MATERIAL_NOT_FOUND",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"tombstone": tombstone},
+        )
+
+
+class MaterialWorkspaceScopeViolationError(MaterialLifecycleError):
+    """MATERIAL_WORKSPACE_SCOPE_VIOLATION (MATLIFE-092)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料不属于当前工作区，操作被拒绝",
+            error_code="MATERIAL_WORKSPACE_SCOPE_VIOLATION",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class MaterialAlreadyTrashedError(MaterialLifecycleError):
+    """MATERIAL_ALREADY_TRASHED (MATLIFE-022 idempotent repeat)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料已在回收站",
+            error_code="MATERIAL_ALREADY_TRASHED",
+        )
+
+
+class MaterialNotInTrashError(MaterialLifecycleError):
+    """MATERIAL_NOT_IN_TRASH (MATLIFE-040 precondition)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料不在回收站，无法恢复",
+            error_code="MATERIAL_NOT_IN_TRASH",
+        )
+
+
+class MaterialSourceMissingError(MaterialLifecycleError):
+    """MATERIAL_SOURCE_MISSING (MATLIFE-041): source missing/corrupt on restore."""
+
+    def __init__(self, *, corrupted: bool = False) -> None:
+        super().__init__(
+            message="资料源文件缺失或损坏，无法恢复为就绪状态",
+            error_code="MATERIAL_SOURCE_MISSING",
+            detail={"corrupted": corrupted},
+        )
+
+
+class MaterialDeleteVersionConflictError(MaterialLifecycleError):
+    """MATERIAL_DELETE_VERSION_CONFLICT (MATLIFE-021 optimistic concurrency)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料已发生变化，请刷新后重试",
+            error_code="MATERIAL_DELETE_VERSION_CONFLICT",
+        )
+
+
+class MaterialPermanentDeleteConfirmationInvalidError(MaterialLifecycleError):
+    """MATERIAL_PERMANENT_DELETE_CONFIRMATION_INVALID (MATLIFE-061)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="永久删除确认无效或已过期",
+            error_code="MATERIAL_PERMANENT_DELETE_CONFIRMATION_INVALID",
+        )
+
+
+class MaterialPermanentDeleteInProgressError(MaterialLifecycleError):
+    """MATERIAL_PERMANENT_DELETE_IN_PROGRESS (MATLIFE-062 fail-closed)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="永久删除流程进行中，资料不可恢复",
+            error_code="MATERIAL_PERMANENT_DELETE_IN_PROGRESS",
+        )
+
+
+class MaterialPermanentDeletePartialError(MaterialLifecycleError):
+    """MATERIAL_PERMANENT_DELETE_PARTIAL (MATLIFE-065)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="永久删除未完成，系统将自动重试",
+            error_code="MATERIAL_PERMANENT_DELETE_PARTIAL",
+        )

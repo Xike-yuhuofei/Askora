@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.database import Base
 from app.core.exceptions import LibraryMetadataVersionConflictError
+from app.models.document import MaterialLifecycle
 from app.models.user import User
 from app.queries.library import WorkspaceLibraryQueryService
 from app.services.documents.document_service import DocumentService
@@ -206,7 +207,10 @@ async def test_exact_duplicate_stays_a_user_decision_and_archive_keeps_raw_asset
         assert len(suggestions) == 1
         suggestion = suggestions[0]
         assert suggestion.kind == "EXACT_DUPLICATE"
-        assert not first.is_deleted and not second.is_deleted
+        assert (
+            first.lifecycle == MaterialLifecycle.ACTIVE
+            and second.lifecycle == MaterialLifecycle.ACTIVE
+        )
 
         resolved = await management.resolve_duplicate(
             suggestion_id=str(suggestion.suggestion_id),
@@ -216,6 +220,6 @@ async def test_exact_duplicate_stays_a_user_decision_and_archive_keeps_raw_asset
             action="ARCHIVE_CANDIDATE",
         )
         assert resolved.status == "archived"
-        assert second.is_deleted
+        assert second.lifecycle == MaterialLifecycle.TRASH
         assert service.storage.get_file_size(second.storage_path) == second.file_size_bytes
     await engine.dispose()

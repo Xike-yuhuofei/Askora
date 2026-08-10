@@ -52,7 +52,7 @@ from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.assessment import MasteryEstimateRecord
 from app.models.dialog import DialogSession, SessionStatus
-from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import MaterialLifecycle, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.planning import (
     LearningActivityRecord,
     LearningGoalRecord,
@@ -651,7 +651,7 @@ class WorkspaceTodayQueryService:
             await self._db.scalars(
                 select(UserDocument).where(
                     UserDocument.pseudonym_id == current_user.pseudonym_id,
-                    UserDocument.is_deleted.is_(False),
+                    UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                     UserDocument.processing_status == ProcessingStatus.COMPLETED,
                     UserDocument.moderation_status != ModerationStatus.REJECTED,
                 )

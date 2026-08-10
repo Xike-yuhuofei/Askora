@@ -38,6 +38,7 @@ from app.domains.retrieval import (
 )
 from app.models.document import (
     DocumentChunk,
+    MaterialLifecycle,
     ModerationStatus,
     ProcessingStatus,
     UserDocument,
@@ -330,7 +331,7 @@ class RAGService:
             UserDocument.workspace_id == workspace_id,
             UserDocument.processing_status == ProcessingStatus.COMPLETED,
             UserDocument.moderation_status == ModerationStatus.APPROVED,
-            UserDocument.is_deleted.is_(False),
+            UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
         )
 
         if subject:

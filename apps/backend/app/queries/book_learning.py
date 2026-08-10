@@ -24,7 +24,7 @@ from app.contracts.planning import (
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
 from app.models.assessment import LearnerStateRecord
-from app.models.document import ModerationStatus, ProcessingStatus, UserDocument
+from app.models.document import MaterialLifecycle, ModerationStatus, ProcessingStatus, UserDocument
 from app.models.planning import (
     DiagnosticNeedRecord,
     GoalKnowledgeMappingRecord,
@@ -57,7 +57,7 @@ class BookLearningReadinessQuery:
             select(UserDocument).where(
                 UserDocument.id == str(document_id),
                 UserDocument.pseudonym_id == user.pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:

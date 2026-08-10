@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic import Field as PydanticField
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts.data_control import ErasurePreviewV1, ErasureReportV1
 from app.contracts.library_management import (
     BatchOrganizeDocumentsRequestV1,
     BatchOrganizeDocumentsResponseV1,
@@ -34,6 +35,7 @@ from app.contracts.library_management import (
 )
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.exceptions import MaterialLifecycleError
 from app.core.logging import get_logger
 from app.domains.content_knowledge import SAFETY_SCANNER_VERSION
 from app.models.document import ProcessingStatus
@@ -41,9 +43,11 @@ from app.models.user import User
 from app.models.workspace import Workspace
 from app.services.documents import get_document_service, get_rag_service
 from app.services.documents.library_management import LibraryManagementService
+from app.services.documents.material_lifecycle import MaterialLifecycleService
 from app.services.documents.ocr import OcrService
 from app.services.owner.dependencies import get_current_owner_projection
 from app.services.workspace.dependencies import get_default_workspace
+from app.services.workspace.repository import WorkspaceRepository
 
 logger = get_logger(__name__)
 
@@ -510,6 +514,155 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="文档不存在")
 
     return {"success": True, "message": "文档已删除"}
+
+
+async def _material_workspace_id(db: AsyncSession, user: User) -> str:
+    """Resolve the current User's default Workspace id for Material commands."""
+    workspace = await WorkspaceRepository(db).get_default(user.id)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="工作区不存在")
+    return workspace.workspace_id
+
+
+class TrashCommandRequest(BaseModel):
+    idempotency_key: str = ""
+    expected_version: int | None = None
+
+
+class RestoreCommandRequest(BaseModel):
+    idempotency_key: str = ""
+    expected_version: int | None = None
+
+
+class TrashListResponse(BaseModel):
+    items: list[dict]
+    total: int
+    page: int
+    page_size: int
+
+
+class PermanentDeleteConfirmRequest(BaseModel):
+    confirmation_token: str = PydanticField(min_length=32, max_length=200)
+    confirmation_phrase: str = PydanticField(min_length=1, max_length=300)
+    idempotency_key: str = ""
+
+
+@router.post("/trash/list", response_model=TrashListResponse)
+async def list_trash_materials(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    """列出当前工作区回收站中的资料（Trash）"""
+    workspace_id = await _material_workspace_id(db, current_user)
+    service = MaterialLifecycleService(db)
+    return await service.list_trash(
+        user=current_user,
+        workspace_id=workspace_id,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post("/{document_id}/trash")
+async def trash_material(
+    document_id: str,
+    request: TrashCommandRequest | None = None,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    """普通删除：将资料移入回收站（Trash），保留源文件字节与项目成员关系"""
+    workspace_id = await _material_workspace_id(db, current_user)
+    service = MaterialLifecycleService(db)
+    try:
+        result = await service.trash(
+            user=current_user,
+            workspace_id=workspace_id,
+            material_id=document_id,
+            idempotency_key=(request.idempotency_key if request else ""),
+            expected_version=(request.expected_version if request else None),
+        )
+    except MaterialLifecycleError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    return result
+
+
+@router.post("/{document_id}/restore", response_model=dict)
+async def restore_material(
+    document_id: str,
+    request: RestoreCommandRequest | None = None,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    """从回收站恢复资料为 active，并重新验证源文件"""
+    workspace_id = await _material_workspace_id(db, current_user)
+    service = MaterialLifecycleService(db)
+    try:
+        result = await service.restore(
+            user=current_user,
+            workspace_id=workspace_id,
+            material_id=document_id,
+            idempotency_key=(request.idempotency_key if request else ""),
+            expected_version=(request.expected_version if request else None),
+        )
+    except MaterialLifecycleError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+    return result
+
+
+@router.post(
+    "/{document_id}/permanent-delete/preview",
+    response_model=ErasurePreviewV1,
+)
+async def preview_permanent_delete(
+    document_id: str,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    """永久删除影响预览（委托 Data Control DOCUMENT erasure）"""
+    workspace_id = await _material_workspace_id(db, current_user)
+    service = MaterialLifecycleService(db)
+    try:
+        return await service.preview_permanent_delete(
+            user=current_user,
+            workspace_id=workspace_id,
+            material_id=document_id,
+        )
+    except MaterialLifecycleError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
+@router.post(
+    "/{document_id}/permanent-delete/confirm",
+    response_model=ErasureReportV1,
+)
+async def confirm_permanent_delete(
+    document_id: str,
+    request: PermanentDeleteConfirmRequest,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    """确认并执行永久删除（仅通过 canonical Data Control DOCUMENT erasure）"""
+    workspace_id = await _material_workspace_id(db, current_user)
+    service = MaterialLifecycleService(db)
+    try:
+        preview = await service.preview_permanent_delete(
+            user=current_user,
+            workspace_id=workspace_id,
+            material_id=document_id,
+        )
+        return await service.confirm_permanent_delete(
+            user=current_user,
+            workspace_id=workspace_id,
+            material_id=document_id,
+            preview=preview,
+            confirmation_token=request.confirmation_token,
+            confirmation_phrase=request.confirmation_phrase,
+            idempotency_key=request.idempotency_key,
+        )
+    except MaterialLifecycleError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.post("/rag/query", response_model=RAGQueryResponse)

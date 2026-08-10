@@ -58,6 +58,7 @@ from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepo
 from app.infrastructure.outbox import OutboxProducer, OutboxRepository, OutboxStatus, OutboxTask
 from app.models.document import (
     DocumentChunk,
+    MaterialLifecycle,
     ModerationStatus,
     ProcessingStatus,
     UserDocument,
@@ -245,7 +246,7 @@ class DocumentService:
             select(UserDocument).where(
                 UserDocument.id == document_id,
                 UserDocument.pseudonym_id == pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:
@@ -325,7 +326,7 @@ class DocumentService:
             select(UserDocument).where(
                 UserDocument.id == document_id,
                 UserDocument.pseudonym_id == pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:
@@ -378,7 +379,7 @@ class DocumentService:
             select(UserDocument).where(
                 UserDocument.id == document_id,
                 UserDocument.pseudonym_id == pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:
@@ -516,8 +517,8 @@ class DocumentService:
 
         if document is None:
             raise ValueError(f"文档不存在: {document_id}")
-        if document.is_deleted:
-            raise ValueError(f"文档已删除: {document_id}")
+        if not document.is_active:
+            raise ValueError(f"文档不可处理（生命周期非 active）: {document_id}")
 
         try:
             file_content = await asyncio.to_thread(
@@ -1185,7 +1186,7 @@ class DocumentService:
         result = await self.db.execute(
             select(UserDocument).where(
                 UserDocument.id == document_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         document = result.scalar_one_or_none()
@@ -1213,7 +1214,7 @@ class DocumentService:
         """
         query = select(UserDocument).where(
             UserDocument.pseudonym_id == pseudonym_id,
-            UserDocument.is_deleted.is_(False),
+            UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
         )
 
         if status:
@@ -1236,9 +1237,17 @@ class DocumentService:
         return documents, total
 
     async def delete_document(self, document_id: str, pseudonym_id: str) -> bool:
+        """Ordinary delete => Trash (EXEC-065 / MATLIFE-*).
+
+        Never physically deletes the SourceFile and never deletes the SourceFile
+        record or ProjectMaterial membership. The canonical lifecycle writer is
+        :class:`~app.services.documents.material_lifecycle.MaterialLifecycleService`;
+        this method is a thin compatibility wrapper that resolves the default
+        Workspace and delegates there.
         """
-        删除文档（软删除）
-        """
+        from app.services.documents.material_lifecycle import MaterialLifecycleService
+        from app.services.workspace.repository import WorkspaceRepository
+
         result = await self.db.execute(
             select(UserDocument).where(
                 UserDocument.id == document_id,
@@ -1246,25 +1255,32 @@ class DocumentService:
             )
         )
         document = result.scalar_one_or_none()
-
         if document is None:
             return False
+        if not document.is_active:
+            return False
 
-        document.is_deleted = True
-        document.deleted_at = datetime.now(timezone.utc)
-        document.processing_status = ProcessingStatus.FAILED
-
-        await self.db.commit()
-
-        await asyncio.to_thread(self.storage.delete_file, document.storage_path)
-
+        owner = await self.db.scalar(select(User.id).where(User.pseudonym_id == pseudonym_id))
+        if owner is None:
+            return False
+        workspace = await WorkspaceRepository(self.db).get_default(owner)
+        if workspace is None:
+            return False
+        await MaterialLifecycleService(self.db).trash(
+            user=await self._owner_user(owner, pseudonym_id),
+            workspace_id=workspace.workspace_id,
+            material_id=document_id,
+        )
         logger.info(
-            "document_deleted",
+            "document_moved_to_trash",
             document_id=document_id,
             pseudonym_id=pseudonym_id,
         )
-
         return True
+
+    async def _owner_user(self, owner_id: str, pseudonym_id: str) -> User:
+        user = await self.db.get(User, owner_id)
+        return user if user is not None else User(id=owner_id, pseudonym_id=pseudonym_id)
 
     async def get_user_storage_info(self, pseudonym_id: str) -> dict:
         """获取用户存储信息"""
@@ -1276,7 +1292,7 @@ class DocumentService:
                 func.sum(UserDocument.file_size_bytes),
             ).where(
                 UserDocument.pseudonym_id == pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         doc_count, total_size = result.one()
