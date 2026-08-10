@@ -169,7 +169,7 @@ class AuthService:
             now=now,
         )
         if updated == 0:
-            raise AuthSessionRevokedError("会话已失效")
+            raise AuthSessionRevokedError()
         await self.db.commit()
 
     async def validate_token_and_get_user(
