@@ -2,7 +2,7 @@
 
 > Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
 > Priority: P0 Interaction Architecture  
-> Governing: ADR-0014, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, UI-03 Vertical Slice  
+> Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0014, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, UI-03 Vertical Slice  
 > Depends on: `EXEC-1062 DONE` + `EXEC-051 DONE`
 
 ## Objective
@@ -12,6 +12,8 @@
 本 EXEC 不改 Today 内容层级、不改 Library 管理方式、不重构 Settings 业务页面；这些属于后续 EXEC。
 
 本 EXEC 必须基于 ADR-0015 已完成的 no-auth LocalOwner shell，不得恢复 Login、ProtectedRoute、AuthProvider 或账号 utility。
+
+所有 route/shell 设计同时必须服从 PRODUCT-POSITIONING：Askora v1 是单用户 Local Web Application；Workspace 是高层数据隔离边界而不是 Tenant；Learning Project 不是开始学习的强制门禁；不得通过 UI route 形成跨 Workspace 的隐式全局学习状态。
 
 ## Dependency Gate
 
@@ -25,9 +27,23 @@
 
 未满足：返回 `BLOCKED_BY_DEPENDENCY`，不得开始代码修改。
 
+## Required Product Positioning
+
+必须读取 `docs/product/PRODUCT-POSITIONING.md`，至少核对：
+
+- v1 = single-user Local Web Application；
+- no-auth / no account；
+- Workspace 是学习数据与 Retrieval Scope 的高层隔离边界，不是 Tenant / Organization；
+- Learning Project 是可选的长期学习组织单位，不得成为直接从 Material 开始学习的门禁；
+- v1 不建设跨 Workspace Global Material Library；
+- Conversation / Message 不得成为核心学习领域模型。
+
+如当前 UI Spec 与以上上位约束冲突，必须返回 `BLOCKED_BY_SPEC_GAP`，不得用下位 UI Spec 覆盖 Product Positioning。
+
 ## Required Specs
 
 - `AGENTS.md`
+- `docs/product/PRODUCT-POSITIONING.md`
 - `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`
 - `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md`
 - `docs/specs/platform/identity-privacy-lifecycle.md`
@@ -44,6 +60,8 @@
 进入本 EXEC 时，Authentication Removal 必须已完成：App 无 Login/AuthProvider/ProtectedRoute，frontend/backend 使用 LocalOwnerContext；本 EXEC 只能在该 baseline 上重构 IA。
 
 当前 UI-03 baseline 的 Goal create/detail/edit 已实现，必须迁移 route 而非降级为只读。
+
+当前 route 迁移还必须避免把 Workspace 误建模为账号/租户选择器，也不得因为 Learning 域重组把 Project 变成所有学习动作的必经入口。
 
 ## Allowed Files
 
@@ -92,7 +110,10 @@ docs/exec-plans/completed/README.md
 - 用 route state 持久化 focused goal；
 - 新增 global search；
 - 恢复七项平级 navigation；
-- 恢复 Login/Account/AuthSession/ProtectedRoute/AuthProvider 等被 ADR-0015 supersede 的语义。
+- 恢复 Login/Account/AuthSession/ProtectedRoute/AuthProvider 等被 ADR-0015 supersede 的语义；
+- 把 Workspace 建模为 Tenant / Organization 或账号容器；
+- 通过 Learning shell 默认聚合多个 Workspace 的 Goal、Evidence、History 或 Learner State；
+- 把 Learning Project 变成从 Material 启动学习的强制 route gate。
 
 ## Implementation Tasks
 
@@ -105,8 +126,10 @@ docs/exec-plans/completed/README.md
 7. 保留 `/goals/**`、`/path`、`/evidence`、`/history`、`/profile` 的无副作用 redirect，并保留参数。
 8. 验证 `/welcome`、`/today`、explicit deep links 与 P1-06 contract 不回归。
 9. 验证 no-auth LocalOwner baseline 不回归。
-10. 完成 keyboard/focus/360px navigation tests。
-11. 跑 required gates；全部 AC 后独立 commit 并归档 EXEC-043。
+10. 验证 Learning facets 继续遵守当前 Workspace scope；route 迁移不得创建跨 Workspace global aggregation。
+11. 验证直接基于 Material 开始学习的既有能力不因 Learning Project route hierarchy 被门禁化。
+12. 完成 keyboard/focus/360px navigation tests。
+13. 跑 required gates；全部 AC 后独立 commit 并归档 EXEC-043。
 
 ## Acceptance Criteria
 
@@ -119,6 +142,8 @@ docs/exec-plans/completed/README.md
 - `EXEC043-AC-007`：360/768/1024/1440 下 navigation 可操作；keyboard focus 可见。
 - `EXEC043-AC-008`：无 backend/public schema change。
 - `EXEC043-AC-009`：ADR-0015 no-auth LocalOwner baseline 不回归。
+- `EXEC043-AC-010`：Workspace 仍是高层学习数据隔离边界，不出现 Tenant/Organization/account 语义，也不默认跨 Workspace 聚合 Learning 数据。
+- `EXEC043-AC-011`：Learning Project 仍为可选组织单位；route/IA 不阻止直接从 Material 进入学习。
 
 ## Required Tests
 
@@ -133,8 +158,8 @@ python3 .github/workflows/check_docs.py
 git diff --check
 ```
 
-至少提供 route resolver、Sidebar/Learning navigation、legacy redirect、Goal route、keyboard/accessibility、no-auth shell regression 的 targeted test evidence。
+至少提供 route resolver、Sidebar/Learning navigation、legacy redirect、Goal route、keyboard/accessibility、no-auth shell、Workspace-scope 与 direct-Material learning regression evidence。
 
 ## Completion Report Format
 
-报告：base/final commit、修改文件、UI03/EXEC AC、测试命令结果、route matrix、responsive/keyboard evidence、P1-06 regression evidence、ADR-0015 regression evidence、未完成项、SPEC GAP。
+报告：base/final commit、修改文件、UI03/EXEC AC、测试命令结果、route matrix、responsive/keyboard evidence、P1-06 regression evidence、ADR-0015 regression evidence、Workspace-scope/direct-Material evidence、未完成项、SPEC GAP。
