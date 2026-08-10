@@ -5,16 +5,19 @@
 > Local Identity chain：`EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`  
 > UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
 
-本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
+本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。所有 EXEC 必须服从 [`../product/PRODUCT-POSITIONING.md`](../product/PRODUCT-POSITIONING.md)。EXEC 只能拆解已经冻结且不违反 Product Positioning 的 Spec/Vertical Slice，不能自行修改 Product Positioning、Design、ADR 或 Spec 语义。
 
 ```text
-Accepted ADR / Canonical Design
+PRODUCT-POSITIONING
+→ Canonical Design / Accepted ADR
 → Spec
 → Vertical Slice
 → EXEC
 → Code / Test
 → Release Evidence
 ```
+
+如果既有 EXEC、Spec、ADR 或代码与 Product Positioning 冲突，应按 `AGENTS.md` 报告 `POSITIONING GAP` 并收敛下位治理；不得以既有 EXEC 已冻结为理由继续实现冲突语义。
 
 ## 1. Active / Frozen Queue
 
@@ -92,7 +95,8 @@ EXEC-046 Settings / Cleanup / Release
 ## 3. Local Identity Governance Chain
 
 ```text
-Local Single-User Identity Canonical Design Delta
+PRODUCT-POSITIONING
+→ Local Single-User Identity Canonical Design Delta
 → ADR-0015 accepted
 → LID-* v2 frozen
 → Local Single-User Authentication Removal Vertical Slice
@@ -100,12 +104,13 @@ Local Single-User Identity Canonical Design Delta
 → Local Identity Release Evidence
 ```
 
-本链只改变 identity resolution、authentication、network boundary、Settings/Onboarding 账号语义和相关 persistence。不得修改 SYS01～SYS08 canonical truth 或学习算法。
+本链只改变 identity resolution、authentication、network boundary、Settings/Onboarding 账号语义和相关 persistence。不得修改 SYS01～SYS08 canonical truth 或学习算法，也不得突破 Product Positioning 的 Single-user / no-login / Local Web / no-official-central-server 边界。
 
 ## 4. UI-03 Governance Chain
 
 ```text
-Interactive Element System Canonical Design Delta
+PRODUCT-POSITIONING（只提供产品边界，不冻结页面级 UX）
+→ Interactive Element System Canonical Design Delta
 → ADR-0014 accepted
 → UI-IES / UI-IA / UI-SCREEN / UI-VIS / UI-QUAL frozen
 → UI-03 Vertical Slice frozen
@@ -114,7 +119,7 @@ Interactive Element System Canonical Design Delta
 → UI-03 Release Evidence
 ```
 
-UI-03 只改变 information architecture、interaction hierarchy、presentation exposure 与 route organization。不得恢复 ADR-0015 已删除的 Account/Login/AuthSession 语义。
+UI-03 只改变 information architecture、interaction hierarchy、presentation exposure 与 route organization。顶层导航、首页职责、页面布局和页面级 IA 继续由 Interactive Elements 设计系统冻结；Product Positioning 不替代这些设计决策，但 UI-03 不得突破其产品边界。不得恢复 ADR-0015 已删除的 Account/Login/AuthSession 语义。
 
 ## 5. v0.3 Current Conformance Closure
 
@@ -152,12 +157,14 @@ P1-06B 已完成首次用户 journey、default entry、deep-link preservation、
 - 每个 EXEC 只能在自身 dependency gate 满足后执行；
 - 后序依赖未 DONE 时返回 `BLOCKED_BY_DEPENDENCY`；
 - active EXEC 不得互相扩大 Allowed Files 或混合 commit；
-- 公共语义、owner、schema、生产依赖出现未冻结选择时按 `AGENTS.md` 报告 `BLOCKED_BY_SPEC_GAP`；
+- 任何任务开始前先检查 `docs/product/PRODUCT-POSITIONING.md`；
+- 产品级边界冲突按 `AGENTS.md` 报告 `POSITIONING GAP`；
+- 公共语义、owner、schema、生产依赖出现未冻结选择时按 `AGENTS.md` 报告 `SPEC GAP`；
 - 每个 EXEC 完成后先满足自身 AC / Required Tests / DoD，再移入 `completed/`；
 - completed EXEC 保持不可变历史证据。
 
 ## 9. New EXEC Requirements
 
-每份新 EXEC 必须包含：Objective、Dependencies、Required Specs、Current Reality、Allowed Files、Forbidden Changes、Implementation Tasks、Acceptance Criteria、Required Tests、Completion Report Format。
+每份新 EXEC 必须包含：Objective、Dependencies、Required Product Positioning、Required Specs、Current Reality、Allowed Files、Forbidden Changes、Implementation Tasks、Acceptance Criteria、Required Tests、Completion Report Format。
 
-执行前必须读取根 `AGENTS.md`、本 EXEC 引用的全部 Spec，并核对当前代码和 Git 状态。不得通过删除测试、弱化断言、frontend-only state、auto-login、demo-token 或 legacy shortcut 伪造完成。
+执行前必须读取根 `AGENTS.md`、`docs/product/PRODUCT-POSITIONING.md`、本 EXEC 引用的全部 Spec，并核对当前代码和 Git 状态。不得通过删除测试、弱化断言、frontend-only state、auto-login、demo-token 或 legacy shortcut 伪造完成。
