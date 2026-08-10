@@ -37,14 +37,13 @@ npm run build
 npm audit --audit-level=high
 ```
 
-Vitest 覆盖路由、认证边界、Today、资料库处理状态联动/上传/删除/审计展示、兼容工作台、History、Settings 与 responsive drawer 键盘焦点；`npm run build` 仍只表示生产构建通过，不能替代行为与真实页面验收。
+Vitest 覆盖路由、LocalOwner 归属边界、Today、资料库处理状态联动/上传/删除/审计展示、兼容工作台、History、Settings 与 responsive drawer 键盘焦点；`npm run build` 仍只表示生产构建通过，不能替代行为与真实页面验收。
 
-## API 与认证边界
+## API 与所有权边界
 
-- 登录、刷新和登出使用 `/api/v1/auth`；
+- Askora 无登录/认证；所有请求由 loopback-only 的 LocalOwner 上下文归属；
 - 对话通过 `/api/v1/dialog` 和 WebSocket transport 进入后端 canonical facade；
 - Today 通过 `/api/v1/workspace/today` 聚合 owner-published 只读状态；
 - Library 通过 `/api/v1/workspace/library` 与 `/api/v1/workspace/knowledge-map` 读取 SYS01 current revision，不读取或展示本地存储路径；
 - 前端展示的 mastery/progress 必须使用后端返回的来源标记，不得自行推导 canonical learner state；
 - compatibility session 不等于 LearningActivity，不得混用 session/activity identity；
-- 演示或开发认证只能在后端明确授权的本地开发配置下使用，不能把前端 fallback 当成认证成功。

@@ -23,7 +23,7 @@ from app.models.planning import (
 )
 from app.models.user import User
 from app.queries.workspace import WorkspaceTodayQueryService
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 NOW = datetime(2026, 8, 9, 2, 0, tzinfo=timezone.utc)
 
@@ -341,7 +341,7 @@ async def test_ui02b_http_queries_are_private_versioned_and_current_user_scoped(
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_user
+    from app.services.owner.dependencies import get_current_owner_projection
 
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:
@@ -362,7 +362,7 @@ async def test_ui02b_http_queries_are_private_versioned_and_current_user_scoped(
             return user
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
+    fastapi_app.dependency_overrides[get_current_owner_projection] = override_get_current_user
     try:
         transport = ASGITransport(app=fastapi_app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:

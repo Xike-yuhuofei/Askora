@@ -19,11 +19,11 @@ export default function History() {
     try {
       const data = await dialogApi.getSessions(1, 100)
       setState({ status: 'ready', items: data.items || [], error: '' })
-    } catch (error) {
+    } catch {
       setState({
-        status: error.response?.status === 401 ? 'unauthorized' : 'error',
+        status: 'error',
         items: [],
-        error: error.response?.status === 401 ? '登录状态已失效，请重新登录。' : '历史记录暂时无法读取。',
+        error: '历史记录暂时无法读取。',
       })
     }
   }
@@ -48,7 +48,7 @@ export default function History() {
         </div>
 
         {state.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取…</div>}
-        {(state.status === 'error' || state.status === 'unauthorized') && (
+        {(state.status === 'error') && (
           <div className="inline-state inline-state--error" role="alert">
             <span>{state.error}</span>
             <button type="button" className="button button--secondary" onClick={load}>

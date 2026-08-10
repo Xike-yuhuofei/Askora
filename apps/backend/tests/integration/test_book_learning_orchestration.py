@@ -28,9 +28,9 @@ from app.models.user import User, UserRole, UserStatus
 from app.orchestration.learning_facade import LearningOrchestrationFacade
 from app.orchestration.model_rendering import PolicyBoundModelRenderer
 from app.services.activity_lifecycle import ActivityLifecycleService
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.document_service import DocumentService
 from app.services.llm.model_router import ChatMessage, LLMResponse
+from app.services.owner.canonical_identity import canonical_user_id
 from app.services.policy_runtime import default_policy_activation, default_policy_bundle
 from app.services.storage.local_storage import LocalFileStorage
 
@@ -584,7 +584,7 @@ async def test_exec023_http_is_authenticated_private_correlated_and_idempotent(
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_owner_projection
+    from app.services.owner.dependencies import get_current_owner_projection
 
     db, tmp_path = book_learning_db
     user, document, _units = await _processed_book(db, tmp_path, "http")

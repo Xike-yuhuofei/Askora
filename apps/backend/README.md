@@ -8,7 +8,7 @@ Askora 后端是面向私人本地学习 App 的 FastAPI 模块化单体。公�
 ## 模块边界
 
 - `app/main.py`：应用入口、健康检查和路由装配；
-- `app/api/v1/`：认证、用户、对话、文档和 WebSocket transport；
+- `app/api/v1/`：用户、对话、文档和 WebSocket transport（无认证路由）；
 - `app/orchestration/`：所有教学 transport 共用的 canonical facade；
 - `app/domains/teaching_policy/`：SYS05 v0.3 policy kernel、transition 和 OPVE；
 - `app/contracts/`：版本化公共合同；

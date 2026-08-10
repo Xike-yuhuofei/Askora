@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.database import Base, get_db
 from app.main import app as fastapi_app
 from app.models.local_owner import LocalOwnerRecord
-from app.services.auth.dependencies import get_current_owner_projection
+from app.services.owner.dependencies import get_current_owner_projection
 
 
 @pytest.mark.asyncio
@@ -42,9 +42,9 @@ async def test_goal_api_is_authenticated_versioned_and_private(tmp_path) -> None
             yield session
 
     async def override_get_current_owner_projection():
-        from app.services.auth.dependencies import OwnerProjection
+        from app.models.user import User
 
-        return OwnerProjection(
+        return User(
             id=owner_id,
             pseudonym_id="goal-api-owner",
         )

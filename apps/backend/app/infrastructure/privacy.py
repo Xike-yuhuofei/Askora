@@ -151,7 +151,6 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
             "item_results",
         ),
     ),
-    "auth_sessions": _entry("IDENTITY_FINALIZE", _E, "identity", subject=("user_id",)),
     "book_learning_advance_records": _entry(
         "SYS08_LEDGER",
         _E,
@@ -335,9 +334,6 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     "goal_knowledge_subgraph_versions": _entry(
         "PROJECTIONS", _E, "projection", refs=("mapping_id",), json=("payload",), projection=True
     ),
-    "identity_command_receipts": _entry(
-        "IDENTITY_FINALIZE", _E, "identity", subject=("user_id",), json=("result_payload",)
-    ),
     "knowledge_points": _entry("SYS01", _G, "global_canonical"),
     "learner_evidence": _entry(
         "SYS03",
@@ -494,8 +490,6 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
     ),
     "policy_bundle_activations": _entry("SYS05", _G, "global_policy"),
     "policy_bundles": _entry("SYS05", _G, "global_policy"),
-    "recovery_credentials": _entry("IDENTITY_FINALIZE", _E, "identity", subject=("user_id",)),
-    "recovery_throttles": _entry("IDENTITY_FINALIZE", _E, "identity", digest="subject_digest"),
     "recovery_events": _entry(
         "SYS08_LEDGER",
         _E,
@@ -544,9 +538,6 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("favorite_subjects", "mastery_summary", "metacognition", "affective"),
     ),
     "users": _entry("IDENTITY_FINALIZE", _I, "identity", subject=("id", "pseudonym_id")),
-    "account_deletion_previews": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
-    "account_deletion_requests": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
-    "privacy_tombstones": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
     "data_erasure_workflows": _entry("DATA_CONTROL", _V, "privacy_governance"),
     "data_erasure_steps": _entry("DATA_CONTROL", _V, "privacy_governance"),
     "data_erasure_receipts": _entry("DATA_CONTROL", _V, "privacy_governance"),

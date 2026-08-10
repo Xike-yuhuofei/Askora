@@ -356,7 +356,7 @@ Document、SourceChunk、KnowledgeUnit MUST 在视觉和文案上区分。文档
 
 若文档存在但 canonical knowledge query 为空，必须说明“资料已导入，但尚无可展示的已发布知识节点”，不得展示由文件名或章节标题临时生成的假图谱。
 
-## 11. Settings、账号与认证
+## 11. Settings 与本地数据
 
 ### UI-SCREEN-100 — Settings Is App Utility
 
@@ -372,7 +372,7 @@ AI 与模型
 学习偏好
 外观
 数据与隐私
-账号与恢复
+错误恢复中心
 高级
 ```
 
@@ -384,10 +384,7 @@ AI 与模型
 
 - 永久删除数据；
 - 数据导出；
-- 修改密码；
-- 会话管理；
-- 恢复套件；
-- 账号删除；
+- 错误恢复中心；
 - 高级模型配置。
 
 它们进入对应二级 destination/task flow。
@@ -396,13 +393,9 @@ AI 与模型
 
 正常运行状态 SHOULD 不占据 Settings 主层级。只有 degraded/unavailable/action-required 时才在 landing/global status 中显著出现。
 
-### UI-SCREEN-103 — Authentication
-
-正式模式保留当前已冻结 authentication contract。开发自动登录只有在本地开发配置显式启用时可发生；失败必须回到登录/恢复流程，不得静默创建假用户。
-
 ### UI-SCREEN-104 — Data Deletion Copy
 
-“清除本地登录信息”“删除学习数据”“删除本地文档”“删除全部个人数据/账号”必须使用不同动作和文案。不存在 owner deletion contract 的控件不得声称已删除相应数据。
+“删除学习数据”“删除本地文档”“清除全部本地数据”必须使用不同动作和文案。不存在 owner deletion contract 的控件不得声称已删除相应数据。
 
 ### UI-SCREEN-105 — Recovery Station
 
@@ -410,7 +403,7 @@ AI 与模型
 
 ### UI-SCREEN-106 — Data Control and Recovery
 
-数据与隐私/账号恢复相关 destination 必须继续服从 P1-03/P1-05：protection state、VERIFIED recovery point、位置边界、backup/restore/export/erasure scope、owner impact preview、明确确认、PARTIAL/FAILED truthfulness、Recovery Key secret lifetime 等语义不得弱化。
+数据与隐私/数据恢复相关 destination 必须继续服从 P1-03：protection state、VERIFIED recovery point、位置边界、backup/restore/export/erasure scope、owner impact preview、明确确认、PARTIAL/FAILED truthfulness、Recovery Key secret lifetime 等语义不得弱化。
 
 ### UI-SCREEN-107 — Model Settings State
 

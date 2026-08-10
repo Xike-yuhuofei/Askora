@@ -14,12 +14,12 @@ export default function Evidence() {
   const load = async () => {
     setState((current) => ({ ...current, status: 'loading', error: '' }))
     try { setState({ status: 'ready', payload: await workspaceApi.getEvidenceWorkspace(), error: '' }) }
-    catch (error) { const unauthorized = error.response?.status === 401; setState({ status: unauthorized ? 'unauthorized' : 'error', payload: null, error: unauthorized ? '登录状态已失效，请重新登录。' : '学习证据暂时无法读取。' }) }
+    catch { setState({ status: 'error', payload: null, error: '学习证据暂时无法读取。' }) }
   }
   useEffect(() => { load() }, [])
 
   if (state.status === 'loading') return <div className="page-state" role="status"><div className="spinner" /><p>正在读取学习证据…</p></div>
-  if (state.status === 'error' || state.status === 'unauthorized') return <div className="page-state page-state--error" role="alert"><h1>学习证据</h1><p>{state.error}</p><button type="button" className="button button--secondary" onClick={load}><RefreshCw size={16} />重试</button></div>
+  if (state.status === 'error') return <div className="page-state page-state--error" role="alert"><h1>学习证据</h1><p>{state.error}</p><button type="button" className="button button--secondary" onClick={load}><RefreshCw size={16} />重试</button></div>
 
   const { data, source_status: sourceStatus } = state.payload
   return (

@@ -46,7 +46,6 @@ async def test_current_user_export_is_readable_allowlisted_and_includes_opted_or
         status=UserStatus.ACTIVE,
         nickname="Current User",
         pseudonym_id="current-user",
-        password_hash="FORBIDDEN-PASSWORD-HASH",
     )
     other = User(
         id="user-other",
@@ -54,7 +53,6 @@ async def test_current_user_export_is_readable_allowlisted_and_includes_opted_or
         status=UserStatus.ACTIVE,
         nickname="OTHER-USER-NICKNAME",
         pseudonym_id="other-user",
-        password_hash="OTHER-USER-PASSWORD",
     )
     async with factory() as session:
         session.add_all(

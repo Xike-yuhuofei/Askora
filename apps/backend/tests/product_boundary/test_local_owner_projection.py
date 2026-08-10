@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.database import Base
 from app.data_control.export import UserDataExporter
 from app.models.user import User, UserRole, UserStatus
-from app.services.auth.dependencies import get_current_owner_projection
 from app.services.local_identity import ensure_local_owner
+from app.services.owner.dependencies import get_current_owner_projection
 
 
 @pytest.mark.required
@@ -30,20 +30,13 @@ async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path)
             assert projection.pseudonym_id == owner.owner_id.hex
             assert projection.role == UserRole.USER
             assert projection.status == UserStatus.ACTIVE
-            assert projection.account_lifecycle == "active"
-
-            assert projection.phone_encrypted is None
-            assert projection.phone_hash is None
-            assert projection.email_encrypted is None
-            assert projection.password_hash is None
-            assert projection.wechat_openid_encrypted is None
-            assert projection.real_name_encrypted is None
 
             exported_profile = await UserDataExporter(session)._profile(projection)
             account = exported_profile["account"]
             assert account["nickname"] is None
-            assert account["phone"] is None
-            assert account["email"] is None
-            assert account["real_name"] is None
+            # Authentication-only fields (phone / email / real_name) are removed.
+            assert "phone" not in account
+            assert "email" not in account
+            assert "real_name" not in account
     finally:
         await engine.dispose()

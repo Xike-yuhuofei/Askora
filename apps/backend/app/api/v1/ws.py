@@ -29,7 +29,8 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.models.user import User
+from app.services.owner.dependencies import get_current_owner_projection
 from app.services.websocket import get_ws_manager
 
 logger = get_logger(__name__)
@@ -64,7 +65,7 @@ async def _validate_websocket_origin(websocket: WebSocket) -> str | None:
 @router.websocket("/documents")
 async def websocket_documents(
     websocket: WebSocket,
-    current_owner: OwnerProjection = Depends(get_current_owner_projection),
+    current_owner: User = Depends(get_current_owner_projection),
 ):
     """
     文档相关事件 WebSocket 端点 (EXEC-048: no-auth loopback)
@@ -134,7 +135,7 @@ async def websocket_documents(
 @router.websocket("/notifications")
 async def websocket_notifications(
     websocket: WebSocket,
-    current_owner: OwnerProjection = Depends(get_current_owner_projection),
+    current_owner: User = Depends(get_current_owner_projection),
 ):
     """
     通用通知 WebSocket 端点 (EXEC-048: no-auth loopback)
@@ -180,7 +181,7 @@ async def websocket_notifications(
 
 
 @router.get("/status")
-async def ws_status(_current_owner: OwnerProjection = Depends(get_current_owner_projection)):
+async def ws_status(_current_owner: User = Depends(get_current_owner_projection)):
     """获取 WebSocket 服务状态 (EXEC-048: no-auth)"""
     ws_manager = get_ws_manager()
     return {

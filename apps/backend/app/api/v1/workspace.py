@@ -23,10 +23,11 @@ from app.contracts.workspace import (
 )
 from app.core.database import get_db
 from app.core.exceptions import BusinessError, ValidationInputError
+from app.models.user import User
 from app.queries.library import WorkspaceLibraryQueryService
 from app.queries.workspace import WorkspaceTodayQueryService
 from app.services.activity_lifecycle import ActivityLifecycleService
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.services.owner.dependencies import get_current_owner_projection
 
 router = APIRouter(prefix="/workspace", tags=["学习工作区"])
 
@@ -57,7 +58,7 @@ async def get_activity_lifecycle(
     activity_id: UUID,
     request: Request,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> ActivityLifecycleResponseV1:
     result = await ActivityLifecycleService(db).get(
@@ -78,7 +79,7 @@ async def start_activity_lifecycle(
     activity_id: UUID,
     body: StartLearningActivityV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> ActivityLifecycleResponseV1:
     _require_activity_match(activity_id, body.activity_id)
@@ -98,7 +99,7 @@ async def complete_activity_lifecycle(
     activity_id: UUID,
     body: CompleteLearningActivityV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> ActivityLifecycleResponseV1:
     _require_activity_match(activity_id, body.activity_id)
@@ -113,7 +114,7 @@ async def complete_activity_lifecycle(
 async def get_goals_workspace(
     request: Request,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalListResponseV1:
     result = await WorkspaceTodayQueryService(db).list_goals(
@@ -129,7 +130,7 @@ async def get_path_workspace(
     request: Request,
     response: Response,
     goal_id: UUID | None = Query(None),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningPathResponseV1:
     result = await WorkspaceTodayQueryService(db).get_path(
@@ -145,7 +146,7 @@ async def get_path_workspace(
 async def get_evidence_workspace(
     request: Request,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> EvidenceProfileResponseV1:
     result = await WorkspaceTodayQueryService(db).get_evidence(
@@ -170,7 +171,7 @@ async def get_library_workspace(
     sort: str = Query("created_desc", max_length=30),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LibraryWorkspaceResponseV1:
     result = await WorkspaceLibraryQueryService(db).list_library(
@@ -200,7 +201,7 @@ async def get_knowledge_map(
     request: Request,
     response: Response,
     document_id: UUID = Query(...),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> KnowledgeMapResponseV1:
     result = await WorkspaceLibraryQueryService(db).get_knowledge_map(
@@ -217,7 +218,7 @@ async def get_today_workspace(
     request: Request,
     response: Response,
     timezone_name: str = Query("Asia/Shanghai", alias="timezone", min_length=1, max_length=64),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> TodayWorkspaceResponseV1:
     """Return a current-user-scoped, read-only UI aggregation."""

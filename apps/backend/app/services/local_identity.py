@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.local_owner import LocalOwnerRepository
 from app.models.user import User, UserRole, UserStatus
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 PROVENANCE_FRESH = "fresh"
 PROVENANCE_LEGACY = "legacy_single_learner"
@@ -77,22 +77,10 @@ async def _ensure_compatibility_user(db: AsyncSession, context: LocalOwnerContex
             id=context.canonical_owner_id,
             role=UserRole.USER,
             status=UserStatus.ACTIVE,
-            account_lifecycle="active",
-            phone_encrypted=None,
-            phone_hash=None,
-            email_encrypted=None,
             nickname=None,
-            password_hash=None,
-            credential_version=1,
-            password_changed_at=None,
-            wechat_openid_encrypted=None,
-            real_name_encrypted=None,
-            is_verified=False,
             pseudonym_id=context.owner_id.hex,
             created_at=now,
             updated_at=now,
-            last_login_at=None,
-            deleted_at=None,
         )
     )
     await db.flush()

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 PREVIOUS_HEAD = "p107d2f1a04"
-CURRENT_HEAD = "b1c0d2f3a001"
+CURRENT_HEAD = "g001d0e0a001"
 
 
 def _alembic(database_url: str, *arguments: str) -> subprocess.CompletedProcess[str]:

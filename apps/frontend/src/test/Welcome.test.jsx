@@ -197,7 +197,7 @@ describe('P106 Welcome page — owner-fact driven four-step journey', () => {
     await waitFor(() => expect(onboardingApi.dismissOnboarding).toHaveBeenCalledWith({ expectedVersion: 1 }))
   })
 
-  it('reload / relogin re-reads the journey from owner facts (no localStorage completion)', async () => {
+  it('reload re-reads the journey from owner facts (no localStorage completion)', async () => {
     const spy = vi.fn().mockResolvedValue(makeJourney())
     onboardingApi.getOnboardingJourney.mockImplementation(spy)
     render(<RouterProvider><Welcome /></RouterProvider>)

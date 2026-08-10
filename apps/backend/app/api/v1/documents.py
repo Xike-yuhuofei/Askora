@@ -37,10 +37,11 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.domains.content_knowledge import SAFETY_SCANNER_VERSION
 from app.models.document import ProcessingStatus
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.models.user import User
 from app.services.documents import get_document_service, get_rag_service
 from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.ocr import OcrService
+from app.services.owner.dependencies import get_current_owner_projection
 
 logger = get_logger(__name__)
 
@@ -144,7 +145,7 @@ async def upload_document(
     file: UploadFile = File(...),
     subject: Optional[str] = Form(None),
     knowledge_point_id: Optional[str] = Form(None),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -192,7 +193,7 @@ async def list_documents(
     subject: Optional[str] = Query(None, description="学科筛选"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -219,7 +220,7 @@ async def list_documents(
 
 @router.get("/storage", response_model=StorageInfoResponse)
 async def get_storage_info(
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取用户存储使用信息"""
@@ -231,7 +232,7 @@ async def get_storage_info(
 @router.post("/library/tags", response_model=LibraryTagViewV1, status_code=201)
 async def create_library_tag(
     request: CreateLibraryLabelRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await LibraryManagementService(db).create_tag(
@@ -248,7 +249,7 @@ async def create_library_tag(
 )
 async def create_library_collection(
     request: CreateLibraryLabelRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await LibraryManagementService(db).create_collection(
@@ -264,7 +265,7 @@ async def create_library_collection(
 )
 async def batch_organize_documents(
     request: BatchOrganizeDocumentsRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await LibraryManagementService(db).batch_organize(
@@ -285,7 +286,7 @@ async def batch_organize_documents(
 @router.get("/duplicates", response_model=tuple[DuplicateSuggestionViewV1, ...])
 async def list_duplicate_suggestions(
     status: str = Query("pending", max_length=30),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await LibraryManagementService(db).list_duplicate_suggestions(
@@ -300,7 +301,7 @@ async def list_duplicate_suggestions(
 async def resolve_duplicate_suggestion(
     suggestion_id: UUID,
     request: ResolveDuplicateSuggestionRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await LibraryManagementService(db).resolve_duplicate(
@@ -316,7 +317,7 @@ async def resolve_duplicate_suggestion(
 async def request_document_ocr(
     document_id: UUID,
     request: RequestOcrRunV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await OcrService(db).request_run(
@@ -330,7 +331,7 @@ async def request_document_ocr(
 @router.get("/ocr-runs/{run_id}", response_model=OcrRunViewV1)
 async def get_document_ocr_run(
     run_id: UUID,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await OcrService(db).get_run(run_id=str(run_id), pseudonym_id=current_user.pseudonym_id)
@@ -340,7 +341,7 @@ async def get_document_ocr_run(
 async def get_document_ocr_page(
     run_id: UUID,
     page_number: int,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     content = await OcrService(db).render_page(
@@ -359,7 +360,7 @@ async def get_document_ocr_page(
 async def review_document_ocr_run(
     run_id: UUID,
     request: ReviewOcrRunRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     return await OcrService(db).review_run(
@@ -383,7 +384,7 @@ async def review_document_ocr_run(
 async def update_document_metadata(
     document_id: UUID,
     request: UpdateDocumentMetadataRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     changes = request.model_dump(
@@ -402,7 +403,7 @@ async def update_document_metadata(
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取单个文档详情"""
@@ -426,7 +427,7 @@ async def get_document(
 )
 async def reinspect_document(
     document_id: str,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """Enqueue owner-scoped newer-policy reinspection without lifting quarantine."""
@@ -449,7 +450,7 @@ async def reinspect_document(
 @router.get("/{document_id}/status", response_model=DocumentStatusResponse)
 async def get_document_status(
     document_id: str,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取文档处理状态"""
@@ -493,7 +494,7 @@ async def get_document_status(
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: str,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """删除文档"""
@@ -512,7 +513,7 @@ async def delete_document(
 @router.post("/rag/query", response_model=RAGQueryResponse)
 async def query_rag(
     request: RAGQueryRequest,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """

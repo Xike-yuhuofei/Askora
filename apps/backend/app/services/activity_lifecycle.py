@@ -43,7 +43,7 @@ from app.infrastructure.outbox import OutboxProducer
 from app.models.book_learning import BookLearningTranscriptTurnRecord
 from app.models.planning import LearningActivityRecord, LearningGoalRecord, LearningPlanRecord
 from app.models.user import User
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 _ACTIVITY_TITLES = {
     "learn_new": "学习新内容",

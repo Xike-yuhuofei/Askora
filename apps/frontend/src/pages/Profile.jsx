@@ -18,7 +18,7 @@ export default function Profile() {
       const data = await usersApi.getProfile()
       setProfile(data.profile)
     } catch {
-      setError('学习画像加载失败，请确认后端服务和登录状态')
+      setError('学习画像加载失败，请确认后端服务已启动。')
     } finally {
       setLoading(false)
     }

@@ -6,7 +6,7 @@ Askora v1 仅提供简体中文 Web UI，暂不提供 macOS / Windows 原生客�
 
 最终用户运行环境不应要求手工安装、启动或维护 Docker、Redis、PostgreSQL 或远程后端等独立基础设施；这些组件可以继续存在于当前开发、测试或历史兼容运行模式，但不得被解释为 Askora v1 的强制产品运行前置条件。
 
-本地使用不等于可以忽略安全。本地数据库、上传资料、LLM 密钥和备份均应按敏感数据处理；不得提交 `.env`、数据库、用户资料或构建产物。旧实现中残留的账号/JWT/桌面封装等能力属于待收敛实现事实，不得反向定义产品定位。
+本地使用不等于可以忽略安全。本地数据库、上传资料、LLM 密钥和备份均应按敏感数据处理；不得提交 `.env`、数据库、用户资料或构建产物。Askora 为本地单机个人学习 App，不提供用户账号、注册、登录、用户 session、密码或多用户认证体系；Learner / LocalOwner 是学习数据归属主体，与“认证用户账号”无关。历史实现中残留的账号/JWT/桌面封装等能力属于已/待收敛实现事实，不得反向定义产品定位。
 
 ## 当前基线
 
@@ -119,7 +119,7 @@ python3 .github/workflows/check_docs.py
 
 ```bash
 cp .env.example .env
-# 设置随机数据库密码、JWT/KEK 密钥，并按需填写 LLM Key
+# 设置随机数据库密码、KEK 密钥，并按需填写 LLM Key
 docker compose config
 docker compose up --build
 ```

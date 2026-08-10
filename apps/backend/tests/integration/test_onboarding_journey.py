@@ -31,8 +31,8 @@ from app.queries.onboarding import (
     StaticDataControlQuery,
     StaticModelConfigurationQuery,
 )
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.onboarding import OnboardingPreferenceService
+from app.services.owner.canonical_identity import canonical_user_id
 
 NOW = datetime(2026, 8, 9, 13, 0, tzinfo=timezone.utc)
 
@@ -58,8 +58,6 @@ def _user() -> User:
     return User(
         id=str(uuid4()),
         pseudonym_id=uuid4().hex,
-        phone_hash=uuid4().hex,
-        password_hash="hash",
     )
 
 

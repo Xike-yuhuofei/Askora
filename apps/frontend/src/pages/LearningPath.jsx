@@ -39,9 +39,8 @@ export default function LearningPath() {
         }
       }
       setState({ status: 'ready', payload, goalOptions, error: '' })
-    } catch (error) {
-      const unauthorized = error.response?.status === 401
-      setState({ status: unauthorized ? 'unauthorized' : 'error', payload: null, goalOptions: [], error: unauthorized ? '登录状态已失效，请重新登录。' : '学习路径暂时无法读取。' })
+    } catch {
+      setState({ status: 'error', payload: null, goalOptions: [], error: '学习路径暂时无法读取。' })
     }
   }
 
@@ -57,7 +56,7 @@ export default function LearningPath() {
   }
 
   if (state.status === 'loading') return <div className="page-state" role="status"><div className="spinner" /><p>正在读取学习路径…</p></div>
-  if (state.status === 'error' || state.status === 'unauthorized') return <div className="page-state page-state--error" role="alert"><h1>学习路径</h1><p>{state.error}</p><button type="button" className="button button--secondary" onClick={() => load()}><RefreshCw size={16} />重试</button></div>
+  if (state.status === 'error') return <div className="page-state page-state--error" role="alert"><h1>学习路径</h1><p>{state.error}</p><button type="button" className="button button--secondary" onClick={() => load()}><RefreshCw size={16} />重试</button></div>
 
   const { data, source_status: sourceStatus } = state.payload
   return (

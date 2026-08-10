@@ -33,8 +33,9 @@ from app.contracts.goal_management import (
     UpdateGoalDraftCommandV1,
 )
 from app.core.database import get_db
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.models.user import User
 from app.services.goal_management import GoalManagementService
+from app.services.owner.dependencies import get_current_owner_projection
 
 router = APIRouter(prefix="/goals", tags=["目标管理"])
 
@@ -56,7 +57,7 @@ def _now() -> datetime:
 @router.post("/criteria/suggest", response_model=SuggestSuccessCriteriaResponseV1)
 async def suggest_success_criteria(
     body: SuggestSuccessCriteriaRequestV1,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
 ) -> SuggestSuccessCriteriaResponseV1:
     del current_user
     return GoalManagementService.suggest_criteria(
@@ -68,7 +69,7 @@ async def suggest_success_criteria(
 async def create_goal_draft(
     body: CreateGoalDraftCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningGoalDraftV1:
     result = await GoalManagementService(db).create_draft(
@@ -85,7 +86,7 @@ async def create_goal_draft(
 async def get_goal_draft(
     draft_id: UUID,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningGoalDraftV1:
     result = await GoalManagementService(db).get_draft(user=current_user, draft_id=draft_id)
@@ -98,7 +99,7 @@ async def update_goal_draft(
     draft_id: UUID,
     body: UpdateGoalDraftCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningGoalDraftV1:
     result = await GoalManagementService(db).update_draft(
@@ -116,7 +117,7 @@ async def update_goal_draft(
 async def get_goal_target_cards(
     draft_id: UUID,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalTargetCardsResponseV1:
     service = GoalManagementService(db)
@@ -133,7 +134,7 @@ async def preview_goal_draft(
     draft_id: UUID,
     body: PreviewGoalDraftCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalChangePreviewV1:
     result = await GoalManagementService(db).preview_draft(
@@ -152,7 +153,7 @@ async def apply_goal_draft(
     draft_id: UUID,
     body: ApplyGoalDraftCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalApplyResultV1:
     result = await GoalManagementService(db).apply_draft(
@@ -171,7 +172,7 @@ async def create_edit_goal_draft(
     goal_id: UUID,
     body: CreateEditGoalDraftCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningGoalDraftV1:
     result = await GoalManagementService(db).create_edit_draft(
@@ -188,7 +189,7 @@ async def create_edit_goal_draft(
 @router.get("/focus", response_model=FocusedLearningGoalStateV1)
 async def get_focused_goal(
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> FocusedLearningGoalStateV1:
     result = await GoalManagementService(db).get_focused_goal(user=current_user)
@@ -201,7 +202,7 @@ async def pause_goal(
     goal_id: UUID,
     body: GoalLifecycleCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalLifecycleResultV1:
     result = await GoalManagementService(db).pause_goal(
@@ -220,7 +221,7 @@ async def resume_goal(
     goal_id: UUID,
     body: GoalLifecycleCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalLifecycleResultV1:
     result = await GoalManagementService(db).resume_goal(
@@ -239,7 +240,7 @@ async def archive_goal(
     goal_id: UUID,
     body: GoalLifecycleCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalLifecycleResultV1:
     result = await GoalManagementService(db).archive_goal(
@@ -258,7 +259,7 @@ async def copy_archived_goal(
     goal_id: UUID,
     body: GoalLifecycleCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalLifecycleResultV1:
     result = await GoalManagementService(db).copy_archived_goal(
@@ -277,7 +278,7 @@ async def schedule_goal_assessments(
     goal_id: UUID,
     body: ScheduleGoalAssessmentsCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalAchievementWorkspaceV1:
     result = await GoalManagementService(db).schedule_goal_assessments(
@@ -295,7 +296,7 @@ async def schedule_goal_assessments(
 async def get_goal_achievement_workspace(
     goal_id: UUID,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalAchievementWorkspaceV1:
     result = await GoalManagementService(db).get_achievement_workspace(
@@ -314,7 +315,7 @@ async def submit_goal_assessment(
     activity_id: UUID,
     body: SubmitGoalAssessmentCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalAssessmentActivityV1:
     result = await GoalManagementService(db).submit_goal_assessment(
@@ -334,7 +335,7 @@ async def evaluate_goal_achievement(
     goal_id: UUID,
     body: EvaluateGoalAchievementCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalAchievementEvaluationV1:
     result = await GoalManagementService(db).evaluate_goal_achievement(
@@ -353,7 +354,7 @@ async def confirm_goal_achievement(
     goal_id: UUID,
     body: ConfirmGoalAchievementCommandV1,
     request: Request,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalLifecycleResultV1:
     result = await GoalManagementService(db).confirm_goal_achievement(
@@ -371,7 +372,7 @@ async def confirm_goal_achievement(
 async def get_goal_detail(
     goal_id: UUID,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalDetailV1:
     result = await GoalManagementService(db).get_goal_detail(user=current_user, goal_id=goal_id)

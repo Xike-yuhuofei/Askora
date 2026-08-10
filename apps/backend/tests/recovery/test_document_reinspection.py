@@ -26,13 +26,13 @@ from app.models.document import ProcessingStatus, UserDocument
 from app.models.ledger import OutboxTaskRecord
 from app.models.user import User
 from app.queries.library import WorkspaceLibraryQueryService
-from app.services.auth.dependencies import get_current_user
 from app.services.documents.document_service import (
     DOCUMENT_REINSPECTION_TASK_TYPE,
     DocumentService,
     document_processing_idempotency_key,
 )
 from app.services.documents.processing_worker import DocumentProcessingWorker
+from app.services.owner.dependencies import get_current_owner_projection
 from app.services.storage.local_storage import LocalFileStorage
 
 
@@ -301,7 +301,7 @@ async def test_reinspection_http_is_owner_scoped_and_idempotent(tmp_path, monkey
             return user
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
+    fastapi_app.dependency_overrides[get_current_owner_projection] = override_get_current_user
     try:
         async with AsyncClient(
             transport=ASGITransport(app=fastapi_app),

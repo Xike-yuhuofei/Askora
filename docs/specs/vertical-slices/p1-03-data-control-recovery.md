@@ -56,7 +56,7 @@ App upgrade → PRE_MIGRATION verified → staging migration → activate or unc
 - `P103-AC-002`：真实用户数据目录的等价 fixture 完成 backup→mutate→restore，DB/文件/KEK/owner refs 一致。
 - `P103-AC-003`：migration failure、wrong key、tamper、missing file、future schema 均在 active data 变化前 fail closed。
 - `P103-AC-004`：四类导出/删除 current-user、secret-safe、幂等；删除后 managed restore/rebuild 不复活。
-- `P103-AC-005`：设置页不混淆退出登录、导出、资料删除、学习记录删除和全部个人数据删除。
+- `P103-AC-005`：设置页不混淆导出、资料删除、学习记录删除和全部个人数据删除（Askora 无登录/退出登录，账号级操作不存在）。
 - `P103-AC-006`：Engineering 与 Policy/Ownership Gate PASS；Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ## 7. Done Gate

@@ -71,9 +71,9 @@ from app.services.assessment.diagnostic_bootstrap import (
     DiagnosticBootstrapResult,
     PrerequisiteDiagnosticService,
 )
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
 from app.services.learning_goals import LearningGoalService
+from app.services.owner.canonical_identity import canonical_user_id
 from app.services.policy_runtime import (
     ActivePolicyRuntimeResolver,
     PolicyRuntimeResolutionError,

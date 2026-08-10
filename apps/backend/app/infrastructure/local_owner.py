@@ -16,7 +16,7 @@ from app.models.local_owner import (
     SINGLETON_KEY,
     LocalOwnerRecord,
 )
-from app.models.user import User, UserStatus
+from app.models.user import User
 
 
 class LocalOwnerRepository:
@@ -39,16 +39,17 @@ class LocalOwnerRepository:
         return int(result.scalar_one())
 
     async def count_eligible_legacy_subjects(self) -> int:
-        """Count non-deleted legacy users that would be real learner subjects."""
-        result = await self.db.execute(
-            select(func.count(User.id)).where(User.status != UserStatus.DELETED)
-        )
+        """Count legacy learner subjects eligible for LocalOwner projection.
+
+        The single-user local instance has no account lifecycle: every legacy
+        learner row is ACTIVE and eligible (DELETED/verification states were
+        authentication-only and have been removed).
+        """
+        result = await self.db.execute(select(func.count(User.id)))
         return int(result.scalar_one())
 
     async def get_single_eligible_legacy_subject(self) -> User | None:
-        result = await self.db.execute(
-            select(User).where(User.status != UserStatus.DELETED).limit(2)
-        )
+        result = await self.db.execute(select(User).limit(2))
         rows = list(result.scalars().all())
         if len(rows) != 1:
             return None

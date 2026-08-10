@@ -84,30 +84,27 @@ Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Brows
 
 ### P1-05 账号生命周期
 
-**状态：DONE**
+**状态：DONE（产品语义已被 ADR-0015 SUPERSEDE）**
 
-[认证客户端](../apps/frontend/src/api/auth.js) 当前覆盖注册、登录、刷新令牌和退出。
+> 历史记录：P1-05 曾规划账号/登录/恢复/删除能力。Askora 现为本地单机个人学习 App，不提供用户账号、注册、
+> 登录、用户 session、密码或账号删除；`认证客户端`（auth.js）、credential/session/recovery/account
+> deletion 相关实现已随无认证 cutover 移除。本节的账号语义仅作历史留档，current product 语义以
+> ADR-0015 / `LID-*` / Product Positioning 为准；owner-safe 数据擦除（P1-03 DataErasureWorkflowV1）保留。
 
-治理状态：用户已采纳本地优先 durable identity/privacy 方案；ADR-0009、ADR-0107、`IDP-*` 与 P1-05 Vertical Slice 已冻结。EXEC-034～036 已串行完成；P1-03 合入后由 EXEC-037 将账号宽限/取消编排接到唯一 `ALL_PERSONAL_DATA` workflow，完整工程、所有权、迁移、恢复与真实浏览器证据见 [P1-05 Release Evidence](releases/p1-05-account-lifecycle.md)。
+历史方案边界（已 SUPERSEDE）：
 
-方案边界：
-
-- Platform Identity 唯一拥有 credential version、durable AuthSession/token family 与离线 RecoveryCredential；Redis/前端不是 session truth；
+- Platform Identity 曾唯一拥有 credential version、AuthSession/token family 与 RecoveryCredential；现无认证 runtime 不持有 credential/session truth；
 - Platform Privacy 只拥有 deletion request、subject manifest、tombstone projection 与 restore barrier adapter，不成为第九学习系统；
-- P1-03 `DataErasureWorkflowV1` 唯一拥有 owner step/receipt/checkpoint；删除账号固定调用 `ALL_PERSONAL_DATA`，不保留第二 erasure truth；
-- 首版使用离线恢复套件，不引入短信/邮件第三方身份服务。
+- P1-03 `DataErasureWorkflowV1` 唯一拥有 owner step/receipt/checkpoint；owner 数据擦除固定调用 `ALL_PERSONAL_DATA`，不保留第二 erasure truth。
 
-实施工作包：
+历史实施工作包（已 SUPERSEDE）：
 
-- **EXEC-034 Credential/Session**：Argon2id + bcrypt rehash、修改密码、durable session、refresh-family replay/revoke、会话管理；
-- **EXEC-035 Local Recovery**：注册/设置一次性恢复套件、单次使用、限流、恢复后全部 session 撤销和 recovery 轮换；
+- **EXEC-034 Credential/Session**：Argon2id + bcrypt、修改密码、durable session、refresh-family replay/revoke、会话管理；
+- **EXEC-035 Local Recovery**：一次性恢复套件、单次使用、限流、session 撤销与 recovery 轮换；
 - **EXEC-036 Account Deletion**：versioned preview、重新认证/确认短语、pending/cancel、durable owner erasure、零残留 reconciliation、去 PII tombstone 与旧快照 restore barrier。
 
-四个动作必须保持不同：退出当前 App 只撤销当前 session；撤销指定 App 只撤销该 token family；删除全部学习数据保留账号；删除账号删除全部用户数据并清除 credential/PII。
-
-完成标准：`IDP-AC-001..012` 与 `P105-AC-001..008` 全部满足；SQLite/PostgreSQL、Redis 故障、并发 refresh/delete、restart recovery、cross-user、文件/outbox/projection、旧快照 barrier、360px/200% zoom/keyboard 和真实浏览器通过；三份 EXEC 独立 commit/release evidence 完成后方可标 `DONE`。
-
-完成回执：上述门禁已于 2026-08-09 通过；Engineering 与 Policy/Ownership 为 `PASS`，Learning Evidence 为 `NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE`，项目整体学习证据状态保持不变。
+历史记录：`IDP-AC-001..012` 与 `P105-AC-001..008` 曾全部满足；Engineering 与 Policy/Ownership 为 `PASS`。
+账密/会话/恢复/删除的账号语义不含教学学习判据，学习证据为 `NOT_APPLICABLE_TO_ACCOUNT_LIFECYCLE`。
 
 ### P1-06 首次使用引导
 
@@ -141,7 +138,7 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 
 #### 状态与完成语义
 
-- 首次启动不得只根据 `localStorage`、注册时间或“是否看过欢迎页”判断；必须由 current-user scoped read model 聚合模型 readiness、资料状态、Goal/Plan owner refs、latest activity lifecycle 和 accepted transcript facts；
+- 首次启动不得只根据 `localStorage`、注册时间或“是否看过欢迎页”判断；必须由 current-owner scoped read model 聚合模型 readiness、资料状态、Goal/Plan owner refs、latest activity lifecycle 和 accepted transcript facts；
 - 新增的 onboarding 持久状态只允许记录展示偏好，例如 `active/dismissed`、上次可见步骤和版本；它不是第九个领域 truth，也不得复制 document、goal、plan、activity 或 transcript 状态；
 - 每一步是否完成必须由真实 source ref/version 派生。模型配置被清除、资料被删除、Goal 被归档或 activity 被 supersede 后，页面必须显示当前事实，而不是保留过期勾选；
 - “完成首次学习”只由 SYS06 latest `LearningActivityStateV1=completed` 且满足其 accepted transcript completion precondition 证明。看到首条模型回复、停留时长、消息轮数、plan ready 或模型调用成功都不算完成第一节，也不代表掌握；
@@ -149,9 +146,9 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 
 #### 入口与恢复体验
 
-- 推荐新增 `/welcome` protected route。登录后的默认 `/today` 仅在引导处于 `active` 且未完成时进入该路由；用户直接打开 `/library`、`/book-learning/:documentId` 或 `/learn/:activityId` 时不得被强制重定向或丢失 deep link；
+- 推荐新增 `/welcome` route。默认 `/today` 仅在引导处于 `active` 且未完成时进入该路由；用户直接打开 `/library`、`/book-learning/:documentId` 或 `/learn/:activityId` 时不得被强制重定向或丢失 deep link；
 - 页面始终只有一个主动作，服务端返回确定性的 `next_action`/route/resource ref；UI 不从多个资料、Goal 或 activity 中自行猜选业务对象；
-- “稍后再说”只隐藏引导，不创建完成事实；重新打开入口固定放在“设置”。刷新、退出重登、App 重启或跨步骤离开后，重新查询 owner facts 并恢复到最新可行动步骤；
+- “稍后再说”只隐藏引导，不创建完成事实；重新打开入口固定放在“设置”。刷新、App 重启或跨步骤离开后，重新查询 owner facts 并恢复到最新可行动步骤；
 - processing、quarantined、provider timeout/rate limit、Key invalid、version conflict 和 unsupported activity 必须显示“发生了什么、数据是否安全、现在能做什么”，并复用 P1-07 的稳定错误到恢复动作映射；
 - 文案只使用“资料、学习目标、起点检查、学习活动、继续学习”等产品词。`canonical`、`SYS01～08`、schema、owner ref 和内部 command 只允许出现在折叠技术详情或审计证据中。
 
@@ -171,7 +168,7 @@ Onboarding 不实现一套平行的模型设置、资料导入、Goal、Planner 
 3. P1-03 已提供可引用的数据保存/控制事实，P1-07 已提供本路径所需的稳定恢复动作；
 4. 现有 UI-02A、UI-02B1/B2/B3 的资料、Goal、诊断、计划、真实模型和 transcript 合同继续作为唯一主链。
 
-本项不扩展到：多资料 Goal、完整 Goal 编辑、Planner 重排、mastery 判断、Focus、笔记、备份实现或账号删除；这些仍分别属于 P1-01、P1-03、P1-05、P2-01 和 P2-03。
+本项不扩展到：多资料 Goal、完整 Goal 编辑、Planner 重排、mastery 判断、Focus、笔记、备份实现；这些仍分别属于 P1-01、P1-03、P2-01 和 P2-03。
 
 治理状态（2026-08-09）：上述实现前 `SPEC GAP` 已由 Canonical Design、ADR-0106、`ONBOARD-*`、
 UI/API/Error/Persistence additive Spec、P1-06 Vertical Slice 与 EXEC-1061→1062 闭合。Preference owner
@@ -182,7 +179,7 @@ completion projection；deep-link 规则已冻结；v1 明确不提供样例资�
 
 #### 验收标准
 
-- clean profile 从首次登录开始，可按真实路径完成“模型验证 → 资料导入与处理 → Goal 明确确认 → 必要诊断 → activity start/resume/complete → Today 下一步”，中途至少一次 App 重启后不重复副作用；
+- clean profile 从首次启动开始，可按真实路径完成“模型验证 → 资料导入与处理 → Goal 明确确认 → 必要诊断 → activity start/resume/complete → Today 下一步”，中途至少一次 App 重启后不重复副作用；
 - 每个步骤覆盖 loading/blocked/partial/stale/error/unauthorized、skip/reopen、删除或配置撤销后的事实回退；稳定错误只提供允许的恢复动作；
 - 自动化覆盖 read-model source/version、preference 幂等与并发、existing-user backfill、cross-user、secret/log leakage、deep link、360px/200% zoom、键盘/focus/live region；
 - deterministic fixture E2E 验证流程可靠性；另以真实配置 provider 完成一次受控主路径，证明模型连接和恢复，不把它称为真人学习效果；

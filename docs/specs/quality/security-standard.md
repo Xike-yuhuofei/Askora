@@ -90,9 +90,9 @@ SYS02 与 SYS08 MAY 因证据/安全收紧，MUST NOT 扩大。任何无法可�
 
 代码评估必须隔离运行，默认无宿主敏感文件/凭据/开放网络，并限制 CPU/memory/time/process。
 
-## 9. Authorization
+## 9. Ownership / Authorization
 
-本地单用户模式仍需保持 owner boundary；服务模式必须验证 user/resource ownership，不允许仅凭 object id 访问其他用户数据。
+Askora 为本地单用户产品，无登录认证、无 RBAC、无多租户。仍需保持 LocalOwner data-ownership boundary：所有 learner-owned query/command 通过 `LocalOwnerContext` 解析唯一 subject，不允许仅凭 object id 访问其他 owner 数据。无认证 runtime MUST 只监听 loopback，CORS/WebSocket 仅 allowlist loopback origins（见 `identity-privacy-lifecycle.md` LID-020..022）。
 
 ## 10. Secrets / Logging
 
@@ -122,7 +122,7 @@ macOS desktop credential MUST 由 Electron main 使用 `safeStorage` 加密保�
 
 Recovery Package MUST authenticated encrypt，并使用独立 Recovery Key；明文 key 不得进入 package/catalog/log/argv/localStorage。设备副本须由 platform secure storage 保护。恢复解压必须阻止 traversal、symlink/special file、duplicate entry、size/compression abuse；激活前在 staging 完整校验。
 
-User Data Export 使用显式 allowlist，MUST NOT 包含 password/hash、JWT/refresh token、KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他用户数据或本地绝对路径。
+User Data Export 使用显式 allowlist，MUST NOT 包含 KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他 owner 数据或本地绝对路径。
 
 ### SEC-083 — Destructive Data Control
 
@@ -172,19 +172,19 @@ P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platfor
 
 ### SEC-300
 
-Password/recovery/deletion secret MUST 使用适用的 slow hash 或 keyed digest，MUST NOT 明文持久化、日志记录、进入 Prompt、普通 export 或 frontend user cache。新密码使用 Argon2id；历史 bcrypt 只作兼容读取/rehash。
+Askora 为本地单用户 App，无注册/登录/登出、无密码、无 JWT/会话、无 recovery credential、无账号删除。`LocalOwner` 是唯一本地数据归属主体，MUST NOT 保存 phone/email/password/token/recovery secret/device fingerprint 等认证材料（见 `identity-privacy-lifecycle.md` LID-003）。
 
 ### SEC-301
 
-access/refresh token MUST 绑定 durable AuthSession/token family；refresh replay 必须 revoke family。Redis outage、进程重启或前端 localStorage 清理不得恢复 revoked session。
+无认证 runtime MUST 只监听 loopback（`127.0.0.1` / `::1`）；`0.0.0.0`、LAN 或公网接口 MUST fail startup。CORS/WebSocket MUST 仅 allowlist loopback origins（LID-020..022）。`/auth/*`、dev auto-login、account deletion routes MUST 停止注册（LID-040）。
 
 ### SEC-302
 
-修改密码、恢复和账号删除必须重新认证并 server-side rate limit。unknown/existing identifier response 不得泄漏账号存在性。
+危险本地数据清除（Erase Selected Local Data / Reset Local Workspace）MUST 使用 preview + expiring confirmation + typed phrase + idempotency + durable receipt，且不得重新引入 password 或 account-deletion 语义（LID-061/062）。
 
 ### SEC-303
 
-账号删除必须 cross-user fail closed、manifest scoped、reconciliation zero-residual。tombstone/receipt 不得保存 PII/content/secret；restore barrier 必须在普通认证和后台处理前生效。
+数据清除必须 owner-scoped、reconciliation zero-residual；tombstone/receipt 不得保存 PII/content/secret；restore barrier 必须在本地数据恢复与后台处理前生效。
 
 ## 18. P1-06 Onboarding Security
 

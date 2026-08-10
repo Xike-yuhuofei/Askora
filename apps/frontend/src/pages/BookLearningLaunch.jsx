@@ -86,7 +86,6 @@ function readinessFingerprint(readiness, command) {
 }
 
 function responseMessage(error, fallback) {
-  if (error?.response?.status === 401) return '登录状态已失效，请重新登录。'
   const code = error?.response?.data?.error?.message
   const known = {
     DIAGNOSTIC_ITEM_UNAVAILABLE: '基础检查题暂时不可用。这次故障不会被记录成你的错误。',

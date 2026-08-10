@@ -150,7 +150,6 @@ L1 facet navigation MAY 使用 segmented/tab/sidebar local pattern，具体 patt
 | `/learn/:activityId` | 导师工作台 | Workspace |
 | `/quick/:sessionId` | 兼容快速学习工作台 | Workspace + Compatibility Label |
 | `/focus/:activityId` | 沉浸学习 | Focus |
-| `/login` | 登录 / 注册 | Auth |
 | `/welcome` | 首次引导 | Supporting |
 
 Settings 二级 route SHOULD 按已实现 capability 逐步拆分，例如：
@@ -160,7 +159,6 @@ Settings 二级 route SHOULD 按已实现 capability 逐步拆分，例如：
 /settings/learning
 /settings/appearance
 /settings/data
-/settings/account
 /settings/advanced
 ```
 
@@ -187,7 +185,7 @@ Redirect 不得修改业务状态、创建 session/activity 或触发 command。
 
 ### UI-IA-032 — Unknown Route
 
-未知路由 MUST 进入可理解的 Not Found / recovery 页面或 canonical default route。MUST NOT 因错误路由触发新会话、新活动或登录状态变化。
+未知路由 MUST 进入可理解的 Not Found / recovery 页面或 canonical default route。MUST NOT 因错误路由触发新会话、新活动或 LocalOwner 切换。
 
 ### UI-IA-033 — Compatibility Workspace Route
 
@@ -230,9 +228,9 @@ Activity / History Rail | Conversation & Task Canvas | Learning Context Inspecto
 - 复用同一消息、Attempt、TeachingAction 与 actual assistance 记录；
 - 不以视觉隐藏绕过 citation、security、assessment integrity 或 exposure guard。
 
-### UI-IA-043 — Auth Shell
+### UI-IA-043 — No Auth Shell
 
-Auth Shell 只承载登录、注册、开发态说明与错误恢复。账号设置不得混入登录主任务；开发自动登录不得通过前端 fallback 假装成功。
+Askora 无登录/注册 shell。首次引导（Welcome/Onboarding）与错误恢复中心承载本地初始化与恢复说明；不提供登录、注册、账号设置或自动登录页面。
 
 ## 6. Today Hierarchy
 

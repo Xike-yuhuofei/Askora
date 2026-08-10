@@ -162,7 +162,7 @@ async def test_get_profile_http_endpoint_uses_query_boundary(tmp_path) -> None:
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_owner_projection
+    from app.services.owner.dependencies import get_current_owner_projection
 
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:

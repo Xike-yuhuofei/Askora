@@ -171,4 +171,4 @@ async def test_owner_mapping_is_replayable_and_deterministic(tmp_path) -> None:
 
 def test_migration_heads_are_clean() -> None:
     result = _alembic("sqlite+aiosqlite:///:memory:", "heads")
-    assert "b1c0d2f3a001 (head)" in result.stdout
+    assert "g001d0e0a001 (head)" in result.stdout

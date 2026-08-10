@@ -109,7 +109,7 @@ async def check_rate_limit(user_id: str, action: str) -> bool:
 
     Args:
         user_id: 用户 ID
-        action: 操作类型（如 dialog.send, auth.login）
+        action: 操作类型（如 dialog.send, document.upload）
 
     Returns:
         True 表示允许访问

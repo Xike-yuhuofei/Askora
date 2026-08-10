@@ -47,7 +47,7 @@ from app.services.assessment.canonical_service import (
     CanonicalAssessmentService,
     ScoredAssessmentRecord,
 )
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 
 @dataclass(frozen=True)

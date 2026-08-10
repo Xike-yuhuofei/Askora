@@ -24,7 +24,8 @@ from app.core.exceptions import AppError
 from app.data_control.erasure import ErasureCoordinator
 from app.data_control.export import UserDataExporter, export_registry
 from app.data_control.recovery import RecoveryError
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.models.user import User
+from app.services.owner.dependencies import get_current_owner_projection
 
 router = APIRouter(prefix="/data-control", tags=["数据控制"])
 
@@ -58,7 +59,7 @@ def _erasure_coordinator(db: AsyncSession) -> ErasureCoordinator:
 @router.post("/exports", response_model=UserExportReadyV1)
 async def create_user_export(
     request: CreateUserExportRequest,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> UserExportReadyV1:
     try:
@@ -83,7 +84,7 @@ async def download_user_export(
         max_length=200,
         alias="X-Askora-Export-Token",
     ),
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
 ) -> FileResponse:
     try:
         artifact_path = export_registry.consume(export_id, current_user.id, token)
@@ -104,7 +105,7 @@ async def download_user_export(
 @router.post("/erasures/preview", response_model=ErasurePreviewV1)
 async def create_erasure_preview(
     request: CreateErasurePreviewRequest,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> ErasurePreviewV1:
     try:
@@ -124,7 +125,7 @@ async def create_erasure_preview(
 @router.post("/erasures/confirm", response_model=ErasureReportV1)
 async def confirm_erasure(
     request: ConfirmErasureRequest,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> ErasureReportV1:
     try:

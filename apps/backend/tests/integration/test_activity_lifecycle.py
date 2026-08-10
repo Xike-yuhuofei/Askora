@@ -26,7 +26,7 @@ from app.models.ledger import LearningEventRecord, OutboxTaskRecord
 from app.models.planning import LearningActivityRecord, LearningGoalRecord, LearningPlanRecord
 from app.models.user import User
 from app.services.activity_lifecycle import ActivityLifecycleService
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 NOW = datetime(2026, 8, 9, 6, 0, tzinfo=timezone.utc)
 POSTGRES_TEST_URL = os.environ.get("ASKORA_POSTGRES_TEST_URL")

@@ -162,7 +162,6 @@ answer_exposure   = NONE|PARTIAL|COMPLETE
 apps/backend/app/
 ├── api/                          # API 路由层
 │   └── v1/
-│       ├── auth.py               # 认证接口
 │       ├── dialog.py             # 对话接口
 │       ├── documents.py          # 文档管理接口
 │       ├── orchestrator.py       # 编排器调试接口
@@ -226,7 +225,6 @@ apps/backend/app/
 ├── queries/                      # 只读查询边界
 ├── services/                     # 服务层
 │   ├── assessment/               # 评估服务
-│   ├── auth/                     # 认证服务
 │   ├── dialog/                   # 对话服务
 │   ├── documents/               # 文档服务
 │   ├── dkt/                      # DKT 知识追踪
@@ -255,7 +253,6 @@ apps/backend/app/
 | `port` | `int` | `8000` | 监听端口 |
 | `database_url` | `str` | `postgresql+asyncpg://...` | 数据库连接 |
 | `redis_url` | `str` | `redis://localhost:6379/0` | Redis 连接 |
-| `jwt_secret_key` | `str` | `change-me-in-production` | JWT 密钥 |
 | `llm_default_provider` | `LLMProvider` | `QWEN` | 默认 LLM 供应商 |
 | `llm_qwen_api_key` | `str` | `""` | 通义千问 API Key |
 | `llm_deepseek_api_key` | `str` | `""` | DeepSeek API Key |
@@ -519,7 +516,6 @@ class DialogService:
 
 | 服务目录 | 文件 | 说明 |
 |---------|------|------|
-| `services/auth/` | `auth_service.py`, `token_service.py`, `dependencies.py` | JWT 认证与授权 |
 | `services/documents/` | `document_service.py`, `embedding_service.py`, `rag_service.py` | 文档解析与 RAG |
 | `services/assessment/` | `assessment_service.py`, `canonical_service.py` | 评估服务 |
 | `services/kt/` | `knowledge_tracing_service.py`, `canonical_projector.py` | 知识追踪 |
@@ -554,7 +550,6 @@ class DialogService:
 
 | 路由前缀 | 路由器 | 说明 |
 |---------|--------|------|
-| `/api/v1` | `auth_router` | 登录、注册、Token 刷新 |
 | `/api/v1` | `dialog_router` | 创建会话、发送/流式消息 |
 | `/api/v1` | `users_router` | 用户信息、昵称修改 |
 | `/api/v1` | `documents_router` | 文档上传、列表、删除 |
@@ -566,8 +561,6 @@ class DialogService:
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `POST` | `/auth/login` | 用户登录 |
-| `POST` | `/auth/refresh` | 刷新 Token |
 | `POST` | `/dialog/sessions` | 创建对话会话 |
 | `GET` | `/dialog/sessions` | 获取会话列表 |
 | `POST` | `/dialog/sessions/{id}/messages` | 发送消息（非流式） |
@@ -611,7 +604,6 @@ apps/frontend/
 ├── src/
 │   ├── api/                      # API 客户端
 │   │   ├── client.js             # Axios 实例与拦截器
-│   │   ├── auth.js               # 认证 API
 │   │   ├── dialog.js             # 对话 API
 │   │   ├── documents.js          # 文档 API
 │   │   ├── users.js              # 用户 API
@@ -622,20 +614,15 @@ apps/frontend/
 │   │   │   └── SafeMarkdown.jsx  # 安全 Markdown 渲染
 │   │   ├── AppShell.jsx          # 应用外壳布局
 │   │   ├── Sidebar.jsx           # 侧边导航栏
-│   │   ├── ProtectedRoute.jsx    # 路由保护
 │   │   ├── NoticeModal.jsx       # 通知弹窗
 │   │   └── SourceStatus.jsx      # 源状态组件
-│   ├── hooks/
-│   │   └── useAuth.jsx           # 认证 Hook
 │   ├── pages/                    # 页面组件
-│   │   ├── Login.jsx             # 登录页
 │   │   ├── Today.jsx             # Today 工作区
 │   │   ├── Library.jsx           # 图书馆
 │   │   ├── History.jsx           # 历史记录
 │   │   ├── TutorWorkspace.jsx    # 教学工作区
 │   │   ├── Settings.jsx          # 设置
 │   │   ├── Profile.jsx           # 个人资料
-│   │   ├── Account.jsx           # 账户
 │   │   └── Unavailable.jsx       # 功能未开放页
 │   ├── styles/
 │   │   └── global.css            # 全局样式
@@ -706,7 +693,6 @@ NavLink            // 导航链接组件
 
 | 路径 | 页面 | Shell 变体 |
 |------|------|-----------|
-| `/login` | Login | - |
 | `/today` | Today | standard |
 | `/library` | Library | standard |
 | `/history` | History | standard |
@@ -721,9 +707,7 @@ NavLink            // 导航链接组件
 基于 Axios 的 API 客户端：
 
 **核心功能**：
-- 自动 Token 附加（Bearer Auth）
-- 设备指纹绑定
-- 401 自动刷新 Token
+- 请求/响应拦截器（本地 LocalOwner 模式，无 Bearer Token）
 - 系统级错误全局弹窗
 
 ```javascript
@@ -733,10 +717,10 @@ const api = axios.create({
   timeout: 30000,
 })
 
-// 请求拦截器：附加 Token + 设备指纹
+// 请求拦截器：本地访问，无 Token
 api.interceptors.request.use(async (config) => { ... })
 
-// 响应拦截器：401 自动刷新
+// 响应拦截器：系统级错误处理
 api.interceptors.response.use(null, async (error) => { ... })
 ```
 
@@ -744,7 +728,6 @@ api.interceptors.response.use(null, async (error) => { ... })
 
 | 文件 | 函数 | 说明 |
 |------|------|------|
-| `auth.js` | `login`, `refreshToken` | 认证 |
 | `dialog.js` | `createSession`, `sendMessage`, `streamMessage` | 对话 |
 | `documents.js` | `uploadDocument`, `listDocuments` | 文档 |
 | `users.js` | `getProfile`, `updateNickname` | 用户 |
@@ -764,9 +747,10 @@ api.interceptors.response.use(null, async (error) => { ... })
 
 ### 核心数据表
 
-#### 用户与认证
-- `users` — 用户表
-- `user_profiles` — 用户画像
+#### 学习主体（LocalOwner / Learner，无认证语义）
+- `local_owners` — LocalOwner 单一身份真源（唯一本地学习者 Owner）
+- `users` — LocalOwner 兼容投影表（保留历史外键归属字段，无登录/密码/会话/OAuth）
+- `user_profiles` — 学习者画像
 
 #### 对话系统
 - `dialog_sessions` — 对话会话
@@ -835,8 +819,6 @@ uv run alembic check
 | `redis` | >=5.0.0 | Redis 客户端 |
 | `pydantic` | >=2.6.0 | 数据校验 |
 | `pydantic-settings` | >=2.2.0 | 配置管理 |
-| `PyJWT[crypto]` | >=2.10.1 | JWT |
-| `passlib[bcrypt]` | >=1.7.4 | 密码哈希 |
 | `cryptography` | >=42.0.0 | 加密 |
 | `httpx` | >=0.27.0 | HTTP 客户端 |
 | `prometheus-client` | >=0.20.0 | Metrics |
@@ -898,7 +880,7 @@ uv run alembic check
      │                │                    │
 ┌────▼────┐   ┌───────▼──────┐   ┌────────▼─────────┐
 │Engines  │   │  Domains     │   │   Services       │
-│(TEI)    │   │ (SYS01-07)   │   │ (LLM/Auth/Docs)  │
+│(TEI)    │   │ (SYS01-07)   │   │ (LLM/Docs)     │
 └────┬────┘   └───────┬──────┘   └────────┬─────────┘
      │                │                    │
      └────────────────┼────────────────────┘
@@ -948,7 +930,7 @@ cp .env.example .env
 # 编辑 .env，设置：
 #   - APP_ENV=local
 #   - LLM Keys（需要真实模型时填写）
-#   - 数据库密码、JWT Key 等
+#   - 数据库密码、KEK 密钥等
 
 # 3. 数据库迁移
 uv run alembic upgrade head
@@ -985,7 +967,7 @@ npm run dev
 ```bash
 # 1. 配置环境
 cp .env.example .env
-# 设置随机数据库密码、JWT/KEK 密钥、LLM Key
+# 设置随机数据库密码、KEK 密钥、LLM Key
 
 # 2. 配置检查
 docker compose config

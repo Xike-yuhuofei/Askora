@@ -211,10 +211,10 @@ Settings 从 giant control grid 拆为 category navigation + secondary destinati
 至少覆盖：
 
 ```text
-登录/首次引导 → Today → canonical activity → Workspace → 返回 Today
+首次引导 → Today → canonical activity → Workspace → 返回 Today
 Today → Learning → Goals → Goal Detail/Edit → Plan → Progress → History
 Library → Search → Select → contextual action → Document/Knowledge context
-Settings utility → category → Model/Data/Account/Recovery flow → 返回
+Settings utility → category → Model/Data/Recovery flow → 返回
 Legacy deep link → canonical route without side effect
 ```
 

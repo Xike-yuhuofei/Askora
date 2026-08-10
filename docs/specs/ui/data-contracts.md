@@ -482,11 +482,11 @@ evidence_profile:
 
 ### UI-DATA-082
 
-Frontend cache 只能是可失效 read cache。切换用户、退出登录、resource deletion 或 schema major change 时必须清除相关缓存。Local storage 不得成为 LearningPlan/LearnerState/ReviewSchedule truth。
+Frontend cache 只能是可失效 read cache。resource deletion 或 schema major change 时必须清除相关缓存。Local storage 不得成为 LearningPlan/LearnerState/ReviewSchedule truth。
 
 ### UI-DATA-083
 
-含个人学习数据的 Query 默认不得被共享代理缓存；transport cache policy 与 Electron 本地 cache 必须遵循当前 auth/privacy mode。
+含个人学习数据的 Query 默认不得被共享代理缓存；transport cache policy 与 Electron 本地 cache 必须遵循当前 local privacy mode。
 
 ## 10. Errors
 
@@ -513,7 +513,7 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 - `UI-DATA-AC-005`：knowledge map 不合并 KnowledgeUnit truth 与 learner evidence truth。
 - `UI-DATA-AC-006`：evidence query 不从 probability 派生无版本 mastery label。
 - `UI-DATA-AC-007`：API handler 不含 planner、review、mastery、policy 或 knowledge algorithm。
-- `UI-DATA-AC-008`：退出/换用户后 frontend cache 不泄漏上一用户学习数据。
+- `UI-DATA-AC-008`：LocalOwner 切换后 frontend cache 不泄漏上一 owner 学习数据。
 - `UI-DATA-AC-009`：未冻结的新 commands 不会以假按钮或 frontend-only state 出现。
 - `UI-DATA-AC-010`：只有 ACTIVE/RESUMABLE activity 才携带可进入工作台的 canonical session link。
 - `UI-DATA-AC-011`：data-control status 来自 catalog/report exact refs；frontend 不自行判断 backup integrity 或 erasure completion。

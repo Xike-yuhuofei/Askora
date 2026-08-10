@@ -36,12 +36,11 @@ export default function Goals() {
     setState((current) => ({ ...current, status: 'loading', error: '' }))
     try {
       setState({ status: 'ready', payload: await workspaceApi.getGoalsWorkspace(), error: '' })
-    } catch (error) {
-      const unauthorized = error.response?.status === 401
+    } catch {
       setState({
-        status: unauthorized ? 'unauthorized' : 'error',
+        status: 'error',
         payload: null,
-        error: unauthorized ? '登录状态已失效，请重新登录。' : '学习目标暂时无法读取。',
+        error: '学习目标暂时无法读取。',
       })
     }
   }
@@ -51,7 +50,7 @@ export default function Goals() {
   if (state.status === 'loading') {
     return <div className="page-state" role="status"><div className="spinner" /><p>正在读取学习目标…</p></div>
   }
-  if (state.status === 'error' || state.status === 'unauthorized') {
+  if (state.status === 'error') {
     return (
       <div className="page-state page-state--error" role="alert">
         <h1>学习目标</h1><p>{state.error}</p>

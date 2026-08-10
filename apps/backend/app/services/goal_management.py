@@ -70,8 +70,8 @@ from app.models.user import User
 from app.queries.goal_knowledge import GoalKnowledgeQueryService, PublishedGoalKnowledgeScope
 from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.assessment.goal_achievement import GoalAchievementAssessmentService
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
+from app.services.owner.canonical_identity import canonical_user_id
 
 _UNMEASURABLE = ("了解", "理解", "熟悉", "看完", "读完", "understand", "familiar", "read")
 

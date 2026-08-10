@@ -11,7 +11,7 @@ from app.application.book_learning import BookLearningApplicationError
 from app.core.database import Base, get_db
 from app.main import app as fastapi_app
 from app.models.user import User
-from app.services.auth.dependencies import get_current_user
+from app.services.owner.dependencies import get_current_owner_projection
 
 
 class RateLimitedTeachingApplication:
@@ -45,7 +45,7 @@ async def test_provider_error_envelope_links_the_persisted_recovery_issue(tmp_pa
             return RateLimitedTeachingApplication()
 
         fastapi_app.dependency_overrides[get_db] = override_get_db
-        fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
+        fastapi_app.dependency_overrides[get_current_owner_projection] = override_get_current_user
         fastapi_app.dependency_overrides[get_book_learning_application] = override_application
         activity_id = uuid4()
         correlation_id = uuid4()

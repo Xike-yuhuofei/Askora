@@ -243,7 +243,7 @@ async def test_ui02a_http_queries_are_private_and_require_valid_scope(tmp_path) 
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_owner_projection
+    from app.services.owner.dependencies import get_current_owner_projection
 
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:

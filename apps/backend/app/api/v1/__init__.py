@@ -1,8 +1,8 @@
 """
 v1 API 路由包 (EXEC-048: No-Auth Mode)
 
-Authentication routes are no longer exported for production no-auth mode.
-Legacy auth functionality is preserved in auth.py but not registered.
+Askora 为本地单机个人学习 App，无用户账号/登录/认证体系。
+Authentication routes 已彻底移除，不提供任何认证端点。
 """
 
 from app.api.v1.book_learning import router as book_learning_router

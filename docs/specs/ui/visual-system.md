@@ -293,7 +293,7 @@ Node 默认使用中性 surface。Current、published/candidate、selected 与 e
 
 ### UI-VIS-100 — Hierarchical Settings
 
-Settings landing 默认使用 category row/list，而不是把账号、数据、删除、恢复、模型、安全全部铺为 Cards。
+Settings landing 默认使用 category row/list，而不是把数据、删除、恢复、模型、安全全部铺为 Cards。
 
 Destructive action 不得依靠红色大 Card 提升发现性；应在正确 category 内通过清晰文案与 danger action 表达。
 

@@ -1,6 +1,9 @@
 """
-用户模型 - 精简版
-个人用户场景：支持基础用户账号
+LocalOwner 兼容投影模型
+Askora 为本地单机个人学习 App，无用户账号/登录/认证体系。
+本表仅作为学习者数据归属的 transitional compatibility projection：
+保留 id / pseudonym_id 等被历史表外键引用的字段，不含任何登录凭据。
+LocalOwner 是唯一身份真源（见 app/infrastructure/local_owner.py）。
 """
 
 from __future__ import annotations
@@ -10,14 +13,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
     DateTime,
     Enum,
     Index,
-    Integer,
     String,
-    Text,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,65 +29,38 @@ if TYPE_CHECKING:
 
 
 class UserRole(str, enum.Enum):
-    """用户角色（简化版）"""
+    """单用户学习者角色"""
 
-    USER = "user"  # 个人用户
+    USER = "user"
 
 
 class UserStatus(str, enum.Enum):
-    """用户状态"""
+    """本地学习者状态（单一本地实例恒为 ACTIVE）"""
 
-    ACTIVE = "active"  # 正常
-    PENDING_VERIFICATION = "pending_verification"  # 待审核
-    SUSPENDED = "suspended"  # 已停用
-    DELETED = "deleted"  # 已删除（软删除）
+    ACTIVE = "active"
 
 
 class User(Base):
     """
-    用户基础信息表
-    精简版：移除了多角色/儿童账号/学校等平台功能
+    LocalOwner 兼容投影表（无认证语义）。
+
+    仅保留被历史表外键引用的归属字段；登录账号、密码、会话、
+    OAuth、验证等认证专用列已全部移除。
     """
 
     __tablename__ = "users"
 
-    # 主键
+    # 主键：等价于 LocalOwner owner_id
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
 
-    # 角色与状态
+    # 学习者角色与状态（单用户恒为 USER / ACTIVE）
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.USER, index=True)
     status: Mapped[UserStatus] = mapped_column(
         Enum(UserStatus), default=UserStatus.ACTIVE, index=True
     )
-    # IDP-043 account lifecycle is distinct from legacy availability/status.
-    account_lifecycle: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="active", server_default="active", index=True
-    )
-
-    # 认证信息
-    phone_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # 仅用于等值查找；HMAC 不能还原手机号，并由数据库唯一约束防并发重复注册。
-    phone_hash: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, unique=True, index=True
-    )
-    email_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     nickname: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    # 密码哈希
-    password_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    credential_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
-    password_changed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # 微信 OpenID
-    wechat_openid_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # 实名信息（可选）
-    real_name_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # 假名化 ID（用于学习数据关联，不暴露真实 user_id）
+    # 假名化 ID（用于学习数据关联，不暴露 owner_id）
     pseudonym_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)
 
     # 时间戳
@@ -96,10 +68,6 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    # 软删除
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # 关系
     profiles: Mapped[list["UserProfile"]] = relationship(
@@ -113,11 +81,5 @@ class User(Base):
         "DialogSession", back_populates="user", cascade="all, delete-orphan"
     )
     __table_args__ = (
-        CheckConstraint("credential_version > 0", name="ck_users_credential_version_positive"),
-        CheckConstraint(
-            "account_lifecycle IN ('active', 'deletion_pending', 'purging', "
-            "'deletion_blocked', 'deleted')",
-            name="ck_users_account_lifecycle",
-        ),
         Index("idx_users_role_status", "role", "status"),
     )

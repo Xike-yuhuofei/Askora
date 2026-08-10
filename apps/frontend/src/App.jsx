@@ -23,7 +23,6 @@ const legacyRedirects = {
   '/': '/today',
   '/profile': '/learning/progress',
   '/knowledge': '/library',
-  '/account': '/settings',
   '/goals': '/learning/goals',
   '/path': '/learning/plan',
   '/evidence': '/learning/progress',
