@@ -2,7 +2,9 @@
 
 > Spec ID：`SEC-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.3
+> 版本：v0.3 Learning Core + v1 Local Web / BYOK Alignment  
+> 上位约束：`docs/product/PRODUCT-POSITIONING.md`  
+> Local Secret governing：ADR-0017 + `docs/specs/platform/local-secret-store.md`
 
 ## 1. Trust Boundaries
 
@@ -48,7 +50,7 @@ Sensitive data external processing 必须服从产品配置/用户授权；model
 
 ### SEC-040 — Superseded v0.2 Exposure Field
 
-v0.2 `TeachingAction.answer_exposure_max` 曾作为 answer leakage hard boundary。该**字段语义**在 v0.3 被 `SEC-200` 的正交 TeachingAction envelope supersede；`SEC-040` 仅保留历史审计线索，MUST NOT 作为 v0.3 canonical writer contract。
+v0.2 `TeachingAction.answer_exposure_max` 曾作为 answer leakage hard boundary。该字段语义在 v0.3 被 `SEC-200` 的正交 TeachingAction envelope supersede；`SEC-040` 仅保留历史审计线索，MUST NOT 作为 v0.3 canonical writer contract。
 
 ### SEC-041 — Grader-only Isolation
 
@@ -90,23 +92,63 @@ SYS02 与 SYS08 MAY 因证据/安全收紧，MUST NOT 扩大。任何无法可�
 
 代码评估必须隔离运行，默认无宿主敏感文件/凭据/开放网络，并限制 CPU/memory/time/process。
 
-## 9. Ownership / Authorization
+## 9. LocalOwner / Workspace Boundary
 
-Askora 为本地单用户产品，无登录认证、无 RBAC、无多租户。仍需保持 LocalOwner data-ownership boundary：所有 learner-owned query/command 通过 `LocalOwnerContext` 解析唯一 subject，不允许仅凭 object id 访问其他 owner 数据。无认证 runtime MUST 只监听 loopback，CORS/WebSocket 仅 allowlist loopback origins（见 `identity-privacy-lifecycle.md` LID-020..022）。
+### SEC-065
+
+v1 无 Account/Login/Tenant/RBAC。无认证不等于无安全边界：Local Server MUST 仅绑定 loopback，并验证受支持 browser origin；资源 query/write 仍必须解析唯一 LocalOwner 并执行 Workspace scope。
+
+### SEC-066
+
+Workspace 是单机数据隔离边界，不是权限角色。跨 Workspace object ref、retrieval scope、ProjectMaterial、Goal/Session binding MUST fail closed，并不得泄漏不相关 Workspace 的 object metadata。
 
 ## 10. Secrets / Logging
 
-Secrets 只从受控配置读取，不提交仓库、不输出日志、不发送 LLM、不进入前端 bundle。
-
-### SEC-071 — Desktop Model Credential
-
-macOS desktop credential MUST 由 Electron main 使用 `safeStorage` 加密保存，密钥保护委托给 OS Keychain；禁止明文 fallback。renderer 只能获得 `configured/provider/model/source/revision/verified_at` 等脱敏状态，MUST NOT 获得 decrypt/file/env/control-token 能力。IPC handler MUST 验证 sender/origin，并使用固定 allowlist channel。
-
-候选 credential probe 只可发送固定 synthetic text，不发送个人资料、学习历史、EvidenceBundle 或用户文档；provider 返回只用于连通性/模型有效性判定，不进入学习事实。probe、日志、错误、telemetry 均不得包含 credential、ciphertext、control token 或原始 provider response。
-
-### SEC-070
+### SEC-070 — Logging
 
 日志默认保存 metadata/reason/reference，不保存完整敏感上下文；debug capture 必须显式、限期、可删除。
+
+任何 API key、Authorization、secret material、secret-bearing request body 或可恢复 credential representation MUST NOT 进入普通 log、trace、diagnostic、Prompt、frontend cache、export 或默认 backup。
+
+### SEC-071 — Historical Desktop Model Credential
+
+旧版 `SEC-071` 规定 Electron main + `safeStorage` + preload IPC。该 **Desktop-specific mechanism 已由 Product Positioning、ADR-0017 与 `LSS-*` supersede**。
+
+其仍有效的保护意图仅包括：
+
+- OS-backed secure persistence；
+- no plaintext fallback；
+- browser/renderer 无 saved-key readback；
+- probe 不携带私人资料；
+- credential 不进入日志/Prompt/export。
+
+Electron/safeStorage/IPC/control-token 不得再作为 v1 production Local Web 的 Required 安全机制。
+
+### SEC-072 — Local Web BYOK Credential
+
+Production v1 provider credential MUST 服从 ADR-0017 + `LSS-*`：
+
+```text
+macOS   → exact keyring.backends.macOS.Keyring
+Windows → exact keyring.backends.Windows.WinVaultKeyring
+```
+
+并要求：
+
+- production explicit backend allowlist；
+- automatic/third-party/Null/file backend rejected；
+- Windows credential 使用 local-machine persistence；
+- no plaintext persistent fallback；
+- browser/public API 无 secret read/enumerate capability；
+- ordinary SQLite 只保存 non-secret profile/ref/journal metadata；
+- apply/clear 使用 durable non-secret activation journal 解决 SQLite + OS store crash consistency；
+- restore 缺 secret 时进入 degraded/reconfigure，不允许 `.env` fallback。
+
+### SEC-073 — Local Secret Threat Claim Boundary
+
+OS credential storage 保护的是 Askora 普通数据文件、browser、日志、诊断和 backup/export 泄漏面。Askora MUST NOT 宣称它能抵御同一 OS 用户权限下的任意代码执行、完整机器 compromise 或提供 native app sandbox/hardware-backed isolation。
+
+未来更强 native credential ACL MAY 通过新的 ADR 引入，但 MUST NOT 让 Desktop shell 成为 v1 prerequisite。
 
 ## 11. Dependencies
 
@@ -114,19 +156,21 @@ macOS desktop credential MUST 由 Electron main 使用 `safeStorage` 加密保�
 
 新增生产依赖需要目的/维护/安全评估；执行代理 MUST NOT 自行加入大型 autonomous-agent/security framework 解决局部问题。
 
+`keyring` 作为 ADR-0017 已批准的窄 production dependency；版本必须 lock，升级必须重新运行 `LSS-*` backend allowlist/leakage/crash tests。
+
 ### SEC-081 — Rich Response Renderer
 
 模型/检索/工具产生的 Markdown、公式和结构化 block 一律 untrusted。前端 MUST 使用 typed component allowlist；MUST NOT 执行 raw HTML、MDX、script、模型指定组件、代码块或 arbitrary card command。链接协议只允许 `http`/`https`；v1.0 remote image/file/data URL MUST blocked。公式 renderer MUST 禁止 trusted external-resource commands，并限制 expansion/size。
 
 ### SEC-082 — Recovery and Export
 
-Recovery Package MUST authenticated encrypt，并使用独立 Recovery Key；明文 key 不得进入 package/catalog/log/argv/localStorage。设备副本须由 platform secure storage 保护。恢复解压必须阻止 traversal、symlink/special file、duplicate entry、size/compression abuse；激活前在 staging 完整校验。
+Recovery/backup/export 必须服从当前 v1 Data Control contract。任何 package/export MUST NOT 包含 provider API key、recoverable model credential、内部 Prompt/system instructions、grader-only answer/rubric、其他 Workspace 数据或本地绝对路径。
 
-User Data Export 使用显式 allowlist，MUST NOT 包含 KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他 owner 数据或本地绝对路径。
+User Data Export 使用显式 allowlist，MUST NOT 包含 KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他 owner 数据或本地绝对路径。若历史 recovery package 仍使用加密恢复密钥，其机制只作为对应 historical/current data-control contract 的实现证据，不得重新引入 Account credential semantics。
 
 ### SEC-083 — Destructive Data Control
 
-Erasure 必须 current-user、影响预览、expiring confirmation、显式用户动作、幂等与最小 audit receipt。外部模型、资料内容、renderer 或普通 retry 无权触发/扩大删除范围。
+Erasure/Permanent Delete 必须固定 scope、影响预览、显式用户动作、幂等与最小 audit receipt。外部模型、资料内容、renderer 或普通 retry 无权触发/扩大删除范围。
 
 ## 12. Policy Override Protection
 
@@ -140,37 +184,74 @@ Legacy Socratic selector/state graph MUST NOT 成为 final TeachingAction owner 
 
 ## 13. Tests
 
-必须覆盖：document/retrieval/tool injection；grader/answer leakage；attempted scaffold/hint/exposure expansion；direct-answer assessment integrity；actual exposure capture；path traversal；unauthorized access；secret/log leakage；malicious structured output；tool parameter validation；legacy Socratic no override；safeStorage 不可用；renderer/IPC 越权；control token 错误；probe payload 私密数据缺席；clear/rollback 后 secret 不泄漏。
+必须覆盖：
 
-P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platform key boundary、export zero-secret leakage、erasure confirmation/authorization、managed old-backup no-resurrection。
+- document/retrieval/tool injection；
+- grader/answer leakage；
+- attempted scaffold/hint/exposure expansion；
+- direct-answer assessment integrity；
+- actual exposure capture；
+- path traversal；
+- LocalOwner/Workspace cross-scope isolation；
+- secret/log leakage；
+- malicious structured output；
+- tool parameter validation；
+- legacy Socratic no override；
+- LocalSecretStore exact backend allowlist；
+- Null/third-party/override backend rejection；
+- Windows local-machine credential persistence；
+- probe payload excludes private data；
+- browser/API/SQLite/log/export/backup zero-secret leakage；
+- activation crash/restart matrix；
+- clear remains disabled even if orphan-secret cleanup fails；
+- restore missing secret requires reconfiguration and no env resurrection。
 
-P1-03 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits、platform key boundary、export zero-secret leakage、erasure confirmation/authorization、managed old-backup no-resurrection。
+Data lifecycle 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits（如当前 recovery format 适用）、export zero-secret leakage、erasure confirmation/scope、managed old-backup no-resurrection。
 
 ## 14. Acceptance Criteria
 
 - `SEC-AC-001`：恶意文档不能改变 TeachingAction/PolicyBundle/tool permission。
 - `SEC-AC-002`：模型不能调用未注册工具。
 - `SEC-AC-003`：grader-only answer 不进入 learner output。
-- `SEC-AC-004`：外部模型请求不包含测试密钥/token。
+- `SEC-AC-004`：外部模型请求不包含测试密钥/token 或无关个人数据。
 - `SEC-AC-005`：quarantined 内容不进入 retrieval。
 - `SEC-AC-006`：代码评估无法访问宿主敏感资源。
 - `SEC-AC-007`：引用声明可追踪 SourceSpan。
 - `SEC-AC-201`：SYS02/SYS08 无扩大 SYS05 support/exposure envelope 的路径。
 - `SEC-AC-202`：hard rule 无 LLM/experiment/legacy bypass。
-- `SEC-AC-203`：renderer、普通 API、日志、Prompt、telemetry 无模型明文 credential。
-- `SEC-AC-204`：desktop vault 无 OS encryption 时拒绝写入，不降级为明文。
+- `SEC-AC-203`：browser、普通 API、SQLite profile、日志、Prompt、telemetry、export/default backup 无模型明文 credential。
+- `SEC-AC-204`：production LocalSecretStore 只接受 ADR-0017/LSS 指定 OS-backed backend；安全存储不可用时拒绝持久化，不降级明文。
+- `SEC-AC-205`：clear 后 canonical routing 保持 disabled，即使旧 secret 删除失败或开发 `.env` 仍存在。
+- `SEC-AC-206`：模型配置任一 crash phase 不产生 silent profile/runtime split-brain。
 
 ## 15. Legacy Mapping
 
-历史整数/L0-L4 exposure MAY read-only/audit；canonical writer MUST 只写 `answer_exposure`，不得 permanent dual-write。旧 `SEC-040` 的保护意图仍由 `SEC-200` 承接；旧 `SEC-041` 保留原 grader-only isolation 语义。
+历史整数/L0-L4 exposure MAY read-only/audit；canonical writer MUST 只写 `answer_exposure`，不得 permanent dual-write。旧 `SEC-040` 的保护意图仍由 `SEC-200` 承接；旧 `SEC-041` 保留 grader-only isolation。
+
+旧 Desktop credential security 只保留安全意图，具体 Electron mechanics 由 `SEC-071` 明确 superseded。
 
 ## 16. Forbidden Implementations
 
-禁止：Prompt 作为唯一权限层；autonomous agent 任意 shell/network；reference answer 与 learner prompt 无隔离混放；外部模型默认接收全部个人资料；日志打印 secret/完整敏感 Prompt；renderer 获取明文 credential/decrypt/file/control token；safeStorage 不可用时明文落盘；probe 携带个人资料；parser 信任扩展名；恶意 retrieval content 提升为 system instruction；继续写 `answer_exposure_max` 为 canonical security truth；SYS08/LLM 自动扩大 TeachingAction envelope。
+禁止：
 
-## 17. Identity and Privacy Security
+- Prompt 作为唯一权限层；
+- autonomous agent 任意 shell/network；
+- reference answer 与 learner prompt 无隔离混放；
+- 外部模型默认接收全部个人资料；
+- 日志打印 secret/完整敏感 Prompt；
+- browser 获取 saved credential/decrypt/file control capability；
+- LocalSecretStore 不可用时明文落盘；
+- automatic/unknown keyring backend 作为 production security decision；
+- probe 携带个人资料；
+- parser 信任扩展名；
+- 恶意 retrieval content 提升为 system instruction；
+- 继续写 `answer_exposure_max` 为 canonical security truth；
+- SYS08/LLM 自动扩大 TeachingAction envelope；
+- Account/JWT/AuthSession 重新成为 v1 security prerequisite。
 
-### SEC-300
+## 17. Historical Identity / Account Security
+
+旧 `SEC-300..303` 关于 Password、JWT、AuthSession、Account Deletion 的要求属于 P1-05 历史实现合同，已由 `PRODUCT-POSITIONING.md` + ADR-0015 / `LID-*` supersede，不得作为 v1 active runtime requirement。其仍有价值的通用原则（secret 不明文、rate-limit destructive/recovery operations、删除 no-resurrection、最小 audit）由当前 LocalOwner/Data Control/LocalSecretStore 合同承接。以下为 v1 生效的无认证 active requirements：
 
 Askora 为本地单用户 App，无注册/登录/登出、无密码、无 JWT/会话、无 recovery credential、无账号删除。`LocalOwner` 是唯一本地数据归属主体，MUST NOT 保存 phone/email/password/token/recovery secret/device fingerprint 等认证材料（见 `identity-privacy-lifecycle.md` LID-003）。
 
@@ -190,11 +271,8 @@ Askora 为本地单用户 App，无注册/登录/登出、无密码、无 JWT/�
 
 ### SEC-320
 
-Onboarding view/preference/log MUST NOT 包含 Key/fragment、Prompt、grader-only、raw provider body、
-absolute path 或其他用户 ref。Boundary copy 只能引用 P1-02/P1-03 已验证事实，不得承诺完全离线或
-绝对隐私。
+Onboarding view/preference/log MUST NOT 包含 Key/fragment、Prompt、grader-only、raw provider body、absolute path 或其他 Workspace ref。Boundary copy 只能引用当前 MODEL-CONFIG/P1-03 已验证事实，不得承诺完全离线或绝对隐私。
 
 ### SEC-321
 
-Onboarding MUST NOT 自动 probe provider、加载未经选择的私人文档、创建样例/Goal/Activity 或执行
-recovery command。所有导航后的副作用仍由原 owner command 的 auth/idempotency/security gate 控制。
+Onboarding MUST NOT 自动 probe provider、加载未经选择的私人文档、创建样例/Goal/Activity 或执行 recovery command。所有导航后的副作用仍由原 owner command 的 idempotency/security gate 控制。

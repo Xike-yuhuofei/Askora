@@ -94,93 +94,136 @@ Codex 的架构自治权限只作用于下位设计，**不得自行突破 Froze
 | `ADR-0010` | Goal Definition, State, Draft and Safe Replan | accepted | 2026-08-09 |
 | `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
 | `ADR-0012` | Unified Recovery Control Plane and Bootstrap Diagnostics | accepted | 2026-08-09 |
-| `ADR-0013` | Desktop Model Credential and Activation | **partially superseded by Product Positioning** — Desktop/Electron mechanics retired; routing/secret invariants retained | 2026-08-09 |
+| `ADR-0013` | Desktop Model Credential and Activation | **partially superseded** — Desktop mechanics retired; current secure-store contract = ADR-0017 + LSS | 2026-08-09 |
 | `ADR-0014` | User-job-driven Information and Interaction Architecture | accepted | 2026-08-10 |
 | `ADR-0015` | Local Single-User Identity Without Authentication | accepted | 2026-08-10 |
+| `ADR-0016` | Workspace, LearningProject and LearningSession Scope Ownership | **accepted** | 2026-08-10 |
+| `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | **accepted** | 2026-08-10 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/Product Positioning | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
 
-### v0.3 ADR-C Resolution
+## 6. Current v1 Architecture Decisions
 
-`TeachingEpisode`、`LearningTrajectory`、`OutcomeObservation`、`ExperimentAssignment` 当前仍是 additive Design / Spec Delta，不改变八系统事实所有权，也没有形成新的核心 aggregate/service owner，因此该议题当时**不需要新增 ADR**。`ADR-0003` 后续用于独立的 Policy Runtime Profile 来源与激活解析决策。
+### ADR-0016 — Workspace / Project / LearningSession
+
+ADR-0016 closes the implementation ownership gap created when Product Positioning froze Workspace as a real data-isolation boundary.
+
+Current decisions：
+
+- Workspace → Platform Workspace Registry；
+- LearningProject / ProjectMaterial → Platform Workspace / Product Organization；
+- LearningSession → Platform Learning Session Registry；
+- LearningSession is not DialogSession and owns no transcript/TeachingAction/Assessment/Mastery truth；
+- existing `user_documents.id` remains stable Material identity during migration；
+- do not create a parallel writable `materials` truth；
+- normalize managed SourceFile separately；
+- existing LocalOwner-global data migrates idempotently into one default Workspace；
+- LearnerEvidence/Mastery/LearnerState/Review become Workspace-specific；
+- cross-workspace refs fail closed。
+
+Direct contract：`docs/specs/platform/workspace-project-session-scope.md` (`WSP-*`)。
+
+### ADR-0017 — LocalSecretStore
+
+ADR-0017 closes the security-sensitive Local Web BYOK adapter gap.
+
+Current decisions：
+
+```text
+macOS   → keyring.backends.macOS.Keyring
+Windows → keyring.backends.Windows.WinVaultKeyring
+```
+
+with：
+
+- exact production backend allowlist；
+- no automatic/third-party/Null/file fallback；
+- Windows local-machine persistence；
+- opaque random secret refs；
+- browser/public API cannot read stored secrets；
+- ordinary SQLite stores only non-secret profile/ref/activation journal；
+- durable phase journal reconciles SQLite + OS credential-store crash consistency；
+- clear commits disabled routing before best-effort orphan-secret cleanup；
+- restore missing secret → degraded/re-enter, never `.env` resurrection。
+
+Direct contracts：`docs/specs/platform/local-secret-store.md` (`LSS-*`) + `systems/08-model-configuration.md` + `quality/security-standard.md`。
+
+## 7. Historical Supersession Notes
 
 ### Local Single-User Identity Supersession
 
-ADR-0015 明确 supersede ADR-0009 / ADR-0107 中以下当前产品语义：Account、Login、Password、JWT、AuthSession、Recovery Kit、Account Deletion Lifecycle。
+ADR-0015 supersedes ADR-0009 / ADR-0107 current product semantics for Account、Login、Password、JWT、AuthSession、Recovery Kit、Account Deletion Lifecycle。
 
-owner-safe erasure、privacy/no-resurrection 等仍有独立数据治理价值的原则继续由最新 `LID-*` 与 P1-03 合同承接。
+Owner-safe erasure、privacy/no-resurrection 等仍有独立数据治理价值的原则继续由最新 `LID-*` 与 P1-03 contracts 承接。
 
-### Product Positioning Supersession — ADR-0008 / ADR-0013
+### ADR-0008
 
-`PRODUCT-POSITIONING.md` 在 2026-08-10 成为 Askora v1 及后续设计的上位 Frozen Baseline，并直接改变两份历史 ADR 的适用范围：
+Product Positioning superseded：
 
-#### ADR-0008
-
-已 supersede：
-
-- 完整 OCR Pipeline 是 v1 core/release requirement；
+- full OCR Pipeline as v1 core/release requirement；
 - current-user global library scope；
-- archive/restore 作为普通删除的最高产品语义。
+- archive/restore as the primary ordinary-delete product model。
 
-继续保留：
+Retained：
 
 - SYS01 metadata/content ownership；
-- duplicate detection 只形成 suggestion，不自动 merge；
-- search/index projection 可重建；
-- provenance / version / idempotency；
-- optional OCR candidate 未接纳不得进入 learner-visible truth。
+- duplicate suggestion, no automatic merge；
+- rebuildable search/index projections；
+- provenance/version/idempotency；
+- optional OCR candidate safety。
 
-当前合同：`systems/01-library-management.md` + `interfaces/content-ingestion-contract.md`。
+Current contracts：`systems/01-library-management.md` + `interfaces/content-ingestion-contract.md` + `interfaces/material-lifecycle-contract.md`。
 
-#### ADR-0013
+### ADR-0013
 
-已 supersede：
+Product Positioning/ADR-0017 superseded：
 
-- Electron `safeStorage` 必需路径；
+- Electron `safeStorage` required path；
 - Desktop vault/main/preload IPC；
 - desktop child-backend/launcher mechanics；
-- macOS App 是 v1 正式产品 shell。
+- macOS App as v1 product shell。
 
-继续保留：
+Retained：
 
-- SYS08 owns ModelRouteProfile semantics；
+- SYS08 owns ModelRouteProfile；
 - secret/routing separation；
-- secure local secret persistence；
+- secure local persistence；
 - probe-before-activation；
-- version/concurrency/rollback；
-- no silent failover / no secret leakage。
+- revision/concurrency/rollback；
+- no silent failover/no secret leakage。
 
-当前合同：`systems/08-model-configuration.md`。
+Current contract：ADR-0017 + `LSS-*` + `MODEL-CONFIG-*`。
 
-## 6. v0.3 ADR Breaking Change Register
+## 8. v0.3 ADR Breaking Change Register
 
 | ID | ADR | Breaking Surface | Current | New | Migration Required | Spec Delta Target |
 |---|---|---|---|---|---|---|
 | `BC-001` | ADR-0001 | Strategy enum | 9 top-level strategy families | 6 Strategy Families + move/pattern/modifier/deferred mapping | Yes | Domain Model + SYS05 (`SD-01`) |
-| `BC-002` | ADR-0001 | TeachingAction semantics | `strategy_id + action_type` 承担混合语义 | Strategy Family + action template/move plan + modifiers + immutable semantic envelope | Yes | Domain Model + SYS05 (`SD-01`, `SD-05`) |
-| `BC-003` | ADR-0001 / ADR-0002 | Support / exposure | integer `scaffold_level`, `hint_level`, `answer_exposure_max: 0..4` | orthogonal scaffold control + hint specificity + answer exposure + actual assistance | Yes | Domain Model + SYS03/SYS04/SYS05 (`SD-05`) |
-| `BC-004` | ADR-0002 | Policy configuration | loose policy version / weights / state-machine config | immutable component-versioned `PolicyBundle` + atomic activation | Yes | SYS05 + Domain config (`SD-06`, `SD-07`) |
-| `BC-005` | ADR-0002 | DecisionTrace probability / replay | generic `experiment.propensity` + incomplete replay inputs | assignment probability separated from `action_propensity`; deterministic propensity = null; explicit replayability | Yes | Decision Contract (`SD-08`) |
-| `BC-006` | ADR-0001 / ADR-0002 | Legacy Socratic selector | Socratic selector/state machine can act as implicit policy owner | bounded move/legacy adapter behind SYS05 canonical selector | Yes | SYS05 + legacy adapter (`SD-01`, `SD-06`) |
+| `BC-002` | ADR-0001 | TeachingAction semantics | `strategy_id + action_type` mixed semantics | Strategy Family + immutable action/move/modifier/envelope | Yes | Domain Model + SYS05 |
+| `BC-003` | ADR-0001 / ADR-0002 | Support / exposure | integer fields | orthogonal scaffold/hint/exposure/assistance | Yes | Domain + SYS03/04/05 |
+| `BC-004` | ADR-0002 | Policy configuration | loose config | immutable component-versioned PolicyBundle | Yes | SYS05 |
+| `BC-005` | ADR-0002 | DecisionTrace probability / replay | generic propensity | assignment probability separated; deterministic action propensity null | Yes | Decision Contract |
+| `BC-006` | ADR-0001 / ADR-0002 | Legacy Socratic selector | implicit policy owner | bounded adapter behind SYS05 | Yes | SYS05 |
 | `BC-V1-001` | Product Positioning / ADR-0013 history | Product shell | Electron/Desktop target | Local Web Browser → loopback Local Server | Yes | Architecture + MODEL-CONFIG |
-| `BC-V1-002` | Product Positioning / ADR-0008 history | Material scope | owner/global library | Workspace-scoped Material / no Global Library | Yes | Domain + SYS01 + SYS02 |
-| `BC-V1-003` | Product Positioning | Persistence | SQLite/PostgreSQL service-compatible framing | SQLite is v1 production baseline; distributed infra non-required | Yes | Persistence/Architecture |
+| `BC-V1-002` | Product Positioning / ADR-0016 | Material/scope | owner-global | real Workspace + Project/Session scope | Yes | WSP + Domain/SYS01/SYS02 |
+| `BC-V1-003` | Product Positioning | Persistence | service-compatible framing | SQLite production-local; distributed infra optional | Yes | Persistence/Architecture |
+| `BC-V1-004` | ADR-0017 | Provider credential | Electron vault/env | OS-backed LocalSecretStore + activation journal | Yes | LSS + MODEL-CONFIG + SEC |
 
-## 7. v0.3 Migration Candidate Register
+## 9. Migration Candidate Register
 
 | Candidate | Classification | Required handling |
 |---|---|---|
-| historical strategy records | `BEST_EFFORT` | preserve original value; project through versioned legacy mapping; mark ambiguous/deferred cases |
-| historical TeachingAction | `BEST_EFFORT` | retain original payload; project family/move/modifier/support semantics where reconstructable |
-| old `scaffold_level` | `AMBIGUOUS` | cannot assume integer encodes cognitive control independently; require explicit mapping/version or unknown |
-| old `hint_level` | `AMBIGUOUS` | cannot safely infer new hint-specificity taxonomy without mapping provenance |
-| old answer exposure scale | `BEST_EFFORT` | map 0–4 only through documented versioned conversion; uncertain values remain ambiguous |
-| legacy Socratic selector/state machine | `DEFER_TO_SPEC` | migrate ownership to SYS05; retain only adapter/stage-definition/execution roles allowed by Spec Delta |
-| old policy config | `BEST_EFFORT` | package reconstructable components into PolicyBundle; missing component versions degrade replayability |
-| DecisionTrace old propensity field | `AMBIGUOUS` | do not assume historical `propensity` is action propensity; unresolved values project to null/unknown with migration reason |
-| historical replay | `BEST_EFFORT` | full replay only when exact historical inputs/config exist; otherwise mark partial/not replayable |
-| Desktop model vault / IPC | `DEFER_TO_SPEC` | migrate to Local Web ModelRouteProfile + LocalSecretStore; preserve secure secret/no-resurrection semantics |
-| owner/global library document scope | `DEFER_TO_SPEC` | assign Workspace/Material ownership before new writes; no cross-workspace default search |
+| historical strategy records | `BEST_EFFORT` | preserve original value; versioned legacy mapping |
+| historical TeachingAction | `BEST_EFFORT` | retain payload; project when reconstructable |
+| old scaffold/hint/exposure fields | `AMBIGUOUS` | explicit mapping or unknown; never guess |
+| legacy Socratic selector | `DEFER_TO_SPEC` | bounded adapter only; SYS05 final owner |
+| old policy config | `BEST_EFFORT` | exact PolicyBundle where reconstructable |
+| old DecisionTrace propensity | `AMBIGUOUS` | unresolved → null/unknown + reason |
+| historical replay | `BEST_EFFORT` | FULL only with exact historical refs/config |
+| Desktop model vault / IPC | `DEFER_TO_SPEC` | v1 new writes use ADR-0017/LSS; no silent vault/env import |
+| owner-global library/goal/learner scope | `DEFER_TO_SPEC` | migrate through default Workspace per ADR-0016/WSP |
+| legacy `UserDocument` material storage | `DEFER_TO_SPEC` | preserve ID as Material; normalize SourceFile; no second truth |
+| legacy ordinary document delete | `DEFER_TO_SPEC` | source-present deleted rows → Trash; already-removed source → terminal legacy tombstone per MATLIFE |
 
-Migration candidates must preserve old data/replay provenance without keeping retired product mechanics as permanent second truth.
+All migration work MUST preserve provenance and must not keep retired mechanics as permanent dual truth.
