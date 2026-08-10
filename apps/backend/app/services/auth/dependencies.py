@@ -7,7 +7,6 @@ EXEC-048: 迁移到 LocalOwnerContext，移除 JWT/AuthSession 依赖
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Optional, TypeAlias
 
 from fastapi import Depends, Header, Request
@@ -16,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import InvalidTokenError
-from app.models.user import User, UserRole, UserStatus
+from app.models.user import User
 from app.services.auth.auth_service import AuthService
 from app.services.local_identity import (
     LocalOwnerContext,
@@ -26,23 +25,13 @@ from app.services.local_identity import (
     get_local_owner_context,
 )
 
-# LID-013 explicitly allows a temporary legacy ``User`` ORM projection while
-# learner-owned services are migrated to LocalOwnerContext / learner protocols.
-# Keep the type truthful at runtime: callers receive an actual User ORM object,
-# never a smaller dataclass masquerading as User for static checking.
 OwnerProjection: TypeAlias = User
 
 
 async def get_current_owner(
     db: AsyncSession = Depends(get_db),
 ) -> LocalOwnerContext:
-    """Get LocalOwnerContext for no-auth loopback production.
-
-    EXEC-048: Replaces get_current_user for production API endpoints.
-    No JWT/session validation needed - single-user local instance.
-
-    In test/development environments, auto-bootstraps LocalOwner if missing.
-    """
+    """Get LocalOwnerContext for no-auth loopback production."""
     try:
         return await get_local_owner_context(db)
     except LocalOwnerError:
@@ -54,47 +43,16 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> OwnerProjection:
-    """Return the temporary LID-013 ``User`` ORM compatibility projection.
-
-    A migrated legacy store reuses the exact legacy ORM row so historical
-    ``user_id`` / ``pseudonym_id`` columns continue to resolve the same learner.
-    A fresh LocalOwner receives a complete *transient* ORM projection with no
-    credential or PII material. The transient object is never added to the
-    session and therefore does not create an Account identity truth.
-    """
+    """Return the LID-013 ORM compatibility row for legacy service/FK boundaries."""
     ctx = await get_current_owner(db)
-
-    if ctx.legacy_user_id is not None:
-        legacy_user = await db.get(User, ctx.legacy_user_id)
-        if legacy_user is None:
-            raise LocalOwnerMigrationFailedError(
-                "LocalOwner references a legacy learner row that no longer exists",
-                detail={"legacy_user_id": ctx.legacy_user_id},
-            )
-        return legacy_user
-
-    now = datetime.now(timezone.utc)
-    return User(
-        id=ctx.canonical_owner_id,
-        role=UserRole.USER,
-        status=UserStatus.ACTIVE,
-        account_lifecycle="active",
-        phone_encrypted=None,
-        phone_hash=None,
-        email_encrypted=None,
-        nickname=None,
-        password_hash=None,
-        credential_version=1,
-        password_changed_at=None,
-        wechat_openid_encrypted=None,
-        real_name_encrypted=None,
-        is_verified=False,
-        pseudonym_id=ctx.owner_id.hex,
-        created_at=now,
-        updated_at=now,
-        last_login_at=None,
-        deleted_at=None,
-    )
+    projection_id = ctx.legacy_user_id or ctx.canonical_owner_id
+    projection = await db.get(User, projection_id)
+    if projection is None:
+        raise LocalOwnerMigrationFailedError(
+            "LocalOwner compatibility learner row is missing",
+            detail={"projection_user_id": projection_id},
+        )
+    return projection
 
 
 async def get_current_user_ws(
