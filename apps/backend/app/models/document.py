@@ -24,6 +24,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    null,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -63,6 +64,13 @@ class UserDocument(Base):
     # 用户关联（使用 pseudonym_id 进行隐私隔离）
     pseudonym_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("users.pseudonym_id"), index=True
+    )
+
+    # WSP-021: Workspace attribution. Backfilled at bootstrap; canonical Material
+    # writers MUST resolve exact Workspace before writing (nullable only during
+    # the additive migration / legacy window).
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
     )
 
     # 文件信息
@@ -203,6 +211,9 @@ class LibraryTag(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     name: Mapped[str] = mapped_column(String(80))
     normalized_name: Mapped[str] = mapped_column(String(80))
     version: Mapped[int] = mapped_column(Integer, default=1)
@@ -225,6 +236,9 @@ class LibraryCollection(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     name: Mapped[str] = mapped_column(String(120))
     normalized_name: Mapped[str] = mapped_column(String(120))
     version: Mapped[int] = mapped_column(Integer, default=1)
@@ -273,6 +287,9 @@ class LibrarySearchProjection(Base):
         String(36), ForeignKey("user_documents.id"), primary_key=True
     )
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     index_version: Mapped[str] = mapped_column(String(50))
     normalized_title: Mapped[str] = mapped_column(String(255))
@@ -296,6 +313,9 @@ class LibraryCommandReceipt(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     command_type: Mapped[str] = mapped_column(String(80))
     idempotency_key: Mapped[str] = mapped_column(String(200))
     payload_digest: Mapped[str] = mapped_column(String(64))
@@ -319,6 +339,9 @@ class DuplicateSuggestion(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     primary_document_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_documents.id"))
     candidate_document_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_documents.id"))
     kind: Mapped[str] = mapped_column(String(30))
@@ -348,6 +371,9 @@ class DocumentOcrRun(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     document_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_documents.id"))
     pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     input_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     raw_checksum: Mapped[str] = mapped_column(String(64))
     engine: Mapped[str] = mapped_column(String(50))

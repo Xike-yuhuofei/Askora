@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Float, Index, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    null,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -124,6 +134,9 @@ class LearningGoalRecord(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     goal_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     version: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), index=True)
     idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)

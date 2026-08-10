@@ -111,6 +111,7 @@ class DocumentService:
         file_content: bytes,
         subject: Optional[str] = None,
         knowledge_point_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
     ) -> UserDocument:
         """
         上传文档
@@ -121,6 +122,11 @@ class DocumentService:
             raise ValueError(f"不支持的文件格式: .{file_ext}")
 
         document_id = str(uuid.uuid4())
+
+        # XIK-171 writer cutover: resolve the exact Workspace before persisting so
+        # that no owner-global Material record is created.
+        if workspace_id is None:
+            workspace_id = await self._resolve_workspace_id(pseudonym_id)
 
         storage_path, file_size = await self.storage.save_file(
             pseudonym_id=pseudonym_id,
@@ -134,6 +140,7 @@ class DocumentService:
         document = UserDocument(
             id=document_id,
             pseudonym_id=pseudonym_id,
+            workspace_id=workspace_id,
             original_filename=original_filename,
             display_title=original_filename,
             metadata_version=1,
@@ -173,6 +180,59 @@ class DocumentService:
         )
 
         return document
+
+    async def _resolve_workspace_id(self, pseudonym_id: str) -> str:
+        """Resolve the exact default Workspace for new Materials (XIK-171).
+
+        Fails closed if a Workspace cannot be resolved so no owner-global
+        Material record is ever created by the active writer.
+
+        The owner is resolved from the LocalOwner singleton when present (the
+        normal single-owner runtime). When no LocalOwner exists yet (legacy /
+        isolated datastores), the owner is projected from THIS pseudonym's user
+        row so a writer for one pseudonym never becomes ambiguous because other
+        users exist. Projecting an owner keeps the ``workspaces.owner_id`` FK
+        valid while still resolving a single deterministic default Workspace.
+        """
+        from sqlalchemy import select
+
+        from app.infrastructure.local_owner import LocalOwnerRepository
+        from app.models.user import User
+        from app.services.owner.canonical_identity import canonical_user_id
+        from app.services.workspace.repository import WorkspaceRepository
+
+        owner_row = await LocalOwnerRepository(self.db).get()
+        if owner_row is not None:
+            owner_id = owner_row.owner_id
+        else:
+            user = (
+                (await self.db.execute(select(User).where(User.pseudonym_id == pseudonym_id)))
+                .scalars()
+                .first()
+            )
+            if user is not None:
+                owner_id = str(canonical_user_id(user.id))
+                # Establish the singleton owner for this legacy user so the
+                # Workspace FK is satisfied. Idempotent: a concurrent writer
+                # that already created the owner conflicts on the singleton key
+                # and is ignored.
+                await LocalOwnerRepository(self.db).create_if_absent(
+                    owner_id=owner_id,
+                    provenance="legacy_single_learner",
+                    legacy_user_id=user.id,
+                    legacy_pseudonym_id=user.pseudonym_id,
+                )
+            else:
+                from app.services.local_identity import ensure_local_owner
+
+                ctx = await ensure_local_owner(self.db)
+                owner_id = ctx.canonical_owner_id
+
+        repo = WorkspaceRepository(self.db)
+        ws = await repo.get_default(owner_id)
+        if ws is None:
+            ws = await repo.create_default_if_absent(owner_id)
+        return ws.workspace_id
 
     async def request_reinspection(
         self,
