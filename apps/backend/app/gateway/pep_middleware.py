@@ -103,6 +103,11 @@ class SimpleMiddleware(BaseHTTPMiddleware):
 
         try:
             redis = get_redis_client()
+            if redis is None:
+                # Redis 不可用时放宽限制
+                logger.warning("rate_limit_redis_unavailable_skip_check")
+                return
+
             window_key = RedisKeys.format(
                 RedisKeys.RATE_LIMIT_IP,
                 ip=client_ip,

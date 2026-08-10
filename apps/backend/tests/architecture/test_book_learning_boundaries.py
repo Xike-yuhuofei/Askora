@@ -42,6 +42,44 @@ def test_exec023_reuses_canonical_teaching_and_owner_contracts() -> None:
     assert "class TeachingAction" not in source
 
 
+def test_exec023_production_facade_composes_kernel_and_sequential_policy() -> None:
+    source = (BACKEND / "app/orchestration/learning_facade.py").read_text()
+    assert "SequentialTeachingPolicy" in source
+    assert "SequentialPolicyState" in source
+    assert "EvidenceSignal" in source
+    assert "_build_evidence_signals" in source
+    assert "self._sequential_policy.decide(" in source
+    assert "self._policy_kernel.decide(" in source
+    # Kernel exists but only as bootstrap / internal evaluator; sequential path
+    # is required for second+ decisions (Case B composition).
+    assert "_execute_adaptive_turn" in source
+    assert "previous_teaching_action_v03" in source
+    assert "previous_decision_trace_v03" in source
+
+
+def test_exec023_production_path_does_not_bypass_sequential_policy() -> None:
+    """EXEC-042 §IX: regression guard — second+ decisions MUST route through SequentialTeachingPolicy,
+    not directly through the single-decision kernel."""
+    facade_source = (BACKEND / "app/orchestration/learning_facade.py").read_text()
+    # Forbidden direct-bypass pattern: kernel used as unconditional final decision
+    forbidden_direct = (
+        "self._policy_kernel.decide("
+        + "\n"
+        + "            assignment=request.experiment_assignment_v03,"
+    )
+    assert forbidden_direct not in facade_source, (
+        "Production path must not route all decisions through kernel unconditionally; "
+        "second+ decisions must compose SequentialTeachingPolicy"
+    )
+
+
+def test_exec023_sequential_policy_state_is_hydrated_from_previous_action() -> None:
+    source = (BACKEND / "app/application/book_learning.py").read_text()
+    assert "previous_teaching_action_ref" in source
+    assert "previous_teaching_action_v03" in source
+    assert "previous_decision_trace_v03" in source
+
+
 def test_exec023_has_no_second_default_book_tutor_module() -> None:
     forbidden = {
         "book_tutor.py",

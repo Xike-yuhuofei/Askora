@@ -211,6 +211,26 @@ async def logout(
     return LogoutResponse(message="登出成功", success=True)
 
 
+@router.post("/heartbeat", summary="心跳 - 保持会话活跃")
+async def heartbeat(
+    current: tuple[User, dict] = Depends(get_current_user_with_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    前端定期调用以更新会话 last_seen_at，防止会话因空闲而超时。
+    浏览器关闭后心跳停止，超过空闲阈值后会话自动不计入并发上限。
+    """
+    current_user, payload = current
+    session_id = payload.get("sid")
+    if not session_id:
+        from app.core.exceptions import InvalidTokenError
+
+        raise InvalidTokenError("Token 缺少 sid")
+    auth_service = AuthService(db)
+    await auth_service.heartbeat(current_user.id, session_id)
+    return {"ok": True}
+
+
 @router.get("/me", summary="获取当前用户信息")
 async def get_me(current_user: User = Depends(get_current_user)):
     """获取当前登录用户的基本信息"""

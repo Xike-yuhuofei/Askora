@@ -63,6 +63,10 @@ export const refreshToken = (refresh_token) =>
     device_fingerprint: getOrCreateDeviceFingerprint(),
   }, { skipAuth: true, _skipRefresh: true }).then((r) => r.data)
 
+// 心跳 - 保持会话活跃
+export const heartbeat = () =>
+  api.post('/auth/heartbeat').then((r) => r.data)
+
 // 开发自动登录（仅开发/本地调试环境启用，后端关闭时返回 404）
 export const devAutoLogin = () =>
   api.post('/auth/dev/auto-login', {

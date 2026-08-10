@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
+    # 会话空闲超时（分钟）：超过此时长未活跃的会话不计入并发上限
+    session_idle_timeout_minutes: int = 30
 
     # 密钥管理（简化版）
     kek_master_key: str = "change-me-kek-key-at-least-32-bytes-long"

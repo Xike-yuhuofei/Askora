@@ -495,6 +495,8 @@ class DialogService:
 
         try:
             redis = get_redis_client()
+            if redis is None:
+                return session
             key = RedisKeys.format(RedisKeys.SESSION, session_id=session.id)
             await redis.delete(key)
         except Exception as e:
@@ -513,6 +515,8 @@ class DialogService:
             return
         try:
             redis = get_redis_client()
+            if redis is None:
+                return
             key = RedisKeys.format(RedisKeys.SESSION, session_id=session.id)
 
             state = {

@@ -171,7 +171,11 @@ class OrchestratorRepository:
             try:
                 from app.core.redis_client import get_redis_client
 
-                self._redis_client = get_redis_client()
+                client = get_redis_client()
+                if client is None:
+                    self._redis_available = False
+                    return None
+                self._redis_client = client
                 self._redis_available = True
             except Exception as exc:  # noqa: BLE001
                 logger.warning("orchestrator_redis_init_failed", error_type=type(exc).__name__)

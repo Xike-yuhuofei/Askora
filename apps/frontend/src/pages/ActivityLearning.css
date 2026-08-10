@@ -1,15 +1,400 @@
-.activity-learning { max-width: 900px; margin: 0 auto; }
-.activity-learning__header { display: grid; gap: 1rem; }
+.activity-learning {
+  max-width: 900px;
+  margin: 0 auto;
+  height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部：固定于活动顶部，弱化“系统卡片”感 */
+.activity-learning__header {
+  flex: 0 0 auto;
+  display: grid;
+  gap: .9rem;
+  padding: .75rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .activity-learning__header .button { justify-self: start; }
-.activity-learning__ready, .activity-learning__complete, .activity-learning__blocked { display: grid; justify-items: start; gap: .9rem; padding: clamp(1.25rem, 4vw, 2rem); }
-.activity-learning__session { overflow: hidden; }
-.activity-learning__messages { display: grid; gap: 1rem; min-height: 240px; padding: clamp(1rem, 4vw, 2rem); }
-.activity-message { max-width: 78%; padding: .9rem 1rem; border-radius: 16px; background: var(--color-surface-subtle, #f4f2ed); }
-.activity-message--learner { justify-self: end; background: var(--color-accent-soft, #e8f1ec); }
-.activity-message p { margin: .35rem 0 0; white-space: pre-wrap; }
-.activity-learning__empty { align-self: center; justify-self: center; max-width: 520px; text-align: center; }
-.activity-learning__composer { display: grid; grid-template-columns: 1fr auto; gap: .75rem; padding: 1rem; border-top: 1px solid var(--color-border, #dedbd3); }
-.activity-learning__composer textarea { width: 100%; resize: vertical; }
-.activity-learning__finish { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-top: 1px solid var(--color-border, #dedbd3); }
-.activity-learning__finish p { margin: 0; color: var(--color-text-muted, #68645d); }
-@media (max-width: 520px) { .activity-message { max-width: 92%; } .activity-learning__composer { grid-template-columns: 1fr; } .activity-learning__finish { align-items: stretch; flex-direction: column; } }
+
+.activity-learning__header-title h1 {
+  margin: 4px 0 3px;
+  font-size: clamp(22px, 3vw, 27px);
+  letter-spacing: -.02em;
+}
+
+.activity-learning__header-meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.activity-learning__ready,
+.activity-learning__complete,
+.activity-learning__blocked {
+  margin: auto 0;
+  display: grid;
+  justify-items: start;
+  gap: .9rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+/* 会话区：占据剩余高度，取消外层卡片，消息区自然滚动，
+   输入与完成栏常驻底部 —— 整个中央区域本身就是学习活动 */
+.activity-learning__session {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.activity-learning__messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 1.75rem) 0 .5rem;
+  scrollbar-width: thin;
+}
+
+/* 轮次分隔：内部模型 ≠ 用户心理模型，不在 UI 暴露回合结构 */
+.activity-turn-divider { display: none; }
+
+/* 消息：头像 + 主体，左右对齐与角色差异化 */
+.activity-message {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  max-width: 94%;
+}
+
+.activity-message__avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.activity-message__body {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  min-width: 0;
+}
+
+.activity-message--askora { align-self: flex-start; }
+.activity-message--learner { align-self: flex-end; flex-direction: row-reverse; }
+
+.activity-message__meta {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: 0 .2rem;
+}
+
+.activity-message__role {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.activity-message__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .14s ease, background-color .16s ease, color .16s ease;
+}
+
+.activity-message--askora:hover .activity-message__copy,
+.activity-message__copy:hover,
+.activity-message__copy:focus-visible {
+  opacity: 1;
+}
+
+.activity-message__bubble {
+  padding: .75rem 1rem;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.activity-message--askora .activity-message__bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+  color: var(--text-primary);
+}
+
+.activity-message--learner .activity-message__bubble {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-top-right-radius: 4px;
+}
+
+/* 气泡内 Markdown 富内容样式 */
+.activity-message__bubble p {
+  margin: .45rem 0 0;
+  white-space: pre-wrap;
+}
+
+.activity-message__bubble > :first-child { margin-top: 0; }
+.activity-message__bubble > :last-child { margin-bottom: 0; }
+
+.activity-message__bubble ul,
+.activity-message__bubble ol {
+  margin: .4rem 0;
+  padding-left: 1.3rem;
+}
+
+.activity-message__bubble li { margin: .2rem 0; }
+
+.activity-message__bubble pre {
+  margin: .6rem 0;
+  padding: .7rem .85rem;
+  border-radius: 10px;
+  background: var(--surface-container-high);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.activity-message__bubble code {
+  padding: .1em .35em;
+  border-radius: 5px;
+  background: var(--surface-container-high);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .9em;
+}
+
+.activity-message__bubble pre code { padding: 0; background: transparent; }
+
+.activity-message__bubble a {
+  color: var(--brand-primary);
+  text-decoration: none;
+}
+
+.activity-message__bubble a:hover { text-decoration: underline; }
+
+.activity-message__bubble blockquote {
+  margin: .5rem 0;
+  padding: .2rem 0 .2rem .8rem;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.activity-message__bubble table {
+  border-collapse: collapse;
+  margin: .5rem 0;
+  font-size: 13px;
+}
+
+.activity-message__bubble th,
+.activity-message__bubble td {
+  border: 1px solid var(--border);
+  padding: .35rem .6rem;
+}
+
+/* 打字指示器 */
+.activity-message--typing .activity-message__bubble {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* 建议提示 chips：圆角主题，点击后随发送消失 */
+.activity-learning__suggestions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: .75rem 0 0;
+}
+
+.activity-learning__suggestion {
+  padding: .45rem .85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease, transform .1s ease;
+}
+
+.activity-learning__suggestion:hover:not(:disabled) {
+  background: var(--brand-primary-soft);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.activity-learning__suggestion:active:not(:disabled) { transform: translateY(1px); }
+.activity-learning__suggestion:disabled { opacity: .55; cursor: not-allowed; }
+
+.activity-learning__empty {
+  align-self: center;
+  justify-self: center;
+  max-width: 520px;
+  text-align: center;
+}
+
+/* 消息区内联错误提示 */
+.activity-learning__error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: 0 0 .75rem;
+  padding: .65rem .85rem;
+  border-radius: 10px;
+  background: #fff0f1;
+  color: var(--error);
+  font-size: 13px;
+}
+
+.activity-learning__error .button {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+/* 输入区：常驻底部，textarea 自动增高 */
+.activity-learning__composer {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: .75rem;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: .9rem 0 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.activity-learning__composer textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 168px;
+  resize: none;
+  padding: 10px 12px;
+  line-height: 1.5;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.activity-learning__composer textarea:focus-visible {
+  border-color: var(--brand-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.activity-learning__composer textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.activity-learning__send {
+  align-self: end;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-learning__finish {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: .8rem 0 .9rem;
+  border-top: 1px solid var(--border);
+}
+
+.activity-learning__disclaimer {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .activity-learning {
+    height: calc(100vh - 92px);
+  }
+
+  .activity-message { max-width: 94%; }
+  .activity-learning__finish { align-items: stretch; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-learning__messages {
+    scroll-behavior: auto;
+  }
+
+  .typing-dots span {
+    animation: none;
+  }
+
+  .activity-message__copy,
+  .activity-learning__suggestion {
+    transition: none;
+  }
+}

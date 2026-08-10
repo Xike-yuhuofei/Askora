@@ -156,6 +156,8 @@ async def _check_redis_ready() -> bool:
         if is_redis_available() is False:
             return False
         client = get_redis_client()
+        if client is None:
+            return False
         return await client.ping()
     except Exception:
         return False

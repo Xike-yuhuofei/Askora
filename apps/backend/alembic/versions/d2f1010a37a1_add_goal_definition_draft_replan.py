@@ -350,7 +350,8 @@ def _backfill_legacy() -> None:
                     "previous_status": None,
                     "reason_codes": ["LEGACY_PLAN_STATE_BACKFILL"],
                     "correlation_id": row["plan_id"],
-                    "created_at": payload.get("created_at") or row["created_at"],
+                    "created_at": payload.get("created_at")
+                    or row["created_at"].isoformat(),
                 },
             )
         )

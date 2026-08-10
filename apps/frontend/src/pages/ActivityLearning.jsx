@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, CheckCircle2, RefreshCw, Send } from 'lucide-react'
+import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowLeft, ArrowRight, ArrowUp, Check, CheckCircle2, Copy, Info, RefreshCw } from 'lucide-react'
 import * as bookLearningApi from '../api/bookLearning'
 import * as workspaceApi from '../api/workspace'
+import SafeMarkdown from '../components/messages/SafeMarkdown'
 import { useNavigate } from '../router'
 import './ActivityLearning.css'
 
@@ -30,11 +31,60 @@ function transcriptRefs(transcript) {
   }))
 }
 
+// 苏格拉底式引导的建议短语：只提供鼓励思考的提示，不给答案、不暴露知识点。
+function suggestionPhrases(lastAskoraText) {
+  if (!lastAskoraText) return []
+  const asksForThought = /[？?]\s*$/.test(lastAskoraText)
+  return asksForThought
+    ? ['给我提示', '换个角度', '说说想法']
+    : ['展开讲讲', '不太理解', '继续思考']
+}
+
+const maxComposerHeight = 168 // ≈ 6 行
+
+const AskoraMessage = memo(function AskoraMessage({ turn, copied, onCopy, isFirst }) {
+  return (
+    <article className="activity-message activity-message--askora">
+      <div className="activity-message__avatar" aria-hidden="true">A</div>
+      <div className="activity-message__body">
+        <div className="activity-message__meta">
+          {isFirst && <span className="activity-message__role">Askora</span>}
+          <button
+            type="button"
+            className="activity-message__copy"
+            onClick={() => onCopy(turn)}
+            aria-label={copied ? '已复制本条回复' : '复制本条回复'}
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            <span>{copied ? '已复制' : '复制'}</span>
+          </button>
+        </div>
+        <div className="activity-message__bubble"><SafeMarkdown source={turn.reply_text} /></div>
+      </div>
+    </article>
+  )
+})
+
+const LearnerMessage = memo(function LearnerMessage({ text }) {
+  return (
+    <article className="activity-message activity-message--learner">
+      <div className="activity-message__body">
+        <div className="activity-message__bubble"><p>{text}</p></div>
+      </div>
+    </article>
+  )
+})
+
 export default function ActivityLearning({ activityId }) {
   const navigate = useNavigate()
   const [state, setState] = useState({ status: 'loading', lifecycle: null, transcript: null, error: '' })
   const [busy, setBusy] = useState(false)
+  const [sending, setSending] = useState(false)
   const [text, setText] = useState('')
+  const [pendingText, setPendingText] = useState('')
+  const [copiedTurn, setCopiedTurn] = useState('')
+  const messagesRef = useRef(null)
+  const composerRef = useRef(null)
 
   const load = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setState((current) => ({ ...current, status: 'loading', error: '' }))
@@ -55,6 +105,20 @@ export default function ActivityLearning({ activityId }) {
   }, [activityId])
 
   useEffect(() => { load() }, [load])
+
+  // 新消息、乐观回显或打字指示器出现时自动滚动到底部。（放在提前 return 之前，保证 Hook 顺序稳定。）
+  useEffect(() => {
+    const region = messagesRef.current
+    if (region) region.scrollTop = region.scrollHeight
+  }, [state.transcript?.turns, sending, pendingText])
+
+  // 输入框随内容自动增高（1–6 行）。
+  useEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, maxComposerHeight)}px`
+  }, [text])
 
   const run = async (operation, fallback) => {
     if (busy) return false
@@ -87,6 +151,8 @@ export default function ActivityLearning({ activityId }) {
   const canStart = activity.execution.can_start
   const canResume = activity.execution.can_resume
   const canComplete = activity.execution.can_complete && turns.length > 0
+  const lastAskoraText = turns.length ? turns[turns.length - 1].reply_text : ''
+  const suggestions = canResume && turns.length > 0 ? suggestionPhrases(lastAskoraText) : []
 
   const start = () => run(
     () => workspaceApi.startActivity(activityId, {
@@ -98,28 +164,35 @@ export default function ActivityLearning({ activityId }) {
     '活动暂时没有开始，当前状态已保留。',
   )
 
-  const send = async () => {
+  const send = async (overrideText) => {
     if (!transcript) return
-    const learnerText = text.trim()
+    const learnerText = (overrideText != null ? overrideText : text).trim()
     const isSystemStart = turns.length === 0
     if (!isSystemStart && !learnerText) return
     const turnNumber = transcript.next_turn_number
-    const completed = await run(
-      () => bookLearningApi.startTeachingRound(activityId, {
-        schema_version: '1.0',
-        goal_id: activity.goal_id,
-        plan_id: current.plan_id,
-        plan_version: current.plan_version,
-        activity_id: activityId,
-        session_id: transcript.session_id,
-        turn_id: isSystemStart ? 'system-start-1' : `learner-turn-${turnNumber}`,
-        turn_kind: isSystemStart ? 'system_start' : 'learner',
-        learner_text: isSystemStart ? null : learnerText,
-        idempotency_key: commandKey(activityId, isSystemStart ? 'system-start' : `turn-${turnNumber}`, current.version),
-      }),
-      '这次教学回应没有完成；活动仍保持进行中，可以重试。',
-    )
-    if (completed) setText('')
+    if (!isSystemStart) setPendingText(learnerText)
+    setSending(true)
+    try {
+      const completed = await run(
+        () => bookLearningApi.startTeachingRound(activityId, {
+          schema_version: '1.0',
+          goal_id: activity.goal_id,
+          plan_id: current.plan_id,
+          plan_version: current.plan_version,
+          activity_id: activityId,
+          session_id: transcript.session_id,
+          turn_id: isSystemStart ? 'system-start-1' : `learner-turn-${turnNumber}`,
+          turn_kind: isSystemStart ? 'system_start' : 'learner',
+          learner_text: isSystemStart ? null : learnerText,
+          idempotency_key: commandKey(activityId, isSystemStart ? 'system-start' : `turn-${turnNumber}`, current.version),
+        }),
+        '这次教学回应没有完成；活动仍保持进行中，可以重试。',
+      )
+      if (completed) setText('')
+    } finally {
+      setSending(false)
+      setPendingText('')
+    }
   }
 
   const complete = () => run(
@@ -134,14 +207,41 @@ export default function ActivityLearning({ activityId }) {
     '完成状态没有保存；活动仍保持进行中，可以重试。',
   )
 
+  const copyTurn = async (turn) => {
+    try {
+      await navigator.clipboard.writeText(turn.reply_text)
+      setCopiedTurn(turn.turn_id)
+      setTimeout(() => setCopiedTurn((id) => (id === turn.turn_id ? '' : id)), 1400)
+    } catch { /* 剪贴板不可用时静默忽略 */ }
+  }
+
+  const handleComposerKeyDown = (event) => {
+    // 中文输入法回车确认候选词时不触发发送。
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      send()
+    }
+  }
+
+  const inlineError = state.error && (
+    <div className="activity-learning__error" role="alert">
+      <span>{state.error}</span>
+      <button type="button" className="button button--ghost" onClick={() => load()}><RefreshCw size={14} />刷新</button>
+    </div>
+  )
+
   return (
     <div className="activity-learning page-stack">
       <header className="activity-learning__header">
         <button type="button" className="button button--ghost" onClick={() => navigate('/path')}><ArrowLeft size={16} />学习路径</button>
-        <div><p className="eyebrow">Canonical 学习活动</p><h1>{activity.title}</h1><p>预计 {activity.estimated_duration_minutes} 分钟 · 状态 v{current.version}</p></div>
+        <div className="activity-learning__header-title">
+          <p className="eyebrow">学习活动</p>
+          <h1>{activity.title}</h1>
+          <p className="activity-learning__header-meta">约 {activity.estimated_duration_minutes} 分钟</p>
+        </div>
       </header>
 
-      {state.error && <div className="learning-notice learning-notice--error" role="alert">{state.error}<button type="button" className="button button--ghost" onClick={() => load()}><RefreshCw size={15} />刷新</button></div>}
+      {!canResume && state.error && <div className="learning-notice learning-notice--error" role="alert">{state.error}<button type="button" className="button button--ghost" onClick={() => load()}><RefreshCw size={15} />刷新</button></div>}
 
       {canStart && (
         <main className="surface activity-learning__ready">
@@ -151,15 +251,51 @@ export default function ActivityLearning({ activityId }) {
       )}
 
       {canResume && transcript && (
-        <main className="surface activity-learning__session">
-          <div className="activity-learning__messages" aria-live="polite">
-            {turns.length ? turns.flatMap((turn) => [
-              turn.learner_text ? <article className="activity-message activity-message--learner" key={`${turn.turn_id}:learner`}><strong>你</strong><p>{turn.learner_text}</p></article> : null,
-              <article className="activity-message" key={`${turn.turn_id}:askora`}><strong>Askora</strong><p>{turn.reply_text}</p></article>,
-            ].filter(Boolean)) : <div className="activity-learning__empty"><h2>从一个聚焦问题开始</h2><p>Askora 会依据当前 TeachingAction 和资料证据开始，不会自行改变计划。</p><button type="button" className="button button--primary" onClick={send} disabled={busy}>进入本次学习</button></div>}
+        <main className="activity-learning__session">
+          <div className="activity-learning__messages" role="log" aria-live="polite" aria-relevant="additions" ref={messagesRef}>
+            {inlineError}
+            {turns.length ? turns.map((turn, index) => (
+              <Fragment key={turn.turn_id}>
+                {turn.learner_text ? <LearnerMessage text={turn.learner_text} /> : null}
+                <AskoraMessage turn={turn} isFirst={index === 0} copied={copiedTurn === turn.turn_id} onCopy={copyTurn} />
+              </Fragment>
+            )) : <div className="activity-learning__empty"><h2>从一个聚焦问题开始</h2><p>Askora 会依据当前 TeachingAction 和资料证据开始，不会自行改变计划。</p><button type="button" className="button button--primary" onClick={() => send()} disabled={busy}>进入本次学习<ArrowRight size={16} /></button></div>}
+            {sending && pendingText && <LearnerMessage text={pendingText} />}
+            {sending && (
+              <article className="activity-message activity-message--askora activity-message--typing" aria-label="Askora 正在思考">
+                <div className="activity-message__avatar" aria-hidden="true">A</div>
+                <div className="activity-message__body">
+                  <div className="activity-message__bubble"><span className="typing-dots"><span /><span /><span /></span></div>
+                </div>
+              </article>
+            )}
           </div>
-          {turns.length > 0 && <form className="activity-learning__composer" onSubmit={(event) => { event.preventDefault(); send() }}><label htmlFor="activity-answer" className="visually-hidden">写下你的想法</label><textarea id="activity-answer" rows={3} value={text} onChange={(event) => setText(event.target.value)} placeholder="写下你的想法或问题…" disabled={busy} /><button type="submit" className="button button--primary" disabled={busy || !text.trim()}><Send size={16} />发送</button></form>}
-          <div className="activity-learning__finish"><p>完成本项只表示结束这项计划任务，不等于已掌握。</p>{activity.execution.reason_codes.includes('ACTIVITY_COMPLETION_EVIDENCE_REQUIRED') ? <span>此类型需要评估或复习结果，不能在这里直接完成。</span> : <button type="button" className="button button--secondary" onClick={complete} disabled={busy || !canComplete}><CheckCircle2 size={16} />完成本项</button>}</div>
+          {turns.length > 0 && (
+            <>
+              {suggestions.length > 0 && !sending && (
+                <div className="activity-learning__suggestions" aria-label="思考方向建议">
+                  {suggestions.map((phrase) => (
+                    <button type="button" className="activity-learning__suggestion" key={phrase} onClick={() => send(phrase)} disabled={busy}>{phrase}</button>
+                  ))}
+                </div>
+              )}
+              <form className="activity-learning__composer" onSubmit={(event) => { event.preventDefault(); send() }}>
+                <label htmlFor="activity-answer" className="visually-hidden">写下你的想法</label>
+                <textarea
+                  id="activity-answer"
+                  ref={composerRef}
+                  rows={1}
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  onKeyDown={handleComposerKeyDown}
+                  placeholder="写下你的理解…"
+                  disabled={busy}
+                />
+                <button type="submit" className="activity-learning__send" disabled={busy || !text.trim()} aria-label="发送"><ArrowUp size={18} /></button>
+              </form>
+            </>
+          )}
+          <div className="activity-learning__finish"><p className="activity-learning__disclaimer"><Info size={14} aria-hidden="true" />完成本项不等于已掌握</p><button type="button" className="button button--secondary" onClick={complete} disabled={busy || !canComplete}><CheckCircle2 size={16} />完成本项</button></div>
         </main>
       )}
 

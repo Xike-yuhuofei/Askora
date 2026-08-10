@@ -35,11 +35,17 @@ def cache_scope_digests(manifest: FrozenSubjectManifest) -> tuple[str, ...]:
 async def purge_manifest_cache_if_available(manifest: FrozenSubjectManifest) -> int:
     if is_redis_available() is not True:
         return 0
-    return await purge_matching_cache(get_redis_client(), aliases=cache_aliases(manifest))
+    client = get_redis_client()
+    if client is None:
+        return 0
+    return await purge_matching_cache(client, aliases=cache_aliases(manifest))
 
 
 async def reconcile_cache_barriers(store: RestoreBarrierStore) -> int:
     if is_redis_available() is not True:
+        return 0
+    client = get_redis_client()
+    if client is None:
         return 0
     digests = {
         digest
@@ -49,7 +55,7 @@ async def reconcile_cache_barriers(store: RestoreBarrierStore) -> int:
     }
     if not digests:
         return 0
-    return await purge_matching_cache(get_redis_client(), alias_digests=digests)
+    return await purge_matching_cache(client, alias_digests=digests)
 
 
 async def purge_matching_cache(
