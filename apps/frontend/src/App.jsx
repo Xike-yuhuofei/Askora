@@ -18,6 +18,7 @@ import Settings from './pages/Settings'
 import RecoveryCenter from './pages/RecoveryCenter'
 import AccountDeletion from './pages/AccountDeletion'
 import Unavailable from './pages/Unavailable'
+import Welcome from './pages/Welcome'
 import { Navigate, useLocation } from './router'
 
 const legacyRedirects = {
@@ -28,6 +29,7 @@ const legacyRedirects = {
 }
 
 const standardPages = {
+  '/welcome': Welcome,
   '/today': Today,
   '/library': Library,
   '/goals': Goals,

@@ -8,12 +8,12 @@ closing GAP-V03-001 and GAP-V03-002.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app import models  # noqa: F401
 from app.core.database import Base
 from app.services.policy_runtime import default_policy_activation, default_policy_bundle
 
@@ -37,12 +37,6 @@ async def _full_book_flow(db, tmp_path, suffix: str):
     Uses the same primitives as test_book_learning_orchestration.py to ensure
     the production path is exercised identically.
     """
-    from tests.integration.test_book_learning_orchestration import (
-        CountingModelProvider,
-        FixedModelRouter,
-        _processed_book,
-        _independent,
-    )
     from app.application.book_learning import BookLearningApplication
     from app.contracts.activity_lifecycle import StartLearningActivityV1
     from app.infrastructure.adaptive_records import AdaptiveContractRepository
@@ -50,6 +44,12 @@ async def _full_book_flow(db, tmp_path, suffix: str):
     from app.orchestration.learning_facade import LearningOrchestrationFacade
     from app.orchestration.model_rendering import PolicyBoundModelRenderer
     from app.services.activity_lifecycle import ActivityLifecycleService
+    from tests.integration.test_book_learning_orchestration import (
+        CountingModelProvider,
+        FixedModelRouter,
+        _independent,
+        _processed_book,
+    )
 
     records = AdaptiveContractRepository(db)
     await records.publish_policy_bundle(default_policy_bundle())
@@ -66,7 +66,7 @@ async def _full_book_flow(db, tmp_path, suffix: str):
     created = await app.create_goal_candidate(
         user=user,
         document_id=UUID(document.id),
-        intent="能够解释这份资料中的核心概念",
+        intent="我想掌握 Ratios 并在新题目中应用 Ratios",
         idempotency_key=f"{suffix}:goal:create",
         correlation_id=uuid4(),
     )
@@ -87,10 +87,7 @@ async def _full_book_flow(db, tmp_path, suffix: str):
         now=NOW,
     )
     assert mapped.payload["applied_command"] == "MapGoalToKnowledge"
-    mapping_result = await app.get_mapping(
-        user=user, goal_id=goal_id, correlation_id=uuid4()
-    )
-    mapping = mapping_result.payload["mapping"]
+    await app.get_mapping(user=user, goal_id=goal_id, correlation_id=uuid4())
     prerequisite_id = units["Fractions"]
     db.add(
         AssessmentItem(
@@ -119,9 +116,7 @@ async def _full_book_flow(db, tmp_path, suffix: str):
         now=NOW,
     )
     assert diagnosed.payload["applied_command"] == "GeneratePrerequisiteDiagnosis"
-    diagnostic_view = await app.get_diagnostic(
-        user=user, goal_id=goal_id, correlation_id=uuid4()
-    )
+    diagnostic_view = await app.get_diagnostic(user=user, goal_id=goal_id, correlation_id=uuid4())
     need = diagnostic_view.payload["need"]
     completed = await app.submit_diagnostic_response(
         user=user,
@@ -142,7 +137,7 @@ async def _full_book_flow(db, tmp_path, suffix: str):
         now=NOW,
     )
     assert advanced.payload["applied_command"] == "SelectNextLearningActivity"
-    generated = await app.generate_plan(
+    await app.generate_plan(
         user=user,
         need_id=UUID(completed.payload["need"]["need_id"]),
         idempotency_key=f"{suffix}:plan:generate",
@@ -161,7 +156,8 @@ async def _full_book_flow(db, tmp_path, suffix: str):
         if item.ref.entity_type == "LearningActivity" and item.status == "selected"
     )
     activity = next(
-        item for item in plan_view.payload["activities"]
+        item
+        for item in plan_view.payload["activities"]
         if item["activity_id"] == selected_ref.entity_id
     )
     lifecycle = await ActivityLifecycleService(db).get(
@@ -248,7 +244,7 @@ async def test_exec042_t2_no_material_evidence_holds(
         activity_id=UUID(activity["activity_id"]),
         session_id=system_start.session_id,
         turn_id="t2-turn-1",
-        learner_text="请继续讲",
+        learner_text="Tell me more about ratios",
         idempotency_key="exec042:t2:turn-1",
         correlation_id=uuid4(),
         now=NOW,
@@ -296,7 +292,7 @@ async def test_exec042_t9_decision_trace_carries_sequential_metadata(
         activity_id=UUID(activity["activity_id"]),
         session_id=system_start.session_id,
         turn_id="t9-turn-1",
-        learner_text="我想了解更多",
+        learner_text="I want to learn more about ratios",
         idempotency_key="exec042:t9:turn-1",
         correlation_id=uuid4(),
         now=NOW,
@@ -345,7 +341,7 @@ async def test_exec042_t11_book_to_learning_e2e_hold_path(
         activity_id=UUID(activity["activity_id"]),
         session_id=sys.session_id,
         turn_id="t11-turn-1",
-        learner_text="能解释一下吗？",
+        learner_text="Can you explain ratios?",
         idempotency_key="exec042:t11:turn-1",
         correlation_id=uuid4(),
         now=NOW,
@@ -362,6 +358,7 @@ async def test_exec042_t11_book_to_learning_e2e_hold_path(
         AdaptiveContractRepository,
         DecisionTraceV03Repository,
     )
+
     records = AdaptiveContractRepository(db)
     persisted_first = await records.get_action(first_action.action_id)
     assert persisted_first is not None
@@ -415,7 +412,7 @@ async def test_exec042_hold_e2e_preserves_anti_oscillation_state(
         activity_id=UUID(activity["activity_id"]),
         session_id=sys.session_id,
         turn_id="hold-turn-1",
-        learner_text="继续讲解",
+        learner_text="Continue explaining ratios",
         idempotency_key="exec042:hold:turn-1",
         correlation_id=uuid4(),
         now=NOW,
@@ -447,7 +444,6 @@ async def test_exec042_switch_e2e_happens_with_material_assessment_evidence(
     db, tmp_path = exec042_db
     from app.contracts.adaptive import (
         AvailabilityStatus,
-        PolicyBundleV03,
         TeachingContextV03,
         ValueWithAvailability,
         VersionedRef,
@@ -470,15 +466,9 @@ async def test_exec042_switch_e2e_happens_with_material_assessment_evidence(
     profile = profile.model_copy(update={"minimum_dwell_opportunities": 0})
     kernel = TeachingPolicyKernel()
 
-    objective = VersionedRef(
-        entity_type="LearningObjective", entity_id="obj-switch", version="1"
-    )
-    activity_ref = VersionedRef(
-        entity_type="LearningActivity", entity_id="act-switch", version="1"
-    )
-    assessment_ref = VersionedRef(
-        entity_type="AssessmentResult", entity_id="res-1", version="1"
-    )
+    objective = VersionedRef(entity_type="LearningObjective", entity_id="obj-switch", version="1")
+    activity_ref = VersionedRef(entity_type="LearningActivity", entity_id="act-switch", version="1")
+    assessment_ref = VersionedRef(entity_type="AssessmentResult", entity_id="res-1", version="1")
 
     first_context = TeachingContextV03(
         context_id=uuid4(),
@@ -510,31 +500,17 @@ async def test_exec042_switch_e2e_happens_with_material_assessment_evidence(
             confidence=1.0,
             source_refs=(),
         ),
-        evidence_sufficiency=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        correctness_score=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        assessment_confidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        evidence_sufficiency=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        correctness_score=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        assessment_confidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         error_type=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        diagnostic_confidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        diagnostic_confidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         needs_probe=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        worked_example_exposure=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        delayed_independent_evidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        worked_example_exposure=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        delayed_independent_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         review_context=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         transfer_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        transfer_distance_novelty=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        transfer_distance_novelty=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         time_budget=ValueWithAvailability(
             value=300,
             availability=AvailabilityStatus.AVAILABLE,
@@ -633,8 +609,7 @@ async def test_exec042_switch_e2e_happens_with_material_assessment_evidence(
     assert anti.get("profile_version") == bundle.anti_oscillation_profile_version
     material_refs = result.decision.trace.material_evidence_refs
     assert any(
-        ref.entity_type == assessment_ref.entity_type
-        and ref.entity_id == assessment_ref.entity_id
+        ref.entity_type == assessment_ref.entity_type and ref.entity_id == assessment_ref.entity_id
         for ref in material_refs
     )
 
@@ -649,16 +624,11 @@ async def test_exec042_sequential_state_reconstruction_round_trip(
     db, tmp_path = exec042_db
     from app.contracts.adaptive import (
         AvailabilityStatus,
-        PolicyBundleV03,
         TeachingContextV03,
         ValueWithAvailability,
         VersionedRef,
     )
     from app.domains.teaching_policy import TeachingPolicyKernel
-    from app.domains.teaching_policy.evidence import (
-        EvidenceSignal,
-        EvidenceSignalKind,
-    )
     from app.domains.teaching_policy.models import SequentialPolicyState
     from app.domains.teaching_policy.sequential import SequentialTeachingPolicy
     from app.domains.teaching_policy.time_source import FixedTimeSource
@@ -670,12 +640,8 @@ async def test_exec042_sequential_state_reconstruction_round_trip(
     bundle = default_policy_bundle()
     profile = load_policy_runtime_profile()
     kernel = TeachingPolicyKernel()
-    objective = VersionedRef(
-        entity_type="LearningObjective", entity_id="obj", version="1"
-    )
-    activity_ref = VersionedRef(
-        entity_type="LearningActivity", entity_id="act", version="1"
-    )
+    objective = VersionedRef(entity_type="LearningObjective", entity_id="obj", version="1")
+    activity_ref = VersionedRef(entity_type="LearningActivity", entity_id="act", version="1")
     first_context = TeachingContextV03(
         context_id=uuid4(),
         decision_time=NOW,
@@ -706,31 +672,17 @@ async def test_exec042_sequential_state_reconstruction_round_trip(
             confidence=1.0,
             source_refs=(),
         ),
-        evidence_sufficiency=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        correctness_score=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        assessment_confidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        evidence_sufficiency=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        correctness_score=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        assessment_confidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         error_type=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        diagnostic_confidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        diagnostic_confidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         needs_probe=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        worked_example_exposure=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
-        delayed_independent_evidence=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        worked_example_exposure=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
+        delayed_independent_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         review_context=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         transfer_evidence=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
-        transfer_distance_novelty=ValueWithAvailability(
-            availability=AvailabilityStatus.MISSING
-        ),
+        transfer_distance_novelty=ValueWithAvailability(availability=AvailabilityStatus.MISSING),
         time_budget=ValueWithAvailability(
             value=300,
             availability=AvailabilityStatus.AVAILABLE,

@@ -22,7 +22,6 @@ from app.contracts.adaptive import (
     VersionedRef,
 )
 from app.contracts.assessment import AssistanceSnapshot
-from app.contracts.decisions import DecisionTraceV03
 from app.contracts.book_learning import (
     BookLearningOperationResponseV1,
     BookLearningOwnerRefV1,
@@ -33,6 +32,7 @@ from app.contracts.book_learning import (
     BookLearningTranscriptV1,
     LearnerVisibleDiagnosticItemV1,
 )
+from app.contracts.decisions import DecisionTraceV03
 from app.contracts.events import (
     ActualAssistanceRecordedPayloadV03,
     EventActor,
@@ -710,11 +710,13 @@ class BookLearningApplication:
         context_payload = context.model_copy()
         if previous_action is not None:
             context_payload = context_payload.model_copy(
-                update={"previous_teaching_action_ref": VersionedRef(
-                    entity_type="teaching_action",
-                    entity_id=str(previous_action.action_id),
-                    version=previous_action.action_schema_version,
-                )}
+                update={
+                    "previous_teaching_action_ref": VersionedRef(
+                        entity_type="teaching_action",
+                        entity_id=str(previous_action.action_id),
+                        version=previous_action.action_schema_version,
+                    )
+                }
             )
             context = context_payload
         await records.save_context(context)
@@ -859,6 +861,7 @@ class BookLearningApplication:
             reply_text=result.reply_text,
             teaching_action=result.teaching_action_v03,
             evidence_bundle=result.evidence_bundle_v03,
+            decision_trace_v03=result.decision_trace_v03,
             owner_refs=tuple(refs),
             session_id=transcript_session_id,
             turn_id=turn_id,

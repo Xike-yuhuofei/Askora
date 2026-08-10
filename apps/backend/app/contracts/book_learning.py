@@ -11,6 +11,7 @@ from pydantic import Field, model_validator
 from app.contracts.adaptive import EvidenceBundleV03, TeachingActionV03, VersionedRef
 from app.contracts.assessment import AssistanceSnapshot
 from app.contracts.base import ContractModel
+from app.contracts.decisions import DecisionTraceV03
 from app.contracts.model_execution import ModelExecutionV1
 
 BookLearningReadinessState = Literal[
@@ -146,6 +147,7 @@ class BookLearningTeachingResponseV1(ContractModel):
     reply_text: str
     teaching_action: TeachingActionV03
     evidence_bundle: EvidenceBundleV03
+    decision_trace_v03: DecisionTraceV03 | None = None
     owner_refs: tuple[BookLearningOwnerRefV1, ...]
     session_id: UUID
     turn_id: str

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as usersApi from '../api/users'
 import * as authApi from '../api/auth'
 import * as dataControlApi from '../api/dataControl'
+import * as onboardingApi from '../api/onboarding'
 import Settings from '../pages/Settings'
 import { RouterProvider } from '../router'
 
@@ -24,6 +25,13 @@ vi.mock('../api/dataControl', () => ({
   downloadUserExport: vi.fn(),
   createErasurePreview: vi.fn(),
   confirmErasure: vi.fn(),
+}))
+vi.mock('../api/onboarding', () => ({
+  getOnboardingJourney: vi.fn(),
+  acknowledgeBoundaries: vi.fn(),
+  dismissOnboarding: vi.fn(),
+  reopenOnboarding: vi.fn(),
+  finishAndDismissOnboarding: vi.fn(),
 }))
 vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({ user: { nickname: '测试用户', status: 'active' }, logout, replaceSessionTokens }),
@@ -71,6 +79,54 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
     dataControlApi.downloadUserExport.mockReset()
     dataControlApi.createErasurePreview.mockReset()
     dataControlApi.confirmErasure.mockReset()
+    onboardingApi.reopenOnboarding.mockReset()
+    onboardingApi.getOnboardingJourney.mockReset()
+    onboardingApi.getOnboardingJourney.mockResolvedValue({
+      schema_version: '1.0',
+      journey_id: 'first-learning-v1',
+      generated_at: '2026-08-10T00:00:00Z',
+      journey_state: 'ACTIVE',
+      should_enter_welcome: true,
+      preference: {
+        preference_version: 1,
+        visibility: 'ACTIVE',
+        dismissed_reason: null,
+        created_at: '2026-08-10T00:00:00Z',
+        updated_at: '2026-08-10T00:00:00Z',
+      },
+      boundary_notice: {
+        notice_version: 'privacy-and-model-v1',
+        acknowledged: false,
+        data_control_route: '/settings/data',
+        model_settings_route: '/settings#model',
+      },
+      steps: [],
+      next_action: { action_code: 'ACKNOWLEDGE_BOUNDARIES', kind: 'command', label: '我已了解，开始设置', enabled: true, route: null, resource_ref: null, recovery_action: null, reason_codes: [] },
+      correlation_id: 'corr-1',
+    })
+    onboardingApi.reopenOnboarding.mockResolvedValue({
+      schema_version: '1.0',
+      journey_id: 'first-learning-v1',
+      generated_at: '2026-08-10T00:00:00Z',
+      journey_state: 'ACTIVE',
+      should_enter_welcome: true,
+      preference: {
+        preference_version: 2,
+        visibility: 'ACTIVE',
+        dismissed_reason: null,
+        created_at: '2026-08-10T00:00:00Z',
+        updated_at: '2026-08-10T00:00:00Z',
+      },
+      boundary_notice: {
+        notice_version: 'privacy-and-model-v1',
+        acknowledged: false,
+        data_control_route: '/settings/data',
+        model_settings_route: '/settings#model',
+      },
+      steps: [],
+      next_action: { action_code: 'ACKNOWLEDGE_BOUNDARIES', kind: 'command', label: '我已了解，开始设置', enabled: true, route: null, resource_ref: null, recovery_action: null, reason_codes: [] },
+      correlation_id: 'corr-1',
+    })
   })
 
   it('states the runtime boundary without exposing credentials', async () => {
@@ -291,5 +347,22 @@ describe('UI-SCREEN-094 / IDP-AC-001 settings identity controls', () => {
     expect(screen.queryByRole('option', { name: '全部个人数据与账号' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '进入账号删除流程' }))
     expect(window.location.hash).toBe('#/settings/delete-account')
+  })
+
+  it('offers a distinct "重新打开首次引导" action inside the App Utility section', async () => {
+    render(<RouterProvider><Settings /></RouterProvider>)
+    const button = await screen.findByRole('button', { name: /重新打开首次引导/ })
+    expect(button).toBeInTheDocument()
+    expect(button).toHaveAttribute('aria-label')
+  })
+
+  it('calls the owner-fact reopen command with the current preference version', async () => {
+    render(<RouterProvider><Settings /></RouterProvider>)
+    const button = await screen.findByRole('button', { name: /重新打开首次引导/ })
+    fireEvent.click(button)
+    await waitFor(() => expect(onboardingApi.reopenOnboarding).toHaveBeenCalledTimes(1))
+    const call = onboardingApi.reopenOnboarding.mock.calls[0][0]
+    expect(call).toHaveProperty('expectedVersion')
+    expect(call.expectedVersion).toBeGreaterThanOrEqual(1)
   })
 })

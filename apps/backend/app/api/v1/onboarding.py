@@ -11,7 +11,11 @@ from app.contracts.onboarding import (
 )
 from app.core.database import get_db
 from app.models.user import User
-from app.queries.onboarding import OnboardingJourneyQueryService
+from app.queries.onboarding import (
+    DatabaseDataControlQuery,
+    DatabaseModelConfigurationQuery,
+    OnboardingJourneyQueryService,
+)
 from app.services.auth.dependencies import get_current_user
 from app.services.onboarding import OnboardingPreferenceService
 
@@ -33,7 +37,11 @@ async def get_onboarding_journey(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OnboardingJourneyViewV1:
-    result = await OnboardingJourneyQueryService(db).get_journey(
+    result = await OnboardingJourneyQueryService(
+        db,
+        model_configuration=DatabaseModelConfigurationQuery(db),
+        data_control=DatabaseDataControlQuery(db),
+    ).get_journey(
         current_user, correlation_id=_correlation_id(request)
     )
     response.headers["Cache-Control"] = "private, no-store"
@@ -52,7 +60,11 @@ async def update_onboarding_preference(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OnboardingJourneyViewV1:
-    result = await OnboardingPreferenceService(db).apply(
+    result = await OnboardingPreferenceService(
+        db,
+        model_configuration=DatabaseModelConfigurationQuery(db),
+        data_control=DatabaseDataControlQuery(db),
+    ).apply(
         user=current_user,
         command=body,
         correlation_id=_correlation_id(request),

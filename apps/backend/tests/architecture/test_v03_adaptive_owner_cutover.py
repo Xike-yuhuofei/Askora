@@ -18,7 +18,10 @@ def test_adaptive_facade_exposes_single_sys05_policy_composition_path() -> None:
     assert "sequential_policy_state_v03" in source
     assert "sequential_transition_reason_v03" in source
     assert "_reconstruct_sequential_policy_state" in source
-    assert "FixedTimeSource(context.decision_time)" in source or "FixedTimeSource(decision_time)" in source
+    assert (
+        "FixedTimeSource(context.decision_time)" in source
+        or "FixedTimeSource(decision_time)" in source
+    )
 
 
 def test_sequential_policy_accepts_injected_time_source_for_replay() -> None:
@@ -26,9 +29,7 @@ def test_sequential_policy_accepts_injected_time_source_for_replay() -> None:
     production code can pin replay time to TeachingContext.decision_time.
     """
 
-    source = (
-        BACKEND_ROOT / "app" / "domains" / "teaching_policy" / "sequential.py"
-    ).read_text()
+    source = (BACKEND_ROOT / "app" / "domains" / "teaching_policy" / "sequential.py").read_text()
     assert "time_source: TimeSource | None = None" in source
     assert "active_time_source = time_source or self._time_source" in source
 

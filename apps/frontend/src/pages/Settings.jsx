@@ -15,6 +15,7 @@ import {
 import * as authApi from '../api/auth'
 import * as usersApi from '../api/users'
 import * as dataControlApi from '../api/dataControl'
+import * as onboardingApi from '../api/onboarding'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from '../router'
 import './Settings.css'
@@ -47,6 +48,8 @@ export default function Settings() {
   const [erasureCommandKey, setErasureCommandKey] = useState('')
   const [erasurePhrase, setErasurePhrase] = useState('')
   const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
+  const [onboardingJourney, setOnboardingJourney] = useState({ status: 'loading', data: null, error: '' })
+  const [onboardingReopenState, setOnboardingReopenState] = useState('idle')
 
   const loadSessions = () => {
     setSessions((current) => ({ ...current, status: 'loading', error: '' }))
@@ -68,7 +71,33 @@ export default function Settings() {
       .catch(() => setSystem({ status: 'error', data: null, error: '后端服务不可用，无法读取实时运行状态。' }))
     loadSessions()
     loadAccountRecoveryStatus()
+    loadOnboardingJourney()
   }, [])
+
+  const loadOnboardingJourney = () => {
+    setOnboardingJourney({ status: 'loading', data: null, error: '' })
+    onboardingApi.getOnboardingJourney()
+      .then((data) => setOnboardingJourney({ status: 'ready', data, error: '' }))
+      .catch(() => setOnboardingJourney({ status: 'error', data: null, error: '无法读取首次引导状态。' }))
+  }
+
+  const reopenOnboardingFlow = async () => {
+    if (onboardingReopenState === 'loading') return
+    const current = onboardingJourney
+    if (!current.data) return
+    setOnboardingReopenState('loading')
+    try {
+      const updated = await onboardingApi.reopenOnboarding({
+        expectedVersion: current.data.preference?.preference_version ?? 1,
+      })
+      setOnboardingJourney({ status: 'ready', data: updated, error: '' })
+      setOnboardingReopenState('idle')
+      navigate('/welcome')
+    } catch {
+      setOnboardingReopenState('error')
+      setOnboardingJourney((prev) => ({ ...prev, error: '无法重新打开首次引导，请稍后重试。' }))
+    }
+  }
 
   const createIdempotencyKey = (prefix) => `${prefix}-${crypto.randomUUID()}`
 
@@ -518,6 +547,36 @@ export default function Settings() {
             </div>
           )}
           {accountRecovery.error && <p className="inline-error" role="alert">{accountRecovery.error}</p>}
+        </section>
+
+        <section className="surface settings-section settings-section--wide" aria-labelledby="onboarding-heading">
+          <div className="section-heading section-heading--compact">
+            <div>
+              <p className="eyebrow">App 工具</p>
+              <h2 id="onboarding-heading">首次引导</h2>
+              <p>第一次使用时出现的 4 步流程（模型 → 资料 → 目标 → 第一节）。</p>
+            </div>
+            <CircleAlert size={18} />
+          </div>
+          {onboardingJourney.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取首次引导状态…</div>}
+          {onboardingJourney.status === 'error' && <p className="inline-error" role="alert">{onboardingJourney.error}</p>}
+          {onboardingJourney.status === 'ready' && (
+            <>
+              <p className="settings-help">
+                当前引导：{onboardingJourney.data?.preference?.visibility === 'DISMISSED' ? '已暂存' : '进行中'}；
+                状态：{onboardingJourney.data?.journey_state || '未知'}。
+              </p>
+              <button
+                type="button"
+                className="button button--secondary"
+                aria-label="重新打开首次引导"
+                onClick={reopenOnboardingFlow}
+                disabled={onboardingReopenState === 'loading'}
+              >
+                {onboardingReopenState === 'loading' ? '正在打开…' : '重新打开首次引导'}
+              </button>
+            </>
+          )}
         </section>
 
         <section className="surface settings-section settings-section--wide settings-session">

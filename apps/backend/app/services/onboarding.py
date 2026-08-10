@@ -16,7 +16,9 @@ from app.core.exceptions import BusinessError
 from app.models.user import User
 from app.queries.onboarding import (
     BOUNDARY_NOTICE_VERSION,
+    DataControlQuery,
     JOURNEY_ID,
+    ModelConfigurationQuery,
     OnboardingJourneyQueryService,
 )
 
@@ -31,9 +33,15 @@ class OnboardingPreferenceService:
         session: AsyncSession,
         *,
         journey_query: OnboardingJourneyQueryService | None = None,
+        model_configuration: ModelConfigurationQuery | None = None,
+        data_control: DataControlQuery | None = None,
     ) -> None:
         self._session = session
-        self._journey = journey_query or OnboardingJourneyQueryService(session)
+        self._journey = journey_query or OnboardingJourneyQueryService(
+            session,
+            model_configuration=model_configuration,
+            data_control=data_control,
+        )
         self._preferences = self._journey.preferences
 
     async def apply(
