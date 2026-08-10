@@ -1,9 +1,113 @@
 # Askora UI Information Architecture Specification
 
-> Spec ID：`UI-IA-*`  
-> 状态：`FROZEN`  
-> Governing：`ADR-0014`、`UI-IES-*`、`ARCH-001`、`ARCH-020`、`STATE-012`  
-> Canonical Design：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`
+> Spec ID：`UI-IA-*`、`UXA-IA-*`
+> 状态：`FROZEN`
+> Governing：`ADR-0014`、`ADR-0018`、`UI-IES-*`、`ARCH-001`、`ARCH-020`、`STATE-012`、`WSP-*`
+> Canonical Design：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`、`docs/design/UX-Architecture-Canonical-Design-Delta.md`
+
+## 0. UX Architecture Absorption (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的三栏学习架构与 Workspace 上下文。凡与本节冲突的旧 `UI-IA-*` 条款，按 [Supersession Matrix](#12-uxa-supersession-matrix-for-ui-ia) 处置。
+
+### UXA-IA-001 — Three-Column Responsibilities
+
+冻结三栏职责：
+
+```text
+Left (Where)      Center (Learn)                    Right (Reference / Notes)
+Global Nav        Teaching content                  User-authored notes
+Current Workspace Questions                          Current source material
+Workspace switch  Learner answers                   Citation / source context
+                  Feedback
+                  Learning Context Drawer
+                  Composer
+```
+
+- 左栏只承担稳定产品导航、当前 Workspace 可见性与 Workspace 切换；不得承担 Goal/Plan/Progress/Evidence/图谱详情。
+- 中栏是唯一 Primary Learning Canvas，MUST NOT 变成 Dashboard。
+- 右栏整体可隐藏，V1 仅学习笔记与当前资料。
+
+### UXA-IA-002 — Shared Canonical Workspace Context
+
+- 三栏 MUST 解析同一个 canonical `current_workspace_id`（`ADR-0016` / `WSP-*` durable Workspace）。
+- 不得用 route、subject、session 或 frontend local state 冒充 Workspace truth。
+- 切换 Workspace 改变中栏、右栏与 Context Drawer 的全部查询范围，不仅是左栏选中态。
+- 单一 Workspace 不得显示虚假 dropdown/switch affordance。
+- 无默认跨 Workspace 聚合或全局搜索。
+
+### UXA-IA-003 — Workspace Switching Safety
+
+切换 Workspace 前 MUST 处理并明确呈现 saved / saving / failed / recoverable：
+
+- 未提交回答；
+- 正在 streaming 的 run；
+- 未持久化的笔记；
+- 打开的 Material tabs 与引用位置；
+- 可恢复的 active LearningSession。
+
+不得通过清空 React state 假装切换成功。
+
+### UXA-IA-004 — Learning Context Drawer Placement and Default
+
+- Drawer 固定在中栏 composer/输入区正上方，默认收起；它不是第四栏，也不占右栏。
+- 收起时只显示一行方向信息，例如 `监督学习基础 · 接下来：残差诊断`。
+- 展开只允许：当前阶段、阶段目标、接下来 1..3 个动态知识点/教学方向。
+- 禁止 V1 Drawer 加入完整 Goal editor、完整 Plan、Progress Dashboard、Evidence 管理、mastery 编辑、ReviewSchedule 编辑或 TeachingAction/Policy 控制。
+- expand/collapse 只改变 presentation state，不触发 owner command。
+
+### UXA-IA-005 — Learning Is Not a Management Console
+
+Learning 主界面不再暴露以下常驻管理 Facets：
+
+```text
+Goals
+Plan / Path
+Progress
+History-as-management-facet
+```
+
+这不删除 canonical truth：LearningGoal、LearningPlan、LearnerState、Evidence、ReviewSchedule、History 继续存在并驱动教学，但不决定用户必须管理多少页面。必要创建/纠正/确认/恢复/审计可在明确 user job 下进入 contextual task flow，不得恢复长期常驻管理中心。
+
+### UXA-IA-006 — Library v1 No-OCR Exposure
+
+- Library v1 正常 UI 不得暴露：识别扫描 PDF、OCR 状态、OCR candidate、OCR review/publish、OCR confidence/bbox/image hash、把 OCR 描述为 v1 核心能力的文案。
+- 扫描 PDF 无可靠文本时诚实显示 `unsupported / partial extraction` 并建议受支持文本型资料。
+- 历史/optional OCR runtime 是否保留由 v1 Product Architecture cleanup 决定；即使存在，正常 v1 UI 也不可达。
+
+### UXA-IA-007 — Deferred Candidates
+
+以下不得进入 V1，不得建立 placeholder、disabled tab 或空页面：
+
+```text
+大纲
+Evidence
+知识图谱
+Progress
+AI Summary
+Flashcards
+错题本
+```
+
+未来加入任何候选都需独立 user-job evidence、owner/query contract、隐私与恢复边界，并形成新 Design Delta / Spec。
+
+### UXA-IA-030 — Route / Deep-link Migration Matrix
+
+旧 `/learning/**` 管理 route 在去管理化后不再承载常驻管理 facet。迁移遵守 NGS（no global side effect）：redirect / compatibility / task-flow 不得触发 owner command、创建 session/activity、或写业务状态。
+
+| Current route | Target route | Redirect / compatibility / task-flow | Deep-link preservation | Business side effect | Retirement condition |
+|---|---|---:|---:|---:|---|
+| `/learning` | Learning Canvas default stage | Compatibility：Learning 不再管理四 facet | 保留跳转至 central Learning Canvas | None | 无（central Learning 是常驻目标） |
+| `/learning/goals` | Contextual task flow（明确 user job 下） | Compatibility→task-flow：仅在创建/纠正/审计 job 下可达 | `/goals/**` 与 goal deep link 保留迁移 | None；不自动创建/修改 goal | 新 Learning 主链稳定后视证据收口 |
+| `/learning/goals/new` | Goal task-flow | Task-flow（明确 user job） | 保留 | 仅用户显式提交时创建 | 同上 |
+| `/learning/goals/:goalId` | Goal detail context / task-flow | Compatibility→task-flow | 保留 | 只读；编辑需显式提交 | 同上 |
+| `/learning/plan` | Contextual plan disclosure | Compatibility→task-flow / Disclosure | 保留 | None；不得 client replan | 同上 |
+| `/learning/progress` | Contextual evidence disclosure | Compatibility→Disclosure | Deep link 保留，进入 only when user job | None | 同上 |
+| `/learning/history` | History-as-history（非管理 facet） | Compatibility：历史只读，不作为常驻管理入口 | 保留 | None | 同上 |
+| `/learn/:activityId` | Learning Canvas（Primary） | 常驻目标 | 保留 | 仅在 activity lifecycle command 下 | 无 |
+| `/quick/:sessionId` | 兼容快速学习 | Compatibility（标记来源） | 保留 | 仅 canonical dialog facade | canonical activity link 覆盖后 |
+| `/goals` `/path` `/evidence` `/history` `/profile` `/knowledge` `/account` | 见 `UI-IA-031` | 无副作用 redirect | 保留 | None | 迁移周期结束 |
+
+所有旧 route 保持 no-business-side-effect；删除旧 route 前必须满足对应 retirement condition 并完成历史 deep-link 验证。
 
 ## 1. 产品模式
 
@@ -340,7 +444,26 @@ Search/Command 与 Recovery indicator 属于全局 utility。只有存在对应 
 - 用前端 route/session state 充当 LearningActivity、LearningPlan 或 ReviewSchedule truth；
 - 把 Settings 作为无法分类功能的默认收纳区。
 
-## 12. P1-06 Welcome Entry
+## 12. UXA Supersession Matrix (UI-IA)
+
+本节是 `ADR-0018` / `UX-Architecture-Canonical-Design-Delta.md` 与旧 UI 合同之间的条款处置对照。`KEEP` 表示继续生效；`AMEND` 表示在保留语义下修订；`SUPERSEDE` 表示被新条款取代，旧条款不得再被机械执行；`HISTORICAL` 表示仅存档，不再作为实现合同。
+
+| Clause | Old disposition | New authority | Disposition |
+|---|---|---:|---|
+| `IES-CD-008`（Goal/Path/Progress/History 为 Learning L1 facets） | Learning 常驻管理 facet | `UXA-IA-005` 去管理化 | **SUPERSEDE**（默认暴露；domain truth 保留） |
+| `UI-IA-020..022`（Learning L1 facets 目标/路径/进展/历史） | 常驻 facets 导航 | `UXA-IA-005`、`UXA-IA-030`（contextual task-flow） | **SUPERSEDE**（默认常驻暴露） |
+| `UI-IA-030`（canonical routes 表） | `/learning/goals|plan|progress|history` 为常驻页面 | `UXA-IA-030`（route/deep-link migration matrix） | **AMEND**（路由保留迁移，语义改 contextual） |
+| `UI-IA-041`（Workspace Shell：Activity/History Rail | Conversation & Task Canvas | Learning Context Inspector） | 旧三栏布局 Inspector 语义 | `ADR-0018` §1、`UXA-IA-001..004`（Where/Learn/Reference + Drawer） | **SUPERSEDE**（布局） |
+| `UI-SCREEN-020..062`（Learning 各 facet 页面契约） | 常驻管理页面 | `UXA-SCREEN-*`（screen-contracts 新条款） | **SUPERSEDE**（作为常驻页面） |
+| `UI-SCREEN-070`（Tutor Workspace 核心构成） | 兼容导师工作台 | `UXA-SCREEN-*`（Learning Canvas / Drawer） | **AMEND**（并入 central Learning Canvas） |
+| `UI-SCREEN-091`（OCR 高级能力 contextual reveal） | Library 可 contextually 暴露 OCR | `UXA-IA-006`、`UXA-SCREEN-190..195` | **SUPERSEDE**（v1 UI 不暴露 OCR） |
+| `UI-03`（UI-03 Interactive Element System Refactor Vertical Slice） | 交互元素重构 | `UI-IES-*` 保留 + `UXA-*` 增补 | **KEEP**（IES 语义保留；UXA 增补） |
+| `EXEC-043`（UI-03A Shell/Routes/Learning Domain） | 已归档实现合同 | 新 UI-04 Vertical Slice / EXEC | **SUPERSEDE**（作为新实现合同） |
+| `EXEC-045`（UI-03C Library Progressive Disclosure） | active 实现合同 | 新 UI-04 Vertical Slice / EXEC | **SUPERSEDE**（Library no-OCR 条款优先） |
+
+处置规则：`SUPERSEDE` 的条款不再作为机械实现依据；对应实现行为以新 `UXA-*` 条款为准。`AMEND` 保留原语义目的，仅按本 Matrix 修订。`KEEP` 语义不变。
+
+## 13. P1-06 Welcome Entry
 
 ### UI-IA-090
 

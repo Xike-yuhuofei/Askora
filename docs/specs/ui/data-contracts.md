@@ -504,7 +504,140 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 
 对应 endpoint 进入实现前必须复核这些 code 是否应复用现有 `PLAN_NO_FEASIBLE_ACTIVITY`、`SCHEMA_VERSION_UNSUPPORTED` 等稳定语义，避免重复错误协议。
 
-## 11. Acceptance Criteria
+## 11. UX Architecture Data and Query Contracts (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的数据/查询边界。前端不得推断 domain truth；所有字段保留 `source_system`、version/ref、availability/freshness。
+
+### 11.1 Workspace Query Boundaries
+
+#### UXA-DATA-200 — Workspace List / Current Query
+
+Workspace list 与 current Workspace 都来自 canonical Workspace query（`ADR-0016` / `WSP-*`）。每个 Workspace 项至少携带：
+
+```yaml
+workspace_ref: versioned_ref
+workspace_id: uuid
+name: string
+status: READY|PARTIAL|STALE|ERROR
+```
+
+current Workspace 由服务端解析 `current_workspace_id`，返回 `source_system` 与 `source_ref`。前端 MUST NOT 用 route/subject/session/localStorage 当作 Workspace truth。`MISSING` 不得转换为空 Workspace 或"默认 Workspace"。
+
+#### UXA-DATA-201 — Workspace Switch Query / Command
+
+Workspace 切换是用户显式 Action。Spec 不在此发明 owner command；若现有上位合同未唯一确定 Workspace switch command owner，则对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`，不得由前端 PATCH Workspace 或写本地 state 冒充。
+
+切换结果的持久化状态 MUST 来自 canonical response，前端只呈现 `saved / saving / failed / recoverable`。
+
+#### UXA-DATA-202 — Workspace Switch Conflict / Recovery
+
+切换遇：未提交 draft、streaming run、未持久化 note、open Material tabs、active LearningSession 时，MUST 返回可恢复状态与显式呈现。前端不得静默丢弃。冲突恢复语义（保留/丢弃/合并）由对应 owner command 决定，UI 不得自行判定。
+
+### 11.2 UserNote Durable Object
+
+#### UXA-DATA-210 — UserNote Scope / Anchor / Version
+
+UserNote 是 user-authored durable object，MUST 是 Workspace-scoped 且 anchored（绑到当前阶段/内容/材料位置）。每条笔记至少携带：
+
+```yaml
+note_ref: versioned_ref
+note_id: uuid
+workspace_id: uuid
+anchor:
+  kind: STAGE|SOURCE_SPAN|MATERIAL|FREE
+  ref: versioned_ref|null
+version: integer
+```
+
+UserNote 的 owner 不由本 Spec 发明。若现有上位合同未唯一确定 UserNote owner，对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`，不得由前端 create 全局 note 或写 localStorage 事实源。
+
+#### UXA-DATA-211 — Autosave / Conflict / Recovery
+
+- autosave 提交使用 version/expected_revision 边界；`CONFLICT` 时要求用户确认，不得静默覆盖较新笔记；
+- 保存状态区分 `SAVING / SAVED / FAILED / CONFLICT / RECOVERABLE`；
+- 未持久化时不得显示"已保存"；浏览器内存不构成 durable recovery。
+
+### 11.3 Learning Context Drawer Query
+
+#### UXA-DATA-220 — Drawer Query
+
+Drawer 内容来自 canonical/versioned query，返回：
+
+```yaml
+stage_ref: versioned_ref|null
+stage_name: string|null
+stage_goal: string|null
+next_directions:   # 1..3
+  - kind: KNOWLEDGE_POINT|TEACHING_DIRECTION
+    ref: versioned_ref|null
+    label: string|null
+```
+
+#### UXA-DATA-221 — Provenance / Version
+
+stage / stage goal / next direction 必须有 `source_system` 与 `source_ref`。前端 MUST NOT 从 chat 文本、heading 顺序或 probability threshold 推断 next knowledge point；LLM 输出不得作为 canonical next knowledge point。
+
+#### UXA-DATA-222 — MISSING / PARTIAL / STALE
+
+Drawer query MUST 能表达：
+
+```text
+MISSING
+PARTIAL
+STALE
+```
+
+`MISSING` 不得转换为假 stage / "无内容"；`PARTIAL`/`STALE` 不得显示为 READY。
+
+### 11.4 Current Material / SourceSpan
+
+#### UXA-DATA-230 — Current Material Tabs Query
+
+Current Material tab 打开来自 citation / "view source" 的当前 Workspace 资料。tab 内容 MUST 来自 canonical current-Workspace refs：
+
+```yaml
+material_ref: versioned_ref
+document_id: uuid
+source_span_ref: versioned_ref|null
+locator: object|null
+```
+
+#### UXA-DATA-231 — Cross-Workspace Fail-closed
+
+跨 Workspace 引用 MUST fail closed，不泄露外部对象是否存在。缺失 SourceSpan 显示不可用状态，不得伪造 summary 或用 filename-as-original。
+
+### 11.5 Right-rail Presentation Boundary
+
+#### UXA-DATA-240 — Presentation vs Canonical Data
+
+右栏 tab 顺序、打开/关闭、右栏可见性、Drawer 展开态均为 presentation state，可本地保存。canonical data（笔记内容、材料、SourceSpan、stage/goal/next）必须来自 owner query。前端本地 state 不得成为第二 truth。
+
+### 11.6 State Matrix
+
+适用于 UXA 引入的加载区域。`—` 表示该区域不适用，不得机械添加。
+
+| 区域 | LOADING | EMPTY | READY | PARTIAL | STALE | ERROR | UNAUTHORIZED | CONFLICT | SAVING | SAVED | RECOVERABLE |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Workspace list/current | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
+| Workspace switch | ✓ | — | ✓ | — | — | ✓ | ✓ | — | ✓ | ✓ | ✓ |
+| Context Drawer | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
+| Notes | — | ✓ | ✓ | — | — | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Material tabs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
+| Library scanned-PDF | ✓ | — | ✓ | ✓ | — | ✓ | — | — | — | — | — |
+| Route compatibility | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | — | — | — | — |
+
+### 11.7 Acceptance Criteria
+
+- `UXA-DATA-AC-001`：Workspace current/list 来自 canonical query，前端不冒充 Workspace truth；
+- `UXA-DATA-AC-002`：Workspace switch 不静默丢弃 draft/stream/note/session/material；
+- `UXA-DATA-AC-003`：UserNote 为 Workspace-scoped、anchored、versioned durable object，冲突需确认；
+- `UXA-DATA-AC-004`：Drawer 内容来自 canonical/versioned query，前端不推断 next；
+- `UXA-DATA-AC-005`：MISSING/PARTIAL/STALE 不被转成 0/READY；
+- `UXA-DATA-AC-006`：Current Material / SourceSpan 为 canonical Workspace refs，跨 Workspace fail closed；
+- `UXA-DATA-AC-007`：右栏/Drawer presentation state 与 canonical data 边界清晰；
+- `UXA-DATA-AC-008`：未冻结的 Workspace switch / UserNote owner command 不以前端 mock 绕过。
+
+## 12. Acceptance Criteria
 
 - `UI-DATA-AC-001`：每个聚合字段可追踪 owner/system 与 exact ref/version 或明确 compatibility source。
 - `UI-DATA-AC-002`：MISSING/STALE/LOW_CONFIDENCE 不被前端转成 0 或 READY。

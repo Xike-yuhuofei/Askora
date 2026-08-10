@@ -1,6 +1,6 @@
 # Askora Architecture Decision Records
 
-> `docs/adr/` 记录已经被接受、会改变或解释 Implementation Spec 的重大架构决策。  
+> `docs/adr/` 记录已经被接受、会改变或解释 Implementation Spec 的重大架构决策。
 > 所有 ADR 均受上位 `docs/product/PRODUCT-POSITIONING.md` 约束。
 
 ## 1. 何时必须建立 ADR
@@ -99,6 +99,7 @@ Codex 的架构自治权限只作用于下位设计，**不得自行突破 Froze
 | `ADR-0015` | Local Single-User Identity Without Authentication | accepted | 2026-08-10 |
 | `ADR-0016` | Workspace, LearningProject and LearningSession Scope Ownership | **accepted** | 2026-08-10 |
 | `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | **accepted** | 2026-08-10 |
+| `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | **accepted** | 2026-08-10 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/Product Positioning | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
@@ -148,6 +149,18 @@ with：
 - restore missing secret → degraded/re-enter, never `.env` resurrection。
 
 Direct contracts：`docs/specs/platform/local-secret-store.md` (`LSS-*`) + `systems/08-model-configuration.md` + `quality/security-standard.md`。
+
+### ADR-0018 — UX Workspace Context / Three-Column Learning
+
+ADR-0018 absorbs the frozen `UX-Architecture-Canonical-Design-Delta.md` and partially supersedes `ADR-0014`:
+
+- Learning no longer exposes Goal/Plan/Progress/History as permanent L1 management facets (default exposure superseded);
+- left rail = Where (product nav + canonical Workspace), center = Learn (sole Primary Canvas), right rail = hideable Reference/Notes;
+- default-collapsed Learning Context Drawer above the composer;
+- Workspace is shared canonical context across all three columns;
+- Library v1 normal UI does not expose OCR.
+
+Direct contracts：`docs/specs/ui/**` (`UXA-*` clauses) + UI vertical slice / EXEC. The clause-level supersession matrix is in `ADR-0018` Section 8.
 
 ## 7. Historical Supersession Notes
 

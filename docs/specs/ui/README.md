@@ -1,9 +1,9 @@
 # Askora UI Specification Set
 
-> 状态：`FROZEN — ADR-0014 Interaction Architecture Baseline`  
-> 权威性：Canonical UI Implementation Contract  
-> Governing Design：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`  
-> Governing ADR：`docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`
+> 状态：`FROZEN — ADR-0014 + ADR-0018 UI Contract Set`
+> 权威性：Canonical UI Implementation Contract
+> Governing Design：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`、`docs/design/UX-Architecture-Canonical-Design-Delta.md`
+> Governing ADR：`docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`、`docs/adr/ADR-0018-ux-workspace-context-architecture.md`
 
 ## 1. Purpose
 
@@ -53,6 +53,19 @@ User Job
 8. Card/Button/Toolbar/Menu/Modal 是 pattern/component，不是 semantic role。
 9. Library 保持 Product Domain，但 batch/OCR/duplicate/advanced actions 使用 progressive disclosure。
 10. Settings landing 使用 hierarchical category navigation，不再是 giant control grid。
+
+## 2.5 ADR-0018 Frozen Product Decisions
+
+`ADR-0018` 吸收 `UX-Architecture-Canonical-Design-Delta.md`，在 ADR-0014 之上追加冻结：
+
+1. 三栏职责：Left = Where（导航 + Workspace），Center = Learn（唯一 Primary Canvas），Right = Reference / Notes（可隐藏）。
+2. Workspace 是三栏共享的 canonical `current_workspace_id` 上下文；切换处理 draft / stream / note / session / material-tab。
+3. Learning Context Drawer 固定在中栏 composer 正上方，默认收起，只显示 stage / stage goal / next 1..3。
+4. Learning 不再暴露 Goal / Plan / Progress / History 常驻管理 facet（domain truth 保留）。
+5. Library v1 正常 UI 不暴露 OCR；扫描 PDF 诚实显示 unsupported / partial。
+6. 大纲 / Evidence / 知识图谱 / Progress / AI Summary / Flashcards / 错题本为 deferred candidates，不建 placeholder。
+
+条款级处置见各 Spec 中的 `UXA-*` 条款与 `SUPERSEDE / AMEND / KEEP` 对照表。
 
 ## 3. Spec Index
 
@@ -110,18 +123,20 @@ Canonical Domain/System/Interface Specs
 
 ## 7. Implementation Gate
 
-ADR-0014 implementation 必须等待 `EXEC-1062` DONE，因为其 Allowed Files 与本次 refactor 在 `App.jsx`、Settings、route tests、UI specs 上重叠。
+ADR-0014 + ADR-0018 implementation 必须等待 `EXEC-1062` DONE，因为其 Allowed Files 与本次 refactor 在 `App.jsx`、Settings、route tests、UI specs 上重叠。
 
 冻结队列：
 
 ```text
 EXEC-1062 DONE
-→ UI-03 Interactive Element System Refactor
-→ dedicated EXEC
+→ UI-04 UX Workspace Context Vertical Slice
+→ serial EXEC（Workspace Context → Drawer → Notes/Material rail → de-management → Library no-OCR → responsive/a11y/release）
 → Release Evidence
 ```
 
 `EXEC-042` 是独立 backend/policy closure，可在不扩大 scope 时并行。
+
+UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）。不得用前端 mock 绕过未完成的 Workspace 产品架构；Workspace switch command / UserNote owner 未冻结前对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`。
 
 ## 8. Explicit Non-goals
 
@@ -136,6 +151,14 @@ EXEC-1062 DONE
 - 新生产依赖或 telemetry；
 - 重写 P1-02/03/05/07 security/data flows；
 - 把 UI 改善称为学习效果改善。
+
+ADR-0018 追加 Non-goals：
+
+- 实现 Workspace / Notes / Context Drawer 前不以前端 mock 或本地 state 冒充；
+- 不删除旧 `/learning/**` 路由或删除 Goal/Plan/Evidence/History 数据；
+- 不扩展 OCR；
+- 不建立第二 Tutor/Material/Note truth；
+- 不为 deferred candidates 建 placeholder / disabled tab。
 
 ## 9. Legacy UI-03 Candidate
 

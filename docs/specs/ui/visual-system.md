@@ -1,8 +1,8 @@
 # Askora UI Visual System Specification
 
-> Spec ID：`UI-VIS-*`  
-> 状态：`FROZEN`  
-> Governing：`ADR-0014`、`UI-IES-*`、`UI-IA-*`  
+> Spec ID：`UI-VIS-*`
+> 状态：`FROZEN`
+> Governing：`ADR-0014`、`UI-IES-*`、`UI-IA-*`
 > 参考资产：`.design_library/Askora/`（supporting asset，不是实现合同）
 
 ## 1. 视觉目标
@@ -339,7 +339,41 @@ Touch target SHOULD 至少 44×44 CSS px；桌面紧凑控件 MAY 36px，但必�
 
 Hover-only action 禁止。Contextual Action 必须在 keyboard focus / touch / More Menu / Context Menu 中存在等价入口。
 
-## 15. Acceptance Criteria
+## 15. UX Architecture Visual System (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的三栏/Workspace/Drawer/右栏视觉约束。
+
+### UXA-VIS-00 — Three-Column Hierarchy
+
+三栏职责（Where / Learn / Reference）在视觉上 MUST 可辨且稳定：
+
+- 左栏（Where）为稳定产品导航 + Workspace 上下文，视觉层级低于中栏；
+- 中栏（Learn）是唯一 Primary Learning Canvas，视觉权重最高，不得被 Dashboard widget 竞争；
+- 右栏（Reference/Notes）为可隐藏辅助栏，视觉安静，不承担主任务。
+
+单一 Workspace 不得显示虚假 selector/dropdown affordance。
+
+### UXA-VIS-01 — Workspace Switching Feedback
+
+Workspace switch / autosave 状态（`saved / saving / failed / recoverable`）使用 `StatusFeedback` + live region，区分于普通 navigation active state。未持久化时不得显示"已保存"。
+
+### UXA-VIS-02 — Context Drawer
+
+Drawer 收起时只显示一行方向信息；展开时显示 stage / stage goal / next 1..3。视觉上它归属中栏 composer，不是第四条栏，也不占右栏。展开/收起只反映 presentation state。`MISSING / PARTIAL / STALE` 使用诚实 unavailability 表达，不得伪装 READY。
+
+### UXA-VIS-03 — Right Rail Honesty
+
+右栏隐藏时不得隐藏完成任务所需的唯一引用、帮助状态或 validation obligation。已存/未存笔记状态视觉可辨。Current Material 缺失 SourceSpan 时诚实显示不可用，不得用 filename-as-original 冒充。
+
+### UXA-VIS-04 — Library No-OCR
+
+Library v1 正常 UI 不出现 OCR 入口/状态/review/confidence/bbox/hash 视觉元素。扫描 PDF 诚实显示 `unsupported / partial extraction` 与建议，不显示 OCR 进度或候选。
+
+### UXA-VIS-05 — Deferred Candidates
+
+大纲、Evidence、知识图谱、Progress、AI Summary、Flashcards、错题本不建立可见 placeholder / disabled tab。视觉上不得制造"即将上线"的永久空位。
+
+## 16. Acceptance Criteria
 
 - `UI-VIS-AC-001`：正式 UI 不使用装饰性 emoji、active gradient 或彩色 card stack；
 - `UI-VIS-AC-002`：L0 Product Domain 与 L1 facet / App Utility 层级可辨；
@@ -352,7 +386,7 @@ Hover-only action 禁止。Contextual Action 必须在 keyboard focus / touch / 
 - `UI-VIS-AC-009`：360px、200% zoom 和 reduced motion 下核心页面可完成任务；
 - `UI-VIS-AC-010`：所有 icon-only/contextual action 有 accessible name 与非 hover-only 入口。
 
-## 16. Forbidden Implementations
+## 17. Forbidden Implementations
 
 禁止：
 

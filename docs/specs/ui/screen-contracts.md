@@ -1,7 +1,7 @@
 # Askora UI Screen and Interaction Specification
 
-> Spec ID：`UI-SCREEN-*`  
-> 状态：`FROZEN`  
+> Spec ID：`UI-SCREEN-*`
+> 状态：`FROZEN`
 > Governing：`ADR-0014`、`UI-IA-*`、`UI-IES-*`、`API-*`、`ERROR-*`、`RENDER-*`
 
 ## 1. 通用页面状态
@@ -428,7 +428,275 @@ AI 与模型 destination MUST 显示现有 model configuration contract 定义�
 
 清除模型配置必须二次确认，并准确说明只影响 Askora 管理的配置边界。apply rollback 成功/失败状态不得混淆。
 
-## 12. Accessibility
+## 12. UX Architecture Absorption (ADR-0018)
+
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的屏幕契约。旧 `UI-SCREEN-*` 中与本节冲突的常驻管理/OCR 条款按 [Supersession Matrix](#12-uxa-supersession-matrix-ui-ia) 处置。
+
+### 12.1 Three-Column Workspace
+
+#### UXA-SCREEN-100 — Left Rail (Where)
+
+左栏只承载：
+
+- 稳定产品导航：Today / Learning / Library；
+- canonical current Workspace 可见性；
+- 多 Workspace 时的切换入口。
+
+左栏 MUST NOT 暴露 Goal/Plan/Progress/Evidence/图谱详情。当前 Workspace 名称、状态（READY/PARTIAL/ERROR）与切换入口来自 canonical Workspace query，不得用 route/subject/session/frontend state 冒充。
+
+#### UXA-SCREEN-101 — Center (Learn)
+
+中栏是唯一 Primary Learning Canvas，呈现：
+
+- 教学内容；
+- 当前问题 / 任务；
+- 学习者回答；
+- 反馈与下一轮教学；
+- streaming / complete / failed / recoverable 状态；
+- 必要引用、帮助上限与 validation obligation。
+
+MUST NOT 变成 Dashboard。所有状态来自 canonical query / TeachingAction envelope，前端不得推断。
+
+#### UXA-SCREEN-102 — Right Rail (Reference / Notes)
+
+右栏整体可隐藏；V1 只支持：
+
+- 学习笔记（user-authored durable、Workspace-scoped、anchored）；
+- 当前资料（由 citation / "view source" contextual 打开）。
+
+隐藏右栏 MUST NOT 阻止中栏完成主任务；重新打开 MUST 恢复上下文。citation / "view source" 在右栏上下文打开，中栏不离开当前学习。
+
+#### UXA-SCREEN-103 — Shared Workspace Context
+
+三栏 MUST 解析同一个 canonical `current_workspace_id`。切换 Workspace 改变中栏、右栏与 Context Drawer 的查询范围，不仅是左栏选中态。单一 Workspace 不得显示虚假 dropdown/switch affordance。
+
+### 12.2 Workspace List / Current / Switch States
+
+#### UXA-SCREEN-110 — Workspace List States
+
+Workspace list MUST 区分：
+
+```text
+LOADING
+EMPTY
+READY
+PARTIAL
+STALE
+ERROR
+UNAUTHORIZED
+```
+
+- `EMPTY`：无 Workspace，诚实说明并提供创建入口（若存在 owner command）；
+- `READY`：可列出并选择 Workspace；
+- `PARTIAL`：部分 Workspace 元数据缺失；
+- `STALE`：仍可读 last valid data 但来源已过期；
+- `ERROR` / `UNAUTHORIZED`：结构化错误，不得伪装 EMPTY。
+
+#### UXA-SCREEN-111 — Current Workspace States
+
+current Workspace 区域 MUST 区分 `LOADING/READY/PARTIAL/STALE/ERROR`。`PARTIAL`/`STALE` 不得显示为完整 READY；不得用空数组伪装 EMPTY。
+
+#### UXA-SCREEN-112 — Workspace Switch States
+
+切换 Workspace 是用户显式 Action，MUST 覆盖：
+
+```text
+idle
+switching
+saved
+saving
+failed
+recoverable
+```
+
+切换触发的持久化/恢复状态 MUST 明确呈现为 `saved / saving / failed / recoverable`。不得通过清空 React state 假装切换成功。
+
+### 12.3 Workspace Switch Safety
+
+#### UXA-SCREEN-113 — Draft / Stream / Note / Session / Material on Switch
+
+发起 Workspace 切换前 MUST 处理以下并给出明确状态：
+
+- 未提交回答 draft；
+- 正在 streaming 的 run；
+- 未持久化的笔记；
+- 打开的 Material tabs 与引用位置；
+- 可恢复的 active LearningSession。
+
+任何一项处于 `failed` / `recoverable` 时，切换 MUST 阻断或要求用户显式确认，不得静默丢弃。
+
+#### UXA-SCREEN-114 — No Silent Data Loss
+
+UI MUST 呈现 `saved / saving / failed / recoverable`。浏览器内存并不构成 durable recovery；不得在未持久化时显示"已保存"。
+
+### 12.4 Learning Context Drawer
+
+#### UXA-SCREEN-120 — Drawer Placement and Default
+
+Drawer 固定在中栏 composer/输入区正上方，默认收起。收起时只显示一行方向信息，例如 `监督学习基础 · 接下来：残差诊断`。它不是第四栏，也不占右栏。
+
+#### UXA-SCREEN-121 — Drawer Collapsed
+
+收起态只显示当前阶段 · 接下来一行。不显示完整 Goal editor、Plan、Progress、Evidence 管理、mastery / ReviewSchedule / TeachingAction 控制。
+
+#### UXA-SCREEN-122 — Drawer Expanded
+
+展开态只允许：
+
+- 当前阶段；
+- 阶段目标；
+- 接下来 1..3 个动态知识点 / 教学方向。
+
+#### UXA-SCREEN-123 — Drawer States
+
+Drawer 内容 MUST 区分：
+
+```text
+LOADING
+READY
+MISSING
+PARTIAL
+STALE
+ERROR
+```
+
+- `MISSING`：canonical stage/goal/next 不存在，诚实显示"当前阶段信息不可用"；
+- `PARTIAL` / `STALE`：不得显示为 READY；
+- `ERROR`：结构化错误。
+
+Drawer 内容 MUST 来自 canonical/versioned query，前端不得从 chat 文本、heading 顺序或 probability threshold 推断 next knowledge point；LLM 输出不得写成 canonical next knowledge point。
+
+#### UXA-SCREEN-124 — Drawer Presentation Only
+
+expand/collapse 只改变 presentation state，不得触发 owner command。Drawer 失败不得使中栏主任务白屏或阻断提交。
+
+### 12.5 Right Auxiliary Rail Tabs
+
+#### UXA-SCREEN-130 — Right Rail Hide / Show
+
+右栏 MUST 可隐藏。隐藏 MUST NOT 移除完成任务所需的唯一引用、帮助状态或 validation obligation。重新打开 MUST 恢复上下文（含当前 Material tab 与 source position）。
+
+#### UXA-SCREEN-131 — Notes Tabs
+
+V1 右栏 tabs：Learning Notes 与 Current Material。无 generic "+" extension host；不得为 deferred candidates 建立 placeholder / disabled tab。
+
+### 12.6 Notes Saving / Conflict / Recovery
+
+#### UXA-SCREEN-140 — Notes States
+
+Notes MUST 区分：
+
+```text
+SAVING
+SAVED
+FAILED
+CONFLICT
+RECOVERABLE
+```
+
+- `SAVING`：提交中，禁用重复提交；
+- `SAVED`：已持久化到 durable UserNote；
+- `FAILED`：结构化错误，提供重试；
+- `CONFLICT`：version/expected_revision 冲突，需重新加载并确认，不得静默覆盖较新笔记；
+- `RECOVERABLE`：可恢复草稿，提供恢复，不承诺自动找回。
+
+#### UXA-SCREEN-141 — Autosave Feedback
+
+autosave 必须提供可见反馈（saving/saved/failed）。未持久化时不得显示"已保存"。
+
+### 12.7 Current Material Tabs / SourceSpan / Citation
+
+#### UXA-SCREEN-150 — Current Material Tabs
+
+Current Material tab 打开来自 citation / "view source" 的当前 Workspace 资料。tab 行为：
+
+- 打开 / 切换 / 关闭不改变中栏学习内容（中栏不离开当前学习）；
+- tab 顺序与 source position 为 presentation state，可恢复；
+- 跨 Workspace 引用 MUST fail closed，不得泄露外部对象是否存在。
+
+#### UXA-SCREEN-151 — SourceSpan and Citation
+
+推荐/引用 MUST 可追踪 SourceSpan。缺失 SourceSpan 时诚实显示不可用状态，不得伪造 summary 或用 filename-as-original。
+
+### 12.8 Learning Route Compatibility / Task Flow
+
+#### UXA-SCREEN-160 — Route Compatibility
+
+旧 `/learning/goals|plan|progress|history` 在去管理化后不再承载常驻管理 facet。它们进入 contextual task flow / Disclosure，仅在明确 user job 下可达。旧 `/goals/**` 等 route 保留无副作用 redirect（见 `UXA-IA-030`）。
+
+#### UXA-SCREEN-161 — Task Flow Constraints
+
+contextual task flow（创建/纠正/确认/恢复/审计）MUST：
+
+- 只在明确 user job 下进入；
+- 不恢复长期常驻管理中心；
+- 不自动触发 owner command。
+
+### 12.9 Library v1 No-OCR Exposure
+
+#### UXA-SCREEN-190 — No OCR in Normal UI
+
+Library v1 正常 UI MUST 不暴露：
+
+```text
+识别扫描 PDF
+OCR 状态
+OCR candidate
+OCR review/publish
+OCR confidence / bbox / image hash
+把 OCR 描述为 v1 核心能力的文案
+```
+
+#### UXA-SCREEN-191 — Scanned PDF Unsupported / Partial
+
+扫描 PDF 无可靠文本时 MUST 诚实显示：
+
+```text
+unsupported / partial extraction
+```
+
+并建议使用受支持的文本型资料。MUST NOT 显示 OCR 进度、候选或 review 流程。
+
+#### UXA-SCREEN-192 — OCR Runtime Unreachable
+
+历史/optional OCR runtime 是否保留由 v1 Product Architecture cleanup 决定；即使存在，正常 v1 UI MUST NOT 提供到达入口。
+
+### 12.10 Responsive / Keyboard / Touch / Screen Reader
+
+#### UXA-SCREEN-200 — Breakpoints
+
+至少验证 1440×900、1024×768、768×1024、360×800 与 200% zoom：
+
+- 1440 / 1024：完整三栏或右栏可收起；
+- 768 / 360：Global Navigation 进入 drawer/compact rail，右栏变可访问 sheet；
+- 无页面横向滚动；关键任务可在窄屏完成。
+
+#### UXA-SCREEN-201 — Keyboard / Touch Equivalence
+
+左栏切换、右栏 hide/show、Drawer expand/collapse、Material tab 操作 MUST 有 keyboard 与 touch 等价路径。触发后 focus 返回触发点。Drawer/tab 需 Escape 关闭 transient surface。
+
+#### UXA-SCREEN-202 — Screen Reader
+
+三栏职责、Drawer 展开态、右栏可见性、Notes 保存状态 MUST 可通过 accessibility tree 理解。状态不得只靠颜色编码。
+
+#### UXA-SCREEN-203 — No Nested Critical Scroll
+
+主要操作区域避免同时出现页面 + 消息 + Drawer 三层关键滚动。任何内部滚动区域须有明确边界与键盘可达。
+
+### 12.11 Acceptance Criteria
+
+- `UXA-SCREEN-AC-001`：三栏解析同一 canonical `current_workspace_id`；
+- `UXA-SCREEN-AC-002`：Workspace switch 处理 draft/stream/note/session/material-tab 且呈现 saved/saving/failed/recoverable；
+- `UXA-SCREEN-AC-003`：Drawer 默认收起，展开只显示 stage/stage goal/next 1..3，失败不阻断主任务；
+- `UXA-SCREEN-AC-004`：右栏可隐藏且重开恢复上下文，无静默数据丢失；
+- `UXA-SCREEN-AC-005`：Notes 区分 SAVING/SAVED/FAILED/CONFLICT/RECOVERABLE；
+- `UXA-SCREEN-AC-006`：Current Material / SourceSpan 来自 canonical Workspace refs，跨 Workspace fail closed；
+- `UXA-SCREEN-AC-007`：Learning 不建立常驻 Goal/Plan/Progress/History 管理中心；
+- `UXA-SCREEN-AC-008`：Library v1 正常 UI 无 OCR 暴露，扫描 PDF 诚实显示 unsupported/partial；
+- `UXA-SCREEN-AC-009`：1440/1024/768/360 与 200% zoom 下主任务可完成且无横向滚动；
+- `UXA-SCREEN-AC-010`：keyboard/touch/screen reader 可操作三栏与 Drawer，focus 返回触发点。
+
+## 13. Accessibility
 
 ### UI-SCREEN-120
 
