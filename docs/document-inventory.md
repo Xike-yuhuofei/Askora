@@ -2,7 +2,7 @@
 
 > 状态：Current  
 > 校准日期：2026-08-10
-> 基线提交：`69bb8fe1e2bcd80e40c1b13e7887400efaee352a`  
+> 基线提交：`5d0821c1d71dea69380b02ab361a5fc3774275dd`  
 > 范围：受 Git 跟踪或本次新增的 Markdown/RST 文件；生成产物中的复制文件不作为独立权威来源。
 
 处置代码：
@@ -32,7 +32,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态和质量门禁 |
+| `docs/README.md` | CURRENT-UPDATED | 权威层级、目录状态、current v0.3 conformance 与质量门禁 |
 | `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
 | `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；P1-01/P1-02/P1-03/P1-04/P1-05/P1-07 DONE，P1-06 保持独立门禁 |
@@ -179,8 +179,9 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～041、EXEC-1031～1034、EXEC-1061 已完成；EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～041、EXEC-1031～1034、EXEC-1061 已完成；EXEC-042 与 EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
+| `docs/exec-plans/active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | CANONICAL-RETAIN | FROZEN / READY；关闭 current v0.3 production sequential policy + TeachingContext hydration gap |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN | 不可变任务合同 |
 | `docs/exec-plans/completed/EXEC-003-content-evidence-bundle.md` | HISTORICAL-RETAIN | 不可变任务合同 |
