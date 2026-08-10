@@ -16,8 +16,12 @@ _redis_available: Optional[bool] = None
 
 
 def get_redis_client(skip_check: bool = False) -> Optional[redis.Redis]:
-    """获取 Redis 客户端（单例），Redis 不可用时返回 None"""
+    """获取 Redis 客户端（单例），Redis 不可用或未配置时返回 None"""
     global _redis_client
+    if not settings.redis_url:
+        # 未配置 REDIS_URL：Redis 是可选优化，不是 v1 运行 requirement。
+        _redis_available = False
+        return None
     if _redis_available is False and not skip_check:
         return None
     if _redis_client is None:
@@ -39,8 +43,11 @@ def get_redis_client(skip_check: bool = False) -> Optional[redis.Redis]:
 
 
 async def init_redis() -> None:
-    """初始化 Redis 连接（应用启动时调用）"""
+    """初始化 Redis 连接（可选）。未配置或不可用时静默降级，不阻塞启动。"""
     global _redis_available
+    if not settings.redis_url:
+        _redis_available = False
+        return
     client = get_redis_client(skip_check=True)
     if client is None:
         _redis_available = False

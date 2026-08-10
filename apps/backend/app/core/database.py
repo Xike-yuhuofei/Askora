@@ -37,6 +37,23 @@ def _restrict_sqlite_permissions(database_path: str) -> None:
     Path(database_path).resolve().chmod(0o600)
 
 
+def ensure_data_directory() -> None:
+    """确保 Askora 管理的本地数据根目录存在并使用安全权限（PERSIST-003）。"""
+    directory = settings.data_directory
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    directory.chmod(0o700)
+
+
+def _ensure_sqlite_parent() -> None:
+    """文件型 SQLite 在首次连接前确保其父目录存在（确定性、安全创建）。"""
+    if not settings.database_url.startswith("sqlite"):
+        return
+    database_path = make_url(settings.database_url).database
+    if database_path and database_path != ":memory:":
+        parent = Path(database_path).resolve().parent
+        parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+
 def get_engine() -> AsyncEngine:
     """获取数据库引擎（单例）"""
     global _engine
@@ -113,6 +130,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """初始化数据库连接（应用启动时调用）"""
+    # 文件型 SQLite 在首次连接前确保父目录存在（managed data directory）。
+    _ensure_sqlite_parent()
     # 触发引擎创建，建立连接池
     get_engine()
     get_session_factory()

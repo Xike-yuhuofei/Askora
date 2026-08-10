@@ -146,14 +146,14 @@ def setup_log_correlation(app: FastAPI) -> None:
 
 async def _check_redis_ready() -> bool:
     """
-    检查 Redis 连接状态。
+    检查 Redis 连接状态（仅用于可观测性/诊断，非 requirement）。
 
     :return: 是否已就绪
     """
     try:
         from app.core.redis_client import get_redis_client, is_redis_available
 
-        if is_redis_available() is False:
+        if not settings.redis_url or is_redis_available() is False:
             return False
         client = get_redis_client()
         if client is None:
@@ -184,20 +184,20 @@ async def readiness_probe() -> JSONResponse:
     """
     /ready 就绪性探针端点。
 
-    检查 Redis 和 PostgreSQL 数据库的连接状态，
-    供 Kubernetes / Docker 编排层进行 liveness / readiness 探测。
+    Required 仅表示 Askora Local Web 核心功能能否安全运行：
+    - database（SQLite production-local）为 Required，失败时 fail closed（503）；
+    - Redis 为可选优化，仅作为诊断信息展示，绝不导致 readiness FAIL。
 
-    返回 200 表示全部就绪，503 表示部分组件未就绪。
+    返回 200 表示核心功能就绪，503 表示 Required 组件不可用。
     """
-    redis_ok = await _check_redis_ready()
     db_ok = await _check_db_ready()
+    redis_ok = await _check_redis_ready()
 
     components = {
         "redis": redis_ok,
         "database": db_ok,
     }
-    redis_required = not settings.auto_create_tables
-    all_ready = db_ok and (redis_ok or not redis_required)
+    all_ready = db_ok
 
     status_code = 200 if all_ready else 503
     return JSONResponse(
@@ -207,11 +207,11 @@ async def readiness_probe() -> JSONResponse:
             "components": components,
             "requirements": {
                 "database": True,
-                "redis": redis_required,
+                "redis": False,  # Redis 不是 v1 产品运行 requirement
             },
             "degraded_features": (
-                ["跨进程缓存、令牌撤销持久化和 KT 持久化"]
-                if not redis_ok and not redis_required
+                ["跨进程缓存等可选优化不可用（不影响本地核心功能）"]
+                if not redis_ok and all_ready
                 else []
             ),
             "timestamp": time.time(),

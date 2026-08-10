@@ -56,8 +56,9 @@ TeachingContext + PolicyBundle
 - Python 3.11 或 3.12；
 - `uv 0.9.5`（与 CI 一致）；
 - Node.js 22（CI 版本；Vite 8 的最低兼容版本为 Node.js 20.19+）；
-- npm；
-- Redis 7、PostgreSQL 16 和 Docker Compose 仅在相应开发/兼容运行模式下需要，不属于 v1 最终用户强制依赖。
+- npm。
+
+Redis 7、PostgreSQL 16 和 Docker Compose 仅在相应开发/兼容运行模式下需要，不属于 v1 最终用户强制依赖。
 
 ## 本地源码运行
 
@@ -68,12 +69,17 @@ cd apps/backend
 python -m pip install uv==0.9.5
 uv sync --frozen --extra dev
 cp .env.example .env
-# 编辑 .env，替换本地密钥；需要真实模型时再填写对应 LLM Key
-uv run alembic upgrade head
+# 编辑 .env，按需填写 LLM Key（BYOK）；未配置时对话返回明确模拟响应
 uv run python -m app.main
 ```
 
-本地 `APP_ENV=local` 默认可使用 SQLite；Redis 不可用时降级为单进程内存状态。当前生产/容器兼容模式仍可能要求 PostgreSQL、Redis 和非示例密钥可用；该实现事实需要逐步向 v1 Product Positioning 收敛，不构成目标产品运行契约。
+正常 Local Web 启动默认使用 Askora 管理的本地 SQLite（`./data/askora.db`），自动在本地数据目录建表，无需 Docker、PostgreSQL、Redis，也不要求登录/JWT。Alembic 迁移仅在需要升级既有历史数据或运行兼容模式时使用：
+
+```bash
+uv run alembic upgrade head
+```
+
+Redis 是可选优化：未配置 `REDIS_URL` 或 Redis 不可用时，Askora 仍可正常启动、服务与持久化，任务/状态使用本地 durable 行为。
 
 前端：
 
@@ -129,7 +135,7 @@ docker compose up --build
 ## 健康、配置与数据
 
 - `/health`：进程存活；
-- `/ready`：数据库和 Redis readiness；本地模式允许 Redis degraded；
+- `/ready`：核心功能就绪（database/SQLite 为 Required；Redis 为可选，不导致 FAIL）；
 - `/health/config`：只暴露私人模式和 LLM 配置状态；
 - `/metrics`：Prometheus 文本指标，可通过配置关闭；
 - 调试编排 API 默认关闭，通过 `ENABLE_ORCHESTRATOR_DEBUG_API=true` 显式开启；
