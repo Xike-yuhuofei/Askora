@@ -1,8 +1,8 @@
 # EXEC-048 — Backend No-Auth & Loopback Cutover
 
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
+> Status：FROZEN / ACTIVE  
 > Governing：ADR-0015、`LID-*`、Authentication Removal Vertical Slice  
-> Dependency：EXEC-047 DONE  
+> Dependency：EXEC-047 DONE（satisfied 2026-08-10）  
 > Next：EXEC-049
 
 ## Objective

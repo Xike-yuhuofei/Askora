@@ -74,6 +74,7 @@
 | EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |
 | EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
 | EXEC-1061 — P1-06 Onboarding Readiness Foundation | DONE | `4747000` |
+| EXEC-047 — LocalOwner Foundation & Migration | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
 
 ## Release Gate
 

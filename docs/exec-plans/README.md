@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
 > 状态：既有 UI-02C、P1-01～07 等基线已完成；当前存在独立 active/blocked 队列  
-> Active / Frozen Queue：EXEC-042、EXEC-047～051、EXEC-043～046  
-> Local Identity chain：`EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`  
+> Active / Frozen Queue：EXEC-042、EXEC-048～051、EXEC-043～046  
+> Local Identity chain：`EXEC-047 DONE → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`  
 > UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -21,8 +21,7 @@ Accepted ADR / Canonical Design
 | EXEC | Task | Status | Dependency / Concurrency |
 |---|---|---|---|
 | [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md) | v0.3 Production Sequential Teaching Policy Closure | FROZEN / ACTIVE | backend/policy 独立任务域 |
-| [EXEC-047](active/EXEC-047-local-owner-foundation-migration.md) | LocalOwner Foundation & Migration | FROZEN / ACTIVE | EXEC-1062 DONE；dependency satisfied |
-| [EXEC-048](active/EXEC-048-backend-no-auth-loopback-cutover.md) | Backend No-Auth & Loopback Cutover | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-047 DONE |
+| [EXEC-048](active/EXEC-048-backend-no-auth-loopback-cutover.md) | Backend No-Auth & Loopback Cutover | FROZEN / ACTIVE | EXEC-047 DONE；dependency satisfied |
 | [EXEC-049](active/EXEC-049-frontend-settings-onboarding-deaccounting.md) | Frontend / Settings / Onboarding De-accounting | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-048 DONE |
 | [EXEC-050](active/EXEC-050-auth-persistence-configuration-cleanup.md) | Auth Persistence & Configuration Cleanup | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-049 DONE |
 | [EXEC-051](active/EXEC-051-local-identity-release-closure.md) | Local Identity Acceptance & Release Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-050 DONE；unlocks UI-03 |
@@ -40,7 +39,7 @@ Accepted ADR / Canonical Design
 ```text
 EXEC-1062 DONE
     ↓
-EXEC-047 LocalOwner Foundation
+EXEC-047 DONE LocalOwner Foundation
     ↓
 EXEC-048 Backend No-Auth / Loopback
     ↓
@@ -86,7 +85,7 @@ EXEC-046 Settings / Cleanup / Release
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
 | P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE |
 | P1-06 Onboarding Product Closure | EXEC-1062 | DONE / archived 2026-08-10 |
-| Local Single-User Authentication Removal | EXEC-047～051 | FROZEN / **EXEC-047 ACTIVE** |
+| Local Single-User Authentication Removal | EXEC-047 DONE → EXEC-048～051 | **EXEC-048 ACTIVE** |
 | UI-03 Interactive Element System Refactor | EXEC-043～046 | FROZEN / BLOCKED_BY_EXEC_051 |
 
 ## 3. Local Identity Governance Chain
@@ -143,7 +142,7 @@ EXEC-017～024 均已完成并归档，保持历史原貌。
 
 P1-06B 已完成首次用户 journey、default entry、deep-link preservation、Settings reopen 与真实 owner capability integration，并于 2026-08-10 归档。
 
-因此 ADR-0015 的 EXEC-047 已解锁；必须完成 EXEC-047～051 后，UI-03 EXEC-043 才能开始全局 IA migration。
+因此 ADR-0015 的 EXEC-047 已解锁并完成（2026-08-10 归档）；必须完成 EXEC-047～051 后，UI-03 EXEC-043 才能开始全局 IA migration。
 
 不得让 Local Identity 与 UI-03 并行修改同一 frontend shell。
 

@@ -73,6 +73,7 @@ from app.models.ledger import (
     OutboxTaskRecord,
     RecoveryEventRecord,
 )
+from app.models.local_owner import LocalOwnerRecord
 from app.models.onboarding import (
     OnboardingPreferenceCommandReceiptRecord,
     OnboardingPreferenceRecord,
@@ -179,6 +180,7 @@ __all__ = [
     "DecisionTraceRecord",
     "DecisionTraceInputRecord",
     "OutboxTaskRecord",
+    "LocalOwnerRecord",
     "RecoveryEventRecord",
     "OnboardingPreferenceRecord",
     "OnboardingPreferenceCommandReceiptRecord",

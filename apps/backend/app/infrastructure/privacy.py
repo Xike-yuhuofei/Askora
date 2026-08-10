@@ -410,6 +410,7 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("payload",),
     ),
     "learning_materials": _entry("SYS01", _G, "global_canonical"),
+    "local_owners": _entry("IDENTITY_FINALIZE", _V, "privacy_governance"),
     "library_collections": _entry(
         "SYS01", _E, "canonical", subject=("pseudonym_id",), propagate=("id",), within_order=15
     ),

@@ -22,6 +22,7 @@
 | `README.md` | CURRENT-UPDATED | 当前产品、实现、运行和验证入口 |
 | `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN | EXEC-042 执行代理提示词 |
 | `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN | EXEC-1062 执行代理提示词 |
+| `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN | EXEC-047 执行代理提示词 |
 | `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
 | `apps/frontend/README.md` | CURRENT-UPDATED | 本次新增前端/Electron 当前说明 |
 | `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 后端资源目录说明 |
@@ -54,6 +55,7 @@
 | `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN | P1-07 统一恢复控制面与 bootstrap diagnostics 决策 |
 | `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | P1-02 desktop credential、probe、activation、rollback 与 clear 决策 |
 | `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md` | CANONICAL-RETAIN | Accepted user-job-driven IA、3-domain navigation 与 Interactive Element System 决策 |
+| `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md` | CANONICAL-RETAIN | Accepted Local Single-User Identity w/o Authentication 决策；EXEC-047 治理依据 |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | P1-05 账号编排接入 P1-03 canonical ALL_PERSONAL_DATA workflow 的 single-truth 决策 |
@@ -77,6 +79,7 @@
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
 | `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN | ADR-0014 上游 Interactive Element Taxonomy、Zero-Based IA 与迁移冻结输入 |
+| `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | CANONICAL-RETAIN | ADR-0015 上游 Local Single-User Identity 设计冻结输入；EXEC-047 治理依据 |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN | v0.3 Research Synthesis → Canonical Design 的冻结变更记录；不创建第三份 truth |
 | `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | CURRENT-UPDATED | 指定 main snapshot 对 frozen v0.3 Design/Spec 的实现一致性审计；不是新合同 |
 | `docs/design/账号与隐私生命周期设计.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、recovery 与 privacy deletion 设计 |
@@ -179,6 +182,7 @@
 | `docs/specs/vertical-slices/p1-03-data-control-recovery.md` | CANONICAL-RETAIN | 冻结 P1-03 backup/restore/export/erasure Slice |
 | `docs/specs/vertical-slices/p1-02-model-settings.md` | CANONICAL-RETAIN | 冻结 P1-02 configure→probe→activate→relaunch 产品闭环 |
 | `docs/specs/vertical-slices/p1-06-first-use-onboarding.md` | CANONICAL-RETAIN | 冻结 P1-06 首次使用引导 Slice；EXEC-1061～1062 |
+| `docs/specs/vertical-slices/local-single-user-authentication-removal.md` | CANONICAL-RETAIN | 冻结 Local Single-User Authentication Removal Slice；EXEC-047 DONE，EXEC-048～051 串行执行 |
 | `docs/specs/vertical-slices/p1-01a-goal-definition-draft-replan.md` | CANONICAL-RETAIN | 冻结 P1-01A Definition/Draft/Replan Slice；EXEC-038 |
 | `docs/specs/vertical-slices/p1-01b-goal-lifecycle-achievement.md` | CANONICAL-RETAIN | 冻结 P1-01B Lifecycle/Achievement Slice；EXEC-039 |
 
@@ -235,7 +239,8 @@
 | `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure and release completed EXEC |
 | `docs/exec-plans/completed/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | DONE；Settings 产品体验、真实 App/provider/relaunch 与 P1-02 gap 收口 |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
-| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC；执行时必须遵守 ADR-0014 最新 UI 合同 |
+| `docs/exec-plans/completed/EXEC-1062-p1-06b-onboarding-product-closure.md` | HISTORICAL-RETAIN | P1-06 product closure completed EXEC；2026-08-10 归档 |
+| `docs/exec-plans/completed/EXEC-047-local-owner-foundation-migration.md` | HISTORICAL-RETAIN | LocalOwner Foundation & Migration 不可变任务合同；2026-08-10 DONE |
 | `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 canonical erasure integration completed contract |
 
 ## 6. Release Evidence
@@ -252,6 +257,7 @@
 | `docs/releases/p1-07-error-recovery-center.md` | CURRENT-UPDATED | P1-07 Engineering、Ownership、Security、真实桌面/浏览器与 Learning Evidence 分离报告 |
 | `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 Engineering、Ownership 与 Learning Evidence 分离报告 |
 | `docs/releases/p1-02-model-settings.md` | CURRENT-UPDATED | P1-02 Engineering、Security/Ownership、真实 provider/relaunch 与 Learning Evidence 分离报告 |
+| `docs/releases/p1-06-first-use-onboarding.md` | CURRENT-UPDATED | P1-06 首次使用 Engineering、Security/Privacy、Product 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 
