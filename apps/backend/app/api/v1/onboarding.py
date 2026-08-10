@@ -12,7 +12,6 @@ from app.contracts.onboarding import (
 from app.core.database import get_db
 from app.queries.onboarding import (
     DatabaseDataControlQuery,
-    DatabaseModelConfigurationQuery,
     OnboardingJourneyQueryService,
 )
 from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
@@ -38,7 +37,6 @@ async def get_onboarding_journey(
 ) -> OnboardingJourneyViewV1:
     result = await OnboardingJourneyQueryService(
         db,
-        model_configuration=DatabaseModelConfigurationQuery(db),
         data_control=DatabaseDataControlQuery(db),
     ).get_journey(current_user, correlation_id=_correlation_id(request))
     response.headers["Cache-Control"] = "private, no-store"
@@ -59,7 +57,6 @@ async def update_onboarding_preference(
 ) -> OnboardingJourneyViewV1:
     result = await OnboardingPreferenceService(
         db,
-        model_configuration=DatabaseModelConfigurationQuery(db),
         data_control=DatabaseDataControlQuery(db),
     ).apply(
         user=current_user,

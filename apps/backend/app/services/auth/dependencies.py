@@ -75,8 +75,8 @@ async def get_current_owner(
 
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
-) -> OwnerProjection:
-    """Get OwnerProjection for service layer compatibility.
+) -> User:
+    """Get User projection for service layer compatibility.
 
     EXEC-048: Provides backward-compatible user-like object for services
     that expect .id, .pseudonym_id, .role, .status attributes.
@@ -84,7 +84,16 @@ async def get_current_owner_projection(
     In test/development environments, auto-bootstraps LocalOwner if missing.
     """
     ctx = await get_current_owner(db)
-    return OwnerProjection.from_context(ctx)
+    return User(
+        id=ctx.canonical_owner_id,
+        role=UserRole.USER,
+        status=UserStatus.ACTIVE,
+        pseudonym_id=ctx.owner_id.hex,
+        is_verified=False,
+        account_lifecycle="active",
+        password_hash=None,
+        credential_version=1,
+    )
 
 
 async def get_current_user_ws(

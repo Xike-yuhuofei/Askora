@@ -73,7 +73,7 @@ def test_exec007_optional_workflow_is_separate_from_required() -> None:
     assert "test_postgres_decision_trace_compatibility.py" in postgres_commands
 
     py312_commands = _commands(jobs["py312-compat"])
-    assert "python-version: \"3.12\"" not in py312_commands
+    assert 'python-version: "3.12"' not in py312_commands
     # python-version is a separate input step, not in commands
     assert "uv run pytest tests/ -m required" in py312_commands
 
