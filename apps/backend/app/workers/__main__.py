@@ -57,7 +57,10 @@ async def start_worker(
         from app.core.redis_client import get_redis_client
 
         redis_client = get_redis_client()
-        logger.info("worker_redis_connected")
+        if redis_client is not None:
+            logger.info("worker_redis_connected")
+        else:
+            logger.warning("worker_redis_not_available_using_memory_queue")
     except Exception:
         logger.warning("worker_redis_not_available_using_memory_queue")
 

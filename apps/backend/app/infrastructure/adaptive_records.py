@@ -68,6 +68,45 @@ class AdaptiveContractRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def save_action(self, action: TeachingActionV03) -> TeachingActionV03:
+        context = await self._session.get(
+            TeachingContextRecord, action.teaching_context_ref.entity_id
+        )
+        if context is None:
+            raise KeyError(f"teaching context not found: {action.teaching_context_ref.entity_id}")
+        bundle = await self._session.get(PolicyBundleRecord, action.policy_bundle_ref.entity_id)
+        if bundle is None:
+            raise KeyError(f"policy bundle not found: {action.policy_bundle_ref.entity_id}")
+        if str(action.teaching_context_ref.version) != context.schema_version:
+            raise ValueError("TEACHING_CONTEXT_EXACT_VERSION_MISMATCH")
+        if str(action.policy_bundle_ref.version) != bundle.policy_version:
+            raise ValueError("POLICY_BUNDLE_EXACT_VERSION_MISMATCH")
+        existing = await self._session.get(TeachingActionV03Record, str(action.action_id))
+        if existing is not None:
+            if not _same_payload(existing.payload, action):
+                raise ImmutableContractConflict("teaching action semantic overwrite")
+            return TeachingActionV03.model_validate(existing.payload)
+        self._session.add(
+            TeachingActionV03Record(
+                action_id=str(action.action_id),
+                schema_version=action.action_schema_version,
+                decision_id=str(action.decision_id),
+                context_id=action.teaching_context_ref.entity_id,
+                policy_bundle_id=action.policy_bundle_ref.entity_id,
+                strategy_family=action.strategy_family.value,
+                payload=action.model_dump(mode="json"),
+                created_at=action.created_at,
+            )
+        )
+        await self._session.flush()
+        return action
+
+    async def get_action(self, action_id: UUID | str) -> TeachingActionV03 | None:
+        record = await self._session.get(TeachingActionV03Record, str(action_id))
+        if record is None:
+            return None
+        return TeachingActionV03.model_validate(record.payload)
+
     async def save_context(self, context: TeachingContextV03) -> TeachingContextV03:
         existing = await self._session.get(TeachingContextRecord, str(context.context_id))
         if existing is not None:
@@ -442,6 +481,12 @@ class DecisionTraceV03Repository:
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def get(self, decision_id: UUID | str) -> DecisionTraceV03 | None:
+        record = await self._session.get(DecisionTraceRecord, str(decision_id))
+        if record is None or record.v03_payload is None:
+            return None
+        return DecisionTraceV03.model_validate(record.v03_payload)
 
     async def append(self, trace: DecisionTraceV03) -> DecisionTraceV03:
         existing = await self._session.get(DecisionTraceRecord, str(trace.decision_id))

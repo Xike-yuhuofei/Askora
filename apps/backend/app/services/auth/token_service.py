@@ -221,6 +221,10 @@ class TokenService:
             return
         try:
             redis = get_redis_client()
+            if redis is None:
+                if not settings.auto_create_tables:
+                    raise AuthenticationStateUnavailableError()
+                return
             key = RedisKeys.format(RedisKeys.TOKEN_BLACKLIST, token_jti=jti)
             await redis.setex(key, max(1, expires_in_seconds), "1")
         except Exception as e:
@@ -245,6 +249,10 @@ class TokenService:
             return False
         try:
             redis = get_redis_client()
+            if redis is None:
+                if not settings.auto_create_tables:
+                    raise AuthenticationStateUnavailableError()
+                return False
             key = RedisKeys.format(RedisKeys.TOKEN_BLACKLIST, token_jti=jti)
             result = await redis.exists(key)
             return result > 0
@@ -275,6 +283,11 @@ class TokenService:
 
         try:
             redis = get_redis_client()
+            if redis is None:
+                if not settings.auto_create_tables:
+                    raise AuthenticationStateUnavailableError()
+                await cls._consume_refresh_token_locally(jti, remaining_seconds)
+                return
             key = RedisKeys.format(RedisKeys.TOKEN_BLACKLIST, token_jti=jti)
             consumed = await redis.set(key, "1", ex=remaining_seconds, nx=True)
             if not consumed:

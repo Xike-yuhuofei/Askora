@@ -160,6 +160,18 @@ class AuthService:
         await self.db.commit()
         logger.info("user_logout", user_id=user_id, session_id=session_id[:8])
 
+    async def heartbeat(self, user_id: str, session_id: str) -> None:
+        """Update last_seen_at to keep session alive. Called periodically by frontend."""
+        now = datetime.now(timezone.utc)
+        updated = await self.repo.touch_session(
+            session_id=session_id,
+            user_id=user_id,
+            now=now,
+        )
+        if updated == 0:
+            raise AuthSessionRevokedError("会话已失效")
+        await self.db.commit()
+
     async def validate_token_and_get_user(
         self,
         token: str,

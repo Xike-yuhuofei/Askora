@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import and_, case, func, select, update
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.identity import (
     AuthSessionRecord,
     IdentityCommandReceiptRecord,
@@ -22,11 +23,13 @@ class IdentityRepository:
         self.db = db
 
     async def active_session_count(self, user_id: str, now: datetime) -> int:
+        stale_before = now - timedelta(minutes=settings.session_idle_timeout_minutes)
         result = await self.db.execute(
             select(func.count(AuthSessionRecord.session_id)).where(
                 AuthSessionRecord.user_id == user_id,
                 AuthSessionRecord.revoked_at.is_(None),
                 AuthSessionRecord.refresh_expires_at > now,
+                AuthSessionRecord.last_seen_at > stale_before,
             )
         )
         return int(result.scalar_one())
@@ -34,6 +37,25 @@ class IdentityRepository:
     async def add_session(self, session: AuthSessionRecord) -> None:
         self.db.add(session)
         await self.db.flush()
+
+    async def touch_session(
+        self,
+        *,
+        session_id: str,
+        user_id: str,
+        now: datetime,
+    ) -> int:
+        result = await self.db.execute(
+            update(AuthSessionRecord)
+            .where(
+                AuthSessionRecord.session_id == session_id,
+                AuthSessionRecord.user_id == user_id,
+                AuthSessionRecord.revoked_at.is_(None),
+            )
+            .values(last_seen_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        return int(getattr(result, "rowcount", 0) or 0)
 
     async def get_session(self, session_id: str) -> AuthSessionRecord | None:
         return await self.db.get(AuthSessionRecord, session_id)

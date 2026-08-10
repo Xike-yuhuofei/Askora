@@ -679,6 +679,17 @@ class BookLearningApplication:
         except PolicyRuntimeResolutionError as exc:
             raise BookLearningApplicationError(str(exc)) from exc
         runtime.profile.assert_matches(runtime.bundle)
+        previous_action: TeachingActionV03 | None = None
+        previous_trace = None
+        if existing_activity_turns:
+            last_turn = existing_activity_turns[-1]
+            last_payload = BookLearningTeachingResponseV1.model_validate(last_turn.response_payload)
+            previous_action = last_payload.teaching_action
+            previous_trace = await DecisionTraceV03Repository(self._db).get(
+                previous_action.decision_id
+            )
+            if previous_trace is None:
+                previous_action = None
         context = await self._teaching_context(
             user=user,
             goal=goal,
@@ -686,6 +697,7 @@ class BookLearningApplication:
             activity=activity,
             idempotency_key=idempotency_key,
             decision_time=accepted_at,
+            previous_action=previous_action,
         )
         inputs = await self._retrieval.load_adaptive_input(
             pseudonym_id=user.pseudonym_id,
@@ -693,6 +705,16 @@ class BookLearningApplication:
         )
         records = AdaptiveContractRepository(self._db)
         await records.publish_policy_bundle(runtime.bundle)
+        context_payload = context.model_copy()
+        if previous_action is not None:
+            context_payload = context_payload.model_copy(
+                update={"previous_teaching_action_ref": VersionedRef(
+                    entity_type="teaching_action",
+                    entity_id=str(previous_action.action_id),
+                    version=previous_action.action_schema_version,
+                )}
+            )
+            context = context_payload
         await records.save_context(context)
         inference_id = uuid5(
             NAMESPACE_URL,
@@ -717,6 +739,8 @@ class BookLearningApplication:
                     adaptive_retrieval_candidates=inputs.candidates,
                     adaptive_source_scope=inputs.source_scope,
                     adaptive_index_versions=inputs.index_versions,
+                    previous_teaching_action_v03=previous_action,
+                    previous_decision_trace_v03=previous_trace,
                 )
             )
         except ModelRenderingError as exc:
@@ -1167,6 +1191,7 @@ class BookLearningApplication:
         activity: LearningActivity,
         idempotency_key: str,
         decision_time: datetime,
+        previous_action: TeachingActionV03 | None = None,
     ) -> TeachingContextV03:
         context_id = uuid5(
             NAMESPACE_URL, f"askora:book-teaching-context:{user.id}:{idempotency_key}"
@@ -1252,6 +1277,14 @@ class BookLearningApplication:
             ),
             "source_refs": source_refs,
         }
+        if previous_action is not None:
+            prev_ref = VersionedRef(
+                entity_type="teaching_action",
+                entity_id=str(previous_action.action_id),
+                version=previous_action.action_schema_version,
+            )
+            payload["previous_teaching_action_ref"] = prev_ref
+            payload["source_refs"] = tuple(list(source_refs) + [prev_ref])
         fingerprint_payload = {
             key: value
             for key, value in TeachingContextV03.model_validate(

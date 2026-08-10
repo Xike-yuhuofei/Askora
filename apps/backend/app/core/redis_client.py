@@ -15,9 +15,11 @@ _redis_client: Optional[redis.Redis] = None
 _redis_available: Optional[bool] = None
 
 
-def get_redis_client() -> redis.Redis:
-    """获取 Redis 客户端（单例）"""
+def get_redis_client(skip_check: bool = False) -> Optional[redis.Redis]:
+    """获取 Redis 客户端（单例），Redis 不可用时返回 None"""
     global _redis_client
+    if _redis_available is False and not skip_check:
+        return None
     if _redis_client is None:
         connection_kwargs: dict[str, Any] = {
             "decode_responses": True,
@@ -39,7 +41,10 @@ def get_redis_client() -> redis.Redis:
 async def init_redis() -> None:
     """初始化 Redis 连接（应用启动时调用）"""
     global _redis_available
-    client = get_redis_client()
+    client = get_redis_client(skip_check=True)
+    if client is None:
+        _redis_available = False
+        raise ConnectionError("无法初始化 Redis 客户端")
     try:
         await client.ping()
     except Exception:

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import * as authApi from '../api/auth'
 import { getOrCreateDeviceFingerprint } from '../api/client'
+import { startHeartbeat, stopHeartbeat } from '../api/sessionHeartbeat'
 
 const AuthContext = createContext(null)
 
@@ -15,6 +16,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
+    stopHeartbeat()
   }
 
   const applyDevSession = async () => {
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
     if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
     localStorage.setItem('user', JSON.stringify(data.user))
     setUser(data.user)
+    startHeartbeat()
   }
 
   useEffect(() => {
@@ -49,6 +52,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) {
           setUser(currentUser)
           localStorage.setItem('user', JSON.stringify(currentUser))
+          startHeartbeat()
         }
       } catch {
         clearTokens()
@@ -77,6 +81,7 @@ export function AuthProvider({ children }) {
     if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
     localStorage.setItem('user', JSON.stringify(data.user))
     setUser(data.user)
+    startHeartbeat()
     return data
   }
 
@@ -114,6 +119,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout()
     } catch {}
+    stopHeartbeat()
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')

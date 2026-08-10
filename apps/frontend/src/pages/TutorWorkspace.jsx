@@ -1,10 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, BookOpen, History as HistoryIcon, Send } from 'lucide-react'
 import * as dialogApi from '../api/dialog'
 import { useNavigate } from '../router'
+import WorkspaceMessage from '../components/messages/WorkspaceMessage'
 import './TutorWorkspace.css'
 
-const RichMessage = lazy(() => import('../components/messages/RichMessage'))
+const starterSuggestions = [
+  '请帮我理解这个知识点',
+  '给我一道例题',
+  '我卡住了，给点提示',
+  '这和我的薄弱点有什么关系？',
+]
 
 export default function TutorWorkspace({ sessionId }) {
   const navigate = useNavigate()
@@ -12,6 +18,7 @@ export default function TutorWorkspace({ sessionId }) {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const messagesRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -64,11 +71,19 @@ export default function TutorWorkspace({ sessionId }) {
   useEffect(() => {
     const messageRegion = messagesRef.current
     if (messageRegion) messageRegion.scrollTop = messageRegion.scrollHeight
-  }, [view.messages, sending])
+  }, [view.messages, view.error, sending])
 
-  const send = async () => {
-    const content = input.trim()
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`
+  }, [input])
+
+  const send = async (contentOverride) => {
+    const content = (typeof contentOverride === 'string' ? contentOverride : input).trim()
     if (!content || sending || view.session?.status !== 'active') return
+
     const localId = `local-${Date.now()}`
     setSending(true)
     setInput('')
@@ -82,6 +97,7 @@ export default function TutorWorkspace({ sessionId }) {
         created_at: new Date().toISOString(),
       }],
     }))
+
     try {
       const result = await dialogApi.sendMessage(sessionId, content)
       const message = result.message || {
@@ -130,6 +146,7 @@ export default function TutorWorkspace({ sessionId }) {
 
   const session = view.session
   const isActive = session.status === 'active'
+  const showSuggestions = isActive && view.messages.length === 0 && !sending
 
   return (
     <div className="workspace-layout">
@@ -171,50 +188,71 @@ export default function TutorWorkspace({ sessionId }) {
           </button>
         </header>
 
-        {view.error && <p className="inline-error" role="alert">{view.error}</p>}
-
         <div ref={messagesRef} className="workspace-messages" aria-live="polite">
-          {view.messages.length === 0 && (
-            <div className="workspace-empty">
-              <BookOpen size={22} />
-              <p>输入你的问题或想法，开始这一轮兼容学习。</p>
+          {view.error && (
+            <div className="workspace-error" role="alert">
+              {view.error}
             </div>
           )}
-          {view.messages.map((message, index) => (
-            <article
-              key={message.id || `${message.role}-${message.turn_number || index}`}
-              className={`workspace-message workspace-message--${message.role}`}
-            >
-              <div className="workspace-message__meta">{message.role === 'user' ? '你' : 'Askora'}</div>
-              <div className="workspace-message__content">
-                {message.role === 'assistant' ? (
-                  <Suspense fallback={<p>{message.content}</p>}>
-                    <RichMessage fallbackText={message.content} payload={message.render_payload} />
-                  </Suspense>
-                ) : <p>{message.content}</p>}
-              </div>
-            </article>
+
+          {view.messages.length === 0 && !view.error && (
+            <div className="workspace-empty">
+              <BookOpen size={22} aria-hidden="true" />
+              <p>输入你的问题或想法，开始这一轮兼容学习。</p>
+              {showSuggestions && (
+                <div className="workspace-suggestions">
+                  <span className="workspace-suggestions__label">试试这样开始</span>
+                  <div className="workspace-suggestions__chips">
+                    {starterSuggestions.map((text) => (
+                      <button
+                        type="button"
+                        key={text}
+                        className="suggestion-chip"
+                        onClick={() => send(text)}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view.messages.map((message) => (
+            <WorkspaceMessage key={message.id || `${message.role}-${message.turn_number}`} message={message} />
           ))}
-          {sending && <div className="workspace-thinking" role="status">Askora 正在回应…</div>}
+
+          {sending && (
+            <div className="workspace-thinking" role="status" aria-label="Askora 正在回应">
+              <span className="thinking-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              Askora 正在回应…
+            </div>
+          )}
         </div>
 
         <div className="workspace-composer">
           {!isActive && <p className="inline-notice">该会话已结束，仅可查看历史内容。</p>}
-          <div className="composer-box">
+          <div className={`composer-box ${!isActive ? 'composer-box--disabled' : ''}`}>
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isActive ? '写下你的问题或思路…' : '会话已结束'}
               aria-label="学习输入"
-              rows={2}
+              rows={1}
               disabled={!isActive || sending}
             />
             <button
               type="button"
               className="composer-send"
               aria-label="发送消息"
-              onClick={send}
+              onClick={() => send()}
               disabled={!input.trim() || !isActive || sending}
             >
               <Send size={18} />
