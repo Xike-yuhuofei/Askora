@@ -3,6 +3,7 @@
 > Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
 > Governing: `ADR-0014`, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, `UI-VIS-*`, `UI-QUAL-*`  
 > Dependency: `EXEC-1062 DONE`  
+> Implementation chain: `EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`  
 > Scope type: presentation / information architecture / interaction architecture
 
 ## 1. Objective
@@ -33,9 +34,9 @@ MUST 满足：
 - `UI-IES/UI-IA/UI-SCREEN/UI-VIS/UI-QUAL` 当前版本 FROZEN；
 - `EXEC-1062` 已归档 DONE，P1-06 `/welcome` / default route / Settings reopen / deep-link contract 有最终实现证据；
 - 当前 main 的 frontend tests/build baseline 已记录；
-- 无其他 active EXEC 同时修改本 Slice Allowed Files，或已显式拆分 non-overlap scope。
+- 无其他 active EXEC 同时修改当前子 EXEC Allowed Files，或已显式证明 non-overlap。
 
-未满足时状态：`BLOCKED_BY_DEPENDENCY_GATE`。
+未满足时 UI-03 与 EXEC-043 状态：`BLOCKED_BY_DEPENDENCY_GATE`。
 
 `EXEC-042` backend policy closure 可独立执行，但 UI-03 不得借此修改 policy semantics。
 
@@ -93,7 +94,65 @@ UI-03 必须优化而不改变以下 jobs：
 - 清理只服务旧 7-item IA 的 dead CSS/components；
 - 不删除 compatibility `TutorWorkspace` / `/quick/:sessionId`，除非另有退休合同。
 
-## 5. Out of Scope
+## 5. Serial EXEC Decomposition
+
+### EXEC-043 — Shell, Routes and Learning Domain
+
+范围：
+
+- 3-domain global navigation；
+- utility grouping；
+- `/learning` local shell/facets；
+- canonical `/learning/**` routes；
+- legacy redirect；
+- Goal routes 迁移但不改 Goal business behavior。
+
+退出条件：`UI03-AC-001..005` + route/navigation/accessibility tests PASS。
+
+### EXEC-044 — Today Primary Hierarchy
+
+依赖：EXEC-043 DONE。
+
+范围：
+
+- canonical activity sole Primary Task；
+- supporting reason/goal/validation；
+- secondary upcoming/review；
+- Quick Start fallback/overflow。
+
+退出条件：`UI03-AC-006..007` + Today responsive/state tests PASS。
+
+### EXEC-045 — Library Progressive Disclosure
+
+依赖：EXEC-044 DONE。
+
+范围：
+
+- selection-driven batch toolbar；
+- document-context advanced actions；
+- 保留 P1-04A/B/C semantics；
+- keyboard/touch contextual discoverability。
+
+退出条件：`UI03-AC-008..009,014` + Library tests PASS。
+
+### EXEC-046 — Settings Hierarchy, Legacy Cleanup and Release Gate
+
+依赖：EXEC-045 DONE。
+
+范围：
+
+- Settings category landing + secondary destinations；
+- P1-02/03/05/07 security regression gates；
+- legacy `Chat.jsx` static proof + removal（若无使用者）；
+- dead old-IA CSS cleanup；
+- full responsive/accessibility/E2E/build/audit/docs gates；
+- UI-03 release evidence。
+
+退出条件：`UI03-AC-010..016` 全部 PASS。
+
+四个 EXEC MUST 串行，不得合并成一次大范围 implementation commit，除非新的 Spec/EXEC revision 明确批准。
+
+## 6. Out of Scope
 
 - TeachingAction / teaching strategy changes；
 - Plan manual reorder/edit；
@@ -106,7 +165,7 @@ UI-03 必须优化而不改变以下 jobs：
 - Focus mode 新能力；
 - iOS/native implementation 本身（只验证 semantic portability）。
 
-## 6. Route Contract
+## 7. Route Contract
 
 Canonical：
 
@@ -140,7 +199,7 @@ Legacy redirects：
 
 所有 redirect 无业务副作用。
 
-## 7. Semantic Element Gate
+## 8. Semantic Element Gate
 
 实现新增/修改的核心交互必须可归入：
 
@@ -158,7 +217,7 @@ StatusFeedback
 
 普通 Goal/Document/Activity/History collection 默认 row/list。
 
-## 8. Acceptance Criteria
+## 9. Acceptance Criteria
 
 - `UI03-AC-001`：L0 Product Domain 只有 Today/Learning/Library；
 - `UI03-AC-002`：Settings/Recovery 与 L0 Product Navigation 明确分组；
@@ -177,7 +236,7 @@ StatusFeedback
 - `UI03-AC-015`：frontend unit/integration/E2E/build/audit/docs/diff gates PASS；
 - `UI03-AC-016`：Engineering / Contract / Accessibility-Security Gate 与 Learning Evidence 分开报告。
 
-## 9. Required Tests
+## 10. Required Tests
 
 至少新增/更新：
 
@@ -207,7 +266,7 @@ git diff --check
 
 若修改 backend，必须执行对应 backend full/targeted gates；本 Slice 默认不需要 backend schema/API change。
 
-## 10. Migration / Rollback
+## 11. Migration / Rollback
 
 迁移采用 presentation-only forward migration：
 
@@ -225,7 +284,7 @@ git diff --check
 
 若出现阻断性 presentation regression，可 forward-fix shell/route rendering；不得恢复 chat-first default 或建立第二 truth。
 
-## 11. Completion Claim
+## 12. Completion Claim
 
 UI-03 DONE 只允许声明：
 
