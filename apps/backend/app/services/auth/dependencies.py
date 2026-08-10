@@ -33,7 +33,7 @@ OwnerProjection: TypeAlias = User
 async def get_current_owner(
     db: AsyncSession = Depends(get_db),
 ) -> LocalOwnerContext:
-"""Get LocalOwnerContext for no-auth loopback production.
+    """Get LocalOwnerContext for no-auth loopback production.
 
     EXEC-048: Replaces get_current_user for production API endpoints.
     No JWT/session validation needed - single-user local instance.
@@ -55,7 +55,13 @@ async def get_current_owner(
 async def get_current_owner_projection(
     db: AsyncSession = Depends(get_db),
 ) -> OwnerProjection:
-    """Return the LID-013 ORM compatibility row for legacy service/FK boundaries."""
+    """Return the LID-013 ORM compatibility row for legacy service/FK boundaries.
+
+    The projection is expunged from the session so that callers can safely
+    read identity attributes after a rollback without triggering lazy-load
+    greenlet errors. LocalOwner remains the only durable identity truth;
+    this compatibility row has no login credential or PII.
+    """
     ctx = await get_current_owner(db)
     projection_id = ctx.legacy_user_id or ctx.canonical_owner_id
     projection = await db.get(User, projection_id)
@@ -64,6 +70,7 @@ async def get_current_owner_projection(
             "LocalOwner compatibility learner row is missing",
             detail={"projection_user_id": projection_id},
         )
+    db.expunge(projection)
     return projection
 
 

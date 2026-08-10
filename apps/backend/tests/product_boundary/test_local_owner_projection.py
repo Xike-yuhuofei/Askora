@@ -15,7 +15,9 @@ from app.services.local_identity import ensure_local_owner
 @pytest.mark.required
 @pytest.mark.sqlite_integration
 @pytest.mark.asyncio
-async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path) -> None:
+async def test_fresh_local_owner_projection_is_complete_compatibility_user(
+    tmp_path,
+) -> None:
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'owner-projection.db'}")
     try:
         async with engine.begin() as connection:
@@ -45,13 +47,24 @@ async def test_fresh_local_owner_projection_is_complete_transient_user(tmp_path)
             # export must be able to read the complete compatibility projection
             # without AttributeError or fabricated personal data.
             exported_profile = await UserDataExporter(session)._profile(projection)
-            assert exported_profile["nickname"] is None
-            assert exported_profile["phone"] is None
-            assert exported_profile["email"] is None
-            assert exported_profile["real_name"] is None
+            assert exported_profile["account"]["nickname"] is None
+            assert exported_profile["account"]["phone"] is None
+            assert exported_profile["account"]["email"] is None
+            assert exported_profile["account"]["real_name"] is None
 
-            # The projection is deliberately transient: LocalOwner remains the
-            # only durable identity truth and no compatibility User row is added.
-            assert await session.get(User, owner.canonical_owner_id) is None
+            # LID-053: the compatibility User row is durable so that historical
+            # user_id / pseudonym_id FK columns keep referential integrity
+            # during migration. LocalOwner remains the only identity truth;
+            # this row carries no login credential or PII.
+            durable_row = await session.get(User, owner.canonical_owner_id)
+            assert durable_row is not None
+            assert durable_row.id == owner.canonical_owner_id
+            assert durable_row.pseudonym_id == owner.owner_id.hex
+            assert durable_row.role == UserRole.USER
+            assert durable_row.status == UserStatus.ACTIVE
+            assert durable_row.password_hash is None
+            assert durable_row.phone_encrypted is None
+            assert durable_row.email_encrypted is None
+            assert durable_row.real_name_encrypted is None
     finally:
         await engine.dispose()
