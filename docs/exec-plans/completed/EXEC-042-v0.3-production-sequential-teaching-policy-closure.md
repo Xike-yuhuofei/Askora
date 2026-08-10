@@ -724,7 +724,8 @@ Status: DONE
 Baseline:
 - start commit: 93667cd93a1e88659cab56e3bfa697f8e3c21741 (EXEC-042 frozen baseline)
 - implementation HEAD: b8b25d8 (pre-closure WIP base)
-- final archived commit: 见 Git 历史 / 交付回执（EXEC-042 closure commit, 2026-08-10）
+- final archived commit: 16849ecee828d98292bca3ebf8a6ec31c7aff45b
+  (EXEC-042 closure commit, 2026-08-10)
 
 Gap closure:
 - GAP-V03-001 (production adaptive path bypasses SequentialTeachingPolicy): CLOSED
