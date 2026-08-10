@@ -1,0 +1,76 @@
+name: Bug / Regression
+description: Report a reproducible product, contract, security, data, or engineering defect.
+title: "[Bug] "
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Use user/system impact, not implementation effort, to classify severity.
+      options:
+        - P0 — release blocker / data loss / critical security or product-boundary violation
+        - P1 — major user flow or correctness failure
+        - P2 — degraded experience with workaround
+        - P3 — minor defect or polish
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: What actually happens?
+      placeholder: Include the user-visible or contract-visible failure.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior / governing contract
+      description: What should happen instead? Cite Product Positioning, ADR, Spec, AC, or established product behavior where applicable.
+      placeholder: Expected result and governing source.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest deterministic reproduction you know.
+      placeholder: Preconditions, steps, inputs, and observed result.
+    validations:
+      required: true
+
+  - type: input
+    id: baseline
+    attributes:
+      label: Affected version / SHA
+      description: Candidate SHA, release, branch, or build where the defect was observed.
+      placeholder: e.g. 658b4796 or v0.3
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add sanitized logs, screenshots, failed checks, test names, or other supporting evidence. Never paste secrets or private learning data.
+      placeholder: Evidence and relevant test/check names.
+
+  - type: textarea
+    id: risk
+    attributes:
+      label: Data, security, learning, or migration risk
+      description: Describe any possible owner-boundary, secret, persistence, migration, learning-policy, or no-resurrection impact.
+      placeholder: State none if genuinely not applicable.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Reporting integrity
+      options:
+        - label: I have not removed or weakened a failing test to make this report disappear.
+          required: true
+        - label: Any attached logs/evidence are sanitized of API keys, credentials, and private learning content.
+          required: true
