@@ -22,6 +22,7 @@ Release Report 是生成当时的证据快照，不代表当前 checkout 已重�
 | P1-01A Goal Definition, Draft and Safe Replan | [Completion Report](p1-01a-goal-definition-draft-replan.md) | Engineering PASS / Contract, Ownership, Security, Real Browser PASS / Learning Evidence Insufficient |
 | P1-01B Goal Lifecycle and Evidence-gated Achievement | [Completion Report](p1-01b-goal-lifecycle-achievement.md) | Engineering PASS / Contract, Ownership, Security, Real Model, Real Browser PASS / Learning Evidence Insufficient |
 | P1-05 Account Lifecycle | [Completion Report](p1-05-account-lifecycle.md) | Engineering PASS / Policy, Ownership PASS / Learning Evidence Not Applicable |
+| P1-06 First-use Onboarding | [Completion Report](p1-06-first-use-onboarding.md) | Engineering PASS / Security, Product Usability PASS / Manual Acceptance PASS / Learning Evidence Insufficient |
 | P1-07 Error Recovery Center | [Completion Report](p1-07-error-recovery-center.md) | Engineering PASS / Policy, Ownership, Security, Product Usability PASS / Learning Evidence Insufficient |
 | P1-02 Secure Model Settings | [Completion Report](p1-02-model-settings.md) | Engineering PASS / Security, Ownership PASS / Real Provider Product PASS / Learning Evidence Insufficient |
 
