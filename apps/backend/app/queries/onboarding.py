@@ -104,42 +104,23 @@ class UnavailableModelConfigurationQuery(StaticModelConfigurationQuery):
         )
 
 
-class DatabaseModelConfigurationQuery:
-    """Real model configuration query backed by the runtime model router."""
+class DatabaseModelConfigurationQuery(StaticModelConfigurationQuery):
+    """Fail closed until SYS08 exposes its canonical public profile summary.
+
+    Onboarding must never infer activation/readiness from provider credentials or
+    runtime-private state. The frozen MODEL-CONFIG contract requires SYS08 to own
+    revision, verification, activation and the non-sensitive public summary.
+    """
 
     def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def get_summary(self, user: User) -> ModelConfigurationObservation:
-        try:
-            from app.services.llm.model_router import get_model_router
-
-            router = get_model_router()
-            providers = router._providers
-            available_providers = [p for p in providers.values() if getattr(p, "api_key", None)]
-            if not available_providers:
-                return ModelConfigurationObservation(
-                    availability="MISSING",
-                    reason_codes=(),
-                )
-            return ModelConfigurationObservation(
-                availability="AVAILABLE",
-                state="ACTIVE",
-                revision=1,
-                runtime_ready=True,
-                runtime_revision=1,
-                verified_at=_now(),
-                source_ref="ModelRouter:current",
-                reason_codes=(),
-            )
-        except Exception as e:
-            import logging
-
-            logging.getLogger(__name__).error("ModelConfigurationQuery error: %s", e, exc_info=True)
-            return ModelConfigurationObservation(
+        del session
+        super().__init__(
+            ModelConfigurationObservation(
                 availability="MISSING",
-                reason_codes=("MODEL_CONFIGURATION_QUERY_UNAVAILABLE",),
+                state="UNCONFIGURED",
+                reason_codes=("MODEL_CONFIGURATION_PUBLIC_SUMMARY_UNAVAILABLE",),
             )
+        )
 
 
 class UnavailableDataControlQuery(StaticDataControlQuery):
