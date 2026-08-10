@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Askora · 学习型消息系统 — UI/UX 验证 Prototype</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   Design Tokens — 取自 .design_library/Askora/colors_and_type.css
+   为保持文件自包含、可离线双击打开，此处内联核心令牌（Light 为主）。
+   字体优先 macOS 系统栈（SF Pro），回退 Inter / 系统黑体。
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  /* primary */
+  --p50:#F0F7FF;--p100:#DAEEFF;--p200:#B8DDFF;--p300:#85C3FF;--p400:#4DA3FF;
+  --p500:#007AFF;--p600:#0062CC;--p700:#004A99;--p800:#003366;--p900:#001A33;
+  --color-primary:var(--p500);--color-primary-hover:var(--p600);--color-on-primary:#fff;
+  --color-primary-container:var(--p50);--color-on-primary-container:var(--p900);
+  /* status */
+  --success:#34C759;--warning:#FF9500;--error:#FF3B30;--info:#00B2B2;
+  --success-deep:#248A3D;
+  /* neutral */
+  --n50:#F9FAFB;--n100:#F2F2F7;--n200:#E5E5EA;--n300:#D1D1D6;--n400:#C7C7CC;
+  --n500:#8E8E93;--n600:#636366;--n700:#48484A;--n800:#3A3A3C;--n900:#1C1C1E;
+  /* semantic surfaces */
+  --bg:#F2F2F7;--surface:#fff;--surface-container:#F2F2F7;--surface-high:#E5E5EA;
+  --border:var(--n200);--rule:var(--n200);
+  --fg:#1D1D1F;--muted:var(--n500);--on-surface-variant:var(--n600);
+  --sidebar:#F7F7FA;--sidebar-hover:#ECECF0;--sidebar-active:var(--p100);
+  --chat-input:#F2F2F7;--chat-input-border:#E5E5EA;
+  /* type */
+  --font-sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Inter','PingFang SC','Helvetica Neue',Arial,sans-serif;
+  --font-mono:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
+  /* spacing */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  /* radius */
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-full:9999px;
+  /* shadow */
+  --sh1:0 1px 2px rgba(0,0,0,.04),0 1px 1px rgba(0,0,0,.03);
+  --sh2:0 4px 10px -2px rgba(0,0,0,.08);
+  --sh3:0 8px 24px -8px rgba(0,0,0,.12);
+  --sh4:0 16px 40px -12px rgba(0,0,0,.18);
+  /* layout */
+  --sidebar-w:252px;--inspector-w:340px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);background:var(--bg);color:var(--fg);
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.6;overflow:hidden;
+}
+button{font-family:var(--font-sans);cursor:pointer;border:none;background:none;color:inherit}
+button:focus-visible,textarea:focus-visible,a:focus-visible{
+  outline:2px solid var(--p400);outline-offset:2px;border-radius:var(--r-sm);
+}
+::selection{background:rgba(0,122,255,.18)}
+svg{display:block}
+.icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ═════════ App Shell — 三栏工作区 ═════════ */
+.app{display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);height:100vh}
+.sidebar{
+  background:var(--sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;min-width:0;
+}
+.side-head{padding:var(--s4) var(--s4) var(--s3);display:flex;flex-direction:column;gap:var(--s3);border-bottom:1px solid var(--border)}
+.workspace{display:flex;align-items:center;gap:var(--s2);padding:var(--s1) var(--s2);border-radius:var(--r-sm);cursor:pointer}
+.workspace:hover{background:var(--sidebar-hover)}
+.workspace-name{font-weight:600;font-size:15px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg)}
+.new-chat{display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);height:38px;background:var(--color-primary);color:var(--color-on-primary);border-radius:var(--r-md);font-size:15px;font-weight:500;transition:filter .15s}
+.new-chat:hover{filter:brightness(1.08)}
+.nav-scroll{flex:1;overflow-y:auto;padding:var(--s3) var(--s2)}
+.nav-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:var(--s1) var(--s2);margin-top:var(--s2)}
+.nav-item{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s2);border-radius:var(--r-sm);cursor:pointer;color:var(--fg);position:relative;margin-bottom:2px}
+.nav-item:hover{background:var(--sidebar-hover)}
+.nav-item.active{background:var(--sidebar-active);font-weight:600}
+.nav-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--color-primary);border-radius:0 3px 3px 0}
+.nav-item .icon{color:var(--on-surface-variant)}
+.nav-item.active .icon{color:var(--color-primary)}
+.nav-label{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nav-meta{font-size:11px;color:var(--muted);flex-shrink:0}
+.side-foot{padding:var(--s3) var(--s2);border-top:1px solid var(--border);display:flex;align-items:center;gap:var(--s2)}
+.avatar{width:32px;height:32px;border-radius:var(--r-full);background:var(--surface-high);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;color:var(--fg)}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:var(--muted)}
+
+/* ═════════ Main — 对话画布 + 右侧面板 ═════════ */
+.main{display:flex;min-width:0;height:100vh}
+.chat-canvas{display:flex;flex-direction:column;min-width:0;background:var(--surface);flex:1}
+.chat-head{display:flex;align-items:center;gap:var(--s3);padding:var(--s4) var(--s6);border-bottom:1px solid var(--border);flex-shrink:0;min-width:0}
+.chat-head-title{font-size:17px;font-weight:600}
+.chat-head-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.chat-head-actions{margin-left:auto;display:flex;gap:var(--s1)}
+.hbtn{width:32px;height:32px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.hbtn:hover{background:var(--surface-container);color:var(--fg)}
+.messages{flex:1;overflow-y:auto;padding:var(--s6) var(--s6) var(--s6);scroll-behavior:smooth}
+.msg{display:flex;gap:var(--s3);max-width:860px;margin:0 auto var(--s6)}
+.msg.user{flex-direction:row-reverse;margin-left:auto}
+.msg-avatar{flex-shrink:0;width:32px;height:32px;border-radius:var(--r-sm);background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:2px}
+.msg.user .msg-avatar{border-radius:var(--r-full);background:var(--surface-high);color:var(--fg)}
+.msg-body{min-width:0;flex:1}
+.msg.user .msg-body{max-width:70%}
+.bubble{padding:var(--s3) var(--s4);border-radius:var(--r-lg);font-size:15px;line-height:1.65;white-space:pre-wrap}
+.msg.user .bubble{background:var(--color-primary);color:#fff}
+.msg.user .bubble .attempt{opacity:.92}
+.msg-meta{font-size:11px;color:var(--muted);margin-top:var(--s1)}
+.msg.user .msg-meta{text-align:right}
+
+/* Assistant content — 学习型消息体的核心区域 */
+.asst{position:relative}
+/* Level 1 — Explanation Flow：最低视觉权重，阅读连续 */
+.prose{font-size:15px;line-height:1.75;color:var(--fg);margin:0 0 var(--s4)}
+.prose p{margin:0 0 var(--s3)}
+.prose p:last-child{margin-bottom:0}
+.prose strong{font-weight:600}
+.prose em{color:var(--on-surface-variant)}
+/* 语义标签（解释角色）——极轻，仅作阅读辅助 */
+.role-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s2)}
+/* Level 2 — Knowledge Anchor：轻度强化，可寻址知识锚点 */
+.knowledge{
+  position:relative;margin:var(--s5) 0;padding:var(--s4) var(--s4) var(--s4) var(--s5);
+  border-left:3px solid var(--p300);border-radius:0 var(--r-md) var(--r-md) 0;
+  background:linear-gradient(90deg,rgba(0,122,255,.045),rgba(0,122,255,0));
+}
+.knowledge .k-role{font-size:11px;font-weight:600;color:var(--p600);letter-spacing:.06em;text-transform:uppercase;margin-bottom:var(--s1)}
+.knowledge .k-term{font-size:17px;font-weight:600;color:var(--fg);margin-bottom:var(--s1)}
+.knowledge .k-def{font-size:14.5px;line-height:1.7;color:var(--fg)}
+.knowledge .k-tag{display:inline-flex;align-items:center;gap:var(--s1);font-size:11px;color:var(--muted);margin-top:var(--s2)}
+/* Block 共享交互层：Hover 才出现，最多 [追问][加入笔记][⋯] */
+.blk-actions{position:absolute;top:var(--s2);right:var(--s2);display:flex;gap:var(--s1);opacity:0;pointer-events:none;transition:opacity .12s;align-items:center}
+.block:hover>.blk-actions,.blk-hover:hover>.blk-actions{opacity:1;pointer-events:auto}
+.act-btn{display:inline-flex;align-items:center;gap:var(--s1);height:28px;padding:0 var(--s2);border-radius:var(--r-sm);font-size:12px;color:var(--on-surface-variant);background:var(--surface);box-shadow:var(--sh1);border:1px solid var(--border)}
+.act-btn:hover{color:var(--fg);background:var(--surface-container)}
+.act-btn .icon{width:14px;height:14px}
+.act-btn.more{width:28px;padding:0;justify-content:center}
+/* Source 标签（原文出处）——一级，Knowledge 不常驻，Evidence 常驻 */
+/* Level 3 — Evidence：明显区别于 AI Voice */
+.evidence{
+  position:relative;margin:var(--s5) 0;padding:var(--s4) var(--s4) var(--s3);
+  background:var(--surface-container);border-radius:var(--r-md);
+  border-left:1px solid var(--border);
+}
+.evidence .ev-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s1)}
+.evidence .ev-label .icon{width:14px;height:14px;color:var(--muted)}
+.quote-text{font-size:15px;line-height:1.75;color:var(--fg);font-style:italic;padding-left:var(--s4);border-left:2px solid var(--n300);margin-bottom:var(--s3);user-select:text}
+.quote-source{display:inline-flex;align-items:center;gap:var(--s1);font-size:12.5px;color:var(--p600);cursor:pointer;transition:color .12s;padding:var(--s1) var(--s1) var(--s1) 0;border-radius:var(--r-sm)}
+.quote-source:hover{color:var(--p700);text-decoration:underline}
+.quote-source .icon{width:14px;height:14px}
+.ev-tools{display:flex;align-items:center;gap:var(--s1);margin-top:var(--s2)}
+.src-locator{font-size:12px;color:var(--muted)}
+/* Level 4 — Learning Activity：最高交互权重 */
+.prompt{
+  margin:var(--s6) 0;padding:var(--s5);border:1px solid var(--border);border-radius:var(--r-md);
+  background:var(--surface);box-shadow:var(--sh1);
+}
+.prompt-head{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3)}
+.prompt-head .p-icon{width:32px;height:32px;border-radius:var(--r-sm);background:var(--color-primary-container);display:flex;align-items:center;justify-content:center;color:var(--p600)}
+.prompt-head .p-icon .icon{width:18px;height:18px}
+.prompt-title{font-size:15px;font-weight:600;color:var(--fg)}
+.prompt-sub{font-size:12px;color:var(--muted)}
+.prompt-q{font-size:15px;line-height:1.7;color:var(--fg);margin-bottom:var(--s4)}
+.prompt-actions{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+.prompt-actions .hint{padding-left:0}
+.textarea-wrap{position:relative}
+textarea.prompt-input{
+  width:100%;min-height:92px;padding:var(--s3) var(--s3);border:1px solid var(--border);border-radius:var(--r-md);
+  font-family:var(--font-sans);font-size:14.5px;line-height:1.6;resize:vertical;color:var(--fg);background:var(--surface);
+}
+textarea.prompt-input::placeholder{color:var(--n400)}
+textarea.prompt-input:focus{outline:none;border-color:var(--p400);box-shadow:0 0 0 3px rgba(0,122,255,.12)}
+/* Feedback */
+.feedback{margin:var(--s4) 0 0;padding:var(--s4);border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface)}
+.fb-status{display:inline-flex;align-items:center;gap:var(--s1);font-size:12px;font-weight:600;padding:2px var(--s2);border-radius:var(--r-full);margin-bottom:var(--s3)}
+.fb-status.partial{background:var(--warning);color:#fff}
+.fb-status .icon{width:13px;height:13px}
+.fb-body{font-size:14.5px;line-height:1.7;color:var(--fg)}
+.fb-gap{margin-top:var(--s2);padding:var(--s3) var(--s4);background:var(--surface-container);border-radius:var(--r-sm);font-size:14px;line-height:1.7;color:var(--on-surface-variant)}
+.fb-gap .gap-label{font-size:11px;font-weight:600;color:var(--warning);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--s1)}
+.fb-actions{display:flex;gap:var(--s2);margin-top:var(--s4);flex-wrap:wrap}
+/* 下一学习动作 —— 每个 ped.stop 最多一个 */
+.next-action{
+  display:inline-flex;align-items:center;gap:var(--s2);margin:var(--s4) 0 0;padding:var(--s2) var(--s4);
+  border-radius:var(--r-full);background:var(--surface);border:1px solid var(--border);font-size:14px;font-weight:500;color:var(--fg);
+  transition:border-color .12s,box-shadow .12s;
+}
+.next-action:hover{border-color:var(--p400);box-shadow:var(--sh1);color:var(--p600)}
+.next-action .icon{width:16px;height:16px}
+/* 复习确认（ReviewItem，非 Flashcard） */
+.review-confirm{margin-top:var(--s4);padding:var(--s4);border:1px solid var(--n200);border-radius:var(--r-md);background:var(--surface);display:flex;gap:var(--s3);align-items:flex-start}
+.review-confirm .rc-icon{width:34px;height:34px;border-radius:var(--r-sm);background:var(--p50);display:flex;align-items:center;justify-content:center;color:var(--p600);flex-shrink:0}
+.review-confirm .rc-icon .icon{width:18px;height:18px}
+.rc-title{font-size:14px;font-weight:600;margin-bottom:var(--s1)}
+.rc-body{font-size:13.5px;line-height:1.6;color:var(--on-surface-variant)}
+.rc-body .rc-meta{color:var(--muted);font-size:12.5px;margin-top:var(--s1)}
+
+/* ═════════ Composer ═════════ */
+.composer{margin:0 auto;padding:var(--s4) var(--s6) var(--s5);border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.composer-inner{max-width:860px;margin:0 auto}
+.anchor{
+  display:flex;align-items:flex-start;gap:var(--s2);margin-bottom:var(--s2);padding:var(--s2) var(--s3);
+  border:1px solid var(--p200);border-radius:var(--r-md);background:var(--p50);color:var(--p900);font-size:13px;line-height:1.5;
+}
+.anchor .anchor-x{color:var(--p600);cursor:pointer;flex-shrink:0;transition:opacity .12s}
+.anchor .anchor-x:hover{opacity:.7}
+.anchor .anchor-label{font-weight:600;flex-shrink:0}
+.anchor .anchor-text{word-break:break-word}
+.anchor-empty{display:none}
+.input-chat{display:flex;align-items:flex-end;gap:var(--s2);padding:var(--s2);border:1px solid var(--chat-input-border);border-radius:var(--r-full);background:var(--surface);min-height:52px;transition:border-color .15s}
+.input-chat:focus-within{border-color:var(--p400);box-shadow:0 0 0 3px rgba(0,122,255,.12)}
+.input-chat textarea{flex:1;border:none;outline:none;background:transparent;color:var(--fg);font-family:var(--font-sans);font-size:15px;line-height:1.5;resize:none;min-height:24px;max-height:120px;padding:4px 0;min-width:0}
+.input-chat textarea::placeholder{color:var(--n400)}
+.attach-btn{width:36px;height:36px;border-radius:var(--r-full);display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0}
+.attach-btn:hover{background:var(--surface-container);color:var(--fg)}
+.send-btn{width:36px;height:36px;border-radius:var(--r-full);background:var(--color-primary);color:var(--color-on-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:filter .15s}
+.send-btn:hover{filter:brightness(1.08)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+.composer-hint{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s2);font-size:11px;color:var(--muted)}
+
+/* ═════════ 右侧面板（Notes / Source / Review）═════════ */
+.right-panel{display:none;flex-direction:column;border-left:1px solid var(--border);background:var(--surface);min-width:0;overflow:hidden;width:var(--inspector-w);flex-shrink:0}
+.right-panel.open{display:flex}
+.panel-head{display:flex;align-items:center;gap:var(--s2);padding:var(--s4) var(--s5);border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-title{font-size:15px;font-weight:600;flex:1}
+.panel-x{width:30px;height:30px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.panel-x:hover{background:var(--surface-container);color:var(--fg)}
+.panel-body{flex:1;overflow-y:auto;padding:var(--s5);display:flex;flex-direction:column;gap:var(--s4)}
+.panel-section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--s2)}
+/* Note */
+.note-block{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s3);background:var(--surface)}
+.note-block .nb-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--s2)}
+.note-synthesis textarea{width:100%;min-height:80px;padding:var(--s2) var(--s3);border:1px solid var(--border);border-radius:var(--r-sm);font-family:var(--font-sans);font-size:13.5px;line-height:1.6;resize:vertical;background:var(--surface);color:var(--fg)}
+.note-synthesis textarea:focus{outline:none;border-color:var(--p400);box-shadow:0 0 0 3px rgba(0,122,255,.12)}
+.note-evidence{display:flex;flex-direction:column;gap:var(--s2)}
+.ev-card{border-left:2px solid var(--n300);padding-left:var(--s3);display:flex;flex-direction:column;gap:var(--s1)}
+.ev-card .ev-quote{font-size:13.5px;line-height:1.6;color:var(--fg);font-style:italic}
+.ev-card .ev-src{font-size:12px;color:var(--p600)}
+.ev-card .ev-loc{font-size:11.5px;color:var(--muted)}
+.ev-ai{font-size:12.5px;line-height:1.6;color:var(--on-surface-variant);background:var(--surface-container);padding:var(--s2) var(--s3);border-radius:var(--r-sm)}
+.ev-ai .ai-tag{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:var(--s1)}
+.ev-origin{font-size:11.5px;color:var(--muted);line-height:1.6}
+.ev-origin .origin-path{font-family:var(--font-mono);font-size:11px;color:var(--on-surface-variant)}
+.note-actions{display:flex;gap:var(--s2);margin-top:var(--s1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);height:36px;padding:0 var(--s4);border-radius:var(--r-full);font-size:14px;font-weight:500;transition:background .15s,color .15s}
+.btn-primary{background:var(--color-primary);color:#fff}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-secondary{background:var(--surface-container);color:var(--fg)}
+.btn-secondary:hover{background:var(--surface-high)}
+.btn-ghost{background:transparent;color:var(--on-surface-variant)}
+.btn-ghost:hover{background:var(--surface-container);color:var(--fg)}
+/* Source context */
+.source-block{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+.source-block .sb-passage{padding:var(--s3) var(--s4);font-size:13.5px;line-height:1.7;color:var(--on-surface-variant);background:var(--surface)}
+.source-block .sb-passage.target{background:var(--p50);color:var(--fg);border-top:1px solid var(--p200);border-bottom:1px solid var(--p200);font-style:italic}
+.source-block .sb-passage .sb-num{font-size:11px;color:var(--muted);display:block;margin-bottom:var(--s1);font-family:var(--font-mono)}
+.source-meta{display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);border:1px solid var(--border);border-radius:var(--r-md);font-size:12.5px;color:var(--on-surface-variant)}
+.source-meta .sm-row{display:flex;justify-content:space-between;gap:var(--s2)}
+.source-meta .sm-row .sm-k{color:var(--muted)}
+.source-meta .sm-row .sm-v{text-align:right;color:var(--fg)}
+/* 复习面板 */
+.review-item{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--s4)}
+.ri-title{font-size:14px;font-weight:600;margin-bottom:var(--s2)}
+.ri-meta{display:flex;flex-direction:column;gap:var(--s1);font-size:12.5px;color:var(--muted)}
+.ri-meta .ri-row{display:flex;justify-content:space-between}
+.ri-status{display:inline-flex;align-items:center;gap:var(--s1);font-size:11.5px;font-weight:600;color:var(--success-deep);margin-top:var(--s2)}
+.ri-status .dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
+
+/* ═════════ Selection Toolbar ═════════ */
+.sel-toolbar{
+  position:fixed;z-index:200;display:flex;align-items:center;gap:2px;padding:4px;
+  background:var(--n800);border-radius:var(--r-md);box-shadow:var(--sh3);transform:translateY(-8px);
+  opacity:0;pointer-events:none;transition:opacity .08s,transform .08s;
+}
+.sel-toolbar.show{opacity:1;pointer-events:auto;transform:translateY(0)}
+.sel-toolbar .st-btn{display:inline-flex;align-items:center;gap:var(--s1);height:30px;padding:0 var(--s3);border-radius:var(--r-sm);font-size:13px;color:#e8e8ed;white-space:nowrap}
+.sel-toolbar .st-btn:hover{background:rgba(255,255,255,.14)}
+.sel-toolbar .st-btn .icon{width:15px;height:15px}
+.sel-toolbar .st-div{width:1px;height:18px;background:rgba(255,255,255,.14);margin:0 2px}
+.sel-toolbar .st-more{width:30px;padding:0;justify-content:center}
+
+/* ═════════ More Menu / Toast ═════════ */
+.menu{
+  position:fixed;z-index:210;min-width:172px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);box-shadow:var(--sh3);padding:4px;display:none;flex-direction:column;
+}
+.menu.open{display:flex}
+.menu-item{display:flex;align-items:center;gap:var(--s2);height:34px;padding:0 var(--s3);border-radius:var(--r-sm);font-size:13.5px;color:var(--fg);text-align:left}
+.menu-item:hover{background:var(--surface-container)}
+.menu-item .icon{width:16px;height:16px;color:var(--muted)}
+.menu-sep{height:1px;background:var(--border);margin:4px var(--s1)}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);z-index:300;
+  background:var(--n800);color:#fff;padding:var(--s2) var(--s4);border-radius:var(--r-full);
+  font-size:13px;box-shadow:var(--sh3);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* 遮罩（侧栏/弹层后） */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.18);z-index:150;opacity:0;pointer-events:none;transition:opacity .15s}
+.scrim.show{opacity:1;pointer-events:auto}
+
+/* ═════════ 窗口缩小兜底 ═════════ */
+@media (max-width:1180px){
+  .messages{padding:var(--s5) var(--s5)}
+  .composer{padding:var(--s4) var(--s5)}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:68px minmax(0,1fr)}
+  .sidebar .hide-narrow{display:none}
+  .right-panel{position:fixed;right:0;top:0;bottom:0;width:min(92vw,360px);z-index:160;box-shadow:var(--sh4)}
+}
+/* 演示提示条 */
+.demo-note{
+  position:fixed;bottom:16px;right:16px;z-index:120;max-width:300px;font-size:12px;line-height:1.6;
+  color:var(--on-surface-variant);background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:var(--s3) var(--s4);box-shadow:var(--sh2);
+}
+.demo-note b{color:var(--fg)}
+.demo-note .dn-hint{font-size:11px;color:var(--muted);margin-top:var(--s1)}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 左侧边栏 ═══════════ -->
+<aside class="sidebar">
+  <div class="side-head">
+    <div class="workspace">
+      <span class="workspace-name">Askora 工作区</span>
+      <svg class="icon" style="width:15px;height:15px;color:var(--muted)"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <button class="new-chat">
+      <svg class="icon" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"/></svg>
+      新对话
+    </button>
+  </div>
+  <div class="nav-scroll">
+    <div class="nav-title hide-narrow">对话记录</div>
+    <div class="nav-item active">
+      <svg class="icon" style="width:17px;height:17px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span class="nav-label hide-narrow">工作记忆与认知负荷</span>
+      <span class="nav-meta hide-narrow">今天</span>
+    </div>
+    <div class="nav-title hide-narrow">知识工具</div>
+    <div class="nav-item">
+      <svg class="icon" style="width:17px;height:17px"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
+      <span class="nav-label hide-narrow">笔记</span>
+    </div>
+    <div class="nav-item">
+      <svg class="icon" style="width:17px;height:17px"><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z"/></svg>
+      <span class="nav-label hide-narrow">复习</span>
+      <span class="nav-meta hide-narrow">2</span>
+    </div>
+  </div>
+  <div class="side-foot">
+    <div class="avatar">林</div>
+    <div class="user-info hide-narrow">
+      <div class="user-name">林默</div>
+      <div class="user-role">本地学习者</div>
+    </div>
+    <svg class="icon" style="width:16px;height:16px;color:var(--muted)"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </div>
+</aside>
+
+<!-- ═══════════ 主区 ═══════════ -->
+<div class="main">
+  <!-- 对话画布 -->
+  <section class="chat-canvas">
+    <header class="chat-head">
+      <div>
+        <div class="chat-head-title">工作记忆与认知负荷</div>
+        <div class="chat-head-sub">《认知负荷理论》· 构建理解 · 学习型会话</div>
+      </div>
+      <div class="chat-head-actions">
+        <button class="hbtn" title="复制消息" onclick="copyMessage()">
+          <svg class="icon"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        </button>
+        <button class="hbtn" title="重新生成" onclick="regen()">
+          <svg class="icon"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+        <button class="hbtn" title="问题反馈">
+          <svg class="icon"><path d="M12 8v4"/><circle cx="12" cy="16" r=".5"/><path d="M6 21h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="messages" id="messages">
+      <!-- User Message -->
+      <div class="msg user">
+        <div class="msg-avatar">林</div>
+        <div class="msg-body">
+          <div class="bubble">为什么做复杂题目时，我总是一边做一边就忘了前面几步？是我的记忆力比别人差吗？</div>
+          <div class="msg-meta">14:02</div>
+        </div>
+      </div>
+
+      <!-- Assistant Learning Turn -->
+      <div class="msg">
+        <div class="msg-avatar">A</div>
+        <div class="msg-body asst" id="assistantTurn">
+
+          <!-- Level 1 · Explanation Flow（最低视觉权重） -->
+          <div class="prose block" data-ctx="prose">
+            <p>这通常不是长期记忆力的问题，而是<b>工作记忆容量</b>在复杂任务中被占满的结果。做难题时每一步的中间结果都会暂存在工作记忆里，一旦超出容量，前面的信息就会丢失，于是你会觉得“忘了”。</p>
+            <p>所以问题不在于“记不住”，而在于任务同时要求你保存的中间状态太多。接下来我们先把这个概念弄清楚，再用一段原文验证，最后做一次理解检查。</p>
+          </div>
+
+          <!-- Level 2 · Knowledge Anchor（轻度强化） -->
+          <div class="knowledge block" data-ctx="knowledge" data-concept="工作记忆">
+            <div class="k-role">关键概念</div>
+            <div class="k-term">工作记忆<em style="font-size:14px;color:var(--muted);font-style:normal;font-weight:400">　Working Memory</em></div>
+            <div class="k-def">人在执行认知任务时，临时保存并操作信息的系统。它容量有限，通常只能同时处理约 4–7 个信息组块。</div>
+            <div class="k-tag">
+              <svg class="icon" style="width:13px;height:13px"><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z"/></svg>
+              已加入复习
+            </div>
+            <div class="blk-actions">
+              <button class="act-btn" onclick="anchoredAskFromBlock(this)"><svg class="icon"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>追问</button>
+              <button class="act-btn" onclick="openNote('knowledge')"><svg class="icon"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>加入笔记</button>
+              <button class="act-btn more" onclick="openMore(event,this,'knowledge')" aria-label="更多">
+                <svg class="icon"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Level 3 · Evidence（明显区别于 AI Voice） -->
+          <div class="evidence block" data-ctx="source" data-source="认知负荷理论">
+            <div class="ev-label">
+              <svg class="icon"><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z" style="fill:none;stroke-width:1.6"/></svg>
+              原文
+            </div>
+            <div class="quote-text">Working memory has limited capacity, and this capacity must be shared between the storage of information and the mental processes required to transform that information.</div>
+            <div class="ev-tools">
+              <button class="quote-source" onclick="openSource('p24')">
+                <svg class="icon"><path d="M12 3v18m0-18s-4 4-4 9 4 9 4 9M12 3s4 4 4 9-4 9-4 9"/></svg>
+                认知负荷理论 · P24
+              </button>
+              <span class="src-locator">· §Working Memory</span>
+            </div>
+            <div class="blk-actions">
+              <button class="act-btn" onclick="openNote('quote')"><svg class="icon"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>加入笔记</button>
+              <button class="act-btn" onclick="anchoredAskFromBlock(this)"><svg class="icon"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>追问</button>
+              <button class="act-btn more" onclick="openMore(event,this,'quote')" aria-label="更多">
+                <svg class="icon"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Level 1 · Explanation（继续） -->
+          <div class="prose block" data-ctx="prose">
+            <p>这解释了更关键的一点：复杂任务不仅要求你<b>记住</b>中间状态，还要求你在记住的同时不断<b>变换</b>这些信息——两者会竞争同一份有限容量。中间状态越多，留给“思考”的空间就越少。</p>
+          </div>
+
+          <!-- Level 4 · 理解检查（LearningPromptBlock） -->
+          <div class="prompt block" data-ctx="prompt" id="promptWrap">
+            <div class="prompt-head">
+              <div class="p-icon"><svg class="icon"><path d="M12 8v4"/><circle cx="12" cy="16" r=".5"/><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z" style="stroke-width:1.6"/></svg></div>
+              <div>
+                <div class="prompt-title">理解检查</div>
+                <div class="prompt-sub">主动回忆 · 不依赖“我懂了”</div>
+              </div>
+            </div>
+            <div class="prompt-q">为什么工作记忆容量有限，会影响复杂问题的求解？</div>
+            <div class="textarea-wrap">
+              <textarea class="prompt-input" id="promptInput" placeholder="用自己的话写下来，不要照抄原文……"></textarea>
+            </div>
+            <div class="prompt-actions">
+              <button class="btn btn-primary" onclick="submitAttempt()">提交</button>
+              <button class="btn btn-ghost hint" onclick="showHint()">提示</button>
+            </div>
+            <div class="fb-area" id="fbArea"></div>
+          </div>
+
+          <!-- 下一学习动作（最多一个） -->
+          <div class="next-action" id="nextAction" onclick="applyNow()" style="display:none">
+            应用一下
+            <svg class="icon"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <footer class="composer">
+      <div class="composer-inner">
+        <div class="anchor" id="anchor" style="display:none">
+          <span class="anchor-label">↳ 关于</span>
+          <span class="anchor-text" id="anchorText"></span>
+          <span class="anchor-x" onclick="clearAnchor()">
+            <svg class="icon" style="width:15px;height:15px"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </span>
+        </div>
+        <div class="input-chat">
+          <button class="attach-btn">
+            <svg class="icon"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <textarea id="composerInput" placeholder="输入你的问题…" rows="1"></textarea>
+          <button class="send-btn" id="sendBtn" disabled>
+            <svg class="icon" style="stroke:#fff"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+          </button>
+        </div>
+        <div class="composer-hint">
+          <span>学习型会话 · 可选中任意内容发起追问或沉淀</span>
+          <span>Enter 发送 · Shift+Enter 换行</span>
+        </div>
+      </div>
+    </footer>
+  </section>
+
+  <!-- 右侧面板（Notes / Source / Review 共用） -->
+  <aside class="right-panel" id="rightPanel">
+    <div class="panel-head">
+      <span class="panel-title" id="panelTitle">笔记</span>
+      <button class="panel-x" onclick="closePanel()"><svg class="icon"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+  </aside>
+</div>
+
+<!-- ═══════════ 浮动层 ═══════════ -->
+<div class="sel-toolbar" id="selToolbar"></div>
+<div class="menu" id="moreMenu"></div>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+<div class="demo-note">
+  <b>验证 Prototype</b>：这是 Askora 学习型消息系统的可交互 Preview。
+  <div class="dn-hint">提示：选中回答中的文字试试；悬停「关键概念」或「原文」；点击来源「认知负荷理论 · P24」；提交下方理解检查。</div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   Demo State — 内置固定数据，验证 Interaction Model
+   ═══════════════════════════════════════════════ */
+const demoConversation = {
+  source: {
+    title: "认知负荷理论",
+    author: "John Sweller",
+    loc:"P24",
+    section: "Working Memory",
+    passages: [
+      { num:"§P23", text:"认知过程中，新信息需要先进入工作记忆才能被加工。工作记忆的容量是有限的。" },
+      { num:"§P24 · 目标原文", text:"Working memory has limited capacity, and this capacity must be shared between the storage of information and the mental processes required to transform that information.", target:true },
+      { num:"§P25", text:"当材料的内在复杂度超过工作记忆容量时，学习效率会显著下降，因此教学设计应主动降低外部认知负荷。" }
+    ]
+  }
+};
+
+/* ═══════════ 通用工具 ═══════════ */
+const $ = s => document.querySelector(s);
+const messagesEl = $("#messages"), panelBody = $("#panelBody"), panelTitle = $("#panelTitle"), rightPanel = $("#rightPanel");
+let toastTimer;
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+function openPanel(title, html){
+  panelTitle.textContent = title; panelBody.innerHTML = html; rightPanel.classList.add("open");
+}
+function closePanel(){ rightPanel.classList.remove("open"); constrainMenu(); }
+function scrimShow(){ $("#scrim").classList.add("show"); }
+function scrimHide(){ $("#scrim").classList.remove("show"); closeMore(); }
+$("#scrim").addEventListener("click", scrimHide);
+
+/* ═══════════ 查看原文（Source Context）══════════ */
+function openSource(loc){
+  const s = demoConversation.source;
+  const passages = s.passages.map(p=>`
+    <div class="sb-passage ${p.target?'target':''}">
+      <span class="sb-num">${p.num}</span>${p.text}
+    </div>`).join("");
+  openPanel("查看原文", `
+    <div>
+      <div class="panel-section-title">原文段落</div>
+      <div class="source-block">${passages}</div>
+    </div>
+    <div>
+      <div class="panel-section-title">来源</div>
+      <div class="source-meta">
+        <div class="sm-row"><span class="sm-k">资料</span><span class="sm-v">${s.title}（EPUB）</span></div>
+        <div class="sm-row"><span class="sm-k">作者</span><span class="sm-v">${s.author}</span></div>
+        <div class="sm-row"><span class="sm-k">章节</span><span class="sm-v">${s.section}</span></div>
+        <div class="sm-row"><span class="sm-k">定位</span><span class="sm-v">第 ${loc.replace('p','')} 页</span></div>
+        <div class="sm-row"><span class="sm-k">span</span><span class="sm-v" style="font-family:var(--font-mono);font-size:11px">src_${loc}_a3f</span></div>
+      </div>
+    </div>`);
+}
+function copyMessage(){ toast("已复制该条消息的全部内容"); }
+function regen(){ toast("已重新生成（演示：状态重置）"); }
+
+/* ═══════════ Text Selection Toolbar ═══════════ */
+const selTb = $("#selToolbar");
+function contextualFor(block){
+  const ctx = block ? block.getAttribute('data-ctx') : null;
+  if (ctx === 'knowledge') return {label:"测试理解", icon:"quiz", fn:()=>startPromptFromSelection()};
+  if (ctx === 'source')   return {label:"查看原文", icon:"eye",  fn:()=>openSource('p24')};
+  return null;
+}
+function buildSelToolbar(ctx){
+  const items = [];
+  items.push({label:"追问", icon:"ask", fn:()=>askFromSelection()});
+  items.push({label:"加入笔记", icon:"note", fn:()=>noteFromSelection()});
+  const c = contextualFor(ctx);
+  if (c) items.push({label:c.label, icon:c.icon, fn:c.fn});
+  items.push({separator:true});
+  items.push({label:"⋯", icon:"more", more:true});
+  return items.map(it=>{
+    if (it.separator) return `<span class="st-div"></span>`;
+    if (it.more) return `<button class="st-btn st-more" onclick="selMore(event)"><svg class="icon"><circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></button>`;
+    return `<button class="st-btn" onclick="selAct(this,'${it.label==='查看原文'?'src':it.label==='测试理解'?'quiz':it.label==='追问'?'ask':'note'}')"><svg class="icon">${iconPath(it.icon)}</svg>${it.label}</button>`;
+  }).join("");
+}
+function iconPath(name){
+  const p = {
+    ask:'<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    note:'<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>',
+    quiz:'<path d="M12 8v4"/><circle cx="12" cy="16" r="1"/><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z"/>',
+    eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'
+  };
+  return p[name] || p.note;
+}
+function getSelectionBlock(){
+  const sel = window.getSelection(); if(!sel.rangeCount || sel.isCollapsed) return null;
+  const node = sel.anchorNode && sel.anchorNode.parentElement;
+  return node ? node.closest('.block') || node.closest('.quote-text')?.closest('.evidence')?.querySelector('.block') : null;
+}
+function getSelectedText(){
+  const sel = window.getSelection(); return sel ? sel.toString().trim() : "";
+}
+messagesEl.addEventListener("mouseup", e=>{
+  setTimeout(()=>{
+    const sel = window.getSelection();
+    if(!sel.rangeCount || sel.isCollapsed || !sel.toString().trim()){ hideSelToolbar(); return; }
+    const block = getSelectionBlock();
+    const ctx = block ? block.getAttribute('data-ctx') : null;
+    // 选区落在原文内 → source-backed
+    const range = sel.getRangeAt(0);
+    const inQuote = range.commonAncestorContainer.parentElement && range.commonAncestorContainer.parentElement.closest('.quote-text');
+    const finalCtx = inQuote ? 'source' : (ctx || 'prose');
+    selTb.innerHTML = buildSelToolbar(finalCtx);
+    const r = range.getBoundingClientRect();
+    const w = selTb.offsetWidth;
+    let x = r.left + r.width/2 - w/2;
+    x = Math.max(8, Math.min(window.innerWidth - w - 8, x));
+    selTb.style.left = x + "px";
+    selTb.style.top = (r.top - 52) + "px";
+    selTb.classList.add("show");
+    selTb.dataset.ctx = finalCtx;
+  },0);
+});
+document.addEventListener("mousedown", e=>{
+  if(!selTb.contains(e.target)) hideSelToolbar();
+});
+function hideSelToolbar(){ selTb.classList.remove("show"); }
+function selAct(btn, kind){
+  const txt = getSelectedText();
+  if(kind==='ask'){ anchoredAsk(txt); }
+  else if(kind==='note'){ noteFromSelection(); }
+  else if(kind==='src'){ openSource('p24'); }
+  else if(kind==='quiz'){ startPromptFromSelection(); }
+  hideSelToolbar();
+}
+function selMore(e){ e.stopPropagation(); openMore(e, null, 'selection'); }
+
+/* ═══════════ Anchored Ask（追问）══════════ */
+const anchorEl = $("#anchor"), anchorText = $("#anchorText"), composerInput = $("#composerInput");
+const anchor = { active:false, type:null, text:"" };
+function setAnchor(type, text){
+  anchor.active = true; anchor.type = type; anchor.text = text;
+  anchorText.textContent = text.length>60 ? text.slice(0,60)+"…" : text;
+  anchorEl.style.display = "flex";
+  composerInput.focus();
+}
+function clearAnchor(){ anchor.active=false; anchorText.textContent=""; anchorEl.style.display="none"; }
+function anchoredAsk(text){ setAnchor("textrange", text); }
+function askFromSelection(){ anchoredAsk(getSelectedText()); }
+function anchoredAskFromBlock(btn){
+  const block = btn.closest('.block');
+  const term = block.getAttribute('data-concept') || block.querySelector('.quote-text')?.textContent || "这一段";
+  setAnchor(block.getAttribute('data-ctx'), term);
+}
+function startPromptFromSelection(){ showPrompt(); hideSelToolbar(); toast("已创建「测试理解」→ 请回答下方理解检查"); }
+
+/* ═══════════ Add to Notes ═══════════ */
+function noteFromSelection(){
+  const txt = getSelectedText();
+  openNoteWith(txt, "textrange");
+}
+function openNote(kind){
+  let anchor = "";
+  if(kind==='knowledge') anchor = "关键概念：工作记忆";
+  else if(kind==='quote') anchor = demoConversation.source.passages.find(p=>p.target).text;
+  openNoteWith(anchor, kind);
+}
+function openNoteWith(text, kind){
+  const isQuote = kind === 'quote';
+  const evidence = isQuote ? `
+    <div class="ev-card">
+      <span class="ev-quote">“${text}”</span>
+      <span class="ev-src">认知负荷理论 · P24</span>
+      <span class="ev-loc">SourceSpan · §Working Memory</span>
+    </div>
+    <div class="ev-origin">来源：当前 Conversation · Message/Block<br><span class="origin-path">msg_ai_01 · blk_evidence_01</span></div>`
+    : (kind==='knowledge' ? `
+    <div class="ev-card">
+      <span class="ev-quote">工作记忆：人在执行认知任务时，临时保存并操作信息的系统。</span>
+      <span class="ev-src">AI 提取 · 概念锚点</span>
+      <span class="ev-loc">KnowledgeBlock(role=concept)</span>
+    </div>` : `
+    <div class="ev-ai"><span class="ai-tag">AI 生成上下文 · 非教材原文</span>选区对应的 AI 解释将作为上下文附注保存，并在下次展示时明确标注为 AI-generated。</div>
+    <div class="ev-origin">Origin · <span class="origin-path">msg_ai_01 · textRange[18,42]</span></div>`);
+  openPanel("笔记", `
+    <div class="note-block note-synthesis">
+      <div class="nb-label">你的理解</div>
+      <textarea id="noteInput" placeholder="用你自己的话记录：为什么保存它？你记住了什么？"></textarea>
+    </div>
+    <div class="note-block">
+      <div class="nb-label">Evidence · 不可变原文</div>
+      <div class="note-evidence">${evidence}</div>
+    </div>
+    <div class="note-actions">
+      <button class="btn btn-primary" onclick="saveNote()">保存到笔记</button>
+      <button class="btn btn-ghost" onclick="closePanel()">取消</button>
+    </div>`);
+  setTimeout(()=>$("#noteInput").focus(), 60);
+}
+function saveNote(){ toast("已沉淀到笔记（含来源与上下文锚点）"); closePanel(); }
+
+/* ═══════════ Learn Loop：Prompt → Attempt → Feedback ═══════════ */
+let attemptCount = 0;
+function showPrompt(){
+  $("#promptWrap").scrollIntoView({behavior:"smooth", block:"center"});
+  $("#nextAction").style.display = "none";
+  $("#fbArea").innerHTML = "";
+  $("#fbArea").classList.remove("has-fb");
+  $("#promptInput").value = "";
+}
+function showHint(){ toast("提示：想想「中间状态」与「容量竞争」"); }
+function submitAttempt(){
+  const val = $("#promptInput").value.trim();
+  if(!val){ toast("请先写下你的理解"); return; }
+  attemptCount++;
+  const attempt = attemptCount===1 ? "因为人一次只能处理有限的信息，所以复杂任务会占满记忆。" : "因为工作记忆容量有限，而复杂任务既要存中间状态、又要同时变换信息，两者竞争同一份容量，所以容易在中间步骤丢失。";
+  renderAttempt(attempt);
+  renderFeedback(attemptCount===1 ? "partial" : "correct", "<div class=\"fb-body\"><b>基本正确。</b>你已经指出“容量有限”这一核心机制。</div><div class=\"fb-gap\"><div class=\"gap-label\">还缺少一点</div>复杂任务中的<b>中间状态也会持续占用</b>工作记忆，并且与“变换信息”的加工竞争同一份有限容量——这才是它特别容易超载的原因。<br>即使你记住了每一步，只要容量被中间状态占满，思考本身也会变慢。</div>");
+}
+function renderAttempt(text){
+  // 移除旧的 Attempt，插入新的
+  const old = document.getElementById("attemptMsg"); if(old) old.remove();
+  const div = document.createElement("div");
+  div.className = "msg user"; div.id = "attemptMsg";
+  div.innerHTML = `
+    <div class="msg-avatar">林</div>
+    <div class="msg-body">
+      <div class="bubble"><span class="attempt">${text}</span></div>
+      <div class="msg-meta">作答 · Attempt</div>
+    </div>`;
+  const promptWrap = $("#promptWrap");
+  promptWrap.parentNode.insertBefore(div, promptWrap);
+  div.scrollIntoView({behavior:"smooth", block:"center"});
+}
+function renderFeedback(status, html){
+  const badge = status==='correct'
+    ? `<span class="fb-status" style="background:var(--success)"><svg class="icon"><path d="M20 6L9 17l-5-5"/></svg>完全正确</span>`
+    : `<span class="fb-status partial"><svg class="icon"><path d="M9 12l2 2 4-4"/></svg>部分正确</span>`;
+  $("#fbArea").innerHTML = `
+    <div class="feedback">
+      ${badge}
+      ${html}
+      <div class="fb-actions">
+        <button class="btn btn-secondary" onclick="retry()">再试一次</button>
+        <button class="btn btn-ghost" onclick="moreFeedback()">查看解答思路</button>
+        <button class="btn btn-ghost" onclick="addToReview()">加入复习</button>
+      </div>
+    </div>`;
+  $("#fbArea").classList.add("has-fb");
+  $("#nextAction").style.display = "inline-flex";
+  $("#fbArea").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function retry(){
+  $("#fbArea").innerHTML=""; $("#fbArea").classList.remove("has-fb");
+  $("#nextAction").style.display = "none";
+  $("#promptInput").value = "";
+  $("#promptInput").focus();
+  toast("再试一次：请补上「中间状态占用」这一机制");
+}
+function moreFeedback(){ toast("展示完整解答思路（演示）"); }
+function addToReview(){
+  const old = document.getElementById("reviewConfirm"); if(old) old.remove();
+  const div = document.createElement("div");
+  div.className = "review-confirm"; div.id = "reviewConfirm";
+  div.innerHTML = `
+    <div class="rc-icon"><svg class="icon"><path d="M12 3l1.9 4.6 5 .5-3.8 3.3 1.1 4.9L12 13.6 7.8 16.3l1.1-4.9L5.1 8.1l5-.5z"/></svg></div>
+    <div>
+      <div class="rc-title">已加入复习</div>
+      <div class="rc-body">目标知识：<b>工作记忆容量</b>（Working Memory Capacity）<br>未来 Askora 将通过主动回忆重新检查你的掌握情况。<div class="rc-meta">ReviewItem · SchedulingState=spaced · 并非记忆卡片</div></div>
+    </div>`;
+  $("#nextAction").parentNode.insertBefore(div, $("#nextAction"));
+  div.scrollIntoView({behavior:"smooth", block:"nearest"});
+  toast("已加入复习（ReviewItem）");
+}
+
+/* ═══════════ Apply ═══════════ */
+function applyNow(){
+  const old = document.getElementById("applyArea"); if(old) old.remove();
+  const div = document.createElement("div");
+  div.className = "prompt block"; div.id = "applyArea";
+  div.innerHTML = `
+    <div class="prompt-head">
+      <div class="p-icon"><svg class="icon"><path d="M12 3v10m0 0l-4-4m4 4l4-4M5 17h14"/></svg></div>
+      <div>
+        <div class="prompt-title">应用一下</div>
+        <div class="prompt-sub">迁移 · 把概念用到陌生情境</div>
+      </div>
+    </div>
+    <div class="prompt-q">假设你在学习一个需要同时记住 7 个中间变量的算法。根据工作记忆理论，你会怎样重新设计学习步骤？</div>
+    <div class="textarea-wrap"><textarea class="prompt-input" id="applyInput" placeholder="写下你的迁移方案……"></textarea></div>
+    <div class="prompt-actions">
+      <button class="btn btn-primary" onclick="submitApply()">提交</button>
+      <button class="btn btn-ghost" onclick="this.closest('#applyArea').remove()">关闭</button>
+    </div>`;
+  $("#nextAction").parentNode.insertBefore(div, $("#nextAction"));
+  div.scrollIntoView({behavior:"smooth", block:"center"});
+  $("#applyInput").focus();
+}
+function submitApply(){
+  const v = $("#applyInput").value.trim();
+  if(!v){ toast("先写下你的方案"); return; }
+  toast("已记录迁移方案 → 将作为 Transfer Evidence 更新掌握度");
+  $("#applyArea").scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+/* ═══════════ More Menu ═══════════ */
+const moreMenu = $("#moreMenu");
+function openMore(e, btn, kind){
+  e.stopPropagation();
+  closeMore();
+  let items;
+  if(kind==='selection'){
+    items = [{label:"复制", fn:()=>{navigator.clipboard&&navigator.clipboard.writeText(getSelectedText()); toast("已复制");}},
+             {label:"加入复习（符合条件时）", fn:addToReview},
+             {label:"在支线继续（以后）", disabled:true}];
+  } else {
+    items = [{label:"复制原文", fn:()=>{toast("已复制原文");}},
+             {label:"复制引用", fn:()=>{toast("已复制引用（来源+定位）");}},
+             {sep:true},
+             {label:"加入复习", fn:addToReview}];
+  }
+  moreMenu.innerHTML = items.map(it=> it.sep ? `<div class="menu-sep"></div>` :
+    `<button class="menu-item" ${it.disabled?'disabled style="opacity:.45;cursor:not-allowed"':''} ><svg class="icon">${iconPath(it.label.includes('复习')?'quiz':it.label.includes('支线')?'ask':'note')}</svg>${it.label}</button>`)
+    .join("");
+  moreMenu.querySelectorAll('.menu-item').forEach((b,i)=>{
+    const it = items.filter(x=>!x.sep)[i];
+    if(it && it.fn && !it.disabled) b.addEventListener('click', ()=>{ it.fn(); closeMore(); });
+  });
+  const r = (btn||e.target).getBoundingClientRect();
+  const w = moreMenu.offsetWidth || 180;
+  let x = r.right - w; x = Math.max(8, Math.min(window.innerWidth - w - 8, x));
+  let y = r.bottom + 6; if(y + 160 > window.innerHeight) y = r.top - 160;
+  moreMenu.style.left = x + "px"; moreMenu.style.top = y + "px";
+  moreMenu.classList.add("open");
+}
+function closeMore(){ moreMenu.classList.remove("open"); }
+function constrainMenu(){ if(rightPanel.classList.contains("open")) closeMore(); }
+document.addEventListener("click", e=>{ if(!moreMenu.contains(e.target)) closeMore(); });
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){ closeMore(); hideSelToolbar(); scrimHide(); if(rightPanel.classList.contains("open") && !$("#noteInput")?.matches(':focus')) closePanel(); }
+});
+
+/* ═══════════ Composer 发送 ═══════════ */
+composerInput.addEventListener("input", ()=>{
+  composerInput.style.height = "auto"; composerInput.style.height = Math.min(composerInput.scrollHeight,120)+"px";
+  $("#sendBtn").disabled = !composerInput.value.trim();
+});
+composerInput.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendComposer(); }
+});
+function sendComposer(){
+  const v = composerInput.value.trim(); if(!v) return;
+  const prefix = anchor.active ? anchor.text.length>40 ? anchor.text.slice(0,40)+"…" : anchor.text : "";
+  toast(anchor.active ? (`已发送追问，针对「${prefix}」`) : "已发送（演示）");
+  composerInput.value = ""; $("#sendBtn").disabled = true; composerInput.style.height = "auto";
+  clearAnchor();
+}
+$("#sendBtn").addEventListener("click", sendComposer);
+
+/* 初始：让 demo note 若干秒后淡出提示 */
+setTimeout(()=>{}, 200);
+</script>
+</body>
+</html>
