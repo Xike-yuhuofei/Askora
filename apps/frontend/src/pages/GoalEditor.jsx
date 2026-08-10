@@ -120,7 +120,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
           expected_state_version: detail.state.state_version,
           idempotency_key: commandKey('goal-edit'),
         })
-        if (active) navigate(`/goals/drafts/${created.draft_id}`, { replace: true })
+        if (active) navigate(`/learning/goals/drafts/${created.draft_id}`, { replace: true })
       } catch (error) {
         if (active) { setStatus('error'); setMessage(errorMessage(error, '无法创建修订草稿。')) }
       }
@@ -166,7 +166,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
       let saved
       if (!draft) {
         saved = await goalApi.createGoalDraft({ ...payload(), idempotency_key: commandKey('goal-create') })
-        navigate(`/goals/drafts/${saved.draft_id}`, { replace: true })
+        navigate(`/learning/goals/drafts/${saved.draft_id}`, { replace: true })
         return
       }
       saved = await goalApi.updateGoalDraft(draft.draft_id, {
@@ -223,7 +223,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
         set_focused: true,
         idempotency_key: commandKey('goal-apply'),
       })
-      if (result.status === 'applied') navigate(`/goals/${result.goal_id}`, { replace: true })
+      if (result.status === 'applied') navigate(`/learning/goals/${result.goal_id}`, { replace: true })
       else { setMessage('变更已批准，将在当前活动正常完成后切换。'); setPreview(null) }
     } catch (error) { setMessage(errorMessage(error, '目标应用失败，请重新预览。')) }
     finally { setBusy(false) }
@@ -241,7 +241,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
     <div className="goal-editor page-stack">
       <header className="page-header page-header--split">
         <div><p className="eyebrow">P1-01 · 目标定义</p><h1>{draft ? '编辑目标草稿' : '创建学习目标'}</h1><p>先保存草稿，再明确选择学习重点并审阅计划影响。</p></div>
-        <button type="button" className="button button--secondary" onClick={() => navigate('/goals')}><ArrowLeft size={16} />返回目标</button>
+        <button type="button" className="button button--secondary" onClick={() => navigate('/learning/goals')}><ArrowLeft size={16} />返回目标</button>
       </header>
 
       <section className="surface goal-form" aria-labelledby="goal-definition-title">

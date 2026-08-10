@@ -1,6 +1,6 @@
 # EXEC-043 — UI-03A Shell, Routes and Learning Domain
 
-> Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
+> Status: **DONE / archived 2026-08-10**  
 > Priority: P0 Interaction Architecture  
 > Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0014, `UI-IES-*`, `UI-IA-*`, `UI-SCREEN-*`, UI-03 Vertical Slice  
 > Depends on: `EXEC-1062 DONE` + `EXEC-051 DONE`

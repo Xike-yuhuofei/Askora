@@ -76,6 +76,7 @@
 | EXEC-1061 — P1-06 Onboarding Readiness Foundation | DONE | `4747000` |
 | EXEC-047 — LocalOwner Foundation & Migration | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
 | EXEC-042 — v0.3 Production Sequential Teaching Policy Closure | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
+| EXEC-043 — UI-03A Shell, Routes and Learning Domain | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
 
 ## Release Gate
 

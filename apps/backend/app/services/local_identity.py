@@ -118,6 +118,23 @@ async def ensure_local_owner(db: AsyncSession) -> LocalOwnerContext:
     return _context_from_record(record, provenance=provenance)
 
 
+async def _ensure_fresh_local_owner(db: AsyncSession) -> LocalOwnerContext:
+    """Force-create a fresh LocalOwner without legacy subject scanning.
+
+    Used as a development-mode escape hatch when legacy subjects are ambiguous
+    and prevent normal bootstrapping.
+    """
+    repo = LocalOwnerRepository(db)
+    owner_id = uuid4()
+    record = await repo.create_if_absent(
+        owner_id=str(owner_id),
+        provenance=PROVENANCE_FRESH,
+        legacy_user_id=None,
+        legacy_pseudonym_id=None,
+    )
+    return _context_from_record(record, provenance=PROVENANCE_FRESH)
+
+
 async def get_local_owner_context(db: AsyncSession) -> LocalOwnerContext:
     """Return the resolved LocalOwnerContext, failing if it does not exist.
 
