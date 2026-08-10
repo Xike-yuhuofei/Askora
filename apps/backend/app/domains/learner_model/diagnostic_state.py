@@ -21,6 +21,7 @@ class CanonicalMasteryProjectionPort(Protocol):
         result: AssessmentResult,
         attempt: AssessmentAttempt,
         knowledge_unit_id: UUID,
+        workspace_id: UUID,
         source_event_ids: list[UUID],
         dimension: Literal["recall", "routine_application", "transfer", "explanation"],
         novelty: Literal["repeated", "near_variant", "far_variant"],
@@ -47,12 +48,18 @@ class DiagnosticLearnerStateService:
         self,
         *,
         user_id: UUID,
+        workspace_id: UUID,
         knowledge_unit_ids: tuple[UUID, ...],
         created_at: datetime,
     ) -> tuple[LearnerStateV1, list[MasteryEstimate]]:
-        all_estimates = await self._repo.list_all_latest_mastery(user_id=user_id)
+        all_estimates = await self._repo.list_all_latest_mastery(
+            user_id=user_id, workspace_id=workspace_id
+        )
         state = await self._ensure_state(
-            user_id=user_id, estimates=all_estimates, created_at=created_at
+            user_id=user_id,
+            workspace_id=workspace_id,
+            estimates=all_estimates,
+            created_at=created_at,
         )
         scope = set(knowledge_unit_ids)
         estimates = [item for item in all_estimates if item.knowledge_unit_id in scope]
@@ -64,6 +71,7 @@ class DiagnosticLearnerStateService:
         result: AssessmentResult,
         attempt: AssessmentAttempt,
         knowledge_unit_id: UUID,
+        workspace_id: UUID,
         source_event_id: UUID,
         item_difficulty: float | None,
         correlation_id: UUID,
@@ -74,12 +82,14 @@ class DiagnosticLearnerStateService:
             result_id=result.result_id,
             user_id=attempt.user_id,
             knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         if estimate is None:
             estimate = await self._mastery_projector.project_assessment(
                 result=result,
                 attempt=attempt,
                 knowledge_unit_id=knowledge_unit_id,
+                workspace_id=workspace_id,
                 source_event_ids=[source_event_id],
                 dimension="routine_application",
                 novelty="far_variant",
@@ -89,38 +99,44 @@ class DiagnosticLearnerStateService:
             )
         state, estimates = await self.current_state(
             user_id=attempt.user_id,
+            workspace_id=workspace_id,
             knowledge_unit_ids=knowledge_unit_ids,
             created_at=created_at,
         )
         return estimate, state, estimates
 
-    async def get_state(self, *, user_id: UUID, version: int) -> LearnerStateV1 | None:
+    async def get_state(
+        self, *, user_id: UUID, version: int, workspace_id: UUID
+    ) -> LearnerStateV1 | None:
         return await self._repo.get_learner_state(
-            learner_state_id=uuid5(NAMESPACE_URL, f"askora:learner-state:{user_id}"),
+            learner_state_id=uuid5(NAMESPACE_URL, f"askora:learner-state:{user_id}:{workspace_id}"),
             version=version,
             user_id=user_id,
+            workspace_id=workspace_id,
         )
 
     async def _ensure_state(
         self,
         *,
         user_id: UUID,
+        workspace_id: UUID,
         estimates: list[MasteryEstimate],
         created_at: datetime,
     ) -> LearnerStateV1:
-        latest = await self._repo.latest_learner_state(user_id)
+        latest = await self._repo.latest_learner_state(user_id, workspace_id=workspace_id)
         estimate_ids = tuple(
             item.estimate_id
             for item in sorted(estimates, key=lambda item: str(item.knowledge_unit_id))
         )
         if latest is not None and latest.mastery_estimate_ids == estimate_ids:
             return latest
-        version = await self._repo.next_learner_state_version(user_id)
+        version = await self._repo.next_learner_state_version(user_id, workspace_id=workspace_id)
         state = self._state_projector.project(
             user_id=user_id,
+            workspace_id=workspace_id,
             estimates=estimates,
             version=version,
             created_from_event_sequence=sum(item.evidence_count for item in estimates),
             created_at=created_at,
         )
-        return await self._repo.save_learner_state(state)
+        return await self._repo.save_learner_state(state, workspace_id=workspace_id)

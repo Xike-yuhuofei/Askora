@@ -123,7 +123,9 @@ async def test_policy_to_actual_assistance_to_learner_evidence_e2e() -> None:
         source_evidence_id=evidence.evidence.evidence_id,
         source_event_ids=[fixed_uuid("e2e-actual-assistance")],
     )
-    review = ReviewScheduler().update(observation=observation, prior=None, version=1)
+    review = ReviewScheduler().update(
+        observation=observation, prior=None, version=1, workspace_id=fixed_uuid("e2e-v03-workspace")
+    )
     assert review.schedule.next_due_at is not None
     assert "INDEPENDENT_RECALL_EXTENDED" in review.reason_codes
 

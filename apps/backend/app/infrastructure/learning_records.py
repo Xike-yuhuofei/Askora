@@ -1,4 +1,10 @@
-"""SYS04 Attempt/Result 与 SYS03 Evidence/Mastery 的 durable repositories。"""
+"""SYS04 Attempt/Result 与 SYS03 Evidence/Mastery 的 durable repositories。
+
+Workspace scoping (WSP-030/033/034): every SYS03/SYS04 record is attributed to
+exactly one Workspace. All query/version/identity keys are scoped by
+``workspace_id`` so that same LocalOwner + same KnowledgeUnit + different
+Workspace never share an evidence/mastery stream.
+"""
 
 from __future__ import annotations
 
@@ -31,10 +37,13 @@ class AssessmentRecordRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def save_attempt(self, attempt: AssessmentAttempt) -> AssessmentAttempt:
+    async def save_attempt(
+        self, attempt: AssessmentAttempt, *, workspace_id: UUID
+    ) -> AssessmentAttempt:
         existing = await self._session.scalar(
             select(CanonicalAssessmentAttemptRecord).where(
-                CanonicalAssessmentAttemptRecord.idempotency_key == attempt.idempotency_key
+                CanonicalAssessmentAttemptRecord.idempotency_key == attempt.idempotency_key,
+                CanonicalAssessmentAttemptRecord.workspace_id == str(workspace_id),
             )
         )
         if existing is not None:
@@ -44,6 +53,7 @@ class AssessmentRecordRepository:
                 id=str(attempt.attempt_id),
                 idempotency_key=attempt.idempotency_key,
                 user_id=str(attempt.user_id),
+                workspace_id=str(workspace_id),
                 item_id=str(attempt.item_id),
                 item_version=attempt.item_version,
                 payload=attempt.model_dump(mode="json"),
@@ -52,7 +62,9 @@ class AssessmentRecordRepository:
         await self._session.flush()
         return attempt
 
-    async def save_result(self, result: AssessmentResult) -> AssessmentResult:
+    async def save_result(
+        self, result: AssessmentResult, *, workspace_id: UUID
+    ) -> AssessmentResult:
         existing = await self._session.get(CanonicalAssessmentResultRecord, str(result.result_id))
         if existing is not None:
             return AssessmentResult.model_validate(existing.payload)
@@ -60,6 +72,7 @@ class AssessmentRecordRepository:
             CanonicalAssessmentResultRecord(
                 id=str(result.result_id),
                 attempt_id=str(result.attempt_id),
+                workspace_id=str(workspace_id),
                 result_version=result.result_version,
                 supersedes_result_id=(
                     str(result.supersedes_result_id) if result.supersedes_result_id else None
@@ -77,12 +90,15 @@ class LearnerModelRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def save_evidence(self, evidence: LearnerEvidence) -> LearnerEvidence:
+    async def save_evidence(
+        self, evidence: LearnerEvidence, *, workspace_id: UUID
+    ) -> LearnerEvidence:
         if evidence.result_id is None:
             raise ValueError("ASSESSMENT_RESULT_ID_REQUIRED")
         existing = await self._session.scalar(
             select(LearnerEvidenceRecord).where(
-                LearnerEvidenceRecord.source_result_id == str(evidence.result_id)
+                LearnerEvidenceRecord.source_result_id == str(evidence.result_id),
+                LearnerEvidenceRecord.workspace_id == str(workspace_id),
             )
         )
         if existing is not None:
@@ -94,6 +110,7 @@ class LearnerModelRepository:
                 id=str(evidence.evidence_id),
                 source_result_id=str(evidence.result_id),
                 user_id=str(evidence.user_id),
+                workspace_id=str(workspace_id),
                 knowledge_unit_id=str(evidence.knowledge_unit_id),
                 status="accepted",
                 reason_codes=evidence.eligibility_reason_codes,
@@ -109,11 +126,13 @@ class LearnerModelRepository:
         result: AssessmentResult,
         attempt: AssessmentAttempt,
         knowledge_unit_id: UUID,
+        workspace_id: UUID,
         reason_codes: tuple[str, ...],
     ) -> None:
         existing = await self._session.scalar(
             select(LearnerEvidenceRecord).where(
-                LearnerEvidenceRecord.source_result_id == str(result.result_id)
+                LearnerEvidenceRecord.source_result_id == str(result.result_id),
+                LearnerEvidenceRecord.workspace_id == str(workspace_id),
             )
         )
         if existing is not None:
@@ -124,6 +143,7 @@ class LearnerModelRepository:
                 id=str(rejection_id),
                 source_result_id=str(result.result_id),
                 user_id=str(attempt.user_id),
+                workspace_id=str(workspace_id),
                 knowledge_unit_id=str(knowledge_unit_id),
                 status="rejected",
                 reason_codes=list(reason_codes),
@@ -138,13 +158,14 @@ class LearnerModelRepository:
         await self._session.flush()
 
     async def list_evidence(
-        self, *, user_id: UUID, knowledge_unit_id: UUID
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
     ) -> list[LearnerEvidence]:
         records = (
             await self._session.scalars(
                 select(LearnerEvidenceRecord)
                 .where(
                     LearnerEvidenceRecord.user_id == str(user_id),
+                    LearnerEvidenceRecord.workspace_id == str(workspace_id),
                     LearnerEvidenceRecord.knowledge_unit_id == str(knowledge_unit_id),
                     LearnerEvidenceRecord.status == "accepted",
                     LearnerEvidenceRecord.invalidated_at.is_(None),
@@ -155,7 +176,7 @@ class LearnerModelRepository:
         return [LearnerEvidence.model_validate(record.payload) for record in records]
 
     async def latest_evidence_across_units(
-        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...]
+        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...], workspace_id: UUID
     ) -> LearnerEvidence | None:
         """Return the single most recent accepted canonical evidence in scope.
 
@@ -169,6 +190,7 @@ class LearnerModelRepository:
             select(LearnerEvidenceRecord)
             .where(
                 LearnerEvidenceRecord.user_id == str(user_id),
+                LearnerEvidenceRecord.workspace_id == str(workspace_id),
                 LearnerEvidenceRecord.knowledge_unit_id.in_(
                     [str(item) for item in knowledge_unit_ids]
                 ),
@@ -180,23 +202,33 @@ class LearnerModelRepository:
         )
         return LearnerEvidence.model_validate(record.payload) if record else None
 
-    async def invalidate_evidence(self, evidence_id: UUID) -> None:
-        record = await self._session.get(LearnerEvidenceRecord, str(evidence_id))
+    async def invalidate_evidence(self, evidence_id: UUID, *, workspace_id: UUID) -> None:
+        record = await self._session.scalar(
+            select(LearnerEvidenceRecord).where(
+                LearnerEvidenceRecord.id == str(evidence_id),
+                LearnerEvidenceRecord.workspace_id == str(workspace_id),
+            )
+        )
         if record is None:
-            raise KeyError(f"evidence not found: {evidence_id}")
+            raise KeyError(f"evidence not found in workspace: {evidence_id}")
         record.invalidated_at = datetime.now(timezone.utc)
         await self._session.flush()
 
-    async def next_version(self, *, user_id: UUID, knowledge_unit_id: UUID) -> int:
+    async def next_version(
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
+    ) -> int:
         latest = await self._session.scalar(
             select(func.max(MasteryEstimateRecord.version)).where(
                 MasteryEstimateRecord.user_id == str(user_id),
+                MasteryEstimateRecord.workspace_id == str(workspace_id),
                 MasteryEstimateRecord.knowledge_unit_id == str(knowledge_unit_id),
             )
         )
         return int(latest or 0) + 1
 
-    async def save_mastery(self, estimate: MasteryEstimate) -> MasteryEstimate:
+    async def save_mastery(
+        self, estimate: MasteryEstimate, *, workspace_id: UUID
+    ) -> MasteryEstimate:
         existing = await self._session.get(MasteryEstimateRecord, str(estimate.estimate_id))
         if existing is not None:
             return MasteryEstimate.model_validate(existing.payload)
@@ -204,6 +236,7 @@ class LearnerModelRepository:
             MasteryEstimateRecord(
                 id=str(estimate.estimate_id),
                 user_id=str(estimate.user_id),
+                workspace_id=str(workspace_id),
                 knowledge_unit_id=str(estimate.knowledge_unit_id),
                 version=estimate.version,
                 payload=estimate.model_dump(mode="json"),
@@ -213,12 +246,13 @@ class LearnerModelRepository:
         return estimate
 
     async def latest_mastery(
-        self, *, user_id: UUID, knowledge_unit_id: UUID
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
     ) -> MasteryEstimate | None:
         record = await self._session.scalar(
             select(MasteryEstimateRecord)
             .where(
                 MasteryEstimateRecord.user_id == str(user_id),
+                MasteryEstimateRecord.workspace_id == str(workspace_id),
                 MasteryEstimateRecord.knowledge_unit_id == str(knowledge_unit_id),
             )
             .order_by(MasteryEstimateRecord.version.desc())
@@ -227,7 +261,7 @@ class LearnerModelRepository:
         return MasteryEstimate.model_validate(record.payload) if record else None
 
     async def list_latest_mastery(
-        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...]
+        self, *, user_id: UUID, knowledge_unit_ids: tuple[UUID, ...], workspace_id: UUID
     ) -> list[MasteryEstimate]:
         if not knowledge_unit_ids:
             return []
@@ -236,6 +270,7 @@ class LearnerModelRepository:
                 select(MasteryEstimateRecord)
                 .where(
                     MasteryEstimateRecord.user_id == str(user_id),
+                    MasteryEstimateRecord.workspace_id == str(workspace_id),
                     MasteryEstimateRecord.knowledge_unit_id.in_(
                         [str(item) for item in knowledge_unit_ids]
                     ),
@@ -251,11 +286,16 @@ class LearnerModelRepository:
             latest.setdefault(record.knowledge_unit_id, record)
         return [MasteryEstimate.model_validate(item.payload) for item in latest.values()]
 
-    async def list_all_latest_mastery(self, *, user_id: UUID) -> list[MasteryEstimate]:
+    async def list_all_latest_mastery(
+        self, *, user_id: UUID, workspace_id: UUID
+    ) -> list[MasteryEstimate]:
         records = (
             await self._session.scalars(
                 select(MasteryEstimateRecord)
-                .where(MasteryEstimateRecord.user_id == str(user_id))
+                .where(
+                    MasteryEstimateRecord.user_id == str(user_id),
+                    MasteryEstimateRecord.workspace_id == str(workspace_id),
+                )
                 .order_by(
                     MasteryEstimateRecord.knowledge_unit_id,
                     MasteryEstimateRecord.version.desc(),
@@ -268,12 +308,18 @@ class LearnerModelRepository:
         return [MasteryEstimate.model_validate(item.payload) for item in latest.values()]
 
     async def mastery_for_source_result(
-        self, *, result_id: UUID, user_id: UUID, knowledge_unit_id: UUID
+        self,
+        *,
+        result_id: UUID,
+        user_id: UUID,
+        knowledge_unit_id: UUID,
+        workspace_id: UUID,
     ) -> MasteryEstimate | None:
         evidence = await self._session.scalar(
             select(LearnerEvidenceRecord).where(
                 LearnerEvidenceRecord.source_result_id == str(result_id),
                 LearnerEvidenceRecord.user_id == str(user_id),
+                LearnerEvidenceRecord.workspace_id == str(workspace_id),
                 LearnerEvidenceRecord.knowledge_unit_id == str(knowledge_unit_id),
                 LearnerEvidenceRecord.status == "accepted",
             )
@@ -283,20 +329,24 @@ class LearnerModelRepository:
         latest = await self.latest_mastery(
             user_id=user_id,
             knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         if latest is None or UUID(evidence.id) not in latest.source_evidence_ids:
             return None
         return latest
 
-    async def next_learner_state_version(self, user_id: UUID) -> int:
+    async def next_learner_state_version(self, user_id: UUID, *, workspace_id: UUID) -> int:
         latest = await self._session.scalar(
             select(func.max(LearnerStateRecord.version)).where(
-                LearnerStateRecord.user_id == str(user_id)
+                LearnerStateRecord.user_id == str(user_id),
+                LearnerStateRecord.workspace_id == str(workspace_id),
             )
         )
         return int(latest or 0) + 1
 
-    async def save_learner_state(self, state: LearnerStateV1) -> LearnerStateV1:
+    async def save_learner_state(
+        self, state: LearnerStateV1, *, workspace_id: UUID
+    ) -> LearnerStateV1:
         record_id = f"{state.learner_state_id}:{state.version}"
         existing = await self._session.get(LearnerStateRecord, record_id)
         if existing is not None:
@@ -306,6 +356,7 @@ class LearnerModelRepository:
                 id=record_id,
                 learner_state_id=str(state.learner_state_id),
                 user_id=str(state.user_id),
+                workspace_id=str(workspace_id),
                 version=state.version,
                 payload=state.model_dump(mode="json"),
             )
@@ -313,23 +364,29 @@ class LearnerModelRepository:
         await self._session.flush()
         return state
 
-    async def latest_learner_state(self, user_id: UUID) -> LearnerStateV1 | None:
+    async def latest_learner_state(
+        self, user_id: UUID, *, workspace_id: UUID
+    ) -> LearnerStateV1 | None:
         record = await self._session.scalar(
             select(LearnerStateRecord)
-            .where(LearnerStateRecord.user_id == str(user_id))
+            .where(
+                LearnerStateRecord.user_id == str(user_id),
+                LearnerStateRecord.workspace_id == str(workspace_id),
+            )
             .order_by(LearnerStateRecord.version.desc())
             .limit(1)
         )
         return LearnerStateV1.model_validate(record.payload) if record else None
 
     async def get_learner_state(
-        self, *, learner_state_id: UUID, version: int, user_id: UUID
+        self, *, learner_state_id: UUID, version: int, user_id: UUID, workspace_id: UUID
     ) -> LearnerStateV1 | None:
         record = await self._session.scalar(
             select(LearnerStateRecord).where(
                 LearnerStateRecord.learner_state_id == str(learner_state_id),
                 LearnerStateRecord.version == version,
                 LearnerStateRecord.user_id == str(user_id),
+                LearnerStateRecord.workspace_id == str(workspace_id),
             )
         )
         return LearnerStateV1.model_validate(record.payload) if record else None

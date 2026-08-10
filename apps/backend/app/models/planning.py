@@ -25,6 +25,9 @@ class ReviewObservationRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
     actual_reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     payload: Mapped[dict] = mapped_column(JSON)
@@ -38,6 +41,9 @@ class ReviewScheduleRecord(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     schedule_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
     version: Mapped[int] = mapped_column(Integer)
     next_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -46,7 +52,7 @@ class ReviewScheduleRecord(Base):
 
     __table_args__ = (
         UniqueConstraint("schedule_id", "version", name="uq_review_schedule_version"),
-        Index("idx_review_latest", "user_id", "knowledge_unit_id", "version"),
+        Index("idx_review_latest", "workspace_id", "user_id", "knowledge_unit_id", "version"),
     )
 
 

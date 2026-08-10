@@ -48,6 +48,7 @@ from app.services.assessment.canonical_service import (
     ScoredAssessmentRecord,
 )
 from app.services.owner.canonical_identity import canonical_user_id
+from app.services.workspace.resolution import resolve_workspace_id
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,7 @@ class DiagnosticAssessmentPort(Protocol):
         *,
         item: Any,
         user_id: UUID,
+        workspace_id: UUID,
         response: Any,
         assistance: AssistanceSnapshot,
         idempotency_key: str,
@@ -121,9 +123,11 @@ class PrerequisiteDiagnosticService:
             subgraph_version=subgraph_version,
             target_knowledge_unit_id=target_knowledge_unit_id,
         )
+        workspace_id = await resolve_workspace_id(self._session, canonical_user_id(user.id))
         knowledge_ids = self._knowledge_ids(subgraph)
         state, estimates = await self._learner.current_state(
             user_id=canonical_user_id(user.id),
+            workspace_id=workspace_id,
             knowledge_unit_ids=knowledge_ids,
             created_at=created_at,
         )
@@ -181,6 +185,7 @@ class PrerequisiteDiagnosticService:
             edges=edges,
             mastery=mastery,
             learner_state_version=state.version,
+            workspace_id=workspace_id,
             created_at=created_at,
             idempotency_key=f"{idempotency_key}:plan",
             reason_codes=["PLAN_INITIAL_DIAGNOSTIC_BOOTSTRAP"],
@@ -223,6 +228,7 @@ class PrerequisiteDiagnosticService:
             raise ValueError("DIAGNOSTIC_NEED_VERSION_CONFLICT")
         if prior.status != "active" or prior.assessment_item_ref is None:
             raise ValueError("DIAGNOSTIC_NEED_NOT_ACTIVE")
+        workspace_id = await resolve_workspace_id(self._session, canonical_user_id(user.id))
         await self._reload_need_inputs(user=user, need=prior)
         item = await self._items.get_exact(
             item_id=UUID(prior.assessment_item_ref.entity_id),
@@ -241,6 +247,7 @@ class PrerequisiteDiagnosticService:
 
         _before_state, before_estimates = await self._learner.current_state(
             user_id=canonical_user_id(user.id),
+            workspace_id=workspace_id,
             knowledge_unit_ids=tuple(
                 sorted(
                     set(prior.prerequisite_knowledge_unit_ids) | {prior.target_knowledge_unit_id},
@@ -253,6 +260,7 @@ class PrerequisiteDiagnosticService:
             scored = await self._assessment.score_submission_with_attempt(
                 item=item,
                 user_id=canonical_user_id(user.id),
+                workspace_id=workspace_id,
                 response=response,
                 assistance=assistance,
                 idempotency_key=idempotency_key,
@@ -296,6 +304,7 @@ class PrerequisiteDiagnosticService:
             result=scored.result,
             attempt=scored.attempt,
             knowledge_unit_id=item.knowledge_unit_id,
+            workspace_id=workspace_id,
             source_event_id=result_event.event_id,
             item_difficulty=item.difficulty,
             correlation_id=correlation_id,
@@ -374,6 +383,7 @@ class PrerequisiteDiagnosticService:
                 edges=edges,
                 mastery=mastery,
                 learner_state_version=state.version,
+                workspace_id=workspace_id,
                 created_at=submitted_at,
                 idempotency_key=f"diagnostic-replan:{idempotency_key}",
                 reason_codes=["PLAN_REPLAN_DIAGNOSTIC_MATERIAL_STATE_CHANGE"],
@@ -403,9 +413,11 @@ class PrerequisiteDiagnosticService:
         )
         if need is None:
             raise ValueError("DIAGNOSTIC_NEED_NOT_FOUND")
+        workspace_id = await resolve_workspace_id(self._session, canonical_user_id(user.id))
         state = await self._learner.get_state(
             user_id=canonical_user_id(user.id),
             version=need.created_from_learner_state_version,
+            workspace_id=workspace_id,
         )
         if state is None:
             raise ValueError("LEARNER_STATE_STALE")
@@ -432,8 +444,10 @@ class PrerequisiteDiagnosticService:
             raise ValueError("DIAGNOSTIC_NEED_NOT_PLAN_ELIGIBLE")
         mapping, subgraph, goal, edges = await self._reload_need_inputs(user=user, need=need)
         knowledge_ids = self._knowledge_ids(subgraph)
+        workspace_id = await resolve_workspace_id(self._session, canonical_user_id(user.id))
         state, estimates = await self._learner.current_state(
             user_id=canonical_user_id(user.id),
+            workspace_id=workspace_id,
             knowledge_unit_ids=knowledge_ids,
             created_at=created_at,
         )
@@ -467,6 +481,7 @@ class PrerequisiteDiagnosticService:
             edges=edges,
             mastery=mastery,
             learner_state_version=state.version,
+            workspace_id=workspace_id,
             created_at=created_at,
             idempotency_key=idempotency_key,
             reason_codes=["PLAN_GENERATED_FROM_TERMINAL_DIAGNOSTIC_STATE"],
@@ -619,6 +634,7 @@ class PrerequisiteDiagnosticService:
         edges: tuple[DiagnosticPrerequisiteEdgeV1, ...],
         mastery: dict,
         learner_state_version: int,
+        workspace_id: UUID,
         created_at: datetime,
         idempotency_key: str,
         reason_codes: list[str],
@@ -661,9 +677,11 @@ class PrerequisiteDiagnosticService:
     async def _existing_result(
         self, need: DiagnosticNeedV1, *, plan_key: str
     ) -> DiagnosticBootstrapResult:
+        workspace_id = await resolve_workspace_id(self._session, need.user_id)
         state = await self._learner.get_state(
             user_id=need.user_id,
             version=need.created_from_learner_state_version,
+            workspace_id=workspace_id,
         )
         if state is None:
             raise ValueError("LEARNER_STATE_STALE")
@@ -691,9 +709,11 @@ class PrerequisiteDiagnosticService:
         correlation_id: UUID,
         created_at: datetime,
     ) -> DiagnosticBootstrapResult:
+        workspace_id = await resolve_workspace_id(self._session, user_id)
         state = await self._learner.get_state(
             user_id=user_id,
             version=prior.created_from_learner_state_version,
+            workspace_id=workspace_id,
         )
         if state is None:
             raise ValueError("LEARNER_STATE_STALE")

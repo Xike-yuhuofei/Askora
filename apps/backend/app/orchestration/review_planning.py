@@ -13,14 +13,20 @@ from app.domains.review_scheduler import ReviewScheduler, project_due
 
 
 class ReviewRepositoryPort(Protocol):
-    async def latest(self, *, user_id: UUID, knowledge_unit_id: UUID) -> ReviewSchedule | None: ...
+    async def latest(
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
+    ) -> ReviewSchedule | None: ...
     async def has_observation(self, observation_id: UUID) -> bool: ...
-    async def save_observation(self, observation: ReviewObservation) -> None: ...
-    async def save(self, schedule: ReviewSchedule) -> ReviewSchedule: ...
-    async def list_latest_for_user(self, user_id: UUID) -> list[ReviewSchedule]: ...
+    async def save_observation(
+        self, observation: ReviewObservation, *, workspace_id: UUID
+    ) -> None: ...
+    async def save(self, schedule: ReviewSchedule, *, workspace_id: UUID) -> ReviewSchedule: ...
+    async def list_latest_for_user(
+        self, user_id: UUID, *, workspace_id: UUID
+    ) -> list[ReviewSchedule]: ...
     async def invalidate_observation(self, observation_id: UUID) -> None: ...
     async def list_valid_observations(
-        self, *, user_id: UUID, knowledge_unit_id: UUID
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
     ) -> list[ReviewObservation]: ...
 
 
@@ -59,6 +65,7 @@ class ReviewPlanningApplication:
         self,
         observation: ReviewObservation,
         *,
+        workspace_id: UUID,
         desired_retention: float = 0.90,
         parameters: dict[str, float] | None = None,
         correlation_id: str = "",
@@ -66,6 +73,7 @@ class ReviewPlanningApplication:
         prior = await self._reviews.latest(
             user_id=observation.user_id,
             knowledge_unit_id=observation.knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         if await self._reviews.has_observation(observation.observation_id):
             if prior is None:
@@ -75,11 +83,12 @@ class ReviewPlanningApplication:
             observation=observation,
             prior=prior,
             version=(prior.version + 1) if prior else 1,
+            workspace_id=workspace_id,
             desired_retention=desired_retention,
             parameters=parameters,
         )
-        await self._reviews.save_observation(observation)
-        schedule = await self._reviews.save(decision.schedule)
+        await self._reviews.save_observation(observation, workspace_id=workspace_id)
+        schedule = await self._reviews.save(decision.schedule, workspace_id=workspace_id)
         await self._outbox.enqueue(
             task_type="review.due.check",
             schema_version="1.0",
@@ -99,6 +108,7 @@ class ReviewPlanningApplication:
         *,
         goal: ConfirmedLearningGoal,
         user_id: UUID,
+        workspace_id: UUID,
         prerequisites: dict[UUID, list[UUID]],
         mastery: dict[UUID, float | None],
         time_budget_minutes: int,
@@ -112,7 +122,7 @@ class ReviewPlanningApplication:
         existing = await self._plans.find_by_idempotency(idempotency_key)
         if existing is not None:
             return existing
-        schedules = await self._reviews.list_latest_for_user(user_id)
+        schedules = await self._reviews.list_latest_for_user(user_id, workspace_id=workspace_id)
         due_candidates = [project_due(schedule, at=at) for schedule in schedules]
         version = await self._plans.next_version(goal.goal_id)
         decision = self._planner.generate(
@@ -149,16 +159,21 @@ class ReviewPlanningApplication:
         observation_id: UUID,
         user_id: UUID,
         knowledge_unit_id: UUID,
+        workspace_id: UUID,
         desired_retention: float = 0.90,
     ) -> ReviewSchedule:
         prior_latest = await self._reviews.latest(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id,
+            knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         if prior_latest is None:
             raise RuntimeError("REVIEW_SCHEDULE_NOT_FOUND")
         await self._reviews.invalidate_observation(observation_id)
         observations = await self._reviews.list_valid_observations(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id,
+            knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         if not observations:
             raise RuntimeError("REVIEW_RECOMPUTE_REQUIRES_VALID_OBSERVATION")
@@ -169,6 +184,7 @@ class ReviewPlanningApplication:
                 observation=observation,
                 prior=replayed,
                 version=replay_index,
+                workspace_id=workspace_id,
                 desired_retention=desired_retention,
             )
             replayed = decision.schedule
@@ -176,7 +192,7 @@ class ReviewPlanningApplication:
         if replayed is None:  # guarded above; keeps type narrowing explicit
             raise RuntimeError("REVIEW_REPLAY_EMPTY")
         recomputed = replayed.model_copy(update={"version": prior_latest.version + 1})
-        recomputed = await self._reviews.save(recomputed)
+        recomputed = await self._reviews.save(recomputed, workspace_id=workspace_id)
         await self._outbox.enqueue(
             task_type="review.due.check",
             schema_version="1.0",

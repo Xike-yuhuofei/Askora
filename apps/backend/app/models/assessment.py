@@ -17,6 +17,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    null,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -168,12 +169,23 @@ class CanonicalAssessmentAttemptRecord(Base):
     __tablename__ = "canonical_assessment_attempts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    idempotency_key: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     item_id: Mapped[str] = mapped_column(String(36), index=True)
     item_version: Mapped[str] = mapped_column(String(50))
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "idempotency_key",
+            name="uq_canonical_attempt_workspace_idempotency",
+        ),
+    )
 
 
 class CanonicalAssessmentResultRecord(Base):
@@ -183,6 +195,9 @@ class CanonicalAssessmentResultRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     attempt_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     result_version: Mapped[int] = mapped_column(Integer)
     supersedes_result_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     payload: Mapped[dict] = mapped_column(JSON)
@@ -199,14 +214,25 @@ class LearnerEvidenceRecord(Base):
     __tablename__ = "learner_evidence"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    source_result_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    source_result_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
     status: Mapped[str] = mapped_column(String(20), index=True)
     reason_codes: Mapped[list] = mapped_column(JSON, default=list)
     payload: Mapped[dict] = mapped_column(JSON)
     invalidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id",
+            "source_result_id",
+            name="uq_learner_evidence_workspace_source_result",
+        ),
+    )
 
 
 class MasteryEstimateRecord(Base):
@@ -216,6 +242,9 @@ class MasteryEstimateRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     knowledge_unit_id: Mapped[str] = mapped_column(String(36), index=True)
     version: Mapped[int] = mapped_column(Integer)
     payload: Mapped[dict] = mapped_column(JSON)
@@ -223,7 +252,11 @@ class MasteryEstimateRecord(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "knowledge_unit_id", "version", name="uq_canonical_mastery_version"
+            "workspace_id",
+            "user_id",
+            "knowledge_unit_id",
+            "version",
+            name="uq_canonical_mastery_version",
         ),
     )
 
@@ -236,6 +269,9 @@ class LearnerStateRecord(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     learner_state_id: Mapped[str] = mapped_column(String(36), index=True)
     user_id: Mapped[str] = mapped_column(String(36), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
     version: Mapped[int] = mapped_column(Integer)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

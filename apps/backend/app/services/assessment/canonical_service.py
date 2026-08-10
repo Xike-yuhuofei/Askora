@@ -1,4 +1,8 @@
-"""SYS04 application service：Attempt/Result state 与 outbox 同 transaction。"""
+"""SYS04 application service：Attempt/Result state 与 outbox 同 transaction。
+
+Attempt/Result records are attributable to exactly one Workspace (WSP-034).
+``workspace_id`` is required and fail-closed.
+"""
 
 from __future__ import annotations
 
@@ -26,6 +30,7 @@ class CanonicalAssessmentService:
         *,
         item: AssessmentItemV1,
         user_id: UUID,
+        workspace_id: UUID,
         response: Any,
         assistance: AssistanceSnapshot,
         idempotency_key: str,
@@ -34,6 +39,7 @@ class CanonicalAssessmentService:
         record = await self.score_submission_with_attempt(
             item=item,
             user_id=user_id,
+            workspace_id=workspace_id,
             response=response,
             assistance=assistance,
             idempotency_key=idempotency_key,
@@ -46,6 +52,7 @@ class CanonicalAssessmentService:
         *,
         item: AssessmentItemV1,
         user_id: UUID,
+        workspace_id: UUID,
         response: Any,
         assistance: AssistanceSnapshot,
         idempotency_key: str,
@@ -57,10 +64,11 @@ class CanonicalAssessmentService:
             response=response,
             assistance=assistance,
             idempotency_key=idempotency_key,
+            workspace_id=workspace_id,
         )
-        attempt = await self._records.save_attempt(attempt)
+        attempt = await self._records.save_attempt(attempt, workspace_id=workspace_id)
         result = self._scorer.score(item=item, attempt=attempt)
-        result = await self._records.save_result(result)
+        result = await self._records.save_result(result, workspace_id=workspace_id)
         await self._outbox.enqueue(
             task_type="assessment.result.project",
             schema_version="1.0",

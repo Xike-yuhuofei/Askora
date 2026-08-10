@@ -219,11 +219,13 @@ async def test_canonical_assessment_to_mastery_is_durable_idempotent_and_traceab
     factory = async_sessionmaker(engine, expire_on_commit=False)
     item = _item()
     user_id = uuid4()
+    workspace_id = uuid4()
 
     async with factory() as session:
         result = await CanonicalAssessmentService(session).score_submission(
             item=item,
             user_id=user_id,
+            workspace_id=workspace_id,
             response="4",
             assistance=_assistance("none"),
             idempotency_key="durable-attempt",
@@ -246,11 +248,12 @@ async def test_canonical_assessment_to_mastery_is_durable_idempotent_and_traceab
             result_version=2,
             supersedes_result_id=restored_result.result_id,
         )
-        await AssessmentRecordRepository(session).save_result(reassessed)
+        await AssessmentRecordRepository(session).save_result(reassessed, workspace_id=workspace_id)
         estimate = await CanonicalLearnerProjectorService(session).project_assessment(
             attempt=restored_attempt,
             result=restored_result,
             knowledge_unit_id=item.knowledge_unit_id,
+            workspace_id=workspace_id,
             source_event_ids=[uuid4()],
         )
         assert estimate is not None

@@ -21,6 +21,7 @@ class LearnerStateProjector:
         self,
         *,
         user_id: UUID,
+        workspace_id: UUID,
         estimates: Sequence[MasteryEstimate],
         version: int,
         created_from_event_sequence: int,
@@ -38,7 +39,7 @@ class LearnerStateProjector:
             if item.competence_probability is None or item.confidence < self.MIN_CURRENT_CONFIDENCE
         )
         return LearnerStateV1(
-            learner_state_id=uuid5(NAMESPACE_URL, f"askora:learner-state:{user_id}"),
+            learner_state_id=uuid5(NAMESPACE_URL, f"askora:learner-state:{user_id}:{workspace_id}"),
             version=version,
             user_id=user_id,
             mastery_estimate_ids=tuple(item.estimate_id for item in ordered),

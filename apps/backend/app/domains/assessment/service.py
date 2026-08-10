@@ -39,11 +39,13 @@ class AssessmentScoringService:
         assistance: AssistanceSnapshot,
         idempotency_key: str,
         submitted_at: datetime | None = None,
+        workspace_id: UUID | None = None,
     ) -> AssessmentAttempt:
         if item.status != "active":
             raise ValueError("ASSESSMENT_ITEM_NOT_ACTIVE")
         timestamp = submitted_at or datetime.now(timezone.utc)
-        attempt_id = uuid5(NAMESPACE_URL, f"askora:attempt:{user_id}:{idempotency_key}")
+        scope = f"{workspace_id}:" if workspace_id else ""
+        attempt_id = uuid5(NAMESPACE_URL, f"askora:attempt:{scope}{user_id}:{idempotency_key}")
         return AssessmentAttempt(
             attempt_id=attempt_id,
             user_id=user_id,

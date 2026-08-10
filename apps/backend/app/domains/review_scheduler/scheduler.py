@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.contracts.learning import LearnerEvidence, ReviewSchedule
 from app.contracts.planning import ReviewDueCandidate, ReviewObservation
@@ -54,6 +54,7 @@ class ReviewScheduler:
         observation: ReviewObservation,
         prior: ReviewSchedule | None,
         version: int,
+        workspace_id: UUID,
         desired_retention: float = 0.90,
         parameters: dict[str, float] | None = None,
     ) -> ReviewScheduleDecision:
@@ -134,7 +135,7 @@ class ReviewScheduler:
         )
         schedule_id = uuid5(
             NAMESPACE_URL,
-            f"askora:review-schedule:{observation.user_id}:{observation.knowledge_unit_id}",
+            f"askora:review-schedule:{workspace_id}:{observation.user_id}:{observation.knowledge_unit_id}",
         )
         schedule = ReviewSchedule(
             schedule_id=schedule_id,
