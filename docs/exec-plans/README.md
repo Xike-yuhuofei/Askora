@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
 > 状态：既有 UI-02C、P1-01～05、P1-07 等基线已完成；当前存在独立 active/blocked 队列  
-> Active / Frozen Queue：EXEC-042、EXEC-1062、EXEC-043～046  
+> Active / Frozen Queue：EXEC-042、EXEC-043～046
 > UI-03 implementation chain：`EXEC-1062 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -20,7 +20,6 @@ Accepted ADR / Canonical Design
 | EXEC | Task | Status | Dependency / Concurrency |
 |---|---|---|---|
 | [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md) | v0.3 Production Sequential Teaching Policy Closure | FROZEN / ACTIVE | backend/policy 独立任务域 |
-| [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06B Onboarding Product Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | 先于 UI-03；触及 App/Settings/routes |
 | [EXEC-043](active/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell, Routes and Learning Domain | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-1062 DONE |
 | [EXEC-044](active/EXEC-044-ui-03b-today-primary-hierarchy.md) | UI-03B Today Primary Hierarchy | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-043 DONE |
 | [EXEC-045](active/EXEC-045-ui-03c-library-progressive-disclosure.md) | UI-03C Library Progressive Disclosure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-044 DONE |
@@ -70,7 +69,7 @@ EXEC-046 Settings / Cleanup / Release
 | P1-02 Model Settings | EXEC-040～041 | DONE |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
 | P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / BLOCKED |
+| P1-06 Onboarding Product Closure | EXEC-1062 | DONE |
 | UI-03 Interactive Element System Refactor | EXEC-043～046 | FROZEN / BLOCKED |
 
 ## 3. UI-03 Governance Chain

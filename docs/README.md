@@ -65,7 +65,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 对应实现闭包已经冻结为：
 
 - [`EXEC-042 — v0.3 Production Sequential Teaching Policy Closure`](exec-plans/active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md)：P0 Policy Correctness closure；
-- [`EXEC-1062 — P1-06B Onboarding Product Closure`](exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md)：独立 P1-06 产品任务域。
+- [`EXEC-1062 — P1-06B Onboarding Product Closure`](exec-plans/completed/EXEC-1062-p1-06b-onboarding-product-closure.md)：独立 P1-06 产品任务域。
 
 二者互不构成依赖，不得混合实施。
 

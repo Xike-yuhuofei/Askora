@@ -10,7 +10,7 @@
 
 | 优先级 | 总数 | 完全未修复 | 部分改善 | 已关闭 |
 |---|---:|---:|---:|---:|
-| P1 — 可靠的私人产品 | 7 | 3 | 0 | 4 |
+| P1 — 可靠的私人产品 | 7 | 0 | 0 | 7 |
 | P2 — Apple 级体验精修 | 8 | 6 | 2 | 0 |
 
 本清单不包含已经通过发布门禁并归档的 P0；UI-02C“开始 → 恢复 → 完成 → 下一项”闭环已完成。
@@ -111,9 +111,13 @@ Gate：`Engineering PASS`；`Contract / Ownership / Security PASS`；`Real Brows
 
 ### P1-06 首次使用引导
 
-**状态：OPEN**
+**状态：DONE（2026-08-10，EXEC-1061→1062）**
 
-当前没有完整 onboarding。用户需要自行理解模型配置、资料库、目标、诊断和计划入口。
+首次使用引导已由 EXEC-1061（readiness/preference foundation）与 EXEC-1062（product closure）关闭：
+新增 `/welcome` protected route、default-entry guard 与 explicit deep-link preservation；由
+current-user scoped read model 聚合 SYS08 模型配置、SYS01 资料、SYS06 Goal/activity/transcript owner
+facts，四步主链（MODEL / MATERIAL / GOAL / FIRST_ACTIVITY）返回确定性 single `next_action`；Settings
+内提供固定 "First Guide" reopen 入口。完整证据见 [P1-06 Completion Report](releases/p1-06-first-use-onboarding.md)。
 
 方案取舍：
 

@@ -235,7 +235,7 @@
 | `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure and release completed EXEC |
 | `docs/exec-plans/completed/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | DONE；Settings 产品体验、真实 App/provider/relaunch 与 P1-02 gap 收口 |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
-| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC；执行时必须遵守 ADR-0014 最新 UI 合同 |
+| `docs/exec-plans/completed/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure completed EXEC；完成 `/welcome`、四步主链、deep-link 保留与真实 owner integration |
 | `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 canonical erasure integration completed contract |
 
 ## 6. Release Evidence
@@ -252,6 +252,7 @@
 | `docs/releases/p1-07-error-recovery-center.md` | CURRENT-UPDATED | P1-07 Engineering、Ownership、Security、真实桌面/浏览器与 Learning Evidence 分离报告 |
 | `docs/releases/p1-05-account-lifecycle.md` | CURRENT-UPDATED | P1-05 Engineering、Ownership 与 Learning Evidence 分离报告 |
 | `docs/releases/p1-02-model-settings.md` | CURRENT-UPDATED | P1-02 Engineering、Security/Ownership、真实 provider/relaunch 与 Learning Evidence 分离报告 |
+| `docs/releases/p1-06-first-use-onboarding.md` | CURRENT-UPDATED | P1-06 Engineering、Security/Ownership、Product Usability、真实 provider 与 Learning Evidence 分离报告 |
 
 ## 7. 后续维护规则
 

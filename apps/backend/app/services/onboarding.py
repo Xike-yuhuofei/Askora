@@ -16,8 +16,8 @@ from app.core.exceptions import BusinessError
 from app.models.user import User
 from app.queries.onboarding import (
     BOUNDARY_NOTICE_VERSION,
-    DataControlQuery,
     JOURNEY_ID,
+    DataControlQuery,
     ModelConfigurationQuery,
     OnboardingJourneyQueryService,
 )

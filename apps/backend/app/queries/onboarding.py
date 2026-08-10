@@ -32,6 +32,7 @@ from app.models.planning import (
 from app.models.user import User
 from app.repositories.onboarding_preferences import OnboardingPreferenceRepository
 from app.services.auth.canonical_identity import canonical_user_id
+from app.services.llm.model_configuration import ModelConfigurationObservation
 
 JOURNEY_ID = "first-learning-v1"
 BOUNDARY_NOTICE_VERSION = "privacy-and-model-v1"
@@ -46,18 +47,6 @@ def _aware(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         return value.replace(tzinfo=timezone.utc)
     return value
-
-
-@dataclass(frozen=True)
-class ModelConfigurationObservation:
-    availability: AvailabilityStatus | str
-    state: str | None = None
-    revision: int | None = None
-    runtime_ready: bool = False
-    runtime_revision: int | None = None
-    verified_at: datetime | None = None
-    source_ref: str | None = None
-    reason_codes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -102,46 +91,6 @@ class UnavailableModelConfigurationQuery(StaticModelConfigurationQuery):
                 reason_codes=("MODEL_CONFIGURATION_QUERY_UNAVAILABLE",),
             )
         )
-
-
-class DatabaseModelConfigurationQuery:
-    """Real model configuration query backed by the runtime model router."""
-
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def get_summary(self, user: User) -> ModelConfigurationObservation:
-        try:
-            from app.services.llm.model_router import get_model_router
-
-            router = get_model_router()
-            providers = router._providers
-            available_providers = [
-                p for p in providers.values()
-                if getattr(p, "api_key", None)
-            ]
-            if not available_providers:
-                return ModelConfigurationObservation(
-                    availability="MISSING",
-                    reason_codes=(),
-                )
-            return ModelConfigurationObservation(
-                availability="AVAILABLE",
-                state="ACTIVE",
-                revision=1,
-                runtime_ready=True,
-                runtime_revision=1,
-                verified_at=_now(),
-                source_ref="ModelRouter:current",
-                reason_codes=(),
-            )
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error("ModelConfigurationQuery error: %s", e, exc_info=True)
-            return ModelConfigurationObservation(
-                availability="MISSING",
-                reason_codes=("MODEL_CONFIGURATION_QUERY_UNAVAILABLE",),
-            )
 
 
 class UnavailableDataControlQuery(StaticDataControlQuery):

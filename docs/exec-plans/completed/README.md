@@ -19,9 +19,10 @@
 > P1-07 Error Recovery Center 收口日期：2026-08-09
 > P1-03 收口日期：2026-08-09
 > P1-06A Onboarding Readiness Foundation 收口日期：2026-08-09
+> P1-06B Onboarding Product Closure 收口日期：2026-08-10
 > Book-to-Learning 执行日期：2026-08-08
 > P1-02B 模型设置产品闭环收口日期：2026-08-09
-> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02 EXEC-040～041、P1-06A EXEC-1061、P1-07 EXEC-037 DONE
+> 状态：v0.2 + v0.3 + v0.3.1 + UI-01 + UI-02A + UI-02B1 + UI-02B2 + UI-02B3 + UI-02B Goals/Path/Evidence + UI-02C FROZEN BASELINES；Book-to-Learning EXEC-017～024、P1-03 EXEC-1031～1034、P1-04 EXEC-031～033、P1-05 EXEC-034～037、P1-01 EXEC-038～039、P1-02 EXEC-040～041、P1-06A EXEC-1061、P1-06B EXEC-1062、P1-07 EXEC-037 DONE
 
 ## Completion Matrix
 
@@ -74,6 +75,7 @@
 | EXEC-1033 — P1-03 User Data Export | DONE | `4588543` |
 | EXEC-1034 — P1-03 Erasure, Settings UX and Release Gate | DONE | `d0cff3a` |
 | EXEC-1061 — P1-06 Onboarding Readiness Foundation | DONE | `4747000` |
+| EXEC-1062 — P1-06B Onboarding Product Closure | DONE | `5c8e318` |
 
 ## Release Gate
 
@@ -187,6 +189,20 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
 P1-03 交付 macOS 私人桌面 SQLite 的加密恢复、可验证离线恢复、current-user 可读导出和 owner-coordinated 四范围删除；详细 AC、测试、打包桌面恢复证据与既有仓库门禁债务见 `docs/releases/p1-03-data-control-recovery.md`。
+
+## P1-06 Release Gates
+
+```text
+Engineering Gate: PASS
+Security / Ownership Gate: PASS
+Product Usability Gate: PASS
+Real Provider Product Gate: PASS
+Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
+```
+
+P1-06 交付 `/welcome` protected route、default-entry guard、deep-link preservation、Settings "First
+Guide" reopen 与四步真实主链；详细证据见 `docs/releases/p1-06-first-use-onboarding.md`。完整 UI-03 属
+EXEC-043→046 串行执行。
 
 ## Historical Contract Rule
 
