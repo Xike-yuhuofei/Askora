@@ -2,11 +2,14 @@
 
 > Spec ID 范围：`DOMAIN-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.3
+> 版本：v0.3 Learning Core + v1 Product Positioning Alignment  
+> 上位约束：`docs/product/PRODUCT-POSITIONING.md`
 
 ## 1. Purpose
 
 本文件定义八类技术系统跨边界共享的最小领域语义。系统内部 MAY 有私有对象，但 MUST NOT 复制、改变或模糊这些公共对象含义。v0.3 canonical truth 以本文件、`decision-contract.md` 与各系统 Spec 为准；legacy 字段只允许按迁移合同 read/audit。
+
+本文件中早于 v1 Product Positioning Alignment 的 `user_id`、`source_document_ids`、`SourceDocument` 等示例字段，必须结合第 25 节解释；不得再将其理解为 Account、Global Material Library 或用户原始文件路径 truth。
 
 ## 2. Common Rules
 
@@ -783,6 +786,8 @@ Legacy fields MUST NOT 与 v0.3 canonical fields permanent dual-write。Compatib
 
 v0.3 canonical runtime MUST NOT 实现 Contextual Bandit、Offline/Online RL、Deep KT canonical truth、complex IRT-CAT、open-world misconception discovery、school-level population A/B、multi-agent teaching control、automatic learned reward、synthetic learner as learning evidence、free-form LLM TeachingAction ownership、generic Productive Failure strategy、always-on Socratic tutor、generic executable policy DSL。B2 LLM selector MAY experiment baseline behind same hard shield/action vocabulary。
 
+v1 还明确不包含：多用户/Tenant/RBAC、Global Material Library、跨设备实时同步、完整 OCR/原生音视频 pipeline、开放式长期自治 Agent、Desktop/Electron 作为产品 shell、Redis/PostgreSQL/Docker/Kafka 运行依赖。
+
 ## 23. Forbidden Domain Shortcuts
 
 禁止长期公共 `TutorState` 同时塞 mastery/plan/review/action；`AIJudgement` 同时承担 scoring+mastery；`KnowledgeChunk` 同时表示 retrieval chunk+KnowledgeUnit；无 provenance 的 `UserSkillScore`；不区分 LearningActivity/TeachingAction 的 `NextAction`；同时表示 retrievability/mastery 的 `MemoryScore`；LLM/Agent 持久化 LearnerState、Assessment truth、TeachingAction、LearningPlan、ReviewSchedule。
@@ -793,3 +798,315 @@ v0.3 canonical runtime MUST NOT 实现 Contextual Bandit、Offline/Online RL、D
 `LearningGoalStateV1` 与 `LearningPlanStateV1` 是 append-only current truth；draft/preview/focus 是
 SYS06-owned control records。`LearningObjectiveV1` 把 criterion、cognitive process、target refs 与
 evidence requirements 结构化。`GoalAchievementEvaluationV1` 是证据门禁决定，不是 mastery truth。
+
+## 25. v1 Product Positioning Alignment
+
+本节是对前述 v0.3 Learning Core 对象的**规范性上位对齐**。当早期 YAML 示例与本节冲突时，本节优先。
+
+### DOMAIN-200 — LocalOwner / Legacy `user_id`
+
+v1 无 Account/Login/Tenant/RBAC。唯一 durable local ownership subject 是 `LocalOwner`；Learner MAY 与 LocalOwner 首版共用稳定 UUID，但语义不是 credential principal。
+
+本文件历史 YAML 中：
+
+```text
+user_id
+```
+
+在完成 migration 前 MAY 继续作为 storage/API compatibility 字段，但 canonical semantics MUST 解释为：
+
+```text
+LocalOwner / Learner subject id
+```
+
+MUST NOT 再解释为登录账号、JWT subject 或 tenant user。
+
+### DOMAIN-201 — Workspace
+
+Workspace 是 LocalOwner 下的高层数据隔离边界，不是 Tenant/Organization，也不是 SYS09。
+
+```yaml
+workspace:
+  workspace_id: uuid
+  owner_id: uuid
+  version: integer
+  name: string
+  lifecycle: active|trash
+  created_at: datetime
+```
+
+规则：
+
+- 一个 LocalOwner MAY 有多个 Workspace；
+- Material、LearningProject、LearningGoal、LearningSession、LearnerState/LearningEvidence scope、LearningHistory、UserNote、Search/Retrieval MUST 可解析到 workspace；
+- 默认不得跨 Workspace 搜索、融合 LearnerState 或共享 Material membership；
+- 跨 Workspace 能力未来必须通过新的 Product Positioning / Design / Spec 明确授权。
+
+### DOMAIN-202 — Material / SourceFile / SourceDocument Compatibility
+
+Material 是 Workspace-scoped 用户资料领域对象；SourceFile 是 Askora managed raw asset。
+
+```yaml
+material:
+  material_id: uuid
+  workspace_id: uuid
+  metadata_version: integer
+  display_title: string
+  current_revision_id: uuid|null
+  lifecycle: active|trash
+  created_at: datetime
+
+source_file:
+  asset_id: uuid
+  material_id: uuid
+  checksum: string
+  original_filename: string
+  managed_storage_ref: string
+  created_at: datetime
+```
+
+Import MUST 是：
+
+```text
+user-selected file
+→ ingest + copy
+→ managed SourceFile
+→ Material / MaterialRevision
+```
+
+后续使用 MUST NOT 依赖用户最初文件路径仍存在。
+
+历史 `SourceDocument` / `document_id` MAY 作为 SYS01 content record / compatibility id 保留，但：
+
+- MUST subordinate to exactly one Material/Workspace scope；
+- MUST NOT 形成 v1 Global Material Library；
+- MUST NOT 代替 managed SourceFile truth；
+- `source_document_ids` 在新 Goal/API 中 SHOULD 迁移为 Material/source refs。
+
+### DOMAIN-203 — LearningProject / ProjectMaterial
+
+LearningProject 是 Workspace 内长期学习组织单位，不是开始学习的强制门禁。
+
+```yaml
+learning_project:
+  project_id: uuid
+  workspace_id: uuid
+  version: integer
+  title: string
+  status: active|paused|archived
+  created_at: datetime
+
+project_material:
+  project_id: uuid
+  material_id: uuid
+  relation_version: integer
+  created_at: datetime
+```
+
+关系：
+
+```text
+Workspace 1 ── N Material
+Workspace 1 ── N LearningProject
+LearningProject N ── M Material
+LearningProject 1 ── N LearningGoal (optional association)
+```
+
+`ProjectMaterial` 只表示关系。Remove Material from Project MUST NOT 删除 Material/SourceFile。
+
+LearningProject / ProjectMaterial 的组织语义属于 Platform Workspace/Product Organization boundary；它不取得 SYS01 content 或 SYS06 Goal/Plan 的写权限。
+
+### DOMAIN-204 — LearningGoal and LearningSession Scope
+
+新 LearningGoal MUST 有 `workspace_id`；`project_id` MAY 为空。用户可以直接基于 Material 创建/开始学习，再决定是否组织进 Project。
+
+v1 Goal tree 最多：
+
+```text
+Goal
+└── Subgoal
+```
+
+不建设无限层级目标树。
+
+LearningSession 是连续学习活动，不是 Conversation 的同义词：
+
+```yaml
+learning_session:
+  session_id: uuid
+  workspace_id: uuid
+  project_id: uuid|null
+  learning_goal_id: uuid|null
+  material_refs: [versioned_ref]
+  started_at: datetime
+  ended_at: datetime|null
+```
+
+Session MUST 属于 Workspace；MAY 不属于 Project。
+
+### DOMAIN-205 — RetrievalScope
+
+所有 production retrieval 必须拥有显式 Workspace scope：
+
+```yaml
+retrieval_scope:
+  workspace_id: uuid
+  project_ids: [uuid]
+  material_ids: [uuid]
+  knowledge_unit_ids: [uuid]
+  session_context: object|null
+```
+
+`workspace_id` REQUIRED；其余为 optional narrowing。MUST NOT 用 LocalOwner 代替 workspace hard filter；MUST NOT 默认全本地数据检索。
+
+### DOMAIN-206 — Durable Facts / Canonical Rebuildable Projections / Infrastructure-derived Data
+
+v1 数据分类：
+
+```text
+Durable Facts
+├── LocalOwner / Workspace / LearningProject
+├── Material / SourceFile
+├── LearningGoal / UserNote
+├── Attempt / AssessmentResult / LearningEvidence
+├── LearningHistory / canonical decisions needed for replay
+└── user configuration / deletion facts
+
+Canonical Rebuildable Projections
+├── MasteryEstimate
+└── LearnerState
+
+Infrastructure-derived
+├── SourceChunk
+├── Embedding
+├── Vector/Lexical Index
+├── retrieval cache
+└── rebuildable AI summaries
+```
+
+LearnerState / MasteryEstimate 仍由 SYS03 single writer 维护并作为当前 authoritative read projection，但其 correctness source MUST 是 durable accepted LearningEvidence + exact projector/version。
+
+删除/修正某条 LearningEvidence 后：
+
+```text
+Evidence removed/corrected
+→ invalidate affected projection
+→ SYS03 replay/reproject
+→ new MasteryEstimate/LearnerState version
+```
+
+MUST NOT 继续保留受已删除 evidence 影响的旧状态作为当前 truth。
+
+### DOMAIN-207 — Conversation Is Not LearningEvidence
+
+Conversation / Message / Prompt 可以是 LearningSession 的交互/执行记录，但不自动形成 LearningEvidence。
+
+```text
+“I understand” / thumbs-up / conversation turn
+≠ mastery evidence
+```
+
+有效学习证据需要经过结构化 owner contract，例如：
+
+```text
+Attempt
+→ AssessmentResult
+→ LearnerEvidence acceptance
+→ LearnerState projection
+```
+
+用户自评 MAY 形成结构化 `SelfAssessmentEvidence`，但其权重必须低于独立作答、延迟保持与迁移证据，并由 SYS03 规则接纳。
+
+### DOMAIN-208 — Configuration Scope
+
+配置层级：
+
+```text
+Application
+↓
+Workspace
+↓
+Project
+```
+
+下层只允许覆盖明确声明可覆盖的字段。不得建立无边界动态继承系统，也不得把 API Key 写入 Workspace/Project 普通配置文件。
+
+Provider/model routing metadata 由 SYS08 `ModelRouteProfile` owner 管理；SecretStore 只托管 secret material。
+
+### DOMAIN-209 — Local Background Job
+
+后台任务是 Platform Job Runtime durable control object，不是第九学习 domain：
+
+```yaml
+local_job:
+  job_id: uuid
+  workspace_id: uuid|null
+  material_id: uuid|null
+  job_type: string
+  input_fingerprint: string
+  status: pending|running|succeeded|failed|interrupted
+  attempt_count: integer
+  next_attempt_at: datetime|null
+  last_error_code: string|null
+  idempotency_key: string
+  created_at: datetime
+  updated_at: datetime
+```
+
+任务可调用 SYS01～SYS08 owner application services，但不得取得其业务 truth 写权限。App shutdown/restart 后任务必须可安全 resume/retry/restart。
+
+### DOMAIN-210 — Material Pipeline State
+
+Material ingestion/derived lifecycle SHOULD 能表达：
+
+```text
+Uploaded
+→ SourceStored
+→ Parsed
+→ Structured
+→ Indexed
+→ KnowledgeModeled
+→ Ready
+```
+
+overall status 至少：`pending|processing|ready|partial|failed`。
+
+Stage success/failure 与 Material durable lifecycle 分离；某 derived stage failed MUST NOT 删除 SourceFile 或把 durable Material 变成不可恢复 truth loss。
+
+### DOMAIN-211 — Trash and Permanent Delete
+
+普通用户删除使用：
+
+```text
+Normal
+→ Trash
+→ Permanent Delete
+```
+
+- 从 Project 移除 Material：只删 relationship；
+- 删除 Material：进入 Trash；
+- Permanent Delete：由用户明确触发或预定义本地清理策略执行，并服从 no-resurrection/data-control contract；
+- 通用 Undo / Command History / 全局版本历史不属于 v1。
+
+### DOMAIN-212 — Source-grounded vs External Model Knowledge
+
+任何声称来自用户资料的事实性内容 MUST 有可回到 Material → SourceSpan/等价 locator 的 provenance。
+
+模型自身知识 MAY 用于补充解释，但必须与 Source-grounded Knowledge 区分；找不到资料证据时 MUST 降级/承认缺少来源，不得伪造 citation。
+
+### DOMAIN-213 — v1 Domain-level Forbidden Shortcuts
+
+除第 23 节外，v1 额外禁止：
+
+- Workspace = Tenant / Organization；
+- `owner_id` 代替 `workspace_id` 做资料/学习状态隔离；
+- Global Material Library / cross-workspace default search；
+- Material 只保存外部原文件路径；
+- ProjectMaterial relation 删除级联删除 Material；
+- SourceChunk/Embedding/Index 成为不可重建权威；
+- LearnerState 成为无法从 LearningEvidence 重建的基础事实；
+- Conversation/Message/Prompt 直接写 mastery；
+- LLM 直接修改 SQLite/canonical state；
+- Desktop/Electron 对象成为 v1 公共领域模型；
+- Account/AuthSession/JWT 成为 learner ownership；
+- Redis/PostgreSQL/Kafka job state 成为 production-local 唯一 truth。
