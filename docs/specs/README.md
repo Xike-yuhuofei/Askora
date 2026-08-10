@@ -1,7 +1,7 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Interaction Architecture Frozen / Awaiting Dependency Gate + ADR-0015 Local Identity v2 Frozen / Awaiting EXEC
+> 当前版本：v0.3 Adaptive Teaching Loop Frozen / Implemented Baseline + Book-to-Learning Frozen / Implemented Baseline + ADR-0014 UI-03 Frozen / Awaiting Local Identity Gate + ADR-0015 Local Identity v2 + EXEC-047～051 Frozen / Blocked by EXEC-1062
 
 ## 1. Purpose
 
@@ -37,7 +37,8 @@ Interactive Element System Canonical Design Delta
 → ADR-0014 accepted
 → UI-IES / UI-IA / UI-SCREEN / UI-VIS / UI-QUAL
 → UI-03 Vertical Slice
-→ EXEC-1062 DONE dependency gate
+→ EXEC-1062 DONE
+→ EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051 DONE
 → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046
 → UI-03 Release Evidence
 ```
@@ -48,15 +49,16 @@ ADR-0015 Local Single-User Identity formation chain：
 Local Single-User Identity & Authentication Removal Canonical Design Delta
 → ADR-0015 accepted
 → platform/identity-privacy-lifecycle.md v2.0 (LID-*)
-→ Authentication Removal Vertical Slice / EXEC
+→ Local Single-User Authentication Removal Vertical Slice
+→ EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051
 → Implementation + Migration + Release Evidence
 ```
 
 当前 Book-to-Learning 状态：**SPEC FROZEN / IMPLEMENTED BASELINE**。EXEC-017～024 已完成并归档；Engineering/Contract 与 Policy/Ownership Gate PASS，Learning Evidence 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。实现证据见 [Book-to-Adaptive-Learning Completion Report](../releases/book-to-adaptive-learning.md)。
 
-当前 UI-03 状态：**SPEC FROZEN / BLOCKED_BY_DEPENDENCY_GATE**。UI-03 代码实施必须等待 `EXEC-1062 DONE`，之后按 EXEC-043→046 严格串行。`EXEC-042` 为独立 backend/policy closure，不因 UI-03 改变边界。
+当前 Local Identity 状态：**SPEC FROZEN / EXEC-047～051 FROZEN / BLOCKED_BY_EXEC_1062**。旧 P1-05 Account Lifecycle 已降级为 historical implemented baseline；当前身份实现只能服从 ADR-0015 + `LID-*`，不得通过自动登录、demo token 或隐藏 Login 的方式保留旧认证系统。
 
-当前 Local Identity 状态：**SPEC FROZEN / AWAITING EXEC**。旧 P1-05 Account Lifecycle 已降级为 historical implemented baseline；当前身份实现只能服从 ADR-0015 + `LID-*`，不得通过自动登录、demo token 或隐藏 Login 的方式保留旧认证系统。
+当前 UI-03 状态：**SPEC FROZEN / BLOCKED_BY_DEPENDENCY_GATE**。UI-03 代码实施必须等待 `EXEC-1062 DONE + EXEC-051 DONE`，之后按 EXEC-043→046 严格串行。`EXEC-042` 为独立 backend/policy closure，不因 Local Identity/UI-03 改变边界。
 
 实现必须服从 updated Spec + frozen Vertical Slice；发现 Vertical Slice / Spec 与 Accepted ADR/Canonical Design 冲突时，MUST 先做 SPEC GAP/upstream conflict closure，MUST NOT 让代码或旧 Spec 反向修改 ADR 语义。用户已委托架构自治时，Codex MAY 代表该目标接受新的 superseding/additive ADR，并在同步更新 Spec/EXEC 后继续实现；不得用代码事实反向追认设计。
 
@@ -114,7 +116,8 @@ Local Single-User Identity & Authentication Removal Canonical Design Delta
 
 ### Vertical Slices
 
-- [UI-03 Interactive Element System Refactor](vertical-slices/ui-03-interactive-element-system-refactor.md) — ADR-0014 三域 IA、Learning facets、Today/Library/Settings 重构；EXEC-1062 DONE 后执行 EXEC-043→046
+- [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — ADR-0015：LocalOwner → backend no-auth/loopback → frontend de-accounting → auth persistence cleanup → release closure；EXEC-047～051
+- [UI-03 Interactive Element System Refactor](vertical-slices/ui-03-interactive-element-system-refactor.md) — ADR-0014 三域 IA、Learning facets、Today/Library/Settings 重构；requires EXEC-1062 + EXEC-051 DONE 后执行 EXEC-043→046
 - [P1-01B Goal Lifecycle and Evidence-gated Achievement](vertical-slices/p1-01b-goal-lifecycle-achievement.md) — pause/resume/archive/copy/measurement/achievement；EXEC-039 DONE
 - [P1-01A Goal Definition, Draft and Safe Replan](vertical-slices/p1-01a-goal-definition-draft-replan.md) — multi-source/explicit target/preview/boundary apply；EXEC-038 DONE
 - [P1-04C Scanned PDF OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — local OCR candidate/review/publish；EXEC-033 已完成
@@ -318,7 +321,7 @@ Contextual Bandit、Offline RL、Online RL、Deep KT canonical truth、complex I
 
 B2 LLM selector MAY only be experiment baseline behind the same hard shield/action vocabulary.
 
-UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or unrelated security/data rewrite。ADR-0015 对 authentication/local identity 的显式 superseding change 不受 UI-03 的旧 P1-05 freeze 限制，但必须独立按 LID/EXEC 执行。
+UI-03 additionally does not authorize Plan manual reorder、LearnerState direct edit、persistent notes、new global search backend、new telemetry、new database schema or unrelated security/data rewrite。ADR-0015 对 authentication/local identity 的显式 superseding change 必须在 UI-03 前通过 EXEC-047～051 独立完成。
 
 ## 11. Vertical Slice Gate
 
@@ -337,7 +340,9 @@ Engineering / Policy / Learning Evidence claims remain separated
 
 Vertical Slice Gate：**PASS**。EXEC-007～013 已完成并归档；当前实现证据见 [v0.3 Release Report](../releases/v0.3-adaptive-teaching-loop.md)。
 
-UI-03 Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062**。解除后只能按 EXEC-043→046 串行执行。
+Local Identity Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062**。解除后只能按 EXEC-047→051 串行执行。
+
+UI-03 Vertical Slice Freeze Gate：**PASS**。Implementation Gate：**BLOCKED_BY_EXEC_1062_AND_EXEC_051**。解除后只能按 EXEC-043→046 串行执行。
 
 ## 12. Book-to-Learning Spec Freeze
 
@@ -377,7 +382,7 @@ Implementation Gate：**PASS**（EXEC-017～024）。这不改变 Spec 的 Froze
 | UI-SCREEN | FROZEN | page/task/action behavior |
 | UI-VIS | FROZEN | semantic visual hierarchy |
 | UI-QUAL | FROZEN | migration/test/security gates |
-| UI-03 Vertical Slice | FROZEN / BLOCKED | implementation scope |
+| UI-03 Vertical Slice | FROZEN / BLOCKED | requires EXEC-1062 + EXEC-051 DONE |
 | EXEC-043～046 | FROZEN / BLOCKED | serial implementation contracts |
 
 UI-03 不建立新的 domain owner、不新增数据库 truth、不改变 Learning Evidence Gate。完成后只允许分别声明 UI Engineering、UI Contract Correctness、Accessibility/Security；不得把 UI 简化或点击减少称为真人学习效果。
@@ -389,9 +394,10 @@ UI-03 不建立新的 domain owner、不新增数据库 truth、不改变 Learni
 | Local Single-User Identity Design Delta | FROZEN | local single-user product/identity design |
 | ADR-0015 | ACCEPTED | no-auth LocalOwner + loopback-only boundary |
 | `LID-*` v2 | FROZEN | runtime identity / migration / privacy contract |
+| Authentication Removal Vertical Slice | FROZEN / BLOCKED | requires EXEC-1062 DONE |
+| EXEC-047～051 | FROZEN / BLOCKED | strict serial implementation chain |
 | P1-05 Account Lifecycle | SUPERSEDED / HISTORICAL | old auth implementation reference only |
-| Authentication Removal EXEC | NOT YET FROZEN | next required step |
 
-当前禁止 code-first 删除 Login。下一步必须先冻结 Authentication Removal Vertical Slice / EXEC，覆盖 frontend、backend、persistence migration、Settings/Onboarding、network boundary 与 release evidence。
+当前 implementation gate：`EXEC-1062 DONE → EXEC-047 → 048 → 049 → 050 → 051`。在 EXEC-051 release closure 完成前，UI-03 EXEC-043 不得开始。
 
 后续变化仍只能先生成新的 ADR/Spec/EXEC（若需要）再实现。不得用 code-first 方式恢复旧 IA、旧 Account Lifecycle 或静默扩大范围。
