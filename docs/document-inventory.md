@@ -50,6 +50,7 @@
 | `docs/adr/ADR-0011-goal-achievement-measurement-and-evidence-gate.md` | CANONICAL-RETAIN | P1-01B evidence-gated achievement 决策 |
 | `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN | P1-07 统一恢复控制面与 bootstrap diagnostics 决策 |
 | `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | P1-02 desktop credential、probe、activation、rollback 与 clear 决策 |
+| `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md` | CANONICAL-RETAIN | Accepted user-job-driven IA、3-domain navigation 与 Interactive Element System 决策 |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | P1-05 账号编排接入 P1-03 canonical ALL_PERSONAL_DATA workflow 的 single-truth 决策 |
@@ -72,6 +73,7 @@
 | `docs/design/README.md` | CURRENT-UPDATED | Design 层索引与 current conformance snapshot 入口 |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED | Canonical Design 语义保留，阶段状态更新 |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED | Canonical Design 语义保留，Spec/EXEC 状态更新 |
+| `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN | ADR-0014 上游 Interactive Element Taxonomy、Zero-Based IA 与迁移冻结输入 |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN | v0.3 Research Synthesis → Canonical Design 的冻结变更记录；不创建第三份 truth |
 | `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | CURRENT-UPDATED | 指定 main snapshot 对 frozen v0.3 Design/Spec 的实现一致性审计；不是新合同 |
 | `docs/design/账号与隐私生命周期设计.md` | CANONICAL-RETAIN | P1-05 本地优先 identity、recovery 与 privacy deletion 设计 |
@@ -109,7 +111,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 + Book-to-Learning implemented baseline 与 SPEC-D01～D06 freeze index |
+| `docs/specs/README.md` | CURRENT-UPDATED | v0.3 + Book-to-Learning implemented baseline 与 UI-03 Interaction Architecture freeze index |
 | `docs/specs/architecture/state-ownership.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/system-architecture.md` | CANONICAL-RETAIN | v0.3 canonical contract |
 | `docs/specs/architecture/dependency-rules.md` | CANONICAL-RETAIN | v0.3 canonical contract |
@@ -149,12 +151,13 @@
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CURRENT-UPDATED | 冻结合同；已更新 EXEC 完成状态 |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN | v0.3.1 additive presentation slice |
 | `docs/specs/vertical-slices/book-to-adaptive-learning.md` | CANONICAL-RETAIN | SPEC-D06；Book-to-Adaptive-Learning E2E 冻结合同，EXEC-017～024 已实现 |
-| `docs/specs/ui/README.md` | CANONICAL-RETAIN | 已批准冻结的 UI 重设计合同入口 |
-| `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN | 导航、路由与页面层级合同 |
-| `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN | 页面状态与交互合同 |
+| `docs/specs/ui/README.md` | CANONICAL-RETAIN | ADR-0014 UI Interaction Architecture 合同入口 |
+| `docs/specs/ui/interactive-element-system.md` | CANONICAL-RETAIN | 7 类 semantic primitives、L0～L5 hierarchy 与 pattern qualification 合同 |
+| `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN | Today/Learning/Library 三域导航、Learning facets、路由与 Shell 合同 |
+| `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN | 页面状态、任务层级与交互合同 |
 | `docs/specs/ui/data-contracts.md` | CANONICAL-RETAIN | 只读查询接口与来源语义合同 |
-| `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN | 视觉系统与无障碍合同 |
-| `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN | 三阶段执行、质量门禁与迁移合同 |
+| `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN | semantic-before-component 视觉系统与无障碍合同 |
+| `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN | UI-03 串行执行、质量门禁与迁移合同 |
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | CANONICAL-RETAIN | 冻结 UI-01 Vertical Slice；EXEC-015 已完成 |
 | `docs/specs/vertical-slices/ui-02a-library-knowledge-map.md` | CANONICAL-RETAIN | 冻结 UI-02A Vertical Slice；EXEC-016 已完成 |
 | `docs/specs/vertical-slices/ui-02b1-material-learning-launch.md` | CANONICAL-RETAIN | 冻结 UI-02B1 Vertical Slice；EXEC-025 已完成 |
@@ -162,6 +165,7 @@
 | `docs/specs/vertical-slices/ui-02b3-real-model-guided-learning.md` | CANONICAL-RETAIN | 冻结 production real-model guided learning 与真实 E2E Slice |
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | CANONICAL-RETAIN | 冻结并完成 UI-02B Goals/Path/Evidence read-only Slice；EXEC-029 DONE |
 | `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | CANONICAL-RETAIN | UI-02C activity start/resume/complete/next Slice；EXEC-030 DONE |
+| `docs/specs/vertical-slices/ui-03-interactive-element-system-refactor.md` | CANONICAL-RETAIN | ADR-0014 UI-03 Vertical Slice；EXEC-1062 DONE 后按 EXEC-043→046 串行执行 |
 | `docs/specs/platform/identity-privacy-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 Identity/Privacy 平台合同 |
 | `docs/specs/vertical-slices/p1-05-account-lifecycle.md` | CANONICAL-RETAIN | 冻结 P1-05 完整账号生命周期 Slice |
 | `docs/specs/systems/01-library-management.md` | CANONICAL-RETAIN | P1-04 SYS01 additive implementation contract |
@@ -179,7 +183,7 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/exec-plans/README.md` | CURRENT-UPDATED | EXEC-001～041、EXEC-1031～1034、EXEC-1061 已完成；EXEC-042 与 EXEC-1062 active；EXEC-037 含两个历史任务域文件 |
+| `docs/exec-plans/README.md` | CURRENT-UPDATED | 现有 completed 基线 + EXEC-042/1062 + UI-03 EXEC-043～046 队列索引 |
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED | 已完成 EXEC 的统一索引 |
 | `docs/exec-plans/active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | CANONICAL-RETAIN | FROZEN / READY；关闭 current v0.3 production sequential policy + TeachingContext hydration gap |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN | 不可变任务合同 |
@@ -228,7 +232,7 @@
 | `docs/exec-plans/completed/EXEC-1034-p1-03-erasure-ui-release.md` | HISTORICAL-RETAIN | P1-03 erasure and release completed EXEC |
 | `docs/exec-plans/completed/EXEC-041-p1-02b-model-settings-product-closure.md` | CANONICAL-RETAIN | DONE；Settings 产品体验、真实 App/provider/relaunch 与 P1-02 gap 收口 |
 | `docs/exec-plans/completed/EXEC-1061-p1-06a-onboarding-readiness-foundation.md` | HISTORICAL-RETAIN | P1-06 preference/readiness completed EXEC |
-| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC |
+| `docs/exec-plans/active/EXEC-1062-p1-06b-onboarding-product-closure.md` | CANONICAL-RETAIN | P1-06 product closure dependency-gated EXEC；执行时必须遵守 ADR-0014 最新 UI 合同 |
 | `docs/exec-plans/completed/EXEC-037-p1-05-p1-03-erasure-integration.md` | HISTORICAL-RETAIN | P1-05/P1-03 canonical erasure integration completed contract |
 
 ## 6. Release Evidence
