@@ -72,6 +72,7 @@ from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.assessment.goal_achievement import GoalAchievementAssessmentService
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
 from app.services.owner.canonical_identity import canonical_user_id
+from app.services.workspace.resolution import resolve_workspace_id
 
 _UNMEASURABLE = ("了解", "理解", "熟悉", "看完", "读完", "understand", "familiar", "read")
 
@@ -900,6 +901,7 @@ class GoalManagementService:
         now: datetime,
     ) -> GoalAssessmentActivityV1:
         owner_id = canonical_user_id(user.id)
+        workspace_id = await resolve_workspace_id(self.session, owner_id)
         digest = _digest(
             {
                 "goal_id": str(goal_id),
@@ -943,6 +945,7 @@ class GoalManagementService:
             raise _error("GOAL_MEASUREMENT_UNAVAILABLE", "验证规则版本不可用")
         outcome = await GoalAchievementAssessmentService(self.session).score(
             user_id=owner_id,
+            workspace_id=workspace_id,
             activity_id=activity_id,
             item_version=f"goal:{goal_id}:definition:{activity.definition_version}:activity:{activity.activity_version}",
             response=command.response,
@@ -990,6 +993,7 @@ class GoalManagementService:
                     result=outcome.result,
                     attempt=outcome.attempt,
                     knowledge_unit_id=UUID(objective.target_refs[0].entity_id),
+                    workspace_id=workspace_id,
                     source_event_ids=[correlation_id],
                     dimension=cast(Any, dimension),
                     novelty=cast(Any, novelty),
@@ -999,6 +1003,7 @@ class GoalManagementService:
                 evidence_record = await self.session.scalar(
                     select(LearnerEvidenceRecord).where(
                         LearnerEvidenceRecord.source_result_id == str(outcome.result.result_id),
+                        LearnerEvidenceRecord.workspace_id == str(workspace_id),
                         LearnerEvidenceRecord.status == "accepted",
                     )
                 )
@@ -1035,6 +1040,7 @@ class GoalManagementService:
     ) -> GoalAchievementEvaluationV1:
         del correlation_id
         owner_id = canonical_user_id(user.id)
+        workspace_id = await resolve_workspace_id(self.session, owner_id)
         digest = _digest({"goal_id": str(goal_id), **command.model_dump(mode="json")})
         replay = await self.repo.replay(
             user_id=owner_id,
@@ -1109,7 +1115,9 @@ class GoalManagementService:
                     ),
                 )
             )
-        learner_state = await LearnerModelRepository(self.session).latest_learner_state(owner_id)
+        learner_state = await LearnerModelRepository(self.session).latest_learner_state(
+            owner_id, workspace_id=workspace_id
+        )
         target_ids = {
             item.entity_id
             for criterion in definition.success_criteria

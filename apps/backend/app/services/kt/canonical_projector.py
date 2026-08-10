@@ -1,4 +1,8 @@
-"""SYS03 application service：接纳 evidence 并写 canonical MasteryEstimate。"""
+"""SYS03 application service：接纳 evidence 并写 canonical MasteryEstimate。
+
+All SYS03 writes are Workspace-scoped (WSP-033): ``workspace_id`` is required and
+fail-closed——evidence is never created without an exact Workspace attribution.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +31,7 @@ class CanonicalLearnerProjectorService:
         result: AssessmentResult,
         attempt: AssessmentAttempt,
         knowledge_unit_id: UUID,
+        workspace_id: UUID,
         source_event_ids: list[UUID],
         dimension: Literal["recall", "routine_application", "transfer", "explanation"] = (
             "routine_application"
@@ -36,6 +41,18 @@ class CanonicalLearnerProjectorService:
         item_difficulty: float | None = None,
         correlation_id: str = "",
     ) -> MasteryEstimate | None:
+        # Result-idempotency (EXEC-062 #8): if the same canonical result was
+        # already projected into an estimate in this Workspace, return it
+        # instead of creating a new evidence/version. This keeps replay and
+        # duplicate submissions idempotent within the Workspace-scoped stream.
+        existing = await self._records.mastery_for_source_result(
+            result_id=result.result_id,
+            user_id=attempt.user_id,
+            knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
+        )
+        if existing is not None:
+            return existing
         decision = self._eligibility.decide(
             result=result,
             attempt=attempt,
@@ -51,6 +68,7 @@ class CanonicalLearnerProjectorService:
                 result=result,
                 attempt=attempt,
                 knowledge_unit_id=knowledge_unit_id,
+                workspace_id=workspace_id,
                 reason_codes=decision.reason_codes,
             )
             await self._outbox.enqueue(
@@ -65,14 +83,16 @@ class CanonicalLearnerProjectorService:
                 idempotency_key=f"evidence-rejected:{result.result_id}",
             )
             return None
-        evidence = await self._records.save_evidence(decision.evidence)
+        evidence = await self._records.save_evidence(decision.evidence, workspace_id=workspace_id)
         evidence_stream = await self._records.list_evidence(
             user_id=evidence.user_id,
             knowledge_unit_id=evidence.knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         version = await self._records.next_version(
             user_id=evidence.user_id,
             knowledge_unit_id=evidence.knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         estimate = self._projector.project(
             user_id=evidence.user_id,
@@ -80,7 +100,7 @@ class CanonicalLearnerProjectorService:
             evidence=evidence_stream,
             version=version,
         )
-        estimate = await self._records.save_mastery(estimate)
+        estimate = await self._records.save_mastery(estimate, workspace_id=workspace_id)
         await self._outbox.enqueue(
             task_type="learner.mastery.updated",
             schema_version="1.0",
@@ -93,16 +113,18 @@ class CanonicalLearnerProjectorService:
         return estimate
 
     async def recompute_after_invalidation(
-        self, *, user_id: UUID, knowledge_unit_id: UUID, evidence_id: UUID
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID, evidence_id: UUID
     ) -> MasteryEstimate:
-        await self._records.invalidate_evidence(evidence_id)
+        await self._records.invalidate_evidence(evidence_id, workspace_id=workspace_id)
         evidence_stream = await self._records.list_evidence(
             user_id=user_id,
             knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         version = await self._records.next_version(
             user_id=user_id,
             knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         estimate = self._projector.project(
             user_id=user_id,
@@ -110,4 +132,4 @@ class CanonicalLearnerProjectorService:
             evidence=evidence_stream,
             version=version,
         )
-        return await self._records.save_mastery(estimate)
+        return await self._records.save_mastery(estimate, workspace_id=workspace_id)

@@ -26,6 +26,7 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
         await connection.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     user_id, knowledge_unit_id = uuid4(), uuid4()
+    workspace_id = uuid4()
     goal = ConfirmedLearningGoal(
         goal_id=uuid4(),
         objective_id=uuid4(),
@@ -55,8 +56,12 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
             LearningPlanRepository(session),
             OutboxProducer(session),
         )
-        schedule = await application.apply_review_observation(observation)
-        duplicate = await application.apply_review_observation(observation)
+        schedule = await application.apply_review_observation(
+            observation, workspace_id=workspace_id
+        )
+        duplicate = await application.apply_review_observation(
+            observation, workspace_id=workspace_id
+        )
         assert duplicate == schedule
         invalidated_event_id = uuid4()
         invalidated_observation = observation.model_copy(
@@ -69,11 +74,14 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
                 "source_event_ids": [invalidated_event_id],
             }
         )
-        second_schedule = await application.apply_review_observation(invalidated_observation)
+        second_schedule = await application.apply_review_observation(
+            invalidated_observation, workspace_id=workspace_id
+        )
         schedule = await application.recompute_after_observation_invalidation(
             observation_id=invalidated_observation.observation_id,
             user_id=user_id,
             knowledge_unit_id=knowledge_unit_id,
+            workspace_id=workspace_id,
         )
         assert schedule.version == second_schedule.version + 1
         assert invalidated_event_id not in schedule.source_event_ids
@@ -81,6 +89,7 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
         first_plan = await application.generate_plan(
             goal=goal,
             user_id=user_id,
+            workspace_id=workspace_id,
             prerequisites={},
             mastery={knowledge_unit_id: 0.6},
             time_budget_minutes=30,
@@ -92,6 +101,7 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
         same_plan = await application.generate_plan(
             goal=goal,
             user_id=user_id,
+            workspace_id=workspace_id,
             prerequisites={},
             mastery={knowledge_unit_id: 0.6},
             time_budget_minutes=30,
@@ -108,7 +118,7 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
     restarted_factory = async_sessionmaker(restarted_engine, expire_on_commit=False)
     async with restarted_factory() as session:
         restored_schedule = await ReviewScheduleRepository(session).latest(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id, knowledge_unit_id=knowledge_unit_id, workspace_id=workspace_id
         )
         plan_versions = await LearningPlanRepository(session).list_versions(goal.goal_id)
         pending = (
@@ -130,6 +140,7 @@ async def test_schedule_plan_and_pending_due_work_survive_restart(tmp_path: Path
         second_plan = await restarted_application.generate_plan(
             goal=goal,
             user_id=user_id,
+            workspace_id=workspace_id,
             prerequisites={},
             mastery={knowledge_unit_id: 0.9},
             time_budget_minutes=30,

@@ -65,6 +65,7 @@ class GoalAchievementAssessmentService:
         self,
         *,
         user_id: UUID,
+        workspace_id: UUID,
         activity_id: UUID,
         item_version: str,
         response: str,
@@ -82,7 +83,7 @@ class GoalAchievementAssessmentService:
             idempotency_key=idempotency_key,
             now=now,
         )
-        attempt = await self._records.save_attempt(attempt)
+        attempt = await self._records.save_attempt(attempt, workspace_id=workspace_id)
         if _INJECTION.search(response):
             return GoalScoreOutcome(
                 attempt=attempt,
@@ -105,12 +106,13 @@ class GoalAchievementAssessmentService:
             )
             return GoalScoreOutcome(
                 attempt=attempt,
-                result=await self._records.save_result(result),
+                result=await self._records.save_result(result, workspace_id=workspace_id),
                 status="accepted",
                 reason_codes=("GOAL_DETERMINISTIC_STRUCTURED_ACCEPTED",),
             )
         return await self._score_open(
             attempt=attempt,
+            workspace_id=workspace_id,
             response=response,
             grader_payload=grader_payload,
             policy=policy,
@@ -195,6 +197,7 @@ class GoalAchievementAssessmentService:
         self,
         *,
         attempt: AssessmentAttempt,
+        workspace_id: UUID,
         response: str,
         grader_payload: dict[str, object],
         policy: GoalAchievementPolicyV1,
@@ -253,7 +256,7 @@ class GoalAchievementAssessmentService:
             reviewer_result="accepted" if accepted else "needs_review",
             created_at=now,
         )
-        result = await self._records.save_result(result)
+        result = await self._records.save_result(result, workspace_id=workspace_id)
         return GoalScoreOutcome(
             attempt=attempt,
             result=result,

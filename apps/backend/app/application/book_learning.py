@@ -80,6 +80,7 @@ from app.services.policy_runtime import (
     PolicyRuntimeSelection,
 )
 from app.services.rag_service import PublishedKnowledgeRAGService
+from app.services.workspace.resolution import resolve_workspace_id
 
 _BOOK_TURN_LOCKS: WeakValueDictionary[tuple[int, str], asyncio.Lock] = WeakValueDictionary()
 
@@ -1227,14 +1228,19 @@ class BookLearningApplication:
         existing = await self._db.get(TeachingContextRecord, str(context_id))
         if existing is not None:
             return TeachingContextV03.model_validate(existing.payload)
+        workspace_id = await resolve_workspace_id(self._db, canonical_user_id(user.id))
         estimates = await self._learner_repo.list_latest_mastery(
             user_id=canonical_user_id(user.id),
             knowledge_unit_ids=tuple(activity.knowledge_unit_ids),
+            workspace_id=workspace_id,
         )
-        state = await self._learner_repo.latest_learner_state(canonical_user_id(user.id))
+        state = await self._learner_repo.latest_learner_state(
+            canonical_user_id(user.id), workspace_id=workspace_id
+        )
         recent_evidence = await self._learner_repo.latest_evidence_across_units(
             user_id=canonical_user_id(user.id),
             knowledge_unit_ids=tuple(activity.knowledge_unit_ids),
+            workspace_id=workspace_id,
         )
         refs = [
             VersionedRef(

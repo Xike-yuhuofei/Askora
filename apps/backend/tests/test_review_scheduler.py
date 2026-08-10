@@ -9,6 +9,7 @@ from app.contracts.planning import ReviewObservation
 from app.domains.review_scheduler import ReviewScheduler, project_due
 
 NOW = datetime(2026, 8, 7, 10, 0, tzinfo=timezone.utc)
+WS = uuid4()
 
 
 def _observation(
@@ -49,9 +50,11 @@ def test_review_independent_recall_and_answer_exposed_update_differently() -> No
     assisted = independent.model_copy(
         update={"observation_id": uuid4(), "independence": "assisted", "hint_level": 2}
     )
-    independent_result = scheduler.update(observation=independent, prior=None, version=1)
-    assisted_result = scheduler.update(observation=assisted, prior=None, version=1)
-    exposed_result = scheduler.update(observation=exposed, prior=None, version=1)
+    independent_result = scheduler.update(
+        observation=independent, prior=None, version=1, workspace_id=WS
+    )
+    assisted_result = scheduler.update(observation=assisted, prior=None, version=1, workspace_id=WS)
+    exposed_result = scheduler.update(observation=exposed, prior=None, version=1, workspace_id=WS)
     assert independent_result.schedule.stability > assisted_result.schedule.stability
     assert assisted_result.schedule.evidence_quality == pytest.approx(0.35)
     assert independent_result.schedule.stability > exposed_result.schedule.stability
@@ -63,15 +66,18 @@ def test_review_independent_recall_and_answer_exposed_update_differently() -> No
 
 def test_review_failure_shortens_interval_and_model_failure_falls_back() -> None:
     scheduler = ReviewScheduler()
-    first = scheduler.update(observation=_observation(), prior=None, version=1).schedule
+    first = scheduler.update(
+        observation=_observation(), prior=None, version=1, workspace_id=WS
+    ).schedule
     failure = _observation(outcome="failure").model_copy(
         update={"user_id": first.user_id, "knowledge_unit_id": first.knowledge_unit_id}
     )
-    failed = scheduler.update(observation=failure, prior=first, version=2)
+    failed = scheduler.update(observation=failure, prior=first, version=2, workspace_id=WS)
     fallback = scheduler.update(
         observation=_observation(),
         prior=None,
         version=1,
+        workspace_id=WS,
         parameters={"broken": -1.0},
     )
     assert failed.schedule.stability < first.stability
@@ -83,8 +89,8 @@ def test_review_failure_shortens_interval_and_model_failure_falls_back() -> None
 def test_review_scheduler_and_due_projection_are_deterministic_without_row_mutation() -> None:
     scheduler = ReviewScheduler()
     observation = _observation()
-    first = scheduler.update(observation=observation, prior=None, version=1)
-    replayed = scheduler.update(observation=observation, prior=None, version=1)
+    first = scheduler.update(observation=observation, prior=None, version=1, workspace_id=WS)
+    replayed = scheduler.update(observation=observation, prior=None, version=1, workspace_id=WS)
     before = first.schedule.model_dump()
     due = project_due(first.schedule, at=first.schedule.next_due_at + timedelta(days=2))
     assert replayed == first
@@ -99,6 +105,7 @@ def test_review_desired_retention_is_versioned_and_clamped() -> None:
         observation=_observation(),
         prior=None,
         version=1,
+        workspace_id=WS,
         desired_retention=0.999,
     )
     assert result.schedule.desired_retention == pytest.approx(0.95)

@@ -28,6 +28,7 @@ from app.services.documents.document_service import DocumentService
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
 from app.services.learning_goals import LearningGoalService
 from app.services.storage.local_storage import LocalFileStorage
+from app.services.workspace.resolution import resolve_workspace_id
 
 NOW = datetime(2026, 8, 8, 20, 0, tzinfo=timezone.utc)
 
@@ -411,8 +412,11 @@ async def test_exec022_no_item_system_failure_and_answer_exposure_preserve_bound
     assert exposed.assessment_result is not None
     assert exposed.assessment_result.independence == "answer_exposed"
     assert exposed.need.stop_reason == "LOW_CONFIDENCE_REQUIRES_REVIEW"
+    workspace_id = await resolve_workspace_id(db, UUID(user.id))
     estimate = await LearnerModelRepository(db).latest_mastery(
-        user_id=UUID(user.id), knowledge_unit_id=unit_ids["Fractions"]
+        user_id=UUID(user.id),
+        knowledge_unit_id=unit_ids["Fractions"],
+        workspace_id=workspace_id,
     )
     assert estimate is not None
     assert estimate.independent_success_count == 0

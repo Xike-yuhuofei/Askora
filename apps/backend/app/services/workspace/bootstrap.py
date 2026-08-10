@@ -51,6 +51,14 @@ _WORKSPACE_TABLES: dict[str, str] = {
     "learning_goal_state_versions": "user_id",
     "focused_learning_goal_state_versions": "user_id",
     "goal_management_command_receipts": "user_id",
+    # EXEC-062 / XIK-177: learner / assessment / review owner-global tables.
+    "learner_evidence": "user_id",
+    "canonical_mastery_estimate_versions": "user_id",
+    "learner_state_versions": "user_id",
+    "review_schedule_versions": "user_id",
+    "review_observations": "user_id",
+    "canonical_assessment_attempts": "user_id",
+    "canonical_assessment_result_versions": "attempt_id",
 }
 
 

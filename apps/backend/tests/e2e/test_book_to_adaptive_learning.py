@@ -29,12 +29,14 @@ from app.services.assessment.diagnostic_bootstrap import PrerequisiteDiagnosticS
 from app.services.documents.document_service import DocumentService
 from app.services.kt.canonical_projector import CanonicalLearnerProjectorService
 from app.services.llm.model_router import ModelRouter
+from app.services.owner.canonical_identity import canonical_user_id
 from app.services.policy_runtime import (
     default_policy_activation,
     default_policy_bundle,
     load_policy_runtime_profile,
 )
 from app.services.storage.local_storage import LocalFileStorage
+from app.services.workspace.resolution import resolve_workspace_id
 from tests.fixtures.minimal_epub import book_to_learning_epub
 
 NOW = datetime(2026, 8, 8, 23, 30, tzinfo=timezone.utc)
@@ -82,6 +84,7 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
     )
     db.add(user)
     await db.commit()
+    workspace_id = await resolve_workspace_id(db, canonical_user_id(user.id))
     documents = DocumentService(db)
     documents.storage = LocalFileStorage(str(tmp_path / "documents"))
     document = await documents.upload_document(
@@ -310,6 +313,7 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
     scored = await CanonicalAssessmentService(db).score_submission_with_attempt(
         item=formative_item,
         user_id=UUID(user.id),
+        workspace_id=workspace_id,
         response="replay",
         assistance=_independent(),
         idempotency_key="exec024:formative:first",
@@ -319,6 +323,7 @@ async def test_exec024_fixed_epub_closes_to_second_canonical_teaching_action(
         attempt=scored.attempt,
         result=scored.result,
         knowledge_unit_id=activity_knowledge_id,
+        workspace_id=workspace_id,
         source_event_ids=[UUID(assistance_event.event_id)],
         dimension="routine_application",
         novelty="near_variant",

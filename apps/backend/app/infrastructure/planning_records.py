@@ -306,13 +306,14 @@ class ReviewScheduleRepository:
     async def has_observation(self, observation_id: UUID) -> bool:
         return await self._session.get(ReviewObservationRecord, str(observation_id)) is not None
 
-    async def save_observation(self, observation: ReviewObservation) -> None:
+    async def save_observation(self, observation: ReviewObservation, *, workspace_id: UUID) -> None:
         if await self.has_observation(observation.observation_id):
             return
         self._session.add(
             ReviewObservationRecord(
                 id=str(observation.observation_id),
                 user_id=str(observation.user_id),
+                workspace_id=str(workspace_id),
                 knowledge_unit_id=str(observation.knowledge_unit_id),
                 actual_reviewed_at=observation.actual_reviewed_at,
                 payload=observation.model_dump(mode="json"),
@@ -328,13 +329,14 @@ class ReviewScheduleRepository:
         await self._session.flush()
 
     async def list_valid_observations(
-        self, *, user_id: UUID, knowledge_unit_id: UUID
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
     ) -> list[ReviewObservation]:
         records = (
             await self._session.scalars(
                 select(ReviewObservationRecord)
                 .where(
                     ReviewObservationRecord.user_id == str(user_id),
+                    ReviewObservationRecord.workspace_id == str(workspace_id),
                     ReviewObservationRecord.knowledge_unit_id == str(knowledge_unit_id),
                     ReviewObservationRecord.invalidated_at.is_(None),
                 )
@@ -343,11 +345,14 @@ class ReviewScheduleRepository:
         ).all()
         return [ReviewObservation.model_validate(record.payload) for record in records]
 
-    async def latest(self, *, user_id: UUID, knowledge_unit_id: UUID) -> ReviewSchedule | None:
+    async def latest(
+        self, *, user_id: UUID, knowledge_unit_id: UUID, workspace_id: UUID
+    ) -> ReviewSchedule | None:
         record = await self._session.scalar(
             select(ReviewScheduleRecord)
             .where(
                 ReviewScheduleRecord.user_id == str(user_id),
+                ReviewScheduleRecord.workspace_id == str(workspace_id),
                 ReviewScheduleRecord.knowledge_unit_id == str(knowledge_unit_id),
             )
             .order_by(ReviewScheduleRecord.version.desc())
@@ -355,7 +360,7 @@ class ReviewScheduleRepository:
         )
         return ReviewSchedule.model_validate(record.payload) if record else None
 
-    async def save(self, schedule: ReviewSchedule) -> ReviewSchedule:
+    async def save(self, schedule: ReviewSchedule, *, workspace_id: UUID) -> ReviewSchedule:
         record_id = f"{schedule.schedule_id}:{schedule.version}"
         existing = await self._session.get(ReviewScheduleRecord, record_id)
         if existing is not None:
@@ -365,6 +370,7 @@ class ReviewScheduleRepository:
                 id=record_id,
                 schedule_id=str(schedule.schedule_id),
                 user_id=str(schedule.user_id),
+                workspace_id=str(workspace_id),
                 knowledge_unit_id=str(schedule.knowledge_unit_id),
                 version=schedule.version,
                 next_due_at=schedule.next_due_at,
@@ -374,11 +380,16 @@ class ReviewScheduleRepository:
         await self._session.flush()
         return schedule
 
-    async def list_latest_for_user(self, user_id: UUID) -> list[ReviewSchedule]:
+    async def list_latest_for_user(
+        self, user_id: UUID, *, workspace_id: UUID
+    ) -> list[ReviewSchedule]:
         records = (
             await self._session.scalars(
                 select(ReviewScheduleRecord)
-                .where(ReviewScheduleRecord.user_id == str(user_id))
+                .where(
+                    ReviewScheduleRecord.user_id == str(user_id),
+                    ReviewScheduleRecord.workspace_id == str(workspace_id),
+                )
                 .order_by(
                     ReviewScheduleRecord.knowledge_unit_id, ReviewScheduleRecord.version.desc()
                 )

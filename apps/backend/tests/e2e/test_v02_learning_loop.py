@@ -155,6 +155,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
         await connection.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     correlation_id, user_id = uuid4(), uuid4()
+    workspace_id = uuid4()
     trace_id, workflow_run_id, model_inference_id = (
         f"trace-{uuid4()}",
         str(uuid4()),
@@ -196,6 +197,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
         initial_plan = await planning.generate_plan(
             goal=goal,
             user_id=user_id,
+            workspace_id=workspace_id,
             prerequisites={},
             mastery={knowledge_unit_id: None},
             time_budget_minutes=30,
@@ -341,6 +343,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
             result = await assessment_service.score_submission(
                 item=item,
                 user_id=user_id,
+                workspace_id=workspace_id,
                 response="100",
                 assistance=assistance,
                 idempotency_key=key,
@@ -349,6 +352,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
             duplicate = await assessment_service.score_submission(
                 item=item,
                 user_id=user_id,
+                workspace_id=workspace_id,
                 response="100",
                 assistance=assistance,
                 idempotency_key=key,
@@ -377,6 +381,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
                 result=result,
                 attempt=AssessmentAttempt.model_validate(attempt_record.payload),
                 knowledge_unit_id=knowledge_unit_id,
+                workspace_id=workspace_id,
                 source_event_ids=[task_event.event_id],
                 correlation_id=str(correlation_id),
             )
@@ -397,15 +402,17 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
         assert all(estimate is not None for estimate in projected)
 
         independent_evidence = await LearnerModelRepository(session).list_evidence(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id, knowledge_unit_id=knowledge_unit_id, workspace_id=workspace_id
         )
         review_schedule = await planning.apply_review_observation(
             observation_from_evidence(independent_evidence[0]),
+            workspace_id=workspace_id,
             correlation_id=str(correlation_id),
         )
         future_plan = await planning.generate_plan(
             goal=goal,
             user_id=user_id,
+            workspace_id=workspace_id,
             prerequisites={},
             mastery={knowledge_unit_id: projected[-1].competence_probability},
             time_budget_minutes=30,
@@ -428,10 +435,10 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
     async with restarted_factory() as session:
         learner_records = LearnerModelRepository(session)
         evidence = await learner_records.list_evidence(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id, knowledge_unit_id=knowledge_unit_id, workspace_id=workspace_id
         )
         latest = await learner_records.latest_mastery(
-            user_id=user_id, knowledge_unit_id=knowledge_unit_id
+            user_id=user_id, knowledge_unit_id=knowledge_unit_id, workspace_id=workspace_id
         )
         assert latest is not None
         replayed = WeightedBKTProjector().project(
@@ -443,7 +450,7 @@ async def test_v02_canonical_learning_loop_restart_replay_and_trace(tmp_path: Pa
         assert replayed == latest
         assert (
             await ReviewScheduleRepository(session).latest(
-                user_id=user_id, knowledge_unit_id=knowledge_unit_id
+                user_id=user_id, knowledge_unit_id=knowledge_unit_id, workspace_id=workspace_id
             )
             == review_schedule
         )
