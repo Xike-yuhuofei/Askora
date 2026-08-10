@@ -35,7 +35,7 @@ from app.models.planning import (
 )
 from app.models.user import User
 from app.queries.goal_knowledge import GoalKnowledgeQueryService
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 
 class BookLearningReadinessQuery:

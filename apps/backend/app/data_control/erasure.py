@@ -357,7 +357,6 @@ SUBJECT_BINDINGS: tuple[SubjectBinding, ...] = (
 
 ERASURE_CONTROL_PATH_PREFIXES = (
     "/api/v1/data-control",
-    "/api/v1/auth",
     "/api/v1/users",
     "/health",
     "/ready",

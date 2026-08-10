@@ -18,12 +18,10 @@ from app.models.user import User
 from app.services.storage.local_storage import LocalFileStorage
 
 BACKUP_MANIFEST_VERSION = "1.0"
-EXCLUDED_COLUMNS = {
-    "password_hash",
-    "phone_encrypted",
-    "email_encrypted",
-    "wechat_openid_encrypted",
-}
+# No credential/account columns exist on the LocalOwner projection after the
+# authentication system removal; the manifest still carries an explicit
+# excluded-columns list to gate future sensitive-column additions.
+EXCLUDED_COLUMNS: set[str] = set()
 
 
 def _create_backup_manifest(
@@ -84,8 +82,8 @@ async def test_backup_manifest_is_versioned(tmp_path) -> None:
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(
             text("""
-            INSERT INTO users (id, role, status, pseudonym_id, is_verified)
-            VALUES (:id, 'USER', 'ACTIVE', :pseudo, 0)
+            INSERT INTO users (id, role, status, pseudonym_id)
+            VALUES (:id, 'USER', 'ACTIVE', :pseudo)
         """),
             {"id": str(uuid4()), "pseudo": "manifest-pseudo"},
         )
@@ -131,9 +129,6 @@ async def test_backup_restore_roundtrip(tmp_path, monkeypatch) -> None:
         user = User(
             id=str(uuid4()),
             pseudonym_id="backup-owner",
-            phone_encrypted="encrypted-phone-data",
-            email_encrypted="encrypted-email-data",
-            password_hash="hashed-password-data",
         )
         session.add(user)
         await session.commit()
@@ -193,16 +188,12 @@ async def test_backup_excludes_api_keys(tmp_path) -> None:
     async with engine.begin() as conn:
         await conn.execute(
             text("""
-            INSERT INTO users (id, role, status, pseudonym_id, phone_encrypted,
-                              email_encrypted, password_hash, is_verified)
-            VALUES (:id, 'USER', 'ACTIVE', :pseudo, :phone, :email, :pwd, 0)
+            INSERT INTO users (id, role, status, pseudonym_id)
+            VALUES (:id, 'USER', 'ACTIVE', :pseudo)
         """),
             {
                 "id": str(uuid4()),
                 "pseudo": "excl-pseudo",
-                "phone": "secret-phone",
-                "email": "secret-email",
-                "pwd": "secret-password-hash",
             },
         )
     await engine.dispose()
@@ -210,9 +201,8 @@ async def test_backup_excludes_api_keys(tmp_path) -> None:
     backup_dir = tmp_path / "backup_excl"
     manifest = _create_backup_manifest(source_db_path, tmp_path / "empty_storage", backup_dir)
     excluded = set(manifest["excluded_columns"])
-    assert "password_hash" in excluded
-    assert "phone_encrypted" in excluded
-    assert "email_encrypted" in excluded
+    # After authentication removal there are no credential columns to exclude.
+    assert excluded == set()
 
     db_backup_path = backup_dir / "database.sqlite"
     assert db_backup_path.exists()
@@ -242,8 +232,8 @@ async def test_backup_preserves_durable_files(tmp_path, monkeypatch) -> None:
         user_id = str(uuid4())
         await conn.execute(
             text("""
-            INSERT INTO users (id, role, status, pseudonym_id, is_verified)
-            VALUES (:id, 'USER', 'ACTIVE', :pseudo, 0)
+            INSERT INTO users (id, role, status, pseudonym_id)
+            VALUES (:id, 'USER', 'ACTIVE', :pseudo)
         """),
             {"id": user_id, "pseudo": "file-pseudo"},
         )
@@ -305,8 +295,8 @@ async def test_backup_differs_from_export(tmp_path) -> None:
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(
             text("""
-            INSERT INTO users (id, role, status, pseudonym_id, is_verified)
-            VALUES (:id, 'USER', 'ACTIVE', :pseudo, 0)
+            INSERT INTO users (id, role, status, pseudonym_id)
+            VALUES (:id, 'USER', 'ACTIVE', :pseudo)
         """),
             {"id": str(uuid4()), "pseudo": "diff-pseudo"},
         )

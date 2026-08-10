@@ -32,8 +32,6 @@ async def test_unavailable_sys08_summary_does_not_force_broken_welcome(tmp_path)
             user = User(
                 id=str(uuid4()),
                 pseudonym_id=uuid4().hex,
-                phone_hash=uuid4().hex,
-                password_hash="hash",
             )
             session.add(user)
             await session.flush()

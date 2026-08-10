@@ -1,5 +1,1 @@
-"""Privacy lifecycle application services."""
-
-from app.services.privacy.account_deletion import AccountDeletionService
-
-__all__ = ["AccountDeletionService"]
+"""Learner data control & privacy application services."""

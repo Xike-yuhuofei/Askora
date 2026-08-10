@@ -41,7 +41,6 @@ except ImportError:
 # ---------------------------------------------------------------------------
 os.environ["APP_ENV"] = "test"
 os.environ["APP_NAME"] = "askora-test"
-os.environ["JWT_SECRET_KEY"] = "test-secret-key-at-least-32-chars!!"
 os.environ["KEK_MASTER_KEY"] = "test-kek-key-at-least-32-bytes-long!!"
 os.environ["ENABLE_ORCHESTRATOR_DEBUG_API"] = "true"
 os.environ["LLM_QWEN_API_KEY"] = ""

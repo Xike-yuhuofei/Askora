@@ -48,8 +48,6 @@ class Settings(BaseSettings):
     port: int = 8000
     private_app: bool = True
     enable_orchestrator_debug_api: bool = False
-    # 开发/本地调试：允许免登录直接进入系统（仅非生产环境生效，默认关闭）
-    enable_dev_auto_login: bool = False
     cors_allowed_origins: str = (
         "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
     )
@@ -68,14 +66,6 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     redis_password: Optional[str] = None
     redis_pool_size: int = 50
-
-    # JWT
-    jwt_secret_key: str = "change-me-in-production"
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 15
-    refresh_token_expire_days: int = 7
-    # 会话空闲超时（分钟）：超过此时长未活跃的会话不计入并发上限
-    session_idle_timeout_minutes: int = 30
 
     # 密钥管理（简化版）
     kek_master_key: str = "change-me-kek-key-at-least-32-bytes-long"
@@ -133,20 +123,10 @@ class Settings(BaseSettings):
     worker_max_concurrent: int = 5
     worker_poll_interval: float = 1.0
 
-    # 账号删除与数据库外恢复屏障
-    privacy_restore_barrier_path: str = "./data/privacy/restore-barriers.json"
-    account_deletion_poll_interval: float = 5.0
-    account_deletion_max_attempts: int = 3
-    account_deletion_grace_hours: float = 24.0
-
     @model_validator(mode="after")
     def validate_production_keys(self) -> "Settings":
         """生产环境强制校验密钥强度，防止使用默认/示例密钥"""
         if self.app_env == AppEnv.PRODUCTION:
-            if not self.jwt_secret_key or self.jwt_secret_key == "change-me-in-production":
-                raise ValueError("JWT_SECRET_KEY must be set to a strong value in production")
-            if len(self.jwt_secret_key) < 32:
-                raise ValueError("JWT_SECRET_KEY must be at least 32 characters in production")
             if not self.kek_master_key or len(self.kek_master_key) < 32:
                 raise ValueError("KEK_MASTER_KEY must be at least 32 characters in production")
             if self.kek_master_key == "change-me-kek-key-at-least-32-bytes-long":
@@ -163,12 +143,6 @@ class Settings(BaseSettings):
             raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_UNCOMPRESSED_SIZE_MB must be positive")
         if self.local_storage_archive_max_compression_ratio <= 1:
             raise ValueError("LOCAL_STORAGE_ARCHIVE_MAX_COMPRESSION_RATIO must be greater than 1")
-        if self.account_deletion_poll_interval <= 0:
-            raise ValueError("ACCOUNT_DELETION_POLL_INTERVAL must be positive")
-        if self.account_deletion_max_attempts < 1:
-            raise ValueError("ACCOUNT_DELETION_MAX_ATTEMPTS must be positive")
-        if self.account_deletion_grace_hours < 0:
-            raise ValueError("ACCOUNT_DELETION_GRACE_HOURS must not be negative")
         return self
 
     @property
@@ -186,11 +160,6 @@ class Settings(BaseSettings):
     @property
     def is_test(self) -> bool:
         return self.app_env == AppEnv.TEST
-
-    @property
-    def dev_auto_login_enabled(self) -> bool:
-        """开发自动登录仅在非生产环境且显式开启时可用。"""
-        return self.enable_dev_auto_login and not self.is_production
 
     @property
     def auto_create_tables(self) -> bool:

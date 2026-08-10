@@ -81,7 +81,6 @@ class ProfileReadModel:
     user_id: str
     role: str
     status: str
-    is_verified: bool
     canonical_mastery: CanonicalMasteryProjection
     compatibility: LegacyProfileCompatibility
 
@@ -112,7 +111,6 @@ class ProfileQueryService:
             user_id=str(current_user.id),
             role=current_user.role.value,
             status=current_user.status.value,
-            is_verified=current_user.is_verified,
             canonical_mastery=canonical,
             compatibility=compatibility,
         )

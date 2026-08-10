@@ -71,6 +71,5 @@ def test_pending_erasure_blocks_product_data_but_keeps_recovery_control_availabl
     assert erasure_fail_closed(marker, "/api/v1/documents")
     assert erasure_fail_closed(marker, "/api/v1/workspace/today")
     assert not erasure_fail_closed(marker, "/api/v1/data-control/erasures/confirm")
-    assert not erasure_fail_closed(marker, "/api/v1/auth/login")
     assert not erasure_fail_closed(marker, "/api/v1/users/me")
     assert not erasure_fail_closed(marker, "/ready")

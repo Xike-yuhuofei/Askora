@@ -112,9 +112,6 @@ def _check_runtime_config() -> None:
         logger.error("loopback_host_boundary_violation", error=str(exc))
         raise RuntimeError(str(exc)) from exc
 
-    if settings.jwt_secret_key == "change-me-in-production" and settings.is_development:
-        logger.info("jwt_secret_default_dev", detail="JWT 密钥仍为默认值（仅开发环境）")
-
     if checks:
         logger.warning("runtime_config_warnings", issues=checks)
     else:
@@ -131,8 +128,6 @@ async def lifespan(app: FastAPI):
         env=settings.app_env.value,
     )
 
-    # LID-010/LID-020: validate the network boundary and resolve exactly one
-    # LocalOwner before any learner-owned background service can observe state.
     _check_runtime_config()
 
     await init_db()
@@ -147,22 +142,9 @@ async def lifespan(app: FastAPI):
         await session.commit()
     logger.info("local_owner_initialized", owner_id=owner.canonical_owner_id)
 
-    # 恢复屏障与到期删除必须先于 Redis、模型和文档后台处理。
-    from app.services.privacy.runtime import start_account_deletion_runtime
-
-    recovered = await start_account_deletion_runtime(session_factory)
-    logger.info("account_deletion_runtime_initialized", recovered_subjects=recovered)
-
     try:
         await init_redis()
         logger.info("redis_initialized")
-        from app.services.privacy.cache import reconcile_cache_barriers
-        from app.services.privacy.restore_barrier import RestoreBarrierStore
-
-        cache_deleted = await reconcile_cache_barriers(
-            RestoreBarrierStore(Path(settings.privacy_restore_barrier_path))
-        )
-        logger.info("privacy_cache_reconciled", deleted_keys=cache_deleted)
     except Exception as e:
         if settings.auto_create_tables:
             logger.info("redis_optional_unavailable", error_type=type(e).__name__)
@@ -203,11 +185,6 @@ async def lifespan(app: FastAPI):
 
     await stop_document_processing_runtime()
     logger.info("document_tasks_drained")
-
-    from app.services.privacy.runtime import stop_account_deletion_runtime
-
-    await stop_account_deletion_runtime()
-    logger.info("account_deletion_tasks_drained")
 
     await close_db()
     logger.info("database_closed")
@@ -354,14 +331,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_error_handler(request: Request, exc: RequestValidationError):
-    """Keep the destructive confirmation failure stable without echoing submitted secrets."""
-    if request.url.path.endswith("/account/deletion/request") and any(
-        error.get("loc", ())[-1:] == ("confirmation_phrase",) for error in exc.errors()
-    ):
-        from app.core.exceptions import AccountDeletionConfirmationInvalidError
-
-        error = AccountDeletionConfirmationInvalidError()
-        return await app_error_handler(request, error)
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
@@ -408,11 +377,6 @@ if settings.enable_orchestrator_debug_api:
     app.include_router(orchestrator_router, prefix="/api/v1")
 else:
     logger.info("orchestrator_debug_api_disabled")
-
-if settings.dev_auto_login_enabled and settings.is_development:
-    logger.warning(
-        "dev_auto_login_enabled_deprecated", message="Dev auto-login is deprecated in no-auth mode."
-    )
 
 
 def main():

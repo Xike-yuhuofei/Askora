@@ -64,7 +64,7 @@ client_schema_version
 
 P1-03 backend API 只负责 current-user status/query、export、erasure preview/confirm/report；backup/verify/restore 的 filesystem、backend stop/start 与 atomic activation 通过 desktop typed IPC + maintenance core 执行。API/IPC 都不得直接跨 owner patch canonical state。
 
-Erasure preview token MUST 绑定 current-user/scope/target/digest/expiry；confirm 必须带 idempotency key。Restore success 后旧 auth token/cache 必须失效。完整 schema、errors 与 ownership 见 `data-control-contract.md`。
+Erasure preview token MUST 绑定 scope/target/digest/expiry；confirm 必须带 idempotency key。Restore success 后相关 control token/cache 必须失效。完整 schema、errors 与 ownership 见 `data-control-contract.md`。
 
 ## 5. Streaming
 
@@ -172,35 +172,37 @@ Legacy endpoint MAY 暂时存在，但必须：
 - API response 暴露内部 reference answer/rubric secret。
 - 用公开 `/api/v1` endpoint 接收、保存或返回模型 credential。
 
-## 13. P1-05 Identity and Privacy Additions
+## 13. P1-03 Data Control and Erasure API (去账号化)
+
+> P1-05 账号/认证生命周期已被 ADR-0015 / `LID-*` supersede；Askora 不提供用户账号、注册、登录、密码、
+> 用户 session 或账号删除。本节仅保留仍适用的 P1-03 数据控制与擦除语义。
 
 ### API-200
 
-Identity/session/recovery/account-deletion API MUST 调用 `IDP-*` application ports。API handler 只负责 auth
-或 deletion-control scope、strict schema validation、command/query、serialization 与 stable error mapping；
-MUST NOT 直接更新 credential/session lifecycle 或跨 owner 删除数据。
+Data-control / erasure preview / confirm / report API MUST 调用 `DATA-CONTROL-*` application ports。API
+handler 只负责 erasure scope、strict schema validation、command/query、serialization 与 stable error
+mapping；MUST NOT 跨 owner 删除数据或绕过 owner-safe erasure 语义。
 
 ### API-201
 
-修改密码、session revoke、recovery、deletion preview/request/cancel MUST 使用 strict v1 schema。关键写入
-必须携带 idempotency key；删除 request 还必须 pin preview digest 与 policy version。
+Erasure preview / confirm / cancel MUST 使用 strict v1 schema。关键写入必须携带 idempotency key；
+删除 request 还必须 pin preview digest 与 policy version。
 
 ### API-202
 
-账号删除进入 pending 后，普通 access/refresh session MUST 失效。single-purpose deletion-control token
-只能访问该 deletion request 的 status/cancel/retry，MUST NOT 访问任何学习或账号普通数据。status MAY
-返回 canonical P1-03 workflow/receipt/checkpoint refs 与 `requires_post_erasure_maintenance`，不得返回
-manifest/content。
+Erasure preview 使用 single-purpose control token，只允许访问该 deletion request 的 status/cancel/retry，
+MUST NOT 访问任何学习数据。status MAY 返回 canonical P1-03 workflow/receipt/checkpoint refs 与
+`requires_post_erasure_maintenance`，不得返回 manifest/content。
 
 ### API-204
 
-公共 P1-03 erasure preview API MUST NOT 直接接受 `ALL_PERSONAL_DATA` 作为绕过账号安全流程的入口；
-该 scope 只能由 P1-05 已完成 password re-auth、精确短语和 grace 的内部 authorization bridge 调用。
-普通 Settings 必须路由到账号删除页。
+公共 P1-03 erasure preview API MUST NOT 直接接受 `ALL_PERSONAL_DATA` 作为绕过 owner-safe erasure 流程的
+入口；该 scope 只能由已确认 erasure scope 与明确确认的内部授权 bridge 调用。普通 Settings 必须路由到
+数据与隐私/数据删除 destination。
 
 ### API-203
 
-删除 preview/status、session list 与 recovery/deletion response MUST 使用 `Cache-Control: private, no-store`，
+Erasure preview/status、erasure report 与 control-token response MUST 使用 `Cache-Control: private, no-store`，
 不得返回 password/hash/recovery digest、完整 phone、原始 device fingerprint、内部文件路径或删除内容正文。
 
 ## 14. P1-06 Onboarding API

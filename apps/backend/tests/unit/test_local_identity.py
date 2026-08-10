@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.database import Base
 from app.models.local_owner import LocalOwnerRecord
 from app.models.user import User, UserRole, UserStatus
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.local_identity import (
     LOCAL_OWNER_AMBIGUOUS,
     LocalOwnerAmbiguousError,
@@ -21,6 +20,7 @@ from app.services.local_identity import (
     get_local_owner_context,
     legacy_learner_is_ambiguous,
 )
+from app.services.owner.canonical_identity import canonical_user_id
 
 
 def _make_url(tmp_path) -> str:
@@ -149,7 +149,6 @@ async def test_owner_selection_never_reads_secret_material(tmp_path) -> None:
                 role=UserRole.USER,
                 status=UserStatus.ACTIVE,
                 pseudonym_id="pseudo_secret",
-                password_hash="plaintext-hash-placeholder",
             )
         )
         await session.commit()

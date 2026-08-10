@@ -71,9 +71,9 @@ Manifest path MUST normalized relative path；absolute、`..`、empty segment、
 
 ### DATA-022 — Included Data
 
-MUST 包含 consistent SQLite snapshot、受管 raw document assets、当前 erasure checkpoint 与恢复数据库加密字段所需 KEK material。MUST NOT 包含 provider API key、password plaintext、JWT secret、browser Session/cache、logs、Redis/cache、临时文件或未受管宿主路径。
+MUST 包含 consistent SQLite snapshot、受管 raw document assets、当前 erasure checkpoint 与恢复数据库加密字段所需 KEK material。MUST NOT 包含 provider API key、logs、Redis/cache、临时文件或未受管宿主路径。
 
-恢复 secrets payload 中 JWT MUST absent；restore activation 生成新 JWT secret。KEK 必须原样恢复，否则受保护 PII 不可读。
+KEK 必须原样恢复，否则受保护数据不可读。
 
 ### DATA-023 — Limits
 
@@ -136,7 +136,7 @@ Restore MUST NOT 使用 downgrade 破坏新数据，也不得用 `create_all` �
 
 ### DATA-045 — Report
 
-`RecoveryReportV1` MUST 包含 report/backup id、阶段状态、schema before/after、校验计数、projection actions、erasure checkpoint、started/completed_at、稳定 reason codes；MUST NOT 包含原文、secret、密码、Prompt、完整本地路径。
+`RecoveryReportV1` MUST 包含 report/backup id、阶段状态、schema before/after、校验计数、projection actions、erasure checkpoint、started/completed_at、稳定 reason codes；MUST NOT 包含原文、secret、Prompt、完整本地路径。
 
 ## 6. Migration Guard
 
@@ -169,15 +169,15 @@ files:
 
 ### DATA-061 — Current-user and Allowlist
 
-Export MUST 由 authenticated current-user command 创建。字段/实体采用显式 allowlist，MUST NOT 使用 `SELECT *` 或 ORM automatic serialization。每项保留 owner/source/version 或 `LEGACY_COMPATIBILITY`。
+Export MUST 由 LocalOwner-scoped command 创建（Askora 无登录认证）。字段/实体采用显式 allowlist，MUST NOT 使用 `SELECT *` 或 ORM automatic serialization。每项保留 owner/source/version 或 `LEGACY_COMPATIBILITY`。
 
 ### DATA-062 — Exclusions
 
-MUST 排除 password/hash、JWT/refresh token、KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、未经选择的完整文档、其他用户数据、本地绝对路径、stack trace。
+MUST 排除 KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、未经选择的完整文档、其他 owner 数据、本地绝对路径、stack trace。
 
 ### DATA-063 — Delivery
 
-导出临时文件使用 private permissions、短期 expiry、一次性 current-user token；下载完成或 expiry 后安全清理。导出失败不得生成 partial artifact 并声称完成。
+导出临时文件使用 private permissions、短期 expiry、一次性短期本地交付凭证；下载完成或 expiry 后安全清理。导出失败不得生成 partial artifact 并声称完成。
 
 ## 8. Erasure Workflow V1
 
@@ -212,7 +212,7 @@ DOCUMENT 必须处理 raw asset、UserDocument/SourceSpan/DocumentIR、exclusive
 
 LEARNING_RECORDS 必须处理 dialog/transcript、Attempt/AssessmentResult、LearnerEvidence/Mastery/LearnerState、Goal/Plan/Activity、ReviewSchedule、related events/decisions/outcomes，并重建空/剩余 projection。MODEL_EXECUTION 只处理可归属当前用户的 inference/transcript/execution metadata；不能证明归属的全局 policy/config 不得删除。
 
-ALL_PERSONAL_DATA 还必须处理 profile/auth/session/document storage；P1-05 负责账号入口与认证撤销，但必须调用同一 workflow。
+ALL_PERSONAL_DATA 还必须处理 profile/document storage 等本地数据；Askora 无账号认证撤销（见 `identity-privacy-lifecycle.md` LID-061）。
 
 ### DATA-076 — Tombstone and No Resurrection
 
@@ -222,13 +222,9 @@ ALL_PERSONAL_DATA 还必须处理 profile/auth/session/document storage；P1-05 
 
 任一 step 失败时 workflow 为 `FAILED_RETRYABLE|FAILED_TERMINAL|PARTIAL`；target scope 保持不可见。UI 不得显示“删除完成”。Retry 只执行未完成的幂等 step；最终报告列出 owner/status/reason，不含被删内容。
 
-### DATA-078 — P1-05 Account Authorization Bridge
+### DATA-078 — Destructive Confirmation (no account)
 
-P1-05 继续拥有账号删除的 password re-auth、精确确认短语、24h grace/cancel、session revoke 与 deletion-control token；这些记录是调用 `ALL_PERSONAL_DATA` 的 authorization/orchestration envelope，不是第二 erasure workflow。
-
-账号请求到期后 MUST 以稳定 request idempotency identity 调用本工作流。`data_erasure_workflows`、`data_erasure_steps`、`data_erasure_receipts` 与 `data_erasure_checkpoints` 是唯一执行 truth；P1-05 只能保存其 refs/digest 和最小 tombstone。P1-05 MUST NOT 写独立 owner-step receipt。
-
-当前 `ALL_PERSONAL_DATA` plan MUST 使用已登记的 exhaustive subject-binding coverage，包含后续落地的 activity、library、onboarding、auth/recovery 数据；P1-03/P1-05 governance rows 不作为用户正文删除。账号状态在 canonical partial/retry 或必需的 POST_ERASURE/no-resurrection maintenance 完成前 MUST 保持 `PURGING|DELETION_BLOCKED`，不得显示 `DELETED`。
+Askora 无账号删除（见 `identity-privacy-lifecycle.md` LID-061）。全量本地清除（Reset Local Workspace）与 scoped erasure 统一使用本工作流（DATA-070..077）。确认 MUST 使用 preview + expiring confirmation + typed phrase + idempotency key，不得要求 password 或引入 account-deletion 状态机（LID-062）。`data_erasure_workflows`、`data_erasure_steps`、`data_erasure_receipts` 与 `data_erasure_checkpoints` 是唯一执行 truth。
 
 ## 9. API / IPC
 
@@ -238,7 +234,7 @@ Backend current-user API 负责 status/query、export、erasure preview/confirm/
 
 ### DATA-081
 
-恢复/备份进行中普通 UI 进入 maintenance 状态；不得继续提交学习写入。Restore success 后清除 auth/frontend caches 并要求重新登录。
+恢复/备份进行中普通 UI 进入 maintenance 状态；不得继续提交学习写入。Restore success 后清除本地前端缓存；Askora 无登录流程。
 
 ## 10. Stable Errors
 

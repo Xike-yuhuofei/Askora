@@ -166,7 +166,7 @@ OS credential storage 保护的是 Askora 普通数据文件、browser、日志�
 
 Recovery/backup/export 必须服从当前 v1 Data Control contract。任何 package/export MUST NOT 包含 provider API key、recoverable model credential、内部 Prompt/system instructions、grader-only answer/rubric、其他 Workspace 数据或本地绝对路径。
 
-若历史 recovery package 仍使用加密恢复密钥，其机制只作为对应 historical/current data-control contract 的实现证据，不得重新引入 Account credential semantics。
+User Data Export 使用显式 allowlist，MUST NOT 包含 KEK/Recovery Key/provider key、内部 Prompt/system instructions、grader-only answer/rubric、其他 owner 数据或本地绝对路径。若历史 recovery package 仍使用加密恢复密钥，其机制只作为对应 historical/current data-control contract 的实现证据，不得重新引入 Account credential semantics。
 
 ### SEC-083 — Destructive Data Control
 
@@ -251,9 +251,21 @@ Data lifecycle 还必须覆盖 recovery wrong-key/tamper/truncation/path/limits�
 
 ## 17. Historical Identity / Account Security
 
-旧 `SEC-300..303` 关于 Password、JWT、AuthSession、Account Deletion 的要求属于 P1-05 历史实现合同，已由 `PRODUCT-POSITIONING.md` + ADR-0015 / `LID-*` supersede，不得作为 v1 active runtime requirement。
+旧 `SEC-300..303` 关于 Password、JWT、AuthSession、Account Deletion 的要求属于 P1-05 历史实现合同，已由 `PRODUCT-POSITIONING.md` + ADR-0015 / `LID-*` supersede，不得作为 v1 active runtime requirement。其仍有价值的通用原则（secret 不明文、rate-limit destructive/recovery operations、删除 no-resurrection、最小 audit）由当前 LocalOwner/Data Control/LocalSecretStore 合同承接。以下为 v1 生效的无认证 active requirements：
 
-其仍有价值的通用原则（secret 不明文、rate-limit destructive/recovery operations、删除 no-resurrection、最小 audit）由当前 LocalOwner/Data Control/LocalSecretStore 合同承接。
+Askora 为本地单用户 App，无注册/登录/登出、无密码、无 JWT/会话、无 recovery credential、无账号删除。`LocalOwner` 是唯一本地数据归属主体，MUST NOT 保存 phone/email/password/token/recovery secret/device fingerprint 等认证材料（见 `identity-privacy-lifecycle.md` LID-003）。
+
+### SEC-301
+
+无认证 runtime MUST 只监听 loopback（`127.0.0.1` / `::1`）；`0.0.0.0`、LAN 或公网接口 MUST fail startup。CORS/WebSocket MUST 仅 allowlist loopback origins（LID-020..022）。`/auth/*`、dev auto-login、account deletion routes MUST 停止注册（LID-040）。
+
+### SEC-302
+
+危险本地数据清除（Erase Selected Local Data / Reset Local Workspace）MUST 使用 preview + expiring confirmation + typed phrase + idempotency + durable receipt，且不得重新引入 password 或 account-deletion 语义（LID-061/062）。
+
+### SEC-303
+
+数据清除必须 owner-scoped、reconciliation zero-residual；tombstone/receipt 不得保存 PII/content/secret；restore barrier 必须在本地数据恢复与后台处理前生效。
 
 ## 18. P1-06 Onboarding Security
 

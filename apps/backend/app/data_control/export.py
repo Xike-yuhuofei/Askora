@@ -27,7 +27,6 @@ from app.contracts.data_control import (
     UserExportReadyV1,
 )
 from app.core.config import settings
-from app.core.encryption import decrypt_pii
 from app.data_control.recovery import RecoveryError
 from app.models.assessment import (
     AssessmentResult,
@@ -420,13 +419,8 @@ class UserDataExporter:
                 "role": self._enum_value(user.role),
                 "status": self._enum_value(user.status),
                 "nickname": user.nickname,
-                "phone": self._decrypt_optional(user.phone_encrypted),
-                "email": self._decrypt_optional(user.email_encrypted),
-                "real_name": self._decrypt_optional(user.real_name_encrypted),
-                "is_verified": user.is_verified,
                 "created_at": self._json_value(user.created_at),
                 "updated_at": self._json_value(user.updated_at),
-                "last_login_at": self._json_value(user.last_login_at),
             },
             "learning_profiles": [
                 {
@@ -952,15 +946,6 @@ class UserDataExporter:
     @staticmethod
     def _user_ref(user_id: str) -> str:
         return hashlib.sha256(f"askora-user-export:{user_id}".encode()).hexdigest()[:24]
-
-    @staticmethod
-    def _decrypt_optional(value: str | None) -> str | None:
-        if not value:
-            return None
-        try:
-            return decrypt_pii(value)
-        except ValueError:
-            return None
 
     @classmethod
     def _allow_payload(cls, value: Any, allowed_fields: set[str]) -> dict[str, Any]:

@@ -1,7 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { Send, Plus, Sparkles, Clock, Lightbulb, ChevronRight } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
-import { useAuth } from '../hooks/useAuth'
 import * as dialogApi from '../api/dialog'
 import './Chat.css'
 
@@ -15,7 +14,6 @@ const subjects = [
 ]
 
 export default function Chat() {
-  const { user } = useAuth()
   const [sessions, setSessions] = useState([])
   const [activeSession, setActiveSession] = useState(null)
   const [messages, setMessages] = useState([])

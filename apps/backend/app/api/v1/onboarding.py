@@ -10,13 +10,14 @@ from app.contracts.onboarding import (
     OnboardingPreferenceCommandV1,
 )
 from app.core.database import get_db
+from app.models.user import User
 from app.queries.onboarding import (
     DatabaseDataControlQuery,
     OnboardingJourneyQueryService,
     UnavailableModelConfigurationQuery,
 )
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
 from app.services.onboarding import OnboardingPreferenceService
+from app.services.owner.dependencies import get_current_owner_projection
 
 router = APIRouter(prefix="/onboarding", tags=["首次使用引导"])
 
@@ -33,7 +34,7 @@ def _correlation_id(request: Request) -> str:
 async def get_onboarding_journey(
     request: Request,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> OnboardingJourneyViewV1:
     result = await OnboardingJourneyQueryService(
@@ -54,7 +55,7 @@ async def update_onboarding_preference(
     body: OnboardingPreferenceCommandV1,
     request: Request,
     response: Response,
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> OnboardingJourneyViewV1:
     result = await OnboardingPreferenceService(

@@ -25,9 +25,6 @@ logger = get_logger(__name__)
 WHITELIST_PATHS = {
     "/health",
     "/metrics",
-    "/auth/login",
-    "/auth/register",
-    "/auth/refresh",
     "/docs",
     "/openapi.json",
     "/redoc",

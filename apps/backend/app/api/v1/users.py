@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.user import User
 from app.queries.profile import ProfileQueryService
-from app.services.auth.dependencies import OwnerProjection, get_current_owner_projection
+from app.services.owner.dependencies import get_current_owner_projection
 
 router = APIRouter(prefix="/users", tags=["用户"])
 
@@ -31,7 +32,7 @@ _FIELD_SOURCES = {
 
 @router.get("/profile", summary="获取当前用户资料")
 async def get_profile(
-    current_user: OwnerProjection = Depends(get_current_owner_projection),
+    current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ):
     """获取当前用户的资料信息（canonical query boundary，EXEC-007）。"""
@@ -43,7 +44,6 @@ async def get_profile(
             "id": model.user_id,
             "role": model.role,
             "status": model.status,
-            "is_verified": model.is_verified,
         },
         "profile": {
             "total_sessions": compat.total_sessions,

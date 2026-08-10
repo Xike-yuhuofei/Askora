@@ -36,7 +36,7 @@ from app.infrastructure.ledger import DecisionTraceRepository, LearningEventRepo
 from app.infrastructure.planning_records import GoalPlanningRepository
 from app.models.user import User
 from app.queries.goal_knowledge import GoalKnowledgeQueryService
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 GOAL_FORMATION_PROMPT_VERSION = "goal-formation-bounded-v1"
 GOAL_FORMATION_OUTPUT_SCHEMA_VERSION = "1.0"

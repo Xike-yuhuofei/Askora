@@ -7,7 +7,6 @@ are assigned by ``revision_builder`` after a MaterialRevision is known.
 from __future__ import annotations
 
 import hashlib
-import io
 import posixpath
 import re
 from collections.abc import Iterable
@@ -182,9 +181,14 @@ def _spine_items(book: Any) -> list[tuple[int, str | None, Any]]:
 
 def parse_epub_structure(file_content: bytes) -> dict[str, Any]:
     """Return deterministic EPUB structure in spine order (D01-021/D01-041)."""
+    import tempfile
+
     from ebooklib import epub
 
-    book = epub.read_epub(io.BytesIO(file_content), options={"ignore_ncx": False})
+    with tempfile.NamedTemporaryFile(suffix=".epub", delete=False) as tmp:
+        tmp.write(file_content)
+        tmp.flush()
+        book = epub.read_epub(tmp.name, options={"ignore_ncx": False})
     toc_paths = _flatten_toc(book.toc)
     nodes: list[dict[str, Any]] = [
         {
@@ -413,7 +417,12 @@ def replay_epub_locators(
     if not pending:
         return []
     try:
-        book = epub.read_epub(io.BytesIO(file_content), options={"ignore_ncx": False})
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".epub", delete=False) as tmp:
+            tmp.write(file_content)
+            tmp.flush()
+            book = epub.read_epub(tmp.name, options={"ignore_ncx": False})
     except (etree.XMLSyntaxError, ValueError, OSError):
         return [("FAILED", None) for _request in pending]
 

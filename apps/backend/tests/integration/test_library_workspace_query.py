@@ -243,7 +243,7 @@ async def test_ui02a_http_queries_are_private_and_require_valid_scope(tmp_path) 
 
     from app.core.database import get_db
     from app.main import app as fastapi_app
-    from app.services.auth.dependencies import get_current_user
+    from app.services.owner.dependencies import get_current_owner_projection
 
     engine, factory = _engine_and_factory(tmp_path)
     async with engine.begin() as connection:
@@ -262,14 +262,16 @@ async def test_ui02a_http_queries_are_private_and_require_valid_scope(tmp_path) 
         async with factory() as session:
             yield session
 
-    async def override_get_current_user():
+    async def override_get_current_owner_projection():
         async with factory() as session:
             user = await session.get(User, user_id)
             assert user is not None
             return user
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
+    fastapi_app.dependency_overrides[get_current_owner_projection] = (
+        override_get_current_owner_projection
+    )
     try:
         transport = ASGITransport(app=fastapi_app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:

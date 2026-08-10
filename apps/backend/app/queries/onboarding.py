@@ -31,7 +31,7 @@ from app.models.planning import (
 )
 from app.models.user import User
 from app.repositories.onboarding_preferences import OnboardingPreferenceRepository
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 JOURNEY_ID = "first-learning-v1"
 BOUNDARY_NOTICE_VERSION = "privacy-and-model-v1"

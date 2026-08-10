@@ -51,7 +51,7 @@ export default function TutorWorkspace({ sessionId }) {
         if (!cancelled) {
           const status = error.response?.status
           setView({
-            status: status === 401 ? 'unauthorized' : 'error',
+            status: 'error',
             session: null,
             messages: [],
             sessions: [],
@@ -59,9 +59,7 @@ export default function TutorWorkspace({ sessionId }) {
               ? '这个兼容会话不存在或已经被删除。'
               : status === 403
                 ? '你无权访问这个会话。'
-                : status === 401
-                  ? '登录状态已失效，请重新登录。'
-                  : '工作台暂时无法读取，请检查后端服务。',
+                : '工作台暂时无法读取，请检查后端服务。',
           })
         }
       })

@@ -63,13 +63,13 @@ from app.models.document import (
     UserDocument,
 )
 from app.models.user import User
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.parsers import (
     ParsedContent,
     get_parser,
 )
 from app.services.documents.security_scanner import ScanResult, get_security_scanner
+from app.services.owner.canonical_identity import canonical_user_id
 from app.services.storage.local_storage import LocalFileStorage, get_local_storage
 
 logger = get_logger(__name__)

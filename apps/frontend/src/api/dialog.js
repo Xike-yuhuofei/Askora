@@ -54,8 +54,7 @@ function parseSseChunk(buffer) {
 }
 
 /**
- * 流式对话（基于 fetch + ReadableStream，支持自定义 Authorization 头，
- * 同时通过 POST body 传 content；兼容 GET 模式）。
+ * 流式对话（基于 fetch + ReadableStream，通过 POST body 传 content；兼容 GET 模式）。
  *
  * 回调：
  *   onMessage(delta)     收到内容增量或完整片段
@@ -63,16 +62,14 @@ function parseSseChunk(buffer) {
  *   onError(payload)     流式错误/网络错误
  */
 export const streamMessage = (sessionId, content, onMessage, onDone, onError) => {
-  const token = localStorage.getItem('access_token')
   let closed = false
   let finalReceived = false
   const controller = new AbortController()
 
   const headers = {
     'Content-Type': 'application/json',
+    'X-Device-Fingerprint': getOrCreateDeviceFingerprint(),
   }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  headers['X-Device-Fingerprint'] = getOrCreateDeviceFingerprint()
 
   ;(async () => {
     let resp

@@ -2,7 +2,7 @@
 
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 
 def test_ui02b1_legacy_user_identity_projection_is_stable_and_non_mutating() -> None:

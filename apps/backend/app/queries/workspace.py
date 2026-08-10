@@ -60,7 +60,7 @@ from app.models.planning import (
     ReviewScheduleRecord,
 )
 from app.models.user import User
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 _ACTIVITY_TITLES = {
     "learn_new": "学习新内容",

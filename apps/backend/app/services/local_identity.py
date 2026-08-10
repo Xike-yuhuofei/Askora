@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.local_owner import LocalOwnerRepository
 from app.models.user import User, UserRole, UserStatus
-from app.services.auth.canonical_identity import canonical_user_id
+from app.services.owner.canonical_identity import canonical_user_id
 
 PROVENANCE_FRESH = "fresh"
 PROVENANCE_LEGACY = "legacy_single_learner"
@@ -77,25 +77,28 @@ async def _ensure_compatibility_user(db: AsyncSession, context: LocalOwnerContex
             id=context.canonical_owner_id,
             role=UserRole.USER,
             status=UserStatus.ACTIVE,
-            account_lifecycle="active",
-            phone_encrypted=None,
-            phone_hash=None,
-            email_encrypted=None,
             nickname=None,
-            password_hash=None,
-            credential_version=1,
-            password_changed_at=None,
-            wechat_openid_encrypted=None,
-            real_name_encrypted=None,
-            is_verified=False,
             pseudonym_id=context.owner_id.hex,
             created_at=now,
             updated_at=now,
-            last_login_at=None,
-            deleted_at=None,
         )
     )
     await db.flush()
+
+
+async def _ensure_fresh_local_owner(db: AsyncSession) -> LocalOwnerContext:
+    """Create a fresh LocalOwner when legacy identities are ambiguous."""
+    repo = LocalOwnerRepository(db)
+    owner_id = uuid4()
+    record = await repo.create_if_absent(
+        owner_id=str(owner_id),
+        provenance=PROVENANCE_FRESH,
+        legacy_user_id=None,
+        legacy_pseudonym_id=None,
+    )
+    context = _context_from_record(record, provenance=PROVENANCE_FRESH)
+    await _ensure_compatibility_user(db, context)
+    return context
 
 
 async def ensure_local_owner(db: AsyncSession) -> LocalOwnerContext:
@@ -135,23 +138,6 @@ async def ensure_local_owner(db: AsyncSession) -> LocalOwnerContext:
     context = _context_from_record(record, provenance=provenance)
     await _ensure_compatibility_user(db, context)
     return context
-
-
-async def _ensure_fresh_local_owner(db: AsyncSession) -> LocalOwnerContext:
-    """Force-create a fresh LocalOwner without legacy subject scanning.
-
-    Used as a development-mode escape hatch when legacy subjects are ambiguous
-    and prevent normal bootstrapping.
-    """
-    repo = LocalOwnerRepository(db)
-    owner_id = uuid4()
-    record = await repo.create_if_absent(
-        owner_id=str(owner_id),
-        provenance=PROVENANCE_FRESH,
-        legacy_user_id=None,
-        legacy_pseudonym_id=None,
-    )
-    return _context_from_record(record, provenance=PROVENANCE_FRESH)
 
 
 async def get_local_owner_context(db: AsyncSession) -> LocalOwnerContext:

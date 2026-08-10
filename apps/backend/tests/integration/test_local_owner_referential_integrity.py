@@ -12,8 +12,8 @@ from app.core.database import Base
 from app.models.document import UserDocument
 from app.models.planning import LearningGoalRecord
 from app.models.user import User, UserRole, UserStatus
-from app.services.auth.canonical_identity import canonical_user_id
 from app.services.local_identity import ensure_local_owner
+from app.services.owner.canonical_identity import canonical_user_id
 
 
 async def _factory(database_url: str):
