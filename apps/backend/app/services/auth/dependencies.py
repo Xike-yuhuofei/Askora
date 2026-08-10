@@ -19,8 +19,10 @@ from app.core.exceptions import InvalidTokenError
 from app.models.user import User, UserRole, UserStatus
 from app.services.auth.auth_service import AuthService
 from app.services.local_identity import (
+    LocalOwnerAmbiguousError,
     LocalOwnerContext,
     LocalOwnerError,
+    _ensure_fresh_local_owner,
     ensure_local_owner,
     get_local_owner_context,
 )
@@ -58,13 +60,17 @@ async def get_current_owner(
     No JWT/session validation needed - single-user local instance.
 
     In test/development environments, auto-bootstraps LocalOwner if missing.
+    When legacy subjects are ambiguous, falls back to a fresh owner.
     """
     try:
         return await get_local_owner_context(db)
     except LocalOwnerError:
-        if settings.is_development or settings.app_env.value == "test":
+        if not (settings.is_development or settings.app_env.value == "test"):
+            raise
+        try:
             return await ensure_local_owner(db)
-        raise
+        except LocalOwnerAmbiguousError:
+            return await _ensure_fresh_local_owner(db)
 
 
 async def get_current_owner_projection(
