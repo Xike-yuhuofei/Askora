@@ -82,6 +82,7 @@
 | `docs/design/README.md` | CURRENT-UPDATED |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED |
+| `docs/design/UX-Architecture-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN |

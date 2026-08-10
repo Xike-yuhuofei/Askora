@@ -8,6 +8,7 @@
 
 `docs/design/` 保留正式设计基线与经用户授权形成的增量 Canonical Design：
 
+- [UX Architecture Canonical Design Delta](UX-Architecture-Canonical-Design-Delta.md)：冻结 Left Where / Center Learn / Right Notes-Reference 三栏式学习架构、真实 Workspace 上下文、默认收起的 Learning Context Drawer、Learning 去 Goal/Plan/Progress 管理化、Library v1 去 OCR 暴露及后续辅助栏候选的 deferred 边界；在对应 ADR + Spec + EXEC 完成前不得直接修改产品代码；
 - [Local Single-User Identity & Authentication Removal Canonical Design Delta](Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md)：冻结 Askora 本地单用户、无 Account/Login/JWT/AuthSession 的身份模型，建立 LocalOwnerContext、loopback-only 安全边界、旧学习数据 ownership migration 与 Settings/Onboarding 去账号化；在身份语义上 supersede 旧账号生命周期设计；
 - [Interactive Element System Canonical Design Delta](Interactive-Element-System-Canonical-Design-Delta.md)：冻结 Askora 的 Interactive Element Taxonomy、Zero-Based Home、L0/L1 信息架构、Interaction Hierarchy、Semantic → Interaction 映射、Settings/Library progressive disclosure，以及现有 `UI-IA/UI-SCREEN/UI-VIS` 的 supersession 输入；在对应 ADR + Spec 更新完成前，它不是直接实现合同；
 - [v0.3 Canonical Design Delta](v0.3-Canonical-Design-Delta.md)：DR-03-01～04 / Research Synthesis 到 v0.3 Canonical Design 的冻结变更记录、Canonical Decision Register、breaking change、migration 与 change-control 边界；
