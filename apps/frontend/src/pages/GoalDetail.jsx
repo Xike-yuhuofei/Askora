@@ -37,7 +37,7 @@ export default function GoalDetail({ goalId }) {
         idempotency_key: key(`goal-${action}`),
       }
       const result = await goalApi[`${action}Goal`](goalId, body)
-      if (result.copied_draft) navigate(`/goals/drafts/${result.copied_draft.draft_id}`)
+      if (result.copied_draft) navigate(`/learning/goals/drafts/${result.copied_draft.draft_id}`)
       else { setNotice(action === 'archive' ? '目标已归档，可复制为新目标。' : '目标状态已更新。'); await load() }
     } catch (error) { setNotice(error?.response?.data?.error?.message || '目标状态更新失败，请刷新后重试。') }
     finally { setBusy(false) }
@@ -103,7 +103,7 @@ export default function GoalDetail({ goalId }) {
   if (state.status === 'error') return <div className="page-state page-state--error" role="alert"><p>{state.error}</p><button className="button button--secondary" onClick={load}><RefreshCw size={16} />重试</button></div>
   const { definition, state: goalState, focused } = state.data
   return <div className="goal-editor page-stack">
-    <header className="page-header page-header--split"><div><p className="eyebrow">目标定义 v{definition.definition_version}</p><h1>{definition.title}</h1><p>{definition.topic}</p></div><div className="goal-actions"><button className="button button--secondary" onClick={() => navigate('/goals')}><ArrowLeft size={16} />返回</button>{!['achieved', 'archived'].includes(goalState.status) && <button className="button button--primary" onClick={() => navigate(`/goals/${goalId}/edit`)}><Edit3 size={16} />修订目标</button>}</div></header>
+    <header className="page-header page-header--split"><div><p className="eyebrow">目标定义 v{definition.definition_version}</p><h1>{definition.title}</h1><p>{definition.topic}</p></div><div className="goal-actions"><button className="button button--secondary" onClick={() => navigate('/learning/goals')}><ArrowLeft size={16} />返回</button>{!['achieved', 'archived'].includes(goalState.status) && <button className="button button--primary" onClick={() => navigate(`/learning/goals/${goalId}/edit`)}><Edit3 size={16} />修订目标</button>}</div></header>
     {notice && <p className="goal-notice" role="status">{notice}</p>}
     <section className="surface"><div className="section-heading"><div><p className="eyebrow">当前状态</p><h2>{statusLabels[goalState.status] || goalState.status}{focused ? ' · 当前重点' : ''}</h2></div><Target size={20} /></div><dl className="fact-grid"><div><dt>目标能力</dt><dd>{definition.target_capabilities.join('、')}</dd></div><div><dt>应用场景</dt><dd>{definition.application_context || '未设置'}</dd></div><div><dt>每周预算</dt><dd>{definition.weekly_time_budget_minutes ? `${definition.weekly_time_budget_minutes} 分钟` : '未设置'}</dd></div><div><dt>截止时间</dt><dd>{definition.deadline_at ? new Date(definition.deadline_at).toLocaleDateString('zh-CN') : '未设置'}</dd></div></dl>
       <div className="goal-actions goal-lifecycle-actions">{goalState.status === 'active' && <button disabled={busy} className="button button--secondary" onClick={() => lifecycle('pause')}><Pause size={16} />暂停</button>}{goalState.status === 'paused' && <button disabled={busy} className="button button--primary" onClick={() => lifecycle('resume')}><Play size={16} />恢复</button>}{['confirmed', 'active', 'paused'].includes(goalState.status) && <button disabled={busy} className="button button--secondary" onClick={() => lifecycle('archive')}><Archive size={16} />归档</button>}{goalState.status === 'archived' && <button disabled={busy} className="button button--primary" onClick={() => lifecycle('copyArchived')}><Copy size={16} />复制为新目标</button>}</div>

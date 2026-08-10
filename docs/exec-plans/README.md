@@ -1,9 +1,9 @@
 # Askora Execution Plans
 
 > 状态：既有 UI-02C、P1-01～07 等基线已完成；当前存在独立 active/blocked 队列
-> Active / Frozen Queue：EXEC-048～051、EXEC-043～046、EXEC-052～058
+> Active / Frozen Queue：EXEC-048～051、EXEC-044～046、EXEC-052～058
 > Local Identity chain：`EXEC-047 DONE → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`
-> UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
+> UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 DONE → EXEC-044 → EXEC-045 → EXEC-046`
 > CI v2 chain：`EXEC-052 → (EXEC-051 DONE) → EXEC-053 → EXEC-054 → EXEC-055 → {EXEC-056 after EXEC-046, EXEC-057} → EXEC-058`
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。所有 EXEC 必须服从 [`../product/PRODUCT-POSITIONING.md`](../product/PRODUCT-POSITIONING.md)。EXEC 只能拆解已经冻结且不违反 Product Positioning 的 Spec/Vertical Slice，不能自行修改 Product Positioning、Design、ADR 或 Spec 语义。
@@ -28,7 +28,7 @@ PRODUCT-POSITIONING
 | [EXEC-049](active/EXEC-049-frontend-settings-onboarding-deaccounting.md) | Frontend / Settings / Onboarding De-accounting | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-048 DONE |
 | [EXEC-050](active/EXEC-050-auth-persistence-configuration-cleanup.md) | Auth Persistence & Configuration Cleanup | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-049 DONE |
 | [EXEC-051](active/EXEC-051-local-identity-release-closure.md) | Local Identity Acceptance & Release Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-050 DONE；unlocks UI-03 and CI runtime cutover |
-| [EXEC-043](active/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell, Routes and Learning Domain | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-051 DONE |
+| [EXEC-043](completed/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell, Routes and Learning Domain | DONE / archived 2026-08-10 | requires EXEC-051 DONE |
 | [EXEC-044](active/EXEC-044-ui-03b-today-primary-hierarchy.md) | UI-03B Today Primary Hierarchy | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-043 DONE |
 | [EXEC-045](active/EXEC-045-ui-03c-library-progressive-disclosure.md) | UI-03C Library Progressive Disclosure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-044 DONE |
 | [EXEC-046](active/EXEC-046-ui-03d-settings-legacy-release-closure.md) | UI-03D Settings / Legacy / Release Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-045 DONE；unlocks CI browser E2E |
@@ -124,7 +124,7 @@ EXEC-055 Migration / Recovery / Rebuild
 | P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE |
 | P1-06 Onboarding Product Closure | EXEC-1062 | DONE / archived 2026-08-10 |
 | Local Single-User Authentication Removal | EXEC-047 DONE → EXEC-048～051 | **EXEC-048 ACTIVE** |
-| UI-03 Interactive Element System Refactor | EXEC-043～046 | FROZEN / BLOCKED_BY_EXEC_051 |
+| UI-03 Interactive Element System Refactor | EXEC-043～046 | EXEC-043 DONE / EXEC-044～046 FROZEN |
 | CI v2 / Test Infrastructure Realignment | EXEC-052～058 | FROZEN / **EXEC-052 READY** |
 
 ## 3. Local Identity Governance Chain

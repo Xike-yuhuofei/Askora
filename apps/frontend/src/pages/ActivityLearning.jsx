@@ -233,7 +233,7 @@ export default function ActivityLearning({ activityId }) {
   return (
     <div className="activity-learning page-stack">
       <header className="activity-learning__header">
-        <button type="button" className="button button--ghost" onClick={() => navigate('/path')}><ArrowLeft size={16} />学习路径</button>
+        <button type="button" className="button button--ghost" onClick={() => navigate('/learning/plan')}><ArrowLeft size={16} />学习路径</button>
         <div className="activity-learning__header-title">
           <p className="eyebrow">学习活动</p>
           <h1>{activity.title}</h1>
@@ -300,7 +300,7 @@ export default function ActivityLearning({ activityId }) {
       )}
 
       {current.status === 'completed' && (
-        <main className="surface activity-learning__complete"><CheckCircle2 size={28} /><h2>本项已完成</h2><p>这不会自动更新掌握度或目标达成状态。</p><button type="button" className="button button--primary" onClick={() => lifecycle.next_activity_ref ? navigate(`/learn/${encodeURIComponent(lifecycle.next_activity_ref.entity_id)}`) : navigate('/path')}>{lifecycle.next_activity_ref ? '进入下一项' : '返回学习路径'}<ArrowRight size={16} /></button></main>
+        <main className="surface activity-learning__complete"><CheckCircle2 size={28} /><h2>本项已完成</h2><p>这不会自动更新掌握度或目标达成状态。</p><button type="button" className="button button--primary" onClick={() => lifecycle.next_activity_ref ? navigate(`/learn/${encodeURIComponent(lifecycle.next_activity_ref.entity_id)}`) : navigate('/learning/plan')}>{lifecycle.next_activity_ref ? '进入下一项' : '返回学习路径'}<ArrowRight size={16} /></button></main>
       )}
 
       {!canStart && !canResume && current.status !== 'completed' && <main className="surface activity-learning__blocked"><h2>当前活动不可执行</h2><p>{activity.execution.reason_codes.join(' · ') || '请返回学习路径查看最新安排。'}</p></main>}
