@@ -1,8 +1,8 @@
 # Askora Execution Plans
 
-> 状态：既有 UI-02C、P1-01～05、P1-07 等基线已完成；当前存在独立 active/blocked 队列  
-> Active / Frozen Queue：EXEC-042、EXEC-1062、EXEC-047～051、EXEC-043～046  
-> Local Identity chain：`EXEC-1062 DONE → EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`  
+> 状态：既有 UI-02C、P1-01～07 等基线已完成；当前存在独立 active/blocked 队列  
+> Active / Frozen Queue：EXEC-042、EXEC-047～051、EXEC-043～046  
+> Local Identity chain：`EXEC-047 → EXEC-048 → EXEC-049 → EXEC-050 → EXEC-051`  
 > UI-03 implementation chain：`EXEC-051 DONE → EXEC-043 → EXEC-044 → EXEC-045 → EXEC-046`
 
 本目录保存可直接交给 Codex 执行的工程任务合同，以及完成后的不可变归档。EXEC 只能拆解已经冻结的 Spec/Vertical Slice，不能修改 Design、ADR 或 Spec 语义。
@@ -21,13 +21,12 @@ Accepted ADR / Canonical Design
 | EXEC | Task | Status | Dependency / Concurrency |
 |---|---|---|---|
 | [EXEC-042](active/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md) | v0.3 Production Sequential Teaching Policy Closure | FROZEN / ACTIVE | backend/policy 独立任务域 |
-| [EXEC-1062](active/EXEC-1062-p1-06b-onboarding-product-closure.md) | P1-06B Onboarding Product Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | Local Identity 与 UI-03 前置；触及 App/Settings/routes |
-| [EXEC-047](active/EXEC-047-local-owner-foundation-migration.md) | LocalOwner Foundation & Migration | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-1062 DONE |
+| [EXEC-047](active/EXEC-047-local-owner-foundation-migration.md) | LocalOwner Foundation & Migration | FROZEN / ACTIVE | EXEC-1062 DONE；dependency satisfied |
 | [EXEC-048](active/EXEC-048-backend-no-auth-loopback-cutover.md) | Backend No-Auth & Loopback Cutover | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-047 DONE |
 | [EXEC-049](active/EXEC-049-frontend-settings-onboarding-deaccounting.md) | Frontend / Settings / Onboarding De-accounting | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-048 DONE |
 | [EXEC-050](active/EXEC-050-auth-persistence-configuration-cleanup.md) | Auth Persistence & Configuration Cleanup | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-049 DONE |
 | [EXEC-051](active/EXEC-051-local-identity-release-closure.md) | Local Identity Acceptance & Release Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-050 DONE；unlocks UI-03 |
-| [EXEC-043](active/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell, Routes and Learning Domain | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-1062 + EXEC-051 DONE |
+| [EXEC-043](active/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell, Routes and Learning Domain | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-051 DONE |
 | [EXEC-044](active/EXEC-044-ui-03b-today-primary-hierarchy.md) | UI-03B Today Primary Hierarchy | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-043 DONE |
 | [EXEC-045](active/EXEC-045-ui-03c-library-progressive-disclosure.md) | UI-03C Library Progressive Disclosure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-044 DONE |
 | [EXEC-046](active/EXEC-046-ui-03d-settings-legacy-release-closure.md) | UI-03D Settings / Legacy / Release Closure | FROZEN / BLOCKED_BY_DEPENDENCY_GATE | requires EXEC-045 DONE |
@@ -36,7 +35,7 @@ Accepted ADR / Canonical Design
 
 `EXEC-042` 只处理 backend Teaching Policy production closure，可与文档治理并行，但不得扩大到 Local Identity 或 frontend Interaction Architecture。
 
-涉及 App/Settings/routes 的主链必须严格串行：
+涉及 identity / App / Settings / routes 的主链必须严格串行：
 
 ```text
 EXEC-1062 DONE
@@ -86,9 +85,9 @@ EXEC-046 Settings / Cleanup / Release
 | P1-02 Model Settings | EXEC-040～041 | DONE |
 | P1-03 Data Control and Recovery | EXEC-1031～1034 | DONE |
 | P1-06 Onboarding Readiness Foundation | EXEC-1061 | DONE |
-| P1-06 Onboarding Product Closure | EXEC-1062 | FROZEN / BLOCKED |
-| Local Single-User Authentication Removal | EXEC-047～051 | FROZEN / BLOCKED |
-| UI-03 Interactive Element System Refactor | EXEC-043～046 | FROZEN / BLOCKED |
+| P1-06 Onboarding Product Closure | EXEC-1062 | DONE / archived 2026-08-10 |
+| Local Single-User Authentication Removal | EXEC-047～051 | FROZEN / **EXEC-047 ACTIVE** |
+| UI-03 Interactive Element System Refactor | EXEC-043～046 | FROZEN / BLOCKED_BY_EXEC_051 |
 
 ## 3. Local Identity Governance Chain
 
@@ -142,11 +141,11 @@ EXEC-017～024 均已完成并归档，保持历史原貌。
 
 ## 7. P1-06 → Local Identity → UI-03 Boundary
 
-P1-06B 先完成首次用户 journey、default entry、deep-link preservation、Settings reopen 与真实 owner capability integration。
+P1-06B 已完成首次用户 journey、default entry、deep-link preservation、Settings reopen 与真实 owner capability integration，并于 2026-08-10 归档。
 
-P1-06B 完成后，ADR-0015 的 EXEC-047～051 才可修改 App/Settings/onboarding/auth shell；Local Identity release closure 完成后，UI-03 EXEC-043 才能开始全局 IA migration。
+因此 ADR-0015 的 EXEC-047 已解锁；必须完成 EXEC-047～051 后，UI-03 EXEC-043 才能开始全局 IA migration。
 
-不得让三组任务并行修改同一 frontend shell。
+不得让 Local Identity 与 UI-03 并行修改同一 frontend shell。
 
 ## 8. Queue Contract
 
