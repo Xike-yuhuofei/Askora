@@ -22,6 +22,7 @@ from app.contracts.adaptive import (
     VersionedRef,
 )
 from app.contracts.assessment import AssistanceSnapshot
+from app.contracts.decisions import DecisionTraceV03
 from app.contracts.book_learning import (
     BookLearningOperationResponseV1,
     BookLearningOwnerRefV1,
@@ -698,6 +699,7 @@ class BookLearningApplication:
             idempotency_key=idempotency_key,
             decision_time=accepted_at,
             previous_action=previous_action,
+            previous_trace=previous_trace,
         )
         inputs = await self._retrieval.load_adaptive_input(
             pseudonym_id=user.pseudonym_id,
@@ -1192,6 +1194,7 @@ class BookLearningApplication:
         idempotency_key: str,
         decision_time: datetime,
         previous_action: TeachingActionV03 | None = None,
+        previous_trace: DecisionTraceV03 | None = None,
     ) -> TeachingContextV03:
         context_id = uuid5(
             NAMESPACE_URL, f"askora:book-teaching-context:{user.id}:{idempotency_key}"
@@ -1247,6 +1250,58 @@ class BookLearningApplication:
             source_refs=(source_refs[0],),
         )
         mastery_value = self._mastery_value(estimates, mastery_refs)
+        previous_action_outcome_refs: tuple[VersionedRef, ...] = ()
+        independent_success_history: tuple[VersionedRef, ...] = ()
+        assisted_success_history: tuple[VersionedRef, ...] = ()
+        worked_example_refs: list[VersionedRef] = []
+        if previous_trace is not None:
+            previous_action_outcome_refs = tuple(previous_trace.material_evidence_refs)
+        if state is not None:
+            progress = state.learner_progress_summary or {}
+            independent_ids = progress.get("independent_success_result_ids")
+            assisted_ids = progress.get("assisted_success_result_ids")
+            if not isinstance(independent_ids, (list, tuple)):
+                independent_ids = []
+            if not isinstance(assisted_ids, (list, tuple)):
+                assisted_ids = []
+            independent_success_history = tuple(
+                VersionedRef(
+                    entity_type="AssessmentResult",
+                    entity_id=str(item),
+                    version="1",
+                )
+                for item in independent_ids
+            )
+            assisted_success_history = tuple(
+                VersionedRef(
+                    entity_type="AssessmentResult",
+                    entity_id=str(item),
+                    version="1",
+                )
+                for item in assisted_ids
+            )
+            worked_example_count = progress.get("worked_example_exposure_count")
+            if (
+                previous_action is not None
+                and isinstance(worked_example_count, int)
+                and worked_example_count > 0
+            ):
+                worked_example_refs = [
+                    VersionedRef(
+                        entity_type="TeachingAction",
+                        entity_id=str(previous_action.action_id),
+                        version=previous_action.action_schema_version,
+                    )
+                ]
+        consecutive_failures = 0
+        if state is not None:
+            uncertainty = state.uncertainty_summary or {}
+            cf = uncertainty.get("consecutive_failures")
+            if isinstance(cf, int):
+                consecutive_failures = cf
+        assistance_history_summary: dict[str, Any] = {
+            "consecutive_failures": consecutive_failures,
+        }
         payload: dict[str, Any] = {
             "context_id": str(context_id),
             "decision_time": decision_time,
@@ -1264,7 +1319,20 @@ class BookLearningApplication:
             "error_type": missing,
             "diagnostic_confidence": missing,
             "needs_probe": missing,
-            "worked_example_exposure": missing,
+            "worked_example_exposure": (
+                ValueWithAvailability(
+                    value=True,
+                    availability=AvailabilityStatus.AVAILABLE,
+                    confidence=1.0,
+                    source_refs=tuple(worked_example_refs),
+                )
+                if worked_example_refs
+                else missing
+            ),
+            "assistance_history_summary": assistance_history_summary,
+            "independent_success_history": independent_success_history,
+            "assisted_success_history": assisted_success_history,
+            "previous_action_outcome_refs": previous_action_outcome_refs,
             "delayed_independent_evidence": missing,
             "review_context": missing,
             "transfer_evidence": missing,

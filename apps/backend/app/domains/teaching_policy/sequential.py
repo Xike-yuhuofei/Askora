@@ -208,6 +208,7 @@ class SequentialTeachingPolicy:
         state: SequentialPolicyState,
         signals: tuple[EvidenceSignal, ...] = (),
         assignment: ExperimentAssignmentV03 | None = None,
+        time_source: TimeSource | None = None,
     ) -> SequentialPolicyDecision:
         _exact_previous_ref(context, state.previous_action)
         proposed = self._kernel.decide(
@@ -230,7 +231,8 @@ class SequentialTeachingPolicy:
                 "proposed policy trace is missing derived TeachingStage",
             )
 
-        now = self._time_source.now()
+        active_time_source = time_source or self._time_source
+        now = active_time_source.now()
         classified = classify_material_evidence(signals, profile, now)
         material_keys = {
             ":".join(
