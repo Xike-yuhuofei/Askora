@@ -20,6 +20,7 @@
 |---|---|---|
 | `AGENTS.md` | CANONICAL-RETAIN | Codex 强制执行合同 |
 | `README.md` | CURRENT-UPDATED | 当前产品、实现、运行和验证入口 |
+| `.github/PULL_REQUEST_TEMPLATE.md` | SUPPORT-RETAIN | Pull Request delivery/review contract；要求 Problem、authority、risk、Required CI、review findings 与 evidence classification |
 | `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN | EXEC-042 执行代理提示词 |
 | `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN | EXEC-1062 执行代理提示词 |
 | `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN | EXEC-047 执行代理提示词 |
@@ -40,6 +41,7 @@
 | `docs/README.md` | CURRENT-UPDATED | Product→Design→ADR→Spec→EXEC 权威层级与 v1 Local Web 架构入口 |
 | `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
+| `docs/product-development-process.md` | CURRENT-UPDATED | 产品发现→治理→EXEC→PR→Required→Release/Product/Learning Evidence 的端到端流程、DoR/DoD 与 PR-size rule |
 | `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN | **Askora v1 最高 Frozen Product Baseline**；Local Web、LocalOwner、Workspace、SQLite/local-first、BYOK、Non-goals 与 Hard Constraints |
 | `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；历史状态不得突破 PRODUCT-POSITIONING |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理、Product Positioning 上位约束、supersession 与索引 |
