@@ -68,20 +68,19 @@ def _validate_loopback_host(host: str) -> None:
     if host in LOOPBACK_HOSTS:
         return
 
-    # Check if it's a valid loopback IP
     try:
         ip = ipaddress.ip_address(host)
-        if not ip.is_loopback:
-            raise ValueError(
-                f"LOCAL_NETWORK_BOUNDARY_VIOLATION: "
-                f"Host {host} is not loopback-only. "
-                f"Production mode only allows loopback addresses."
-            )
-    except ValueError as e:
-        if "LOCAL_NETWORK_BOUNDARY_VIOLATION" not in str(e):
-            raise ValueError(
-                f"LOCAL_NETWORK_BOUNDARY_VIOLATION: " f"Invalid host address: {host}"
-            ) from e
+    except ValueError as exc:
+        raise ValueError(
+            f"LOCAL_NETWORK_BOUNDARY_VIOLATION: Invalid host address: {host}"
+        ) from exc
+
+    if not ip.is_loopback:
+        raise ValueError(
+            f"LOCAL_NETWORK_BOUNDARY_VIOLATION: "
+            f"Host {host} is not loopback-only. "
+            f"Production mode only allows loopback addresses."
+        )
 
 
 def _is_loopback_origin(origin: str | None) -> bool:
