@@ -1,0 +1,101 @@
+name: Askora CI / Optional
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-compat:
+    name: Optional / PostgreSQL compatibility
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: askora
+          POSTGRES_PASSWORD: askora-ci-password
+          POSTGRES_DB: askora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U askora -d askora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      PRIVATE_APP: "true"
+      DATABASE_URL: postgresql+asyncpg://askora:askora-ci-password@127.0.0.1:5432/askora_test
+      ASKORA_POSTGRES_TEST_URL: postgresql+asyncpg://askora:askora-ci-password@127.0.0.1:5432/askora_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install uv==0.9.5
+          uv sync --frozen --extra dev
+
+      - name: PostgreSQL migration and regression
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run pytest tests/integration/test_postgres_decision_trace_compatibility.py
+
+  container-build:
+    name: Optional / Container build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build only, no push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  py312-compat:
+    name: Optional / Python 3.12 compatibility
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    env:
+      APP_ENV: test
+      PRIVATE_APP: "true"
+      DATABASE_URL: sqlite+aiosqlite:///./ci.db
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install uv==0.9.5
+          uv sync --frozen --extra dev
+
+      - name: Run required tests on 3.12
+        run: uv run pytest tests/ -m required -v --tb=short

@@ -1,4 +1,7 @@
-"""P1-01A authenticated API projection and privacy tests."""
+"""P1-01A authenticated API projection and privacy tests.
+
+EXEC-048: Updated to use LocalOwnerContext-based authentication (no-auth mode).
+"""
 
 from __future__ import annotations
 
@@ -10,8 +13,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.database import Base, get_db
 from app.main import app as fastapi_app
-from app.models.user import User
-from app.services.auth.dependencies import get_current_user
+from app.models.local_owner import LocalOwnerRecord
+from app.services.auth.dependencies import get_current_owner_projection
 
 
 @pytest.mark.asyncio
@@ -20,23 +23,36 @@ async def test_goal_api_is_authenticated_versioned_and_private(tmp_path) -> None
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    user_id = str(uuid4())
+    owner_id = str(uuid4())
+
+    # EXEC-048: Create LocalOwner record instead of User record
     async with factory() as session:
-        session.add(User(id=user_id, pseudonym_id="goal-api-owner"))
+        session.add(
+            LocalOwnerRecord(
+                owner_id=owner_id,
+                provenance="fresh",
+                legacy_user_id=None,
+                legacy_pseudonym_id="goal-api-owner",
+            )
+        )
         await session.commit()
 
     async def override_get_db():
         async with factory() as session:
             yield session
 
-    async def override_get_current_user():
-        async with factory() as session:
-            user = await session.get(User, user_id)
-            assert user is not None
-            return user
+    async def override_get_current_owner_projection():
+        from app.services.auth.dependencies import OwnerProjection
+
+        return OwnerProjection(
+            id=owner_id,
+            pseudonym_id="goal-api-owner",
+        )
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
-    fastapi_app.dependency_overrides[get_current_user] = override_get_current_user
+    fastapi_app.dependency_overrides[get_current_owner_projection] = (
+        override_get_current_owner_projection
+    )
     try:
         async with AsyncClient(
             transport=ASGITransport(app=fastapi_app), base_url="http://test"

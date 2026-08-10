@@ -58,6 +58,26 @@ include = ["app*"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v --strict-markers"
+markers = [
+    # CI v2 Required Suite
+    "required: v1 Required test suite - must pass for merge",
+    "product_boundary: Product Boundary tests - verify v1 product invariants",
+    "architecture: Architecture boundary tests",
+    "unit: Unit tests - core logic without external dependencies",
+    "contract: Contract tests - API/schema compatibility",
+    "sqlite_integration: SQLite integration tests - use real SQLite",
+    "opve_core: Deterministic OPVE/G0/G1 core tests",
+    # CI v2 Optional Suite
+    "optional: Optional tests - not blocking merge",
+    "historical: Historical/migration tests - evidence only",
+    "real_provider: Tests requiring real AI provider",
+    "postgres: PostgreSQL compatibility tests",
+    "native_desktop: Native desktop tests",
+    # Recovery/Rebuild Suite
+    "migration: Schema migration tests",
+    "recovery: Recovery/restart tests",
+    "rebuild: Derived data rebuild tests",
+]
 
 [tool.ruff]
 line-length = 100

@@ -52,9 +52,7 @@ async def _owner_columns(engine) -> tuple[list[str], int, str]:
 
         def _load(sync) -> tuple[list[str], int, str]:
             owners = sa.Table("local_owners", sa.MetaData(), autoload_with=sync)
-            rows = sync.execute(
-                sa.select(owners.c.owner_id, owners.c.provenance)
-            ).all()
+            rows = sync.execute(sa.select(owners.c.owner_id, owners.c.provenance)).all()
             return (
                 [c["name"] for c in inspect(sync).get_columns("local_owners")],
                 len(rows),
@@ -130,15 +128,15 @@ async def test_ambiguous_multi_subject_migration_fails_closed(tmp_path) -> None:
                 sync.execute(
                     sa.select(
                         sa.func.count(
-                            sa.Table("local_owners", sa.MetaData(), autoload_with=sync).c.singleton_key
+                            sa.Table(
+                                "local_owners", sa.MetaData(), autoload_with=sync
+                            ).c.singleton_key
                         )
                     )
                 ).scalar(),
                 sync.execute(
                     sa.select(
-                        sa.func.count(
-                            sa.Table("users", sa.MetaData(), autoload_with=sync).c.id
-                        )
+                        sa.func.count(sa.Table("users", sa.MetaData(), autoload_with=sync).c.id)
                     )
                 ).scalar(),
             )

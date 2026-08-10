@@ -31,9 +31,7 @@ def _bundle(profile: PolicyRuntimeProfile):
 
 def _bootstrap(case: dict, profile: PolicyRuntimeProfile):
     kernel = TeachingPolicyKernel()
-    return kernel.decide(
-        context=make_context(case), bundle=_bundle(profile), profile=profile
-    )
+    return kernel.decide(context=make_context(case), bundle=_bundle(profile), profile=profile)
 
 
 def _facade_request(*, context, profile, previous_action, previous_trace):

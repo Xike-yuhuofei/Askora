@@ -137,9 +137,7 @@ async def test_exec042_fail_closed_previous_ref_without_action_or_trace() -> Non
     bootstrap kernel.
     """
     context = _minimal_context(
-        previous_ref=VersionedRef(
-            entity_type="teaching_action", entity_id="fc-prev", version="1"
-        ),
+        previous_ref=VersionedRef(entity_type="teaching_action", entity_id="fc-prev", version="1"),
         fingerprint="fc-no-input",
     )
     facade = LearningOrchestrationFacade()

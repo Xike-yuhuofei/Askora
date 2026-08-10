@@ -5,6 +5,10 @@ Pytest 全局 fixtures —— Askora 后端测试基础设施
 - app: FastAPI 应用实例（不启动 lifespan，避免触发 DB/Redis 初始化）
 - client: httpx TestClient 用于 HTTP 集成测试（不启动 lifespan）
 - orchestrator_session: 直接通过编排器创建测试会话的便捷 async fixture
+
+CI v2 Marker 自动注册：
+- 基于测试文件路径自动分配 markers
+- 建立 Required / Optional / Historical suite 组合
 """
 
 from __future__ import annotations
@@ -45,6 +49,118 @@ os.environ["LLM_DEEPSEEK_API_KEY"] = ""
 os.environ["LLM_DOUBAO_API_KEY"] = ""
 os.environ["LLM_ZHIPU_API_KEY"] = ""
 os.environ["EMBEDDING_API_KEY"] = ""
+
+
+# ---------------------------------------------------------------------------
+# CI v2 Marker 自动注册
+# ---------------------------------------------------------------------------
+
+
+def pytest_configure(config):
+    """
+    注册 CI v2 markers 并设置自动化 marker 规则。
+
+    Marker 规则：
+    - product_boundary/ → required + product_boundary
+    - architecture/ → required + architecture
+    - unit/ → required + unit
+    - contracts/ → required + contract
+    - integration/ → required + sqlite_integration
+    - migrations/ → required + migration
+    - recovery/ → recovery
+    - security/ → required + sqlite_integration
+    - evals/ → opve_core (部分 required)
+    - e2e/ → 暂标记为 optional
+    """
+    pass  # Markers 已在 pyproject.toml 中注册
+
+
+def pytest_collection_modifyitems(config, items):
+    """
+    自动根据测试文件路径添加 markers，建立 Required suite。
+
+    这确保了正确的测试分类，无需在每个测试文件中手动添加 marker。
+    """
+    for item in items:
+        filepath = str(item.fspath)
+        relpath = os.path.relpath(filepath, os.path.dirname(__file__))
+
+        # Product Boundary 测试 → Required
+        if "product_boundary/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.product_boundary)
+
+        # Architecture 测试 → Required
+        elif "architecture/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.architecture)
+
+        # Unit 测试 → Required
+        elif "unit/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.unit)
+
+        # Contract 测试 → Required
+        elif "contracts/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.contract)
+
+        # Integration 测试（SQLite）→ Required
+        elif "integration/" in relpath:
+            # 排除 PostgreSQL 特定测试
+            if "postgres" not in relpath.lower():
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.sqlite_integration)
+            else:
+                item.add_marker(pytest.mark.optional)
+                item.add_marker(pytest.mark.postgres)
+
+        # Migration 测试 → Required
+        elif "migrations/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.migration)
+
+        # Security 测试 → Required
+        elif "security/" in relpath:
+            item.add_marker(pytest.mark.required)
+            item.add_marker(pytest.mark.sqlite_integration)
+
+        # Recovery 测试 → Recovery suite
+        elif "recovery/" in relpath:
+            item.add_marker(pytest.mark.recovery)
+
+        # OPVE/G0/G1 核心测试 → Required + opve_core
+        elif "evals/" in relpath:
+            # 核心 policy 测试是 Required
+            if any(name in relpath for name in ["g0", "g1", "anti_oscillation"]):
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.opve_core)
+            else:
+                item.add_marker(pytest.mark.optional)
+
+        # Infrastructure 测试 → 按内容分类
+        elif "infrastructure/" in relpath:
+            item.add_marker(pytest.mark.optional)
+
+        # E2E 测试 → Optional（CI v2 将通过 EXEC-056 建立专门 E2E gate）
+        elif "e2e/" in relpath:
+            item.add_marker(pytest.mark.optional)
+
+        # 根目录测试 → 按名称特征分类
+        else:
+            filename = os.path.basename(filepath)
+            if "opve" in filename or "policy" in filename:
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.opve_core)
+            elif "assessment" in filename or "review" in filename or "schedule" in filename:
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.unit)
+            elif "retrieval" in filename:
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.contract)
+            elif "document" in filename and "safety" in filename:
+                item.add_marker(pytest.mark.required)
+                item.add_marker(pytest.mark.sqlite_integration)
 
 
 @pytest.fixture(scope="session")

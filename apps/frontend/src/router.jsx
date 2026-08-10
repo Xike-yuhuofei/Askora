@@ -50,9 +50,11 @@ export function Navigate({ to, replace = false }) {
   return null
 }
 
-export const NavLink = forwardRef(function NavLink({ to, className, children, ...props }, ref) {
+export const NavLink = forwardRef(function NavLink({ to, className, match = 'exact', children, ...props }, ref) {
   const { pathname } = useLocation()
-  const active = pathname === to
+  const active = match === 'prefix'
+    ? pathname === to || pathname.startsWith(`${to}/`)
+    : pathname === to
   const resolvedClassName = typeof className === 'function'
     ? className({ isActive: active })
     : `${className || ''}${active ? ' active' : ''}`.trim()

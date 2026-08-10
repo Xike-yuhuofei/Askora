@@ -116,10 +116,7 @@ class DatabaseModelConfigurationQuery:
 
             router = get_model_router()
             providers = router._providers
-            available_providers = [
-                p for p in providers.values()
-                if getattr(p, "api_key", None)
-            ]
+            available_providers = [p for p in providers.values() if getattr(p, "api_key", None)]
             if not available_providers:
                 return ModelConfigurationObservation(
                     availability="MISSING",
@@ -137,6 +134,7 @@ class DatabaseModelConfigurationQuery:
             )
         except Exception as e:
             import logging
+
             logging.getLogger(__name__).error("ModelConfigurationQuery error: %s", e, exc_info=True)
             return ModelConfigurationObservation(
                 availability="MISSING",

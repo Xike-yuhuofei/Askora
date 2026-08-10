@@ -1,6 +1,6 @@
 # EXEC-051 — Local Identity Acceptance & Release Closure
 
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
+> Status：**DONE**（2026-08-10）  
 > Governing：ADR-0015、`LID-*`、Authentication Removal Vertical Slice  
 > Dependency：EXEC-050 DONE  
 > Unlocks：UI-03 EXEC-043～046

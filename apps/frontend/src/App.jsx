@@ -1,8 +1,6 @@
-import { AuthProvider } from './hooks/useAuth'
-import ProtectedRoute from './components/ProtectedRoute'
 import NoticeModal from './components/NoticeModal'
 import AppShell from './components/AppShell'
-import Login from './pages/Login'
+import LearningShell from './components/LearningShell'
 import Today from './pages/Today'
 import TutorWorkspace from './pages/TutorWorkspace'
 import History from './pages/History'
@@ -14,28 +12,33 @@ import Goals from './pages/Goals'
 import GoalDetail from './pages/GoalDetail'
 import GoalEditor from './pages/GoalEditor'
 import LearningPath from './pages/LearningPath'
+import Learning from './pages/Learning'
 import Settings from './pages/Settings'
 import RecoveryCenter from './pages/RecoveryCenter'
-import AccountDeletion from './pages/AccountDeletion'
 import Unavailable from './pages/Unavailable'
 import Welcome from './pages/Welcome'
 import { Navigate, useLocation } from './router'
 
 const legacyRedirects = {
   '/': '/today',
-  '/profile': '/evidence',
+  '/profile': '/learning/progress',
   '/knowledge': '/library',
   '/account': '/settings',
+  '/goals': '/learning/goals',
+  '/path': '/learning/plan',
+  '/evidence': '/learning/progress',
+  '/history': '/learning/history',
 }
 
 const standardPages = {
   '/welcome': Welcome,
   '/today': Today,
   '/library': Library,
-  '/goals': Goals,
-  '/path': LearningPath,
-  '/evidence': Evidence,
-  '/history': History,
+  '/learning': Learning,
+  '/learning/goals': Goals,
+  '/learning/plan': LearningPath,
+  '/learning/progress': Evidence,
+  '/learning/history': History,
   '/settings': Settings,
   '/settings/recovery': RecoveryCenter,
 }
@@ -48,9 +51,19 @@ function decodeRouteParam(value) {
   }
 }
 
+const learningShellPaths = new Set([
+  '/learning/goals',
+  '/learning/plan',
+  '/learning/progress',
+  '/learning/history',
+])
+
 export function resolveRoute(pathname) {
   if (legacyRedirects[pathname]) return { type: 'redirect', to: legacyRedirects[pathname] }
-  if (standardPages[pathname]) return { type: 'page', Page: standardPages[pathname], shell: 'standard' }
+  if (standardPages[pathname]) {
+    const shell = learningShellPaths.has(pathname) ? 'learning' : 'standard'
+    return { type: 'page', Page: standardPages[pathname], shell }
+  }
   const quickMatch = pathname.match(/^\/quick\/([^/]+)$/)
   if (quickMatch) {
     return {
@@ -60,13 +73,14 @@ export function resolveRoute(pathname) {
     }
   }
 
-  if (pathname === '/goals/new') return { type: 'goal-editor', shell: 'standard' }
-  const goalDraftMatch = pathname.match(/^\/goals\/drafts\/([^/]+)$/)
-  if (goalDraftMatch) return { type: 'goal-editor', draftId: decodeRouteParam(goalDraftMatch[1]), shell: 'standard' }
-  const goalEditMatch = pathname.match(/^\/goals\/([^/]+)\/edit$/)
-  if (goalEditMatch) return { type: 'goal-editor', editGoalId: decodeRouteParam(goalEditMatch[1]), shell: 'standard' }
-  const goalDetailMatch = pathname.match(/^\/goals\/([^/]+)$/)
-  if (goalDetailMatch) return { type: 'goal-detail', goalId: decodeRouteParam(goalDetailMatch[1]), shell: 'standard' }
+  if (pathname === '/goals/new') return { type: 'redirect', to: '/learning/goals', shell: 'standard' }
+  if (pathname === '/learning/goals/new') return { type: 'goal-editor', shell: 'learning' }
+  const goalDraftMatch = pathname.match(/^\/learning\/goals\/drafts\/([^/]+)$/)
+  if (goalDraftMatch) return { type: 'goal-editor', draftId: decodeRouteParam(goalDraftMatch[1]), shell: 'learning' }
+  const goalEditMatch = pathname.match(/^\/learning\/goals\/([^/]+)\/edit$/)
+  if (goalEditMatch) return { type: 'goal-editor', editGoalId: decodeRouteParam(goalEditMatch[1]), shell: 'learning' }
+  const goalDetailMatch = pathname.match(/^\/learning\/goals\/([^/]+)$/)
+  if (goalDetailMatch) return { type: 'goal-detail', goalId: decodeRouteParam(goalDetailMatch[1]), shell: 'learning' }
 
   const activityMatch = pathname.match(/^\/learn\/([^/]+)$/)
   if (activityMatch) {
@@ -89,8 +103,6 @@ export function resolveRoute(pathname) {
 
 function AppRoutes() {
   const { pathname } = useLocation()
-  if (pathname === '/login') return <Login />
-  if (pathname === '/settings/delete-account') return <AccountDeletion />
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />
@@ -102,21 +114,25 @@ function AppRoutes() {
   else if (route.type === 'activity-learning') content = <ActivityLearning activityId={route.activityId} />
   else if (route.type === 'goal-editor') content = <GoalEditor draftId={route.draftId} editGoalId={route.editGoalId} />
   else if (route.type === 'goal-detail') content = <GoalDetail goalId={route.goalId} />
-  else if (route.type === 'unavailable') content = <Unavailable kind={route.kind} />
   else content = <Unavailable kind="not-found" />
 
+  let wrappedContent = content
+  if (route.shell === 'learning') {
+    wrappedContent = <LearningShell>{content}</LearningShell>
+  }
+
   return (
-    <ProtectedRoute>
-      <AppShell variant={route.shell}>{content}</AppShell>
-    </ProtectedRoute>
+    <AppShell variant={route.shell}>
+      {wrappedContent}
+    </AppShell>
   )
 }
 
 export default function App() {
   return (
-    <AuthProvider>
+    <>
       <AppRoutes />
       <NoticeModal />
-    </AuthProvider>
+    </>
   )
 }

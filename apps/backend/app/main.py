@@ -2,17 +2,20 @@
 FastAPI 主应用入口
 苏格拉底式教学 App 后端 - 个人版精简版
 
+EXEC-048: No-Auth & Loopback Cutover
 架构特点：
-- 核心对话引擎（Socratic, Drill, Quiz, Inquiry, Explain）
+- 无认证（LocalOwnerContext 单用户模式）
 - 本地知识库/RAG 支持
-- 核心鉴权体系（简化版）
+- Loopback-only 网络边界
 - 国产模型路由
 """
 
 from __future__ import annotations
 
+import ipaddress
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -20,7 +23,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1 import (
-    auth_router,
     book_learning_router,
     data_control_router,
     dialog_router,
@@ -33,7 +35,6 @@ from app.api.v1 import (
     workspace_router,
     ws_router,
 )
-from app.api.v1.account import router as account_router
 from app.core.config import settings
 from app.core.database import close_db, init_db
 from app.core.exceptions import AppError
@@ -49,10 +50,62 @@ ERASURE_FAIL_CLOSED_MARKER = (
     Path(settings.local_storage_base_path).resolve().parent / "recovery" / "erasure-pending.json"
 )
 
+# EXEC-048: Loopback-only network boundary
+LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+LOOPBACK_ORIGINS = {
+    "http://127.0.0.1",
+    "http://localhost",
+    "https://127.0.0.1",
+    "https://localhost",
+}
+
+
+def _validate_loopback_host(host: str) -> None:
+    """Validate that the host is loopback-only for production (EXEC-048).
+
+    Production Local Web must not bind to LAN/public addresses.
+    Only loopback addresses are permitted.
+    """
+    if host in LOOPBACK_HOSTS:
+        if host == "0.0.0.0" and not settings.is_development:
+            raise ValueError(
+                "LOCAL_NETWORK_BOUNDARY_VIOLATION: "
+                "Production mode does not allow binding to 0.0.0.0. "
+                "Use 127.0.0.1 for loopback-only access."
+            )
+        return
+
+    # Check if it's a valid loopback IP
+    try:
+        ip = ipaddress.ip_address(host)
+        if not ip.is_loopback:
+            raise ValueError(
+                f"LOCAL_NETWORK_BOUNDARY_VIOLATION: "
+                f"Host {host} is not loopback-only. "
+                f"Production mode only allows loopback addresses."
+            )
+    except ValueError as e:
+        if "LOCAL_NETWORK_BOUNDARY_VIOLATION" not in str(e):
+            raise ValueError(
+                f"LOCAL_NETWORK_BOUNDARY_VIOLATION: " f"Invalid host address: {host}"
+            ) from e
+
+
+def _is_loopback_origin(origin: str | None) -> bool:
+    """Check if an HTTP origin is loopback-only (EXEC-048)."""
+    if not origin:
+        return True  # Same-origin / no-origin requests allowed (loopback default)
+    return (
+        origin in LOOPBACK_ORIGINS
+        or origin.startswith("http://127.0.0.1:")
+        or origin.startswith("http://localhost:")
+    )
+
 
 def _check_runtime_config() -> None:
     """
     启动时检查关键系统运行配置
+    EXEC-048: 添加 loopback 网络边界验证
     """
     checks: list[str] = []
 
@@ -72,10 +125,20 @@ def _check_runtime_config() -> None:
     else:
         logger.info("config_llm_api_key_ok", providers=[k for k, v in llm_keys.items() if v])
 
-    # 安全密钥
-    if settings.jwt_secret_key == "change-me-in-production":
-        logger.warning("config_jwt_secret_default", detail="JWT 密钥仍为默认值，请在生产环境替换")
-        checks.append("jwt_secret: DEFAULT")
+    # EXEC-048: Loopback-only network boundary validation
+    try:
+        _validate_loopback_host(settings.host)
+        logger.info("loopback_host_boundary_ok", host=settings.host)
+    except ValueError as e:
+        logger.error("loopback_host_boundary_violation", error=str(e))
+        if not settings.is_development:
+            raise RuntimeError(str(e)) from e
+        checks.append(f"host_boundary: VIOLATION ({settings.host})")
+
+    # EXEC-048: JWT secret key is no longer required for production
+    # Keep warning for development environments that may still use auth
+    if settings.jwt_secret_key == "change-me-in-production" and settings.is_development:
+        logger.info("jwt_secret_default_dev", detail="JWT 密钥仍为默认值（仅开发环境）")
 
     if checks:
         logger.warning("runtime_config_warnings", issues=checks)
@@ -200,7 +263,7 @@ app = FastAPI(
 
 # ========== 中间件 ==========
 
-# CORS
+# EXEC-048: CORS restricted to loopback origins only
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -211,6 +274,53 @@ app.add_middleware(
 
 # 可观测性
 setup_observability(app)
+
+
+@app.middleware("http")
+async def enforce_loopback_origin(request: Request, call_next):
+    """EXEC-048: Enforce loopback-only origin for HTTP requests.
+
+    Production Local Web must only accept requests from loopback origins.
+    Non-loopback origins are rejected with 403.
+    """
+    if not settings.is_development:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+
+        # Allow health check endpoints without origin validation
+        if request.url.path.startswith("/health"):
+            return await call_next(request)
+
+        # Validate origin if present
+        if origin and not _is_loopback_origin(origin):
+            logger.warning("loopback_origin_rejected", origin=origin, path=request.url.path)
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": {
+                        "code": "LOCAL_NETWORK_BOUNDARY_VIOLATION",
+                        "message": "仅允许本地回环地址访问",
+                        "origin": origin,
+                    }
+                },
+            )
+
+        # Validate referer as fallback
+        if not origin and referer:
+            if not _is_loopback_origin(referer):
+                logger.warning("loopback_referer_rejected", referer=referer, path=request.url.path)
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": {
+                            "code": "LOCAL_NETWORK_BOUNDARY_VIOLATION",
+                            "message": "仅允许本地回环地址访问",
+                            "referer": referer,
+                        }
+                    },
+                )
+
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -330,8 +440,11 @@ async def config_health_check():
 
 # ========== API 路由 ==========
 
-# v1 API
-app.include_router(auth_router, prefix="/api/v1")
+# EXEC-048: Removed auth_router, account_router, dev_auth_router registrations
+# Authentication is no longer required for single-user local instance.
+# Legacy auth endpoints return 404 (handled by not registering the router).
+
+# v1 API (no-auth loopback mode)
 app.include_router(book_learning_router, prefix="/api/v1")
 app.include_router(data_control_router, prefix="/api/v1")
 app.include_router(dialog_router, prefix="/api/v1")
@@ -343,8 +456,6 @@ app.include_router(workspace_router, prefix="/api/v1")
 app.include_router(onboarding_router, prefix="/api/v1")
 app.include_router(recovery_router, prefix="/api/v1")
 
-app.include_router(account_router, prefix="/api/v1")
-
 # Orchestrator TEI v1 调试端点
 if settings.enable_orchestrator_debug_api:
     logger.info("orchestrator_debug_api_enabled")
@@ -352,12 +463,16 @@ if settings.enable_orchestrator_debug_api:
 else:
     logger.info("orchestrator_debug_api_disabled")
 
-# 开发自动登录（仅非生产环境，显式开启时注册）
-if settings.dev_auto_login_enabled:
+# EXEC-048: Disabled dev auto-login in no-auth mode
+# If development auth is needed temporarily, enable via explicit flag
+if settings.dev_auto_login_enabled and settings.is_development:
     from app.api.v1.dev_auth import router as dev_auth_router
 
-    logger.info("dev_auto_login_enabled")
-    app.include_router(dev_auth_router, prefix="/api/v1")
+    logger.warning(
+        "dev_auto_login_enabled_deprecated", message="Dev auto-login is deprecated in no-auth mode."
+    )
+    # Temporarily re-enable for development testing only
+    # app.include_router(dev_auth_router, prefix="/api/v1")
 
 
 # ========== 启动入口 ==========

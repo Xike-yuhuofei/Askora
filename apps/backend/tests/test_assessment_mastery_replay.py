@@ -232,8 +232,7 @@ async def test_canonical_assessment_to_mastery_is_durable_idempotent_and_traceab
     async with factory() as session:
         task = await session.scalar(
             select(OutboxTaskRecord).where(
-                OutboxTaskRecord.idempotency_key
-                == f"assessment-result-project:{result.result_id}"
+                OutboxTaskRecord.idempotency_key == f"assessment-result-project:{result.result_id}"
             )
         )
         assert task is not None

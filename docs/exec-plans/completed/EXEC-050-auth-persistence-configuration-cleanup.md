@@ -1,6 +1,6 @@
 # EXEC-050 — Auth Persistence & Configuration Cleanup
 
-> Status：FROZEN / BLOCKED_BY_DEPENDENCY_GATE  
+> Status：**DONE**（2026-08-10）  
 > Governing：ADR-0015、`LID-*`、Authentication Removal Vertical Slice  
 > Dependency：EXEC-049 DONE  
 > Next：EXEC-051

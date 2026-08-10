@@ -46,7 +46,10 @@ def test_planner_repairs_unmet_prerequisite_and_unknown_state() -> None:
     )
     assert [activity.type for activity in unknown.activities] == ["diagnostic"]
     assert [activity.type for activity in unmet.activities] == ["prerequisite_remediation"]
-    assert all(target not in activity.knowledge_unit_ids for activity in (*unknown.activities, *unmet.activities))
+    assert all(
+        target not in activity.knowledge_unit_ids
+        for activity in (*unknown.activities, *unmet.activities)
+    )
 
 
 def test_planner_consumes_due_candidate_without_modifying_schedule_state() -> None:
@@ -75,7 +78,9 @@ def test_planner_consumes_due_candidate_without_modifying_schedule_state() -> No
         created_at=NOW,
     )
     assert "delayed_review" in [activity.type for activity in decision.activities]
-    assert all(activity.objective_id == decision.plan.objective_ids[0] for activity in decision.activities)
+    assert all(
+        activity.objective_id == decision.plan.objective_ids[0] for activity in decision.activities
+    )
     assert all(activity.reason_codes for activity in decision.activities)
     assert decision.plan.review_schedule_version == f"{due.schedule_id}:4"
     assert due.model_dump() == before
@@ -100,9 +105,5 @@ def test_planner_replay_budget_and_small_change_stability() -> None:
     replayed = planner.generate(**kwargs)
     assert replayed == first
     assert sum(item.estimated_duration_minutes for item in first.activities) <= 15
-    assert not planner.is_material_change(
-        prior_mastery={target: 0.50}, new_mastery={target: 0.53}
-    )
-    assert planner.is_material_change(
-        prior_mastery={target: 0.50}, new_mastery={target: 0.60}
-    )
+    assert not planner.is_material_change(prior_mastery={target: 0.50}, new_mastery={target: 0.53})
+    assert planner.is_material_change(prior_mastery={target: 0.50}, new_mastery={target: 0.60})

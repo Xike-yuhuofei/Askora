@@ -118,7 +118,6 @@ function formatDate(value) {
 }
 
 function responseMessage(error, fallback) {
-  if (error?.response?.status === 401) return '登录状态已失效，请重新登录。'
   if (error?.response?.status === 413) return '文件超过 50 MB 上限。'
   const detail = error?.response?.data?.detail
   const structuredMessage = error?.response?.data?.error?.message
@@ -245,13 +244,12 @@ export default function Library() {
         return pendingExists ? pendingSelection : retained ? current : documents[0]?.document_id || null
       })
     } catch (error) {
-      const unauthorized = error?.response?.status === 401
-      if (quiet && !unauthorized) {
+      if (quiet) {
         setActionError(responseMessage(error, '资料状态自动刷新暂时失败，请手动重试。'))
         return
       }
       setLibrary({
-        status: unauthorized ? 'unauthorized' : 'error',
+        status: 'error',
         payload: null,
         error: responseMessage(error, '资料库暂时无法读取。'),
       })
@@ -610,7 +608,7 @@ export default function Library() {
     )
   }
 
-  if (library.status === 'error' || library.status === 'unauthorized') {
+  if (library.status === 'error') {
     return (
       <div className="page-state page-state--error" role="alert">
         <FolderOpen size={28} />
@@ -722,28 +720,38 @@ export default function Library() {
         <span className="library-count">共 {total} 份资料</span>
       </section>
 
-      <section className="surface library-management" aria-labelledby="organize-title">
-        <div className="section-heading section-heading--compact">
-          <div><p className="eyebrow">可恢复操作</p><h2 id="organize-title">整理资料</h2></div>
-          <CheckSquare size={18} />
-        </div>
-        <div className="library-management__row">
-          <label><span>给所选资料加标签</span><select value={batchTagId} onChange={(event) => setBatchTagId(event.target.value)}><option value="">不更改</option>{availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}</select></label>
-          <label><span>加入集合</span><select value={batchCollectionId} onChange={(event) => setBatchCollectionId(event.target.value)}><option value="">不更改</option>{availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}</select></label>
-          <button type="button" className="button button--secondary" onClick={() => applyBatch(null)} disabled={!checkedIds.length || managing}>应用分类</button>
-          <button type="button" className="button button--secondary" onClick={() => applyBatch(archivedFilter ? false : true)} disabled={!checkedIds.length || managing}>
-            {archivedFilter ? <RotateCcw size={15} /> : <Archive size={15} />}
-            {archivedFilter ? '恢复所选' : '归档所选'}
-          </button>
-          <span>{checkedIds.length} 份已选</span>
-        </div>
-        <div className="library-management__row library-label-create">
-          <label><span>新标签</span><input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} maxLength={80} placeholder="例如：核心概念" /></label>
-          <button type="button" className="button button--ghost" onClick={() => createLabel('tag')} disabled={!newTagName.trim() || managing}><Tags size={15} />创建标签</button>
-          <label><span>新集合</span><input value={newCollectionName} onChange={(event) => setNewCollectionName(event.target.value)} maxLength={120} placeholder="例如：物理教材" /></label>
-          <button type="button" className="button button--ghost" onClick={() => createLabel('collection')} disabled={!newCollectionName.trim() || managing}><FolderPlus size={15} />创建集合</button>
-        </div>
-      </section>
+      {checkedIds.length > 0 ? (
+        <section className="surface library-management" aria-labelledby="organize-title">
+          <div className="section-heading section-heading--compact">
+            <div><p className="eyebrow">已选 {checkedIds.length} 份资料</p><h2 id="organize-title">批量操作</h2></div>
+            <CheckSquare size={18} />
+          </div>
+          <div className="library-management__row">
+            <label><span>给所选资料加标签</span><select value={batchTagId} onChange={(event) => setBatchTagId(event.target.value)}><option value="">不更改</option>{availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}</select></label>
+            <label><span>加入集合</span><select value={batchCollectionId} onChange={(event) => setBatchCollectionId(event.target.value)}><option value="">不更改</option>{availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}</select></label>
+            <button type="button" className="button button--secondary" onClick={() => applyBatch(null)} disabled={!checkedIds.length || managing}>应用分类</button>
+            <button type="button" className="button button--secondary" onClick={() => applyBatch(archivedFilter ? false : true)} disabled={!checkedIds.length || managing}>
+              {archivedFilter ? <RotateCcw size={15} /> : <Archive size={15} />}
+              {archivedFilter ? '恢复所选' : '归档所选'}
+            </button>
+            <button type="button" className="button button--ghost" onClick={() => setCheckedIds([])}>取消选择</button>
+          </div>
+          <div className="library-management__row library-label-create">
+            <label><span>新标签</span><input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} maxLength={80} placeholder="例如：核心概念" /></label>
+            <button type="button" className="button button--ghost" onClick={() => createLabel('tag')} disabled={!newTagName.trim() || managing}><Tags size={15} />创建标签</button>
+            <label><span>新集合</span><input value={newCollectionName} onChange={(event) => setNewCollectionName(event.target.value)} maxLength={120} placeholder="例如：物理教材" /></label>
+            <button type="button" className="button button--ghost" onClick={() => createLabel('collection')} disabled={!newCollectionName.trim() || managing}><FolderPlus size={15} />创建集合</button>
+          </div>
+        </section>
+      ) : (
+        <section className="surface library-management library-management--collapsed" aria-label="批量操作提示">
+          <div className="section-heading section-heading--compact">
+            <div><p className="eyebrow">提示</p><h2>选择资料后可批量管理</h2></div>
+            <CheckSquare size={18} />
+          </div>
+          <p className="empty-copy">勾选资料后，可在此处批量加标签、加入集合或归档。</p>
+        </section>
+      )}
 
       {duplicates.items.length > 0 && (
         <section className="surface duplicate-review" aria-labelledby="duplicate-title">
