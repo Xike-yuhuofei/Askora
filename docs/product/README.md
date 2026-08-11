@@ -178,7 +178,7 @@ Product Definition 可以冻结用户可感知的 durability / privacy / failure
 
 ## 6. Research Boundary
 
-Research 回答“为什么相信这个结论”，可以保存证据、反例、竞争分析和实验结果，但不能形成第二套产品规范。当前 Product Discovery 研究位于 [`../research/`](../research/README.md)，Learning Core 研究位于 [`../design/research/`](../design/research/README.md)。Research 只有被 Strategy / Positioning / Product Definition / Canonical Design 正式吸收后，才成为下游约束。
+Research 回答“为什么相信这个结论”，可以保存证据、反例、竞争分析和实验结果，但不能形成第二套产品规范。当前 Product Discovery 研究位于 [`../research/product-discovery/`](../research/product-discovery/)，Learning Core 研究位于 [`../research/learning-core/`](../research/learning-core/README.md)。Research 只有被 Strategy / Positioning / Product Definition / Canonical Design 正式吸收后，才成为下游约束。
 
 ## 7. Current Work Status
 

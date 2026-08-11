@@ -4,7 +4,7 @@
 > 冻结日期：2026-08-11  
 > 适用范围：Askora v1 semantic interaction model  
 > 上游：[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../adr/ADR-0018-ux-workspace-context-architecture.md`](../../adr/ADR-0018-ux-workspace-context-architecture.md)  
+> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)
 > 下游：UI Screen / Learning Interaction / Design System Specs
 
 ---

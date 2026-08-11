@@ -121,15 +121,16 @@ PRODUCT-STRATEGY
 
 ## 6. Historical UI Contract Set
 
-以下文件继续保留为**历史/迁移参考**，不再作为新实现 current Authority：
+以下文件已迁至 `docs/archive/specs/ui/`，继续作为**历史/迁移参考**，不再作为新实现 current Authority：
 
-- `interactive-element-system.md`
-- `information-architecture.md`
-- `screen-contracts.md`
-- `visual-system.md`
-- `component-state-contracts.md`
-- `quality-and-migration.md`
-- `data-contracts.md`
+- [interactive-element-system.md](../../archive/specs/ui/interactive-element-system.md)
+- [information-architecture.md](../../archive/specs/ui/information-architecture.md)
+- [screen-contracts.md](../../archive/specs/ui/screen-contracts.md)
+- [visual-system.md](../../archive/specs/ui/visual-system.md)
+- [component-state-contracts.md](../../archive/specs/ui/component-state-contracts.md)
+- [quality-and-migration.md](../../archive/specs/ui/quality-and-migration.md)
+
+原 `data-contracts.md` 与 `docs/specs/frontend/ui-read-model-contracts.md` 字节级完全重复，已删除重复副本；技术 read-model 合同只保留后者作为唯一 current source。
 
 这些文件记录 ADR-0014 → ADR-0018 / UI-03 → UI-04 的演进，并包含 supersession matrices、旧 route/facet、一次性 migration 与历史 EXEC 语境。
 
