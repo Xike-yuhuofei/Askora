@@ -2,7 +2,7 @@
 
 > 状态：Current
 > 校准日期：2026-08-11
-> 基线提交：`a192b54ee0fcfd0d13c213f6c25a65db3eb92e9d`
+> 基线提交：`379d97c1fe6ba544e586dee2ae79aba39ac25ce1`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态以 Linear 和 current `main` 为准。
 
 处置代码：
@@ -194,13 +194,13 @@
 | `docs/specs/ui/learning-interaction-contracts.md` | CANONICAL-RETAIN | current UI 学习交互长期合同 |
 | `docs/specs/ui/design-system.md` | CANONICAL-RETAIN | current UI 设计系统长期合同 |
 | `docs/specs/ui/quality-and-regression.md` | CANONICAL-RETAIN | current UI 质量/回归长期合同 |
-| `docs/specs/ui/interactive-element-system.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/data-contracts.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN |
-| `docs/specs/ui/component-state-contracts.md` | CANONICAL-RETAIN |
+| `docs/specs/ui/interactive-element-system.md` | HISTORICAL-RETAIN | ADR-0014 → ADR-0018 迁移期合同；current 语义已吸收到 Experience / current-only UI contracts |
+| `docs/specs/ui/information-architecture.md` | HISTORICAL-RETAIN | 含 supersession matrix 与旧 four-facet 条款，仅供历史追踪 |
+| `docs/specs/ui/screen-contracts.md` | HISTORICAL-RETAIN | 含旧/new screen 条款叠层，仅供历史追踪 |
+| `docs/specs/ui/data-contracts.md` | HISTORICAL-RETAIN | 原 UI technical data contract；current technical copy 位于 `docs/specs/frontend/ui-read-model-contracts.md` |
+| `docs/specs/ui/visual-system.md` | HISTORICAL-RETAIN | 视觉规则已 consolidate 到 `ui/design-system.md` |
+| `docs/specs/ui/quality-and-migration.md` | HISTORICAL-RETAIN | migration/history 保留；长期质量由 `ui/quality-and-regression.md` 管理 |
+| `docs/specs/ui/component-state-contracts.md` | HISTORICAL-RETAIN | component state 已 consolidate 到 `ui/design-system.md` |
 | `docs/specs/frontend/ui-read-model-contracts.md` | CANONICAL-RETAIN | UI read-model/query/ownership 技术合同（已迁出 Experience Design Authority） |
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CANONICAL-RETAIN |
@@ -213,7 +213,7 @@
 | `docs/specs/vertical-slices/ui-02b3-real-model-guided-learning.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/ui-02b-goals-path-evidence.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/ui-02c-canonical-activity-lifecycle.md` | HISTORICAL-RETAIN |
-| `docs/specs/vertical-slices/ui-03-interactive-element-system-refactor.md` | CANONICAL-RETAIN |
+| `docs/specs/vertical-slices/ui-03-interactive-element-system-refactor.md` | HISTORICAL-RETAIN | 历史 UI-03 migration slice；current implementation 服从 consolidated Experience/UI contracts |
 | `docs/specs/vertical-slices/ui-04-ux-workspace-context.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/p1-05-account-lifecycle.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/p1-04a-library-organization.md` | HISTORICAL-RETAIN |
@@ -237,7 +237,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED |
 | `docs/exec-plans/CHAIN-A-UI-03-PROMPT.md` | SUPPORT-RETAIN |
 | `docs/exec-plans/CHAIN-B-CI-V2-PROMPT.md` | SUPPORT-RETAIN |
-| `docs/exec-plans/active/EXEC-045-ui-03c-library-progressive-disclosure.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/active/EXEC-045-ui-03c-library-progressive-disclosure.md` | HISTORICAL-RETAIN | superseded by current `EXEC-072 / XIK-165`; do not execute |
 | `docs/exec-plans/active/EXEC-046-ui-03d-settings-legacy-release-closure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-054-required-core-test-realignment.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-055-local-data-migration-recovery-rebuild-gate.md` | CANONICAL-RETAIN |
@@ -339,3 +339,4 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 7. 删除前记录替代来源；删除后运行文档链接/生命周期门禁。
 8. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得被解释为 v1 仍要求这些运行形态。
 9. Product Discovery Research 支持 Strategy；Research 不能直接成为 Product Definition 或实现合同；未验证假设必须保留证据状态。
+10. UI/UX 新实现必须从 `docs/design/experience/**` + `docs/specs/ui/README.md` 的 current-only contracts 开始；旧 UI Spec / Delta / Supersession Matrix 仅作历史追溯。
