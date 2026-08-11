@@ -44,9 +44,7 @@ class StaticRedis:
     "payload",
     [
         json.dumps({"p": 0.75, "n_attempts": 3, "n_correct": 2, "n_wrong": 1}),
-        json.dumps(
-            {"p": 0.75, "n_attempts": 3, "n_correct": 2, "n_wrong": 1}
-        ).encode(),
+        json.dumps({"p": 0.75, "n_attempts": 3, "n_correct": 2, "n_wrong": 1}).encode(),
     ],
 )
 def test_kt_redis_json_text_and_bytes_are_loaded(payload):
