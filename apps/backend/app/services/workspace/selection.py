@@ -82,9 +82,7 @@ class WorkspaceSelectionService:
         view_state: Literal["EMPTY", "READY", "STALE"] = (
             "EMPTY"
             if not workspaces and selection is None
-            else "READY"
-            if valid_current and selection is not None
-            else "STALE"
+            else "READY" if valid_current and selection is not None else "STALE"
         )
         return WorkspaceListResponseV1(
             generated_at=self.clock(),

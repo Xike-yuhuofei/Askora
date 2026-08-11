@@ -292,9 +292,7 @@ class CourseActivityIndexQueryService:
                 launch: Literal["RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"] = (
                     "RESUMABLE"
                     if state.status == "active"
-                    else "REQUIRES_START_COMMAND"
-                    if state.status == "available"
-                    else "UNAVAILABLE"
+                    else "REQUIRES_START_COMMAND" if state.status == "available" else "UNAVAILABLE"
                 )
                 item = WorkspaceActivityItemV1(
                     activity_ref=f"learning_activity:{activity_id}:v{activity.plan_version}",
@@ -363,9 +361,7 @@ class CourseActivityIndexQueryService:
                     availability=(
                         AvailabilityStatus.STALE
                         if stale
-                        else AvailabilityStatus.AVAILABLE
-                        if indexed
-                        else AvailabilityStatus.MISSING
+                        else AvailabilityStatus.AVAILABLE if indexed else AvailabilityStatus.MISSING
                     ),
                     reason_codes=reasons,
                 ),
