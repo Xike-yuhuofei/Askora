@@ -2,7 +2,7 @@
 
 > 状态：Current
 > 校准日期：2026-08-11
-> 基线提交：`a4e682a9bd23288ce3b383c70a143ffe67666bf7`
+> 基线提交：`a192b54ee0fcfd0d13c213f6c25a65db3eb92e9d`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态以 Linear 和 current `main` 为准。
 
 处置代码：
@@ -95,8 +95,11 @@
 | `docs/design/README.md` | CURRENT-UPDATED |
 | `docs/design/个人AI辅助学习平台设计方案.md` | CURRENT-UPDATED |
 | `docs/design/AI学习系统算法与教学内核设计.md` | CURRENT-UPDATED |
-| `docs/design/UX-Architecture-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
-| `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
+| `docs/design/experience/EXPERIENCE-ARCHITECTURE.md` | CANONICAL-RETAIN |
+| `docs/design/experience/LEARNING-EXPERIENCE.md` | CANONICAL-RETAIN |
+| `docs/design/experience/INTERACTION-MODEL.md` | CANONICAL-RETAIN |
+| `docs/design/UX-Architecture-Canonical-Design-Delta.md` | HISTORICAL-RETAIN |
+| `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | HISTORICAL-RETAIN |
 | `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | HISTORICAL-RETAIN |
