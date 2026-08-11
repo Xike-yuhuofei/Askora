@@ -53,9 +53,7 @@ async def _schema_snapshot(database_url: str) -> dict[str, dict[str, object]]:
                 lambda sync: {
                     table_name: {
                         "primary_key": tuple(
-                            inspect(sync).get_pk_constraint(table_name)[
-                                "constrained_columns"
-                            ]
+                            inspect(sync).get_pk_constraint(table_name)["constrained_columns"]
                         ),
                         "unique_names": {
                             constraint["name"]
