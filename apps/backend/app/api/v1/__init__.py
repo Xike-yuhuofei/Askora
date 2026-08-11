@@ -15,6 +15,7 @@ from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.recovery import router as recovery_router
 from app.api.v1.users import router as users_router
 from app.api.v1.workspace import router as workspace_router
+from app.api.v1.workspace import workspaces_router
 from app.api.v1.ws import router as ws_router
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "goals_router",
     "ws_router",
     "workspace_router",
+    "workspaces_router",
 ]

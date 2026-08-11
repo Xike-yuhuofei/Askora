@@ -10,11 +10,14 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.contracts.learning import ReviewSchedule
+from app.contracts.workspace import CreateWorkspaceV1, WorkspaceTransitionGuardV1
 from app.core.database import Base
 from app.models.dialog import DialogSession, SessionStatus
 from app.models.planning import ReviewScheduleRecord
 from app.models.user import User
 from app.queries.workspace import WorkspaceTodayQueryService
+from app.services.local_identity import ensure_local_owner
+from app.services.workspace.selection import WorkspaceSelectionService
 
 NOW = datetime(2026, 8, 8, 1, 30, tzinfo=timezone.utc)
 
@@ -165,6 +168,22 @@ async def test_ui01_today_http_contract_is_private_and_rejects_bad_timezone(tmp_
     user_id = str(uuid4())
     async with factory() as session:
         session.add(User(id=user_id, pseudonym_id="workspace-http-user"))
+        await session.commit()
+        owner = await ensure_local_owner(session)
+        await WorkspaceSelectionService(session).create(
+            owner_id=owner.owner_id,
+            command=CreateWorkspaceV1(
+                display_name="测试课程",
+                transition_guard=WorkspaceTransitionGuardV1(
+                    composer_draft="CLEAR",
+                    stream="CLEAR",
+                    user_note="CLEAR",
+                    material_position="PRESERVED",
+                ),
+                idempotency_key="workspace-today-http-course",
+            ),
+            correlation_id=uuid4(),
+        )
         await session.commit()
 
     async def override_get_db():

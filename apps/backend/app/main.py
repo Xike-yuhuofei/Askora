@@ -32,6 +32,7 @@ from app.api.v1 import (
     recovery_router,
     users_router,
     workspace_router,
+    workspaces_router,
     ws_router,
 )
 from app.core.config import settings
@@ -145,18 +146,21 @@ async def lifespan(app: FastAPI):
         await session.commit()
     logger.info("local_owner_initialized", owner_id=owner.canonical_owner_id)
 
-    # XIK-171: ensure the deterministic default Workspace and migrate legacy
-    # LocalOwner-global data into it (idempotent, non-destructive).
+    # ADR-0023/CWSP-070: keep a genuinely fresh owner empty; only existing
+    # Workspace or legacy business data receives default/selection reconciliation.
     from app.services.workspace.bootstrap import WorkspaceBootstrapService
 
     async with session_factory() as session:
         bootstrap = WorkspaceBootstrapService(session)
-        ws = await bootstrap.ensure_default_workspace(owner.canonical_owner_id)
-        migrate = await bootstrap.migrate_legacy_to_default(owner.canonical_owner_id, workspace=ws)
+        migrate = await bootstrap.reconcile_course_workspace(owner.canonical_owner_id)
+        if migrate.integrity_failures:
+            raise RuntimeError(
+                "WORKSPACE_INTEGRITY_FAILED: " + "; ".join(migrate.integrity_failures)
+            )
         await session.commit()
     logger.info(
         "workspace_bootstrap_initialized",
-        workspace_id=ws.workspace_id,
+        workspace_id=migrate.workspace_id,
         backfilled_rows=sum(migrate.backfilled.values()),
         source_files_created=migrate.source_files_created,
         recovery_issues=len(migrate.recovery_issues),
@@ -386,6 +390,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(goals_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")
+app.include_router(workspaces_router, prefix="/api/v1")
 app.include_router(onboarding_router, prefix="/api/v1")
 app.include_router(recovery_router, prefix="/api/v1")
 

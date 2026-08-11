@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import UserDocument
 from app.models.workspace import SourceFile, Workspace
-from app.services.workspace.repository import WorkspaceRepository
+from app.services.workspace.repository import WorkspaceRepository, WorkspaceSelectionRepository
 
 logger = getLogger(__name__)
 
@@ -103,6 +103,69 @@ class WorkspaceBootstrapService:
         """Resolve or create exactly one active default Workspace (idempotent)."""
         repo = WorkspaceRepository(self.db)
         return await repo.create_default_if_absent(owner_id)
+
+    async def has_legacy_workspace_data(self) -> bool:
+        """Return whether durable business rows require a migration Workspace."""
+        from app.core.database import Base
+
+        for table_name in (
+            "user_documents",
+            "dialog_sessions",
+            "learning_goal_versions",
+            "learner_evidence",
+            "canonical_mastery_estimate_versions",
+            "review_schedule_versions",
+        ):
+            table = Base.metadata.tables.get(table_name)
+            if table is None:
+                continue
+            count = await self.db.scalar(
+                select(table.c[next(iter(table.primary_key.columns)).name]).limit(1)
+            )
+            if count is not None:
+                return True
+        return False
+
+    async def reconcile_course_workspace(self, owner_id: str) -> MigrationResult:
+        """CWSP-070 keep fresh owners empty; migrate/reconcile existing data only."""
+        repo = WorkspaceRepository(self.db)
+        workspaces = await repo.list_active_for_owner(owner_id)
+        if not workspaces:
+            if not await self.has_legacy_workspace_data():
+                return MigrationResult()
+            result = await self.migrate_legacy_to_default(owner_id)
+            if result.workspace_id is not None:
+                await self._ensure_selection(owner_id, result.workspace_id)
+            return result
+
+        result = MigrationResult(workspace_id=workspaces[0].workspace_id)
+        selection_repo = WorkspaceSelectionRepository(self.db)
+        selection = await selection_repo.get(owner_id)
+        if selection is None:
+            default = next((item for item in workspaces if item.is_default), None)
+            if default is None:
+                result.integrity_failures.append(
+                    "active Workspaces exist without an active default"
+                )
+                return result
+            await self._ensure_selection(owner_id, default.workspace_id)
+        elif not any(item.workspace_id == selection.current_workspace_id for item in workspaces):
+            result.integrity_failures.append(
+                "WorkspaceSelection target is not an active Workspace for the LocalOwner"
+            )
+        return result
+
+    async def _ensure_selection(self, owner_id: str, workspace_id: str) -> None:
+        selection_repo = WorkspaceSelectionRepository(self.db)
+        if await selection_repo.get(owner_id) is not None:
+            return
+        await selection_repo.set(
+            owner_id=owner_id,
+            current_workspace_id=workspace_id,
+            reason="LEGACY_MIGRATION",
+            correlation_id=str(uuid5(NAMESPACE_URL, f"askora:workspace-selection:{owner_id}")),
+            expected_version=None,
+        )
 
     async def migrate_legacy_to_default(
         self,

@@ -14,26 +14,145 @@ from app.contracts.activity_lifecycle import (
     StartLearningActivityV1,
 )
 from app.contracts.workspace import (
+    CreateWorkspaceV1,
     EvidenceProfileResponseV1,
     GoalListResponseV1,
     KnowledgeMapResponseV1,
     LearningContextResponseV1,
     LearningPathResponseV1,
     LibraryWorkspaceResponseV1,
+    SwitchWorkspaceV1,
     TodayWorkspaceResponseV1,
+    WorkspaceActivityIndexResponseV1,
     WorkspaceContextResponseV1,
+    WorkspaceGetResponseV1,
+    WorkspaceListResponseV1,
+    WorkspaceMutationResultV1,
 )
 from app.core.database import get_db
 from app.core.exceptions import BusinessError, ValidationInputError
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.queries.library import WorkspaceLibraryQueryService
-from app.queries.workspace import WorkspaceContextQueryService, WorkspaceTodayQueryService
+from app.queries.workspace import (
+    CourseActivityIndexQueryService,
+    WorkspaceContextQueryService,
+    WorkspaceTodayQueryService,
+)
 from app.services.activity_lifecycle import ActivityLifecycleService
-from app.services.owner.dependencies import get_current_owner_projection
-from app.services.workspace.dependencies import get_default_workspace
+from app.services.local_identity import LocalOwnerContext
+from app.services.owner.dependencies import get_current_owner, get_current_owner_projection
+from app.services.workspace.dependencies import get_current_workspace
+from app.services.workspace.selection import WorkspaceSelectionService
 
 router = APIRouter(prefix="/workspace", tags=["学习工作区"])
+workspaces_router = APIRouter(prefix="/workspaces", tags=["课程工作区"])
+
+
+@workspaces_router.get("", response_model=WorkspaceListResponseV1, summary="列出课程")
+async def list_workspaces(
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceListResponseV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).list(
+        owner_id=UUID(owner.canonical_owner_id), correlation_id=_correlation_id(request)
+    )
+
+
+@workspaces_router.get("/current", response_model=WorkspaceGetResponseV1, summary="获取当前课程")
+async def get_current_course_workspace(
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceGetResponseV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).current(
+        owner_id=UUID(owner.canonical_owner_id), correlation_id=_correlation_id(request)
+    )
+
+
+@workspaces_router.post("", response_model=WorkspaceMutationResultV1, summary="创建并选择课程")
+async def create_course_workspace(
+    body: CreateWorkspaceV1,
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMutationResultV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).create(
+        owner_id=UUID(owner.canonical_owner_id),
+        command=body,
+        correlation_id=_correlation_id(request),
+    )
+
+
+@workspaces_router.get(
+    "/{workspace_id}", response_model=WorkspaceGetResponseV1, summary="获取指定课程"
+)
+async def get_course_workspace(
+    workspace_id: UUID,
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceGetResponseV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).get(
+        owner_id=UUID(owner.canonical_owner_id),
+        workspace_id=workspace_id,
+        correlation_id=_correlation_id(request),
+    )
+
+
+@workspaces_router.post(
+    "/{workspace_id}/switch", response_model=WorkspaceMutationResultV1, summary="切换当前课程"
+)
+async def switch_course_workspace(
+    workspace_id: UUID,
+    body: SwitchWorkspaceV1,
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMutationResultV1:
+    if workspace_id != body.target_workspace_id:
+        raise BusinessError(
+            message="课程路径与命令目标不一致",
+            error_code="WORKSPACE_NOT_FOUND_OR_INACCESSIBLE",
+            status_code=404,
+            category="not_found",
+        )
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).switch(
+        owner_id=UUID(owner.canonical_owner_id),
+        command=body,
+        correlation_id=_correlation_id(request),
+    )
+
+
+@workspaces_router.get(
+    "/{workspace_id}/activities",
+    response_model=WorkspaceActivityIndexResponseV1,
+    summary="获取课程活动索引",
+)
+async def get_course_workspace_activities(
+    workspace_id: UUID,
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceActivityIndexResponseV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await CourseActivityIndexQueryService(db).get_for_owner(
+        owner_id=owner.owner_id,
+        workspace_id=workspace_id,
+        correlation_id=_correlation_id(request),
+    )
 
 
 def _correlation_id(request: Request) -> UUID:
@@ -61,13 +180,18 @@ def _require_activity_match(path_id: UUID, body_id: UUID) -> None:
 async def get_workspace_context(
     request: Request,
     response: Response,
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     _current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
 ) -> WorkspaceContextResponseV1:
     """ADR-0019 query-only projection; never creates or switches Workspace."""
+    active_count = await WorkspaceSelectionService(db).count_active(
+        owner_id=UUID(default_workspace.owner_id)
+    )
     result = WorkspaceContextQueryService().get_context(
         default_workspace,
         correlation_id=getattr(request.state, "request_id", "unknown"),
+        switch_capability="MULTIPLE_WORKSPACE" if active_count > 1 else "SINGLE_WORKSPACE",
     )
     response.headers["Cache-Control"] = "private, no-store"
     return result
@@ -82,7 +206,7 @@ async def get_learning_context(
     request: Request,
     response: Response,
     activity_id: UUID | None = Query(None),
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningContextResponseV1:
@@ -163,7 +287,7 @@ async def complete_activity_lifecycle(
 async def get_goals_workspace(
     request: Request,
     response: Response,
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalListResponseV1:
@@ -182,7 +306,7 @@ async def get_path_workspace(
     request: Request,
     response: Response,
     goal_id: UUID | None = Query(None),
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningPathResponseV1:
@@ -201,7 +325,7 @@ async def get_path_workspace(
 async def get_evidence_workspace(
     request: Request,
     response: Response,
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> EvidenceProfileResponseV1:
@@ -229,7 +353,7 @@ async def get_library_workspace(
     sort: str = Query("created_desc", max_length=30),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LibraryWorkspaceResponseV1:
@@ -263,7 +387,7 @@ async def get_knowledge_map(
     request: Request,
     response: Response,
     document_id: UUID = Query(...),
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> KnowledgeMapResponseV1:
@@ -282,7 +406,7 @@ async def get_today_workspace(
     request: Request,
     response: Response,
     timezone_name: str = Query("Asia/Shanghai", alias="timezone", min_length=1, max_length=64),
-    default_workspace: Workspace = Depends(get_default_workspace),
+    default_workspace: Workspace = Depends(get_current_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> TodayWorkspaceResponseV1:

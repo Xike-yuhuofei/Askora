@@ -16,7 +16,9 @@ from app.core.exceptions import ResourceNotFoundError
 from app.models.user import User
 from app.queries.library import WorkspaceLibraryQueryService
 from app.services.documents.document_service import DocumentService
+from app.services.local_identity import ensure_local_owner
 from app.services.storage.local_storage import LocalFileStorage
+from app.services.workspace.bootstrap import WorkspaceBootstrapService
 
 NOW = datetime(2026, 8, 8, 2, 0, tzinfo=timezone.utc)
 
@@ -263,6 +265,11 @@ async def test_ui02a_http_queries_are_private_and_require_valid_scope(tmp_path) 
         service.storage = LocalFileStorage(str(tmp_path / "http-documents"))
         document = await service.upload_document(user.pseudonym_id, "topic.md", b"# Topic\n\nFact.")
         await service.process_document(document.id)
+        owner = await ensure_local_owner(session)
+        await WorkspaceBootstrapService(session).reconcile_course_workspace(
+            owner.canonical_owner_id
+        )
+        await session.commit()
 
     async def override_get_db():
         async with factory() as session:
