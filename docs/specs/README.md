@@ -14,7 +14,7 @@ PRODUCT-POSITIONING.md
         ↓ product boundary
 PRODUCT-DEFINITION.md
         ↓ capabilities / requirements / product acceptance
-Canonical Design / Design Delta
+Canonical Design
         ↓
 Accepted ADR
         ↓
@@ -63,6 +63,23 @@ Research Synthesis
 ```
 
 v1 platform/runtime changes MUST NOT silently redesign the six Strategy Families、TeachingContext、TeachingAction、Assessment、LearnerState、Review 或 DecisionTrace semantics。
+
+### Experience / UI
+
+```text
+PRODUCT-DEFINITION
+→ Learning / Domain Canonical Design
+→ docs/design/experience/EXPERIENCE-ARCHITECTURE.md
+→ docs/design/experience/LEARNING-EXPERIENCE.md
+→ docs/design/experience/INTERACTION-MODEL.md
+→ Accepted UI/UX ADR
+→ docs/specs/ui current-only contracts
+→ docs/specs/frontend UI technical contracts
+→ Vertical Slice / EXEC
+→ Frontend implementation / verification
+```
+
+UI/UX 不得通过页面、navigation、placeholder、component 或历史实现反向创建 Product Scope。
 
 ### LocalOwner / Workspace / Learning Scope
 
@@ -153,6 +170,10 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 - [Rich Response Rendering](interfaces/render-content-contract.md) — rendering boundary only.
 - [Schema Versioning](interfaces/schema-versioning.md) — schema evolution/startup compatibility.
 
+### Frontend Technical Contracts
+
+- [UI Read Model / Query Contracts](frontend/ui-read-model-contracts.md) — UI-facing read models、source/version/freshness、query/API、frontend no-owner rule 与 compatibility projection。该文件保留原 `UI-DATA-* / UXA-DATA-*` 技术条款，但不属于 Experience Design Authority。
+
 ### Quality
 
 - [Testing Standard](quality/testing-standard.md) — L0～L6 + OPVE/G0/G1/G2.
@@ -160,34 +181,42 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 - [CI Infrastructure Standard](quality/ci-infrastructure-standard.md) — v1 Local Web Required CI and optional compatibility evidence.
 - [v1 Local Web Quality Reconciliation](quality/v1-local-web-quality-reconciliation.md) — Product Positioning ↔ Quality alignment.
 - [Observability Standard](quality/observability-standard.md) — local diagnostics + decision/outcome observability.
-- [Definition of Done](quality/definition-of-done.md) — Engineering / Policy Correctness / Learning Evidence gate separation.
+- [Definition of Done](quality/definition-of-done.md) — Product / UX / Engineering / Policy / Learning Evidence gate separation.
 - [Security Standard](quality/security-standard.md) — Learning Core hard rules plus LocalOwner/Workspace/LocalSecretStore security.
 
-Quality Specs own technical/quality gates. Product Acceptance remains upstream in `PRODUCT-DEFINITION.md` or an explicit Product Feature Spec.
+Quality Specs own technical/quality gates. Product Acceptance remains upstream in `PRODUCT-DEFINITION.md` or an explicit Product Feature Spec。
 
-### UI
+### UI / UX — Current Only
 
 - [UI Spec Index](ui/README.md)
-- [Interactive Element System](ui/interactive-element-system.md)
-- [Information Architecture](ui/information-architecture.md)
-- [Screen Contracts](ui/screen-contracts.md)
-- [Data Contracts](ui/data-contracts.md)
-- [Visual System](ui/visual-system.md)
-- [Quality and Migration](ui/quality-and-migration.md)
-- [Component State Contracts](ui/component-state-contracts.md)
+- [Screen & Navigation Contracts](ui/screen-and-navigation-contracts.md)
+- [Learning Interaction Contracts](ui/learning-interaction-contracts.md)
+- [Design System](ui/design-system.md)
+- [UI/UX Quality & Regression](ui/quality-and-regression.md)
 
-UI 导航/布局/控件继续由 current UI Design/ADR/UI specs 管理，不得创建第二 domain truth 或自行决定 v1 Product Scope。
+以下旧 UI contract files 仅作 historical/migration reference，不再作为新实现 current Authority：
+
+- `ui/interactive-element-system.md`
+- `ui/information-architecture.md`
+- `ui/screen-contracts.md`
+- `ui/data-contracts.md`
+- `ui/visual-system.md`
+- `ui/component-state-contracts.md`
+- `ui/quality-and-migration.md`
+
+新的 implementation task 不得要求 Agent 从旧条款 + Supersession Matrix 推导 current truth。
 
 ## 4. Vertical Slice / Historical Supersession
 
-Current implementation slices remain useful only inside current Product Definition / ADR / Spec authority.
+Current implementation slices remain useful only inside current Product Definition / Experience / ADR / Spec authority.
 
 Primary current/historical references include：
 
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — Learning Core slice.
 - [Book-to-Adaptive-Learning](vertical-slices/book-to-adaptive-learning.md) — book-learning E2E, with current v1 material/scope/runtime rules applied.
 - [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — identity migration.
-- [UI-03 Interactive Element System](vertical-slices/ui-03-interactive-element-system-refactor.md) — UI architecture slice.
+- [UI-04 Workspace Context](vertical-slices/ui-04-ux-workspace-context.md) — current Workspace Experience implementation slice，已改用 consolidated Experience/UI contracts。
+- [UI-03 Interactive Element System](vertical-slices/ui-03-interactive-element-system-refactor.md) — historical UI architecture migration reference；current behavior 服从 consolidated contracts。
 - [P1-03 Data Control](vertical-slices/p1-03-data-control-recovery.md) — local backup/export/erasure reference.
 - [P1-06 First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — no-auth LocalOwner semantics.
 
@@ -225,22 +254,22 @@ LLM/Agent never owns final TeachingAction or canonical learner/assessment/plan/r
 
 ## 6. Product Definition → Spec Traceability
 
-Specs SHOULD reference relevant `CAP-*` / `PD-REQ-*` when new or substantially refactored contracts are created. Existing stable Spec IDs do not need bulk renaming.
+Specs SHOULD reference relevant `CAP-*` / `PD-REQ-*` when new or substantially refactored contracts are created. Existing stable Spec IDs do not need bulk renaming。
 
 | Product Definition / Constraint | Primary Contracts |
 |---|---|
-| `CAP-01` Material grounding | Domain, SPEC-D01, SYS01, SYS02, WSP, LIB, MATLIFE |
-| `CAP-02` Goal / success | SYS06 Goal Management, Goal Mapping, Domain |
-| `CAP-03` Readiness / diagnosis / planning | SYS06 Planner, Diagnostic Bootstrap, SYS04, SYS03 |
-| `CAP-04` Adaptive Learning Activity | SYS05, SYS08, Activity Lifecycle, rendering/UI contracts |
-| `CAP-05` Attempt / Assessment / Evidence | SYS04, SYS03, Event/Domain contracts |
-| `CAP-06` Review / retention / transfer | SYS07, SYS03/04/05, Outcome/Experiment contracts |
-| `CAP-07` Continuity / next-step | Workspace scope, query/UI contracts, Activity lifecycle |
-| `CAP-08` Local Data & AI Control | LID, WSP, Persistence, Data Control, LSS, MODEL-CONFIG, Security |
+| `CAP-01` Material grounding | Domain, SPEC-D01, SYS01, SYS02, WSP, LIB, MATLIFE, UI Screen/Learning |
+| `CAP-02` Goal / success | SYS06 Goal Management, Goal Mapping, Domain, UI Screen |
+| `CAP-03` Readiness / diagnosis / planning | SYS06 Planner, Diagnostic Bootstrap, SYS04, SYS03, UI Screen |
+| `CAP-04` Adaptive Learning Activity | SYS05, SYS08, Activity Lifecycle, Render, Learning Interaction |
+| `CAP-05` Attempt / Assessment / Evidence | SYS04, SYS03, Event/Domain, Learning Interaction |
+| `CAP-06` Review / retention / transfer | SYS07, SYS03/04/05, Outcome/Experiment, Learning Interaction |
+| `CAP-07` Continuity / next-step | Workspace scope, frontend read model, UI Screen/Learning, Activity lifecycle |
+| `CAP-08` Local Data & AI Control | LID, WSP, Persistence, Data Control, LSS, MODEL-CONFIG, Security, UI Screen |
 | Local Web / loopback | System Architecture, Dependency Rules, LID-* |
-| No Account/Login | LID-*, State Ownership, Security |
+| No Account/Login | LID-*, State Ownership, Security, UI Screen |
 | LocalOwner | LID-*, Domain, Persistence |
-| Workspace isolation / `PD-RULE-009` | ADR-0016, WSP-*, Domain, State Ownership |
+| Workspace isolation / `PD-RULE-009` | ADR-0016, WSP-*, Domain, State Ownership, frontend read model |
 | LearningSession != DialogSession | ADR-0016, WSP-* |
 | Import = ingest + copy | SPEC-D01, WSP SourceFile, Persistence |
 | SQLite production baseline | Architecture, Persistence |
@@ -249,54 +278,59 @@ Specs SHOULD reference relevant `CAP-*` / `PD-REQ-*` when new or substantially r
 | Workspace-scoped Retrieval | WSP-073, SYS02 |
 | Trash → Restore/Permanent Delete / `PD-REQ-0104` | MATLIFE-*, LIB-*, Persistence, Data Control |
 | BYOK local secret / `PD-REQ-0803` | ADR-0017, LSS-*, MODEL-CONFIG, Security |
-| Source-grounded provenance / `PD-RULE-006` | Domain, SPEC-D01, SYS02 |
+| Source-grounded provenance / `PD-RULE-006` | Domain, SPEC-D01, SYS02, Learning Interaction |
 | local durable jobs | Architecture, Persistence, SPEC-D01 |
 | Backup != Export | Persistence, Data Control |
 | v1 core formats / `PD-REQ-0102` | SPEC-D01, LIB-* |
-| Full OCR not v1 core | `PRODUCT-DEFINITION` scope, LIB-050, ADR-0008 supersession |
+| Full OCR not v1 core | `PRODUCT-DEFINITION` scope, LIB-050, ADR-0008 supersession, UI Screen |
 | No open-ended autonomous Agent | Product Positioning, Architecture, SYS08, SYS05 |
 
 ## 7. Current ADR Supersession Relevant to Specs
 
 ### ADR-0008
 
-Partially superseded. OCR-as-core/global-library/archive mechanics are historical. Current Material scope/delete contracts are Product Definition + WSP/LIB/MATLIFE.
+Partially superseded. OCR-as-core/global-library/archive mechanics are historical. Current Material scope/delete contracts are Product Definition + WSP/LIB/MATLIFE。
 
 ### ADR-0013
 
-Partially superseded. Electron/safeStorage/Desktop IPC mechanics are historical. Current credential implementation uses ADR-0017 + LSS + MODEL-CONFIG.
+Partially superseded. Electron/safeStorage/Desktop IPC mechanics are historical. Current credential implementation uses ADR-0017 + LSS + MODEL-CONFIG。
 
 ### ADR-0015
 
-Current LocalOwner/no-auth authority. Historical Account/JWT/AuthSession product semantics do not apply to new v1 code.
+Current LocalOwner/no-auth authority. Historical Account/JWT/AuthSession product semantics do not apply to new v1 code。
 
 ### ADR-0016
 
-Current Workspace/Project/Session ownership and migration authority. `user_documents.id` remains stable Material identity; no second Material truth.
+Current Workspace/Project/Session ownership and migration authority. `user_documents.id` remains stable Material identity; no second Material truth。
 
 ### ADR-0017
 
-Current LocalSecretStore authority. Production supports exact approved OS-backed keyring adapters with fail-closed backend selection and non-secret activation journal.
+Current LocalSecretStore authority. Production supports exact approved OS-backed keyring adapters with fail-closed backend selection and non-secret activation journal。
+
+### ADR-0018 / ADR-0019
+
+Current Experience/UI Workspace authority. Historical UXA clauses remain traceable, but new UI implementation reads consolidated Experience/UI contracts plus the frontend technical read-model contract。
 
 ## 8. Migration and Compatibility Rules
 
-- Legacy fields MAY remain read-compatible only with explicit canonical target and retirement condition.
-- `user_id` / `pseudonym_id` MAY temporarily be storage compatibility for LocalOwner/Learner; never Account semantics.
-- existing `user_documents.id` migrates as stable Material identity; no parallel writable Material table.
-- embedded file columns migrate toward normalized managed SourceFile; no permanent dual-write.
-- owner-global records migrate to deterministic default Workspace before Workspace scope becomes strict.
-- legacy DialogSession is not promoted to LearningSession by naming; unprovable historical bindings remain null.
-- legacy retrieval/cache keys must migrate to Workspace scope.
-- environment/Desktop model credentials are not silently imported into production LocalSecretStore.
-- legacy deleted rows migrate per MATLIFE source-present/source-missing rules.
-- historical OCR MAY remain immutable/optional；v1 new ingest does not require OCR.
-- PostgreSQL/Redis compatibility MAY remain Optional；production-local correctness does not depend on them.
+- Legacy fields MAY remain read-compatible only with explicit canonical target and retirement condition。
+- `user_id` / `pseudonym_id` MAY temporarily be storage compatibility for LocalOwner/Learner; never Account semantics。
+- existing `user_documents.id` migrates as stable Material identity; no parallel writable Material table。
+- embedded file columns migrate toward normalized managed SourceFile; no permanent dual-write。
+- owner-global records migrate to deterministic default Workspace before Workspace scope becomes strict。
+- legacy DialogSession is not promoted to LearningSession by naming; unprovable historical bindings remain null。
+- legacy retrieval/cache keys must migrate to Workspace scope。
+- environment/Desktop model credentials are not silently imported into production LocalSecretStore。
+- legacy deleted rows migrate per MATLIFE source-present/source-missing rules。
+- historical OCR MAY remain immutable/optional；v1 new ingest does not require OCR。
+- PostgreSQL/Redis compatibility MAY remain Optional；production-local correctness does not depend on them。
+- historical UI Spec / Design Delta MAY remain for audit; current implementation must use consolidated current contracts。
 
-Compatibility existence does not make a retired feature `CURRENT/COMMITTED` in Product Definition.
+Compatibility existence does not make a retired feature `CURRENT/COMMITTED` in Product Definition。
 
 ## 9. Spec-ID Governance
 
-Existing requirement IDs MUST NOT be reused to change unrelated meaning.
+Existing requirement IDs MUST NOT be reused to change unrelated meaning。
 
 Current v1 additive families include：
 
@@ -305,6 +339,10 @@ LID-*      LocalOwner / no-auth identity
 WSP-*      Workspace / Project / LearningSession scope
 LSS-*      Local SecretStore / model activation
 MATLIFE-*  Material Trash / Restore / Permanent Delete
+UI-SN-*    Current screen / navigation contracts
+UI-LRN-*   Current learning interaction contracts
+UI-DS-*    Current Design System
+UI-QR-*    Current UI/UX quality / regression
 ```
 
 Product-level IDs use `CAP-*` / `PD-RULE-*` / `PD-REQ-*` / `PD-AC-*` and remain distinct from technical Spec IDs。
@@ -324,9 +362,9 @@ Policy / Contract Correctness Gate when applicable
 Learning Evidence Gate
 ```
 
-Local Web、SQLite、Workspace、BYOK、Trash、安全存储、CI 或 UI correctness **do not prove learning efficacy**.
+Local Web、SQLite、Workspace、BYOK、Trash、安全存储、CI 或 UI correctness **do not prove learning efficacy**。
 
-Primary real-user learning outcomes remain：independent success、delayed retention、transfer、unit-time capability gain. Engagement/turn count/usage time are not primary learning KPIs.
+Primary real-user learning outcomes remain：independent success、delayed retention、transfer、unit-time capability gain. Engagement/turn count/usage time are not primary learning KPIs。
 
 ## 11. Implementation Rule
 
@@ -335,10 +373,11 @@ Before any Codex/TraeCode task：
 1. read `docs/product/PRODUCT-STRATEGY.md`；
 2. read `docs/product/PRODUCT-POSITIONING.md`；
 3. read `docs/product/PRODUCT-DEFINITION.md` and identify applicable `CAP-*` / `PD-REQ-*` / Product Acceptance；
-4. read the applicable current Canonical Design / ADR / Spec family；
-5. check supersession before using historical ADR/Vertical Slice；
-6. treat code-vs-Spec mismatch as implementation drift by default；
-7. stop with `POSITIONING GAP` if implementation would violate the frozen product boundary；
-8. stop with `PRODUCT DEFINITION GAP` if Capability / Feature Scope / Product Rule / Product Acceptance is missing or contradicted；
-9. stop with `BLOCKED_BY_SPEC_GAP` if a required ownership/security/data decision is still ambiguous；
-10. otherwise execute mechanically and prove the applicable Product / UX / Technical / Quality Acceptance with current evidence。
+4. read applicable current Canonical Design / Experience / ADR / Spec family；
+5. for UI work, start from `docs/specs/ui/README.md` and current-only contracts, not historical UI matrices；
+6. check supersession before using historical ADR/Vertical Slice；
+7. treat code-vs-Spec mismatch as implementation drift by default；
+8. stop with `POSITIONING GAP` if implementation would violate the frozen product boundary；
+9. stop with `PRODUCT DEFINITION GAP` if Capability / Feature Scope / Product Rule / Product Acceptance is missing or contradicted；
+10. stop with `BLOCKED_BY_SPEC_GAP` if a required ownership/security/data decision is still ambiguous；
+11. otherwise execute mechanically and prove applicable Product / UX / Technical / Quality Acceptance with current evidence。
