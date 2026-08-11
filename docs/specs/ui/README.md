@@ -1,10 +1,11 @@
 # Askora UI Specification Set
 
-> 状态：`FROZEN — ADR-0014 + ADR-0018 UI Contract Set`  
+> 状态：`FROZEN — Current Experience Design + ADR-0014/0018 UI Contract Set`  
 > 权威性：Canonical UI Implementation Contract  
 > 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`  
-> Governing Design：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`、`docs/design/UX-Architecture-Canonical-Design-Delta.md`  
-> Governing ADR：`docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`、`docs/adr/ADR-0018-ux-workspace-context-architecture.md`
+> Governing Design：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`docs/design/experience/LEARNING-EXPERIENCE.md`、`docs/design/experience/INTERACTION-MODEL.md`  
+> Governing ADR：`docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`、`docs/adr/ADR-0018-ux-workspace-context-architecture.md`  
+> Historical design inputs：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`、`docs/design/UX-Architecture-Canonical-Design-Delta.md`
 
 ## 1. Purpose
 
@@ -12,9 +13,11 @@
 
 UI Specs 回答的是：
 
-> **用户如何看到、理解和操作已经由 Product Definition 冻结的产品能力。**
+> **用户如何看到、理解和操作已经由 Product Definition 冻结、并由 current Experience Design 组织为体验模型的产品能力。**
 
 它们不拥有 Product Capability、v1 Feature inclusion、Product Rule 或 Product Acceptance。任何“某能力是否属于 v1”的判断必须回到 `PRODUCT-DEFINITION.md` 或明确的 Product Feature Spec。
+
+历史 UX / Interactive Delta 用于解释设计演进和 ADR rationale，不再与 `docs/design/experience/**` 形成第二套 current Experience truth。
 
 Askora UI 的学习主链仍然围绕：
 
@@ -48,11 +51,11 @@ UI Spec Set 的主要上游 Product Definition 映射：
 - Product Definition 缺失时报告 `PRODUCT DEFINITION GAP`，不得由 UI 自行补成永久产品范围；
 - UI Acceptance 只证明用户交互合同成立，不自动等同 Product Acceptance 或 Learning Evidence。
 
-## 3. ADR-0014 Frozen UX Decisions
+## 3. ADR-0014 Retained UX Decisions
 
-ADR-0014 冻结以下 UX / Interaction Architecture 语义：
+ADR-0014 当前仍有效、且已被 current Experience Design consolidation 吸收的 UX / Interaction Architecture 语义包括：
 
-1. UI 推导顺序固定为：
+1. UI 推导顺序：
 
 ```text
 User Job
@@ -63,7 +66,7 @@ User Job
 → Visual Component
 ```
 
-2. L0 Product Domain 固定为：
+2. L0 Product Domain：
 
 ```text
 今天 / 学习 / 资料库
@@ -76,11 +79,11 @@ User Job
 7. Card/Button/Toolbar/Menu/Modal 是 pattern/component，不是 semantic role。
 8. Settings landing 使用 hierarchical category navigation，不再是 giant control grid。
 
-历史 ADR-0014 中关于 Learning 常驻 facets、OCR progressive disclosure 等条款，若与 ADR-0018 / current `UXA-*` 条款冲突，以明确 supersession matrix 为准。
+ADR-0014 中关于 Learning 常驻 facets、OCR progressive disclosure 等条款已被 ADR-0018 部分 supersede；current Experience truth 直接读取 `docs/design/experience/**`，不再由实现方自行叠加历史 Delta / supersession matrix 推导。
 
-## 4. ADR-0018 Frozen UX Decisions
+## 4. ADR-0018 Retained UX Decisions
 
-ADR-0018 在 ADR-0014 之上冻结：
+ADR-0018 在 ADR-0014 之上冻结并已被 current Experience Design consolidation 吸收：
 
 1. 三栏职责：Left = Where（导航 + Workspace），Center = Learn（唯一 Primary Canvas），Right = Reference / Notes（可隐藏）。
 2. Workspace 是三栏共享的 canonical `current_workspace_id` 上下文；切换处理 draft / stream / note / session / material-tab。
@@ -89,14 +92,14 @@ ADR-0018 在 ADR-0014 之上冻结：
 5. Library v1 正常 UI 不暴露 OCR；扫描 PDF 诚实显示 unsupported / partial。
 6. 大纲 / Evidence 管理中心 / 知识图谱管理 UI / Progress Dashboard / AI Summary / Flashcards / 错题本等当前 deferred candidates 不建 placeholder。
 
-其中第 5、6 项是对当前 Product Definition v1 Scope 的**呈现层落实**，不是 UI 自己拥有 Feature inclusion / exclusion。若 Product Definition 未来改变，必须先完成上游 Product Delta，再更新 UX / UI Specs。
+其中第 5、6 项的 **Feature inclusion / exclusion authority** 来自当前 Product Definition；ADR / Experience / UI Spec 只拥有相应 UX consequences。若 Product Definition 未来改变，必须先完成上游 Product Delta，再更新 Experience / ADR / UI Specs。
 
 `UserNote` 已是 `PRODUCT-DEFINITION.md` 的 Core Product Object，并属于 `CAP-01` 的辅助沉淀能力。历史 UI-03 “persistent notes 非目标”语义已被 ADR-0018 / current Product Definition supersede；当前 UI 只能在 owner / persistence contract 明确后呈现 UserNote，不得用 frontend-only state 冒充持久化笔记。
 
 ## 5. Spec Index
 
 - [Interactive Element System](interactive-element-system.md)：7 类 semantic primitives、L0～L5 hierarchy、pattern qualification、cross-platform mapping 与 anti-patterns。
-- [Information Architecture](information-architecture.md)：当前三栏学习架构、Workspace context、routes、legacy migration 与 responsive IA；旧 facet 条款按其 supersession matrix 解释。
+- [Information Architecture](information-architecture.md)：当前三栏学习架构、Workspace context、routes、legacy migration 与 responsive IA；与历史条款冲突时服从 current Experience Design / applicable ADR supersession。
 - [Screen Contracts](screen-contracts.md)：Today / Learning Canvas / Workspace / Library / Settings 等 task/state/action contracts。
 - [UI Data Contracts](data-contracts.md)：领域来源、UI Read Model、Query/API 与兼容边界。
 - [Visual System](visual-system.md)：semantic-before-component、tokens、hierarchy、rows/cards、contextual actions 与 accessibility。
@@ -111,7 +114,7 @@ UI 工作遵守：
 PRODUCT-STRATEGY
 → PRODUCT-POSITIONING
 → PRODUCT-DEFINITION
-→ Canonical UX / Interaction Design
+→ Current Experience Design (`docs/design/experience/**`)
 → Accepted ADR
 → Domain / System / Interface / UI Specs
 → Frozen Vertical Slice（需要时）
@@ -121,7 +124,8 @@ PRODUCT-STRATEGY
 
 发生冲突时：
 
-- Product Definition 与 UI Design/Spec 冲突：报告 `DESIGN–DEFINITION GAP`，下游不得自行改变 Product Scope；
+- Product Definition 与 Experience/UI Design/Spec 冲突：报告 `DESIGN–DEFINITION GAP`，下游不得自行改变 Product Scope；
+- historical Design Delta 与 current Experience Design 冲突：current Experience Design 为 current truth，历史 Delta 保留 rationale；
 - UI Spec 与更高权威 domain/system/security contract 冲突：报告 `SPEC GAP`；
 - UI 与 current code 冲突：默认视为 implementation drift，除非上游已明确 supersede。
 
@@ -129,9 +133,9 @@ PRODUCT-STRATEGY
 
 ## 7. System / Domain Traceability
 
-| UI Area | Primary Technical Upstream | UI 只允许决定 |
+| UI Area | Primary Technical / Experience Upstream | UI 只允许决定 |
 |---|---|---|
-| Interactive Elements / IA | ADR-0014、ADR-0018、System Architecture | semantic role、navigation、hierarchy、pattern |
+| Interactive Elements / IA | current Experience Design、ADR-0014、ADR-0018、System Architecture | semantic role、navigation、hierarchy、pattern |
 | Today / Goal / Plan | SYS06、SYS07、Goal/Activity lifecycle | owner state 的组合、解释、入口 |
 | Tutor / Focus | SYS04、SYS05、SYS08 | 同 activity execution 的呈现与 user request |
 | Library | SYS01、SYS02、Library Management | Material / source 呈现与 contextual commands |
@@ -144,16 +148,16 @@ SYS01～SYS08 是 technical / teaching ownership，不是 Product Capability tax
 
 ## 8. Current Implementation Boundary
 
-当前代码、历史 Release 与旧 Vertical Slice 只作为 migration starting point，不拥有 Product Definition，也不构成实时工作状态。
+当前代码、历史 Release、历史 Design Delta 与旧 Vertical Slice 只作为 migration / rationale starting point，不拥有 Product Definition，也不构成实时工作状态。
 
 判断“当前是否已实现/是否正在做”时：
 
 1. 读取 current `main` 与 tests；
-2. 读取对应 current ADR / Spec；
+2. 读取 current Product Definition / Experience Design / applicable ADR / Spec；
 3. 读取 Linear 当前 Issue / Milestone；
-4. 不从本 README 的历史清单推断实时进度。
+4. 不从历史 Delta、Release、EXEC 清单推断实时进度。
 
-因此本文件不再维护 `EXEC-*` 的实时执行队列、等待关系或“当前仍由某 EXEC 管理”的静态状态。该信息属于 Linear 与 `docs/exec-plans/` 的当前索引。
+因此本文件不维护 `EXEC-*` 的实时执行队列、等待关系或“当前仍由某 EXEC 管理”的静态状态。该信息属于 Linear 与 `docs/exec-plans/` 的当前索引。
 
 ## 9. Explicit Non-goals
 
@@ -173,4 +177,4 @@ UI / Interaction Design 不授权：
 
 ## 10. Working Rule
 
-> **Product Definition 决定 Askora 必须具备什么产品能力；UI Design / Specs 决定这些能力如何被用户看见和使用。UI 不能通过导航、页面、placeholder 或历史实现反向创造 Product Scope。**
+> **Product Definition 决定 Askora 必须具备什么产品能力；current Experience Design 决定这些能力如何形成一致体验模型；UI Specs 决定可实现的界面合同。历史 Delta / ADR 保留设计理由，但不能反向创造 Product Scope 或第二套 current Experience truth。**
