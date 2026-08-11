@@ -26,7 +26,6 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    UniqueConstraint,
     func,
 )
 from sqlalchemy import (
@@ -135,10 +134,7 @@ class ProjectMaterial(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("project_id", "material_id", name="uq_project_material"),
-        Index("ix_project_materials_material", "material_id"),
-    )
+    __table_args__ = (Index("ix_project_materials_material", "material_id"),)
 
 
 class LearningSessionStatus:
@@ -199,10 +195,7 @@ class LearningSessionMaterial(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("session_id", "material_id", name="uq_learning_session_material"),
-        Index("ix_learning_session_materials_material", "material_id"),
-    )
+    __table_args__ = (Index("ix_learning_session_materials_material", "material_id"),)
 
 
 class SourceFile(Base):

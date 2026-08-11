@@ -75,7 +75,13 @@ UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 /
 | [EXEC-057](active/EXEC-057-ci-workflow-quality-supply-chain.md) | CI Workflow / Quality / Supply-chain | FROZEN / BLOCKED | 055 DONE |
 | [EXEC-058](active/EXEC-058-required-gate-main-protection-closure.md) | Required Gate / Main Protection Closure | FROZEN / BLOCKED | 056 + 057 DONE |
 
-### 2.3 v1 Product Architecture
+### 2.4 Engineering Maintenance
+
+| EXEC | Task | Status | Dependency |
+|---|---|---|---|
+| [EXEC-074](completed/EXEC-074-postgresql-membership-constraint-reconciliation.md) | PostgreSQL Membership Constraint Reconciliation | **DONE / ARCHIVED** | current schema baseline |
+
+### 2.5 v1 Product Architecture
 
 | EXEC | Linear | Task | Status | Dependency |
 |---|---|---|---|---|
