@@ -3,6 +3,7 @@
 > 状态：Current Documentation Authority Index  
 > Product Strategy：`docs/product/PRODUCT-STRATEGY.md`  
 > Product Boundary：`docs/product/PRODUCT-POSITIONING.md`  
+> Product Definition：`docs/product/PRODUCT-DEFINITION.md`  
 > Learning Core：v0.3 Adaptive Teaching Loop  
 > 最近校准：2026-08-11
 
@@ -19,13 +20,15 @@ docs/product/PRODUCT-STRATEGY.md
         ↓ strategic intent
 docs/product/PRODUCT-POSITIONING.md
         ↓ enforceable product boundary
+docs/product/PRODUCT-DEFINITION.md
+        ↓ capabilities / observable product behavior / product acceptance
 docs/design/ Canonical Design / Design Delta
         ↓
 docs/adr/ Accepted / non-superseded decisions
         ↓
-docs/specs/ Canonical Implementation Contracts
+docs/specs/ Canonical Implementation / Quality Contracts
         ↓
-docs/exec-plans/ Implementation Task Contracts
+docs/exec-plans/ + Linear Implementation Task Contracts
         ↓
 Code / Migration / Executable Tests
         ↓
@@ -48,19 +51,34 @@ Release Evidence / Research / Historical Records
 
 [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 把 Strategy 转化为产品类别、v1 Product Shape、Strategic Constraints、Non-goals 与 Hard Boundaries。
 
-它继续作为 Canonical Design / ADR / Spec / EXEC / Code 的**最高可执行产品边界**。任何下游层不得自行 supersede 它。
+它是 `PRODUCT-DEFINITION` 与所有下游 Design / ADR / Spec / EXEC / Code 的**最高可执行产品边界**。任何下游层不得自行 supersede 它。
+
+### Product Definition
+
+[`product/PRODUCT-DEFINITION.md`](product/PRODUCT-DEFINITION.md) 把已冻结的 Strategy / Positioning 转化为稳定的 Product WHAT，回答：
+
+- Product Actors / Core Product Objects；
+- Product Capability Model；
+- Product Rules；
+- Product Requirements；
+- Product-level NFR；
+- Product Acceptance；
+- v1 Current / Deferred / Experimental / Retired scope semantics。
+
+它不定义页面布局、Teaching Policy 算法、API、DB schema 或实时 backlog。
 
 ### Conflict Rule
 
 - Strategy 与 Positioning 冲突：先在 Product 层解决；
-- Positioning 与 Design / ADR / Spec 冲突：下游收敛；
+- Definition 突破 Positioning：先处理 Product Definition / Positioning gap；
+- Definition 与 Design / ADR / Spec 冲突：下游收敛，或先明确 Product Definition Delta；
 - Spec 与 Code 冲突：默认 implementation drift；
-- Research 与 Canonical Design 冲突：Research 保留证据价值，但不覆盖当前正式设计；
+- Research 与 Canonical Product / Design 冲突：Research 保留证据价值，但不覆盖当前正式结论；
 - 历史 release / audit 只代表对应 commit/time，不自动代表 current `main`。
 
-## 2. Product / Design / System Boundary
+## 2. Product / Experience / System Boundary
 
-Askora 按以下职责理解文档，而不是按“重要程度”把所有内容塞进 Product Positioning：
+Askora 按以下职责理解文档：
 
 ```text
 Product Strategy
@@ -68,34 +86,46 @@ WHY / WHO / VALUE / SUCCESS
 
 ↓
 
-Product Positioning / Product Definition
-WHAT / PRODUCT BOUNDARY
+Product Positioning
+WHAT CATEGORY / HARD BOUNDARY
+
+↓
+
+Product Definition
+WHAT CAPABILITIES / BEHAVIORS / REQUIREMENTS
 
 ↓
 
 Experience Design
-HOW USER USES IT
+HOW USER UNDERSTANDS / NAVIGATES / INTERACTS
 
 ↓
 
-System Design / Specs
-HOW SOFTWARE WORKS
+Teaching / Architecture / Specs
+HOW LEARNING AND SOFTWARE WORK
 ```
 
 具体边界：
 
 | 层级 | 拥有内容 | 不应拥有 |
 |---|---|---|
-| `product/PRODUCT-STRATEGY.md` | Problem、Target User、JTBD、Vision、Value、Principles、Assumptions、Risks、Success | UI、schema、API、retry、job、database |
-| `product/PRODUCT-POSITIONING.md` | Category、Is/Is Not、Product Shape、Constraints、Non-goals | 页面级 UX、领域 mechanics、技术实现合同 |
+| `product/PRODUCT-STRATEGY.md` | Problem、Target User、JTBD、Vision、Value、Principles、Assumptions、Risks、Success | Feature、UI、schema、API |
+| `product/PRODUCT-POSITIONING.md` | Category、Is/Is Not、Product Shape、Constraints、Non-goals | Capability details、页面级 UX、技术 mechanics |
+| `product/PRODUCT-DEFINITION.md` | Product Objects、Capabilities、Rules、Requirements、Product AC、v1 feature scope | route、component、algorithm、API、DB schema |
 | `research/` | Product Discovery、用户问题、alternatives、assumption evidence | Canonical Product / Design / Spec |
-| `design/` | Canonical Product / Learning / UX Design | 当前工程状态、实时 backlog |
-| `adr/` | shared architectural/product-semantic decisions | 临时实现笔记 |
-| `specs/` | domain/interface/platform/quality/UI implementation contracts | Strategy / market assumptions |
-| `exec-plans/` | frozen execution task contract | Product Discovery |
+| `design/` | Canonical Product-semantic / Learning / UX Design | 当前工程状态、实时 backlog |
+| `adr/` | shared architectural/product-semantic decisions | Strategy、实时 task list |
+| `specs/` | domain/interface/platform/quality/UI implementation contracts | Strategy / market assumptions / Product backlog |
+| `exec-plans/` | frozen execution task contract | Product Discovery / Canonical Product Definition |
 | `design/research/` | Learning Core evidence / synthesis / historical research | 第二套 Canonical Design |
 | `releases/` | verification snapshot | current truth without re-verification |
-| Linear | Project / Milestone / Issue / dependency / execution status | 长期设计事实 |
+| Linear | Project / Milestone / Issue / dependency / execution status | 长期产品/设计事实 |
+
+### Product Object Model vs Information Architecture
+
+Product Definition 中的 Workspace / Material / Goal / Activity / Evidence 等属于**产品对象与信息模型**。
+
+`Information Architecture` 在 Askora 中专指用户可见的导航、信息空间、页面/任务流组织，由 Experience Design 与 `docs/specs/ui/**` 拥有。
 
 ## 3. Current v1 Product Boundary
 
@@ -128,9 +158,26 @@ External AI APIs via BYOK
 - Redis / PostgreSQL / Docker / distributed infrastructure 不得成为最终用户运行前提；
 - SYS01～SYS08 Learning Core 继续保持 single-writer ownership。
 
-SQLite、Workspace schema、Material lifecycle、SecretStore、RetrievalScope、migration、retry、jobs、logging、replay 等具体 mechanics 由当前 ADR / Specs 管理，不在 Product Positioning 重复维护。
+当前 v1 Capability / Feature / Requirement scope 由 [`product/PRODUCT-DEFINITION.md`](product/PRODUCT-DEFINITION.md) 管理；SQLite、Workspace schema、Material lifecycle mechanics、SecretStore、RetrievalScope、migration、retry、jobs、logging、replay 等具体 mechanics 由当前 ADR / Specs 管理。
 
-## 4. Current Learning Core
+## 4. Current Product Capability Model
+
+Product Definition 当前冻结 8 个一级 Capability：
+
+```text
+CAP-01 Learning Context & Material Grounding
+CAP-02 Learning Goal & Success Definition
+CAP-03 Readiness, Diagnosis & Learning Planning
+CAP-04 Adaptive Learning Activity
+CAP-05 Attempt, Assessment & Learning Evidence
+CAP-06 Review, Retention & Transfer Validation
+CAP-07 Learning Continuity & Next-step Orientation
+CAP-08 Local Data & AI Control
+```
+
+Capability 是长期产品能力，不等于 L0 页面、Feature List 或 SYS01～SYS08 技术系统。
+
+## 5. Current Learning Core
 
 v0.3 Learning Core 的核心 ownership 继续有效：
 
@@ -156,18 +203,28 @@ SYS02/SYS08 only tighten TeachingAction envelope
 LLM/Agent never directly writes canonical learning state
 ```
 
-Product Strategy 不重新实现这些语义；它只冻结这些机制最终服务的上位学习结果。
+Product Definition 只冻结这些机制在用户/产品层必须产生的能力和行为，不重新实现算法或状态所有权。
 
-## 5. Success / Evidence Separation
+## 6. Acceptance / Evidence Separation
 
 Askora 必须始终分开：
 
 ```text
 Research / Discovery Evidence
-Engineering Evidence
-Product / Usability Evidence
+Product Acceptance
+UX Acceptance
+Technical / Engineering Evidence
+Quality / Security Evidence
 Learning Evidence
 ```
+
+当前 Acceptance owner：
+
+- Product Acceptance → `PRODUCT-DEFINITION` / future Product Feature Spec；
+- UX Acceptance → Canonical Experience Design / UI Specs；
+- Technical Acceptance → ADR / Specs；
+- Quality Acceptance → `docs/specs/quality/**`；
+- Learning Evidence → learning experiment / outcome evidence。
 
 Research confidence、工程、架构或 Policy Correctness PASS 都不能自动替代真实 Product / Learning Evidence。
 
@@ -188,65 +245,80 @@ Research confidence、工程、架构或 Policy Correctness PASS 都不能自动
 - reading percentage；
 - activity completion alone。
 
-## 6. Directory / Lifecycle
+## 7. Directory / Lifecycle
 
 | 路径 | 性质 | 更新规则 |
 |---|---|---|
-| [`product/`](product/README.md) | Canonical Product Strategy / Positioning | 只有产品级新证据或明确决策才能重新冻结 |
+| [`product/`](product/README.md) | Canonical Product Strategy / Positioning / Definition | 产品级新证据或明确决策按职责层重新冻结 |
 | [`research/`](research/README.md) | Product Discovery / supporting evidence | 可以随新证据演进；不直接改变 Canonical Product truth |
 | [`design/`](design/README.md) | Canonical Design + historical/current audits | 必须服从 Product docs；不得隐式扩大 Scope |
 | [`adr/`](adr/README.md) | Architecture Decision Records | accepted decisions 可被明确 supersede，但历史保留 |
-| [`specs/`](specs/README.md) | Canonical Implementation Contracts | 直接约束实现；必须与 Product / Design / ADR 一致 |
-| [`exec-plans/`](exec-plans/README.md) | Implementation Task Contracts | 实时工程任务必须服从当前 Spec |
+| [`specs/`](specs/README.md) | Canonical Implementation / Quality Contracts | 直接约束实现；必须与 Product / Design / ADR 一致 |
+| [`exec-plans/`](exec-plans/README.md) | Implementation Task Contracts | 实时工程任务必须服从当前 Product / Spec |
 | [`releases/`](releases/README.md) | Release / Verification Evidence | snapshot only；不得自动当作 current verification |
 | [`design/research/`](design/research/README.md) | Learning Core Research Evidence / Synthesis | 支持上位学习设计，不直接约束实现 |
 | [`document-inventory.md`](document-inventory.md) | 文档 disposition | 文档治理后同步维护 |
 
-## 7. Historical Supersession / Stale Snapshot Rule
+## 8. Historical Supersession / Stale Snapshot Rule
 
 历史 ADR、Design Delta、EXEC、Release Report、Gap Analysis 可以保留，但必须标明其 lifecycle。
 
-特别规则：
-
 > **Current repository index 不得把已经被后续 main closure 超越的 Gap Analysis 继续描述为 current failure。**
 
-`docs/design/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` 是基于 2026-08-10 旧 SHA 的历史审计快照；后续 Workspace / Retrieval / Material lifecycle / runtime conformance closure 已进入新的 `main`。判断当前 conformance 必须重新基于 current `main`，不能复用旧 FAIL。
+`docs/design/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` 是基于旧 SHA 的历史审计快照；判断 current conformance 必须重新基于 current `main`、当前 Product Definition、Specs、测试与 CI。
 
 历史 Electron / Account / OCR-as-core / service-infrastructure 相关实现和 evidence 可以保留，但不能重新提升为 v1 product requirement。
 
-## 8. UI / Experience Boundary
+## 9. UI / Experience Boundary
 
-顶层导航、首页职责、页面布局、页面级 IA、交互入口、控件与具体 UX Flow 不在 Product Strategy / Positioning 中冻结。
+顶层导航、首页职责、页面布局、页面级 IA、交互入口、控件与具体 UX Flow 不在 Product Strategy / Positioning / Definition 中冻结。
 
 它们由：
 
 ```text
-Product Boundary
+Product Definition
 → UX / Interactive Element Canonical Design
 → Accepted UI ADR
 → docs/specs/ui/**
 → Implementation
 ```
 
-产品文档只约束 UX 不得突破产品边界，不替代 UX 设计本身。
+产品文档约束 UX 必须支持哪些 capability / requirement；UX 决定用户如何理解和操作，不反向决定 Product Scope。
 
-## 9. Agent / Engineering Rules
+## 10. Agent / Engineering Rules
 
 新的设计或工程任务开始前：
 
 1. MUST 读取 `docs/product/PRODUCT-STRATEGY.md` 以理解 Why / User / Success；
 2. MUST 读取 `docs/product/PRODUCT-POSITIONING.md` 以检查产品边界；
-3. MUST 读取目标相关 Canonical Design / Accepted ADR / Spec；
-4. MUST 检查引用的 Gap Analysis / Release 是否为历史 snapshot；
-5. Code 与 Spec 冲突时按 implementation drift 处理；
-6. 下位设计需要突破 Product Positioning 时必须停止并报告 Product Boundary Gap；
-7. 重大用户/价值/成功定义改变必须回到 Product Strategy，而不是由 Codex 决定；
-8. Linear 负责当前任务状态，GitHub 负责长期有效事实。
+3. MUST 读取 `docs/product/PRODUCT-DEFINITION.md` 以确认 Capability / Product Rule / Requirement / Product Acceptance；
+4. MUST 读取目标相关 Canonical Design / Accepted ADR / Spec；
+5. MUST 检查引用的 Gap Analysis / Release 是否为历史 snapshot；
+6. Code 与 Spec 冲突时按 implementation drift 处理；
+7. 下位设计需要突破 Product Positioning 或 Product Definition 时必须停止并报告上游 Gap；
+8. 重大用户/价值/成功定义改变必须回到 Product Strategy，而不是由 Codex 决定；
+9. Linear 负责当前任务状态，GitHub 负责长期有效事实。
 
-## 10. Documentation Gate
+## 11. GitHub ↔ Linear Rule
+
+GitHub 不维护第二套 Feature Backlog。
+
+```text
+CAP-* / PD-REQ-* / PD-AC-* in GitHub
+        ↓ reference
+Linear Initiative: Askora
+→ workflow-specific Project
+→ Milestone
+→ Issue
+→ EXEC when needed
+```
+
+Priority、dependency、execution status 属于 Linear；Capability / Requirement / Product Acceptance 的长期意义属于 GitHub。
+
+## 12. Documentation Gate
 
 ```bash
 python3 .github/workflows/check_docs.py
 ```
 
-该门禁验证链接与已知文档规则，但不能替代语义审查、代码测试或真实 Learning Evidence。
+该门禁验证链接与已知文档规则，但不能替代语义审查、产品验收、代码测试或真实 Learning Evidence。

@@ -2,7 +2,7 @@
 
 Askora 是一个**面向单用户、长期个人学习的本地运行 AI 学习工具**。Askora v1 的正式产品形态是 **Local Web Application**：浏览器访问运行于用户设备上的 Local Server，核心学习数据默认保存在本机，用户自行配置 AI API Key，并通过互联网调用外部 AI 服务。
 
-Askora v1 仅提供简体中文 Web UI，暂不提供 macOS / Windows 原生客户端，也不提供 iOS / Android；不依赖 Askora 官方中心服务器，不提供官方云同步，不以公网 SaaS、多租户或团队协作为目标。完整产品边界、Non-goals 与 Hard Constraints 见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)，该文件是 Canonical Design、ADR、Spec、EXEC 和代码之上的产品级最高约束。
+Askora v1 仅提供简体中文 Web UI，暂不提供 macOS / Windows 原生客户端，也不提供 iOS / Android；不依赖 Askora 官方中心服务器，不提供官方云同步，不以公网 SaaS、多租户或团队协作为目标。完整产品边界、Non-goals 与 Hard Constraints 见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)；具体 Product Objects、Capabilities、Requirements、Product Acceptance 与 v1 Feature Scope 见 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md)。
 
 最终用户运行环境不应要求手工安装、启动或维护 Docker、Redis、PostgreSQL 或远程后端等独立基础设施；这些组件可以继续存在于当前开发、测试或历史兼容运行模式，但不得被解释为 Askora v1 的强制产品运行前置条件。
 
@@ -20,7 +20,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 
 这表示工程链路和教学策略约束通过验收，不表示已经证明真人学习效果。完整证据见 [v0.3 Release Report](docs/releases/v0.3-adaptive-teaching-loop.md)。
 
-所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
+所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md) 的产品边界，并从 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md) 获得 Capability / Product Rule / Requirement / Product Acceptance 上游输入；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
 
 ## 当前实现边界
 
@@ -143,4 +143,4 @@ docker compose up --build
 
 ## 文档规则
 
-产品级最高约束见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)。其下的文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md) 与 [文档清单](docs/document-inventory.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。
+产品战略见 [PRODUCT-STRATEGY](docs/product/PRODUCT-STRATEGY.md)，最高可执行产品边界见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)，Canonical Product WHAT 见 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md)。其下的文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md) 与 [文档清单](docs/document-inventory.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。

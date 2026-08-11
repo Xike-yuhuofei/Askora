@@ -1,19 +1,21 @@
 # Askora Product Development Process
 
 > Status: Current Governance Process  
-> Scope: product discovery, prioritization, design, implementation, review, release, and evidence  
+> Scope: product discovery, definition, prioritization, design, implementation, review, release, and evidence  
 > Product Strategy: [`product/PRODUCT-STRATEGY.md`](product/PRODUCT-STRATEGY.md)  
 > Product Boundary: [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md)  
+> Product Definition: [`product/PRODUCT-DEFINITION.md`](product/PRODUCT-DEFINITION.md)  
 > Work Management: Linear `Askora` Initiative
 
-Askora 的流程必须同时避免两种失败：
+Askora 的流程必须同时避免三种失败：
 
 1. **先实现，再反向解释为什么值得做；**
-2. **只做上游研究，不把冻结结论转换成可验收工程任务。**
+2. **只有 Strategy / Positioning，没有把上游意图转化为明确 Product Capability / Requirement；**
+3. **只做上游研究，不把冻结结论转换成可验收工程任务。**
 
 因此使用：
 
-> **Research → Strategy → Positioning → Design / ADR → Spec → Linear / EXEC → PR → Verification → Product / Learning Evidence → Product Learning。**
+> **Research → Strategy → Positioning → Product Definition → Design / ADR → Spec → Linear / EXEC → PR → Verification → Product / Learning Evidence → Product Learning。**
 
 ---
 
@@ -24,9 +26,11 @@ Observed Problem / Opportunity / Research
 → Evidence & Assumptions
 → PRODUCT-STRATEGY check
 → PRODUCT-POSITIONING check / delta when needed
-→ Canonical Design / ADR when shared semantics change
-→ Spec / Vertical Slice
-→ Linear Project / Issue
+→ PRODUCT-DEFINITION check / delta
+→ Canonical Experience / Teaching / Architecture Design when needed
+→ ADR when shared technical/semantic choice must be recorded
+→ Implementation / Quality Spec / Vertical Slice
+→ Linear Project / Milestone / Issue
 → EXEC when implementation contract is needed
 → Pull Request
 → Askora CI / Required
@@ -49,7 +53,7 @@ Observed Problem / Opportunity / Research
 
 GitHub 保存：
 
-- Product Strategy / Positioning；
+- Product Strategy / Positioning / Definition；
 - Research evidence；
 - Canonical Design；
 - ADR；
@@ -59,7 +63,7 @@ GitHub 保存：
 
 GitHub 回答：
 
-> **为什么这样设计、应该怎样设计和实现、当时验证了什么。**
+> **为什么这样做、产品必须是什么/具备什么、应该怎样设计和实现、当时验证了什么。**
 
 ### 2.2 Linear — Work Management Truth
 
@@ -78,15 +82,16 @@ Linear 回答：
 
 > **现在应该做什么、做到哪一步、是否完成。**
 
-不得继续用 GitHub 中的静态 P1/P2 清单维护第二套实时 backlog。
+不得继续用 GitHub 中的静态 P1/P2 清单或 Product Definition 维护第二套实时 backlog。
 
-### 2.3 ChatGPT — Research / Design / Review Layer
+### 2.3 ChatGPT — Research / Product Definition / Design / Review Layer
 
 ChatGPT 负责：
 
 ```text
 research
 → judgment
+→ product definition
 → design
 → freeze
 → task decomposition
@@ -105,7 +110,7 @@ TraeCode / Codex 负责已冻结任务的：
 - local verification；
 - execution report。
 
-发现 Strategy / Positioning / Spec gap 时应停止扩大 Scope 并报告，而不是自行补产品决策。
+发现 Strategy / Positioning / Product Definition / Spec gap 时应停止扩大 Scope 并报告，而不是自行补产品决策。
 
 ---
 
@@ -137,9 +142,9 @@ Strategy 不是 Implementation Spec；但如果工作改变 Primary User、核�
 
 ## 4. Product Positioning — What Askora Is Allowed to Become
 
-[`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 是下游设计与实现的最高可执行产品边界。
+[`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 是 Product Definition 与下游设计/实现的最高可执行产品边界。
 
-任何 Opportunity、Design、ADR、Spec、EXEC、PR 或代码都不得默默突破：
+任何 Opportunity、Product Definition、Design、ADR、Spec、EXEC、PR 或代码都不得默默突破：
 
 - Category；
 - v1 Product Shape；
@@ -156,6 +161,7 @@ new evidence
 → Product Positioning Delta
 → user acceptance
 → re-freeze
+→ Product Definition Delta
 → downstream work
 ```
 
@@ -163,7 +169,53 @@ new evidence
 
 ---
 
-## 5. Research / Opportunity Intake
+## 5. Product Definition — What the Product Must Do
+
+[`product/PRODUCT-DEFINITION.md`](product/PRODUCT-DEFINITION.md) 是 Strategy / Positioning 与下游 Experience / Teaching / Architecture 之间的 Canonical Product WHAT。
+
+它拥有：
+
+- Product Actors；
+- Core Product Objects；
+- Product Capability Model；
+- Capability → Feature → Scenario → Product Requirement 层级；
+- Product Rules；
+- Product-level NFR；
+- Product Acceptance；
+- v1 Current / Deferred / Experimental / Retired scope semantics。
+
+它不拥有：
+
+- route / page / component / interaction pattern；
+- Teaching Policy / mastery algorithm；
+- API payload；
+- DB schema；
+- class / module；
+- retry / queue / migration mechanics；
+- realtime priority / status。
+
+### Product Definition Intake Rule
+
+新的产品工作在进入 UX / Architecture 前至少要能够回答：
+
+1. 对应哪个 `CAP-*`？
+2. 是已有 Feature，还是需要新增 Feature definition？
+3. 哪个用户 Scenario / Use Case 触发它？
+4. 产品层必须满足什么 `PD-REQ-*`？
+5. Product Acceptance 如何判断？
+6. 当前属于 `CURRENT/COMMITTED`、`DEFERRED`、`EXPERIMENTAL` 还是 `NON-GOAL`？
+
+如果这些问题本身尚未解决，不应让 Codex 从 UI、Specs 或历史代码自行推导答案。
+
+### Complex Feature Spec
+
+只有一个 Feature 跨多个 capability、包含多组独立 rules / scenarios / Product AC，或需要长期独立演进时，才创建 `docs/product/features/<feature>.md`。
+
+不为每个按钮、route、Linear Issue 创建 Product Feature Spec。
+
+---
+
+## 6. Research / Opportunity Intake
 
 新的工作可以来自：
 
@@ -182,6 +234,7 @@ new evidence
 - observed evidence vs assumption；
 - desired user outcome；
 - relation to Product Strategy；
+- related Product Capability when known；
 - success evidence；
 - confidence；
 - important constraints；
@@ -200,13 +253,13 @@ new evidence
 
 ---
 
-## 6. Canonical Design / ADR — Shared Decisions
+## 7. Canonical Design / ADR — How Shared Semantics Should Work
 
-当工作改变以下 shared semantics 时，需要 Canonical Design 和/或 ADR：
+当已冻结 Product Definition 需要转化为以下 shared semantics 时，需要 Canonical Design 和/或 ADR：
 
-- domain ownership / single-writer；
-- learning semantics；
 - user-visible information / interaction architecture；
+- Teaching / learning semantics；
+- domain ownership / single-writer；
 - security / privacy boundary；
 - durable persistence / recovery behavior；
 - cross-system contract；
@@ -215,25 +268,25 @@ new evidence
 
 不要为了记录已由 frozen Spec 唯一决定的 implementation detail 创建 ADR。
 
-如果尚未解决的是用户价值、目标用户或产品类别问题，应回到 Product Strategy / Discovery，而不是继续向下建 ADR。
+如果尚未解决的是用户价值、目标用户或产品类别问题，应回到 Strategy / Discovery；如果尚未解决的是 capability、Product Rule、Feature Scope 或 Product Acceptance，应回到 Product Definition，而不是继续向下建 ADR。
 
 ---
 
-## 7. Spec / Vertical Slice — What Must Be True
+## 8. Spec / Vertical Slice — How Software Must Satisfy the Definition
 
 Specs 定义：
 
-- stable contract；
+- stable technical contract；
 - invariant；
 - state transition；
 - interface；
 - domain / platform ownership；
 - quality / security / reliability constraint；
-- acceptance semantics。
+- technical acceptance semantics。
 
-Vertical Slice 把多个合同组合成一个可以独立验证的 user/system capability。
+Vertical Slice 把多个合同组合成一个可以独立验证的 user/system capability implementation slice。
 
-Product Positioning 不再重复：
+Product Definition 不重复：
 
 - database schema；
 - API fields；
@@ -244,22 +297,80 @@ Product Positioning 不再重复：
 - logging；
 - test mechanics。
 
-这些属于 Spec / Architecture / Quality。
+一个 Vertical Slice 可以引用多个 `CAP-*` / `PD-REQ-*`，但不能自己把历史技术实现升级为新 Product Scope。
 
 ---
 
-## 8. Linear Project / Issue — Current Work Control
+## 9. Acceptance Model
+
+Askora 统一区分：
+
+```text
+Product Acceptance
+UX Acceptance
+Technical Acceptance
+Quality Acceptance
+Learning Evidence
+```
+
+### Product Acceptance
+
+回答：
+
+> **产品行为是否满足 Capability / Product Requirement / 用户目标？**
+
+Canonical Owner：`PRODUCT-DEFINITION.md` 或明确 Product Feature Spec。
+
+### UX Acceptance
+
+回答：用户是否能够正确理解、找到并完成任务？
+
+Canonical Owner：Experience Design / UI Specs。
+
+### Technical Acceptance
+
+回答：Domain / API / State / Teaching / Persistence contracts 是否成立？
+
+Canonical Owner：ADR / Specs。
+
+### Quality Acceptance
+
+回答：Reliability / Security / Performance / Accessibility 等是否达标？
+
+Canonical Owner：`docs/specs/quality/**`。
+
+### Learning Evidence
+
+回答：capability 是否真的改善 independent / delayed / transfer learning outcome？
+
+Product / Engineering PASS 不能自动满足 Learning Evidence。
+
+---
+
+## 10. Linear Project / Issue — Current Work Control
 
 Askora 顶层使用 **Initiative: Askora**。
 
 不同性质工作应使用相对独立 Project，例如：
 
 - Product Strategy & Discovery；
+- Product Definition & Planning；
 - UI Redesign；
 - Quality；
 - Architecture / Learning Core 等独立工作流。
 
-不要把 Product Discovery、UI、CI 与 Learning Core 实现长期混在同一 Project。
+不要把 Product Discovery、Product Definition、UI、CI 与 Learning Core 实现长期混在同一 Project。
+
+推荐 trace：
+
+```text
+GitHub CAP-* / PD-REQ-* / PD-AC-*
+        ↓ reference
+Linear workflow Project
+→ Milestone
+→ Issue
+→ EXEC when needed
+```
 
 一个 implementation-ready Issue 至少应包含：
 
@@ -268,6 +379,7 @@ Askora 顶层使用 **Initiative: Askora**。
 - Scope；
 - Non-goals；
 - Relevant Files / Docs；
+- Product Capability / Requirement references when applicable；
 - Requirements；
 - Constraints；
 - Acceptance Criteria；
@@ -280,17 +392,17 @@ Askora 顶层使用 **Initiative: Askora**。
 
 ---
 
-## 9. EXEC — Frozen Engineering Task Contract
+## 11. EXEC — Frozen Engineering Task Contract
 
 需要严格文件边界、迁移步骤或执行报告时使用 EXEC。
 
-EXEC 不成为 general backlog，也不拥有 Product Discovery。
+EXEC 不成为 general backlog，也不拥有 Product Discovery / Product Definition。
 
 应继续包含：
 
 - Objective；
 - Dependencies；
-- Required Product Strategy / Positioning；
+- Required Product Strategy / Positioning / Definition；
 - Required Design / ADR / Specs；
 - Current Reality；
 - Allowed Files；
@@ -304,6 +416,7 @@ EXEC 不成为 general backlog，也不拥有 Product Discovery。
 
 - `STRATEGY GAP`；
 - `POSITIONING GAP`；
+- `PRODUCT DEFINITION GAP`；
 - `DESIGN GAP`；
 - `SPEC GAP`。
 
@@ -311,7 +424,7 @@ EXEC 不成为 general backlog，也不拥有 Product Discovery。
 
 ---
 
-## 10. Definition of Ready
+## 12. Definition of Ready
 
 Implementation-ready work 至少满足：
 
@@ -320,6 +433,7 @@ Implementation-ready work 至少满足：
 - assumptions 没有被当作 validated facts；
 - 与 Product Strategy 对齐；
 - 与 Product Positioning / Non-goals 对齐；
+- 对应 Product Capability / Requirement / Product Acceptance 已知，或任务明确属于纯 Engineering/Quality maintenance；
 - expected product/user outcome 可以判断；
 - Acceptance Criteria 与 dependencies 已知；
 - shared product/architecture choices 已在正确层冻结；
@@ -332,13 +446,15 @@ Implementation-ready work 至少满足：
 - 理由只有“这个功能有用”；
 - Primary User / JTBD 尚未决定；
 - Product Positioning 需要被突破但尚未更新；
+- 当前 v1 是否应该包含该 Feature 尚未定义；
+- Product Acceptance 尚不明确；
 - EXEC 需要临时决定 domain ownership；
 - success 只有“code merged”；
 - known P0/P1 correctness/security contradiction 未解决。
 
 ---
 
-## 11. Pull Request Gate
+## 13. Pull Request Gate
 
 Prefer：
 
@@ -353,10 +469,11 @@ PR 必须回答：
 
 - What user/system problem does this solve?
 - Which Linear Issue / Product Opportunity originated it?
+- Which `CAP-*` / `PD-REQ-*` is served when this is product work?
 
 ### Authority
 
-- Which Product Strategy / Positioning / Design / ADR / Spec / EXEC govern it?
+- Which Product Strategy / Positioning / Definition / Design / ADR / Spec / EXEC govern it?
 - Is authority intentionally changing? If yes, was the upper-level document changed first?
 
 ### Risk
@@ -377,7 +494,7 @@ PR 必须回答：
 
 ---
 
-## 12. Required CI and Merge Policy
+## 14. Required CI and Merge Policy
 
 `Askora CI / Required` 是工程合并门禁。
 
@@ -393,7 +510,7 @@ Candidate SHA
 
 ---
 
-## 13. Review Severity
+## 15. Review Severity
 
 ### P0
 
@@ -402,13 +519,13 @@ Release blocker：
 - data loss / corruption；
 - critical security/privacy violation；
 - broken recovery/no-resurrection；
-- direct violation of frozen critical product boundary。
+- direct violation of frozen critical product boundary / Product Definition。
 
 Known P0 必须解决后再合并。
 
 ### P1
 
-重大 correctness、user-flow、architecture ownership 或 security defect，会实质性否定当前 capability claim。
+重大 product behavior、correctness、user-flow、architecture ownership 或 security defect，会实质性否定当前 capability claim。
 
 必须修复，或缩减/重新打开 capability claim。
 
@@ -418,7 +535,7 @@ Known P0 必须解决后再合并。
 
 ---
 
-## 14. Definition of Done
+## 16. Definition of Done
 
 ### Engineering Done
 
@@ -437,15 +554,12 @@ Known P0 必须解决后再合并。
 
 ### Product Done
 
-Engineering completion 不证明用户问题已解决。
+- relevant Product Acceptance satisfied；
+- Product / Usability Evidence supports the claim；
+- real browser / Local Web / provider evidence available when applicable；
+- task success can be demonstrated for the intended scenario。
 
-需要单独记录：
-
-- Product / Usability Evidence；
-- real browser / Local Web / provider evidence；
-- task success；
-- qualitative user evidence；
-- relevant product behavior metrics。
+Engineering completion 不自动证明用户问题已解决。
 
 ### Learning Done
 
@@ -461,33 +575,29 @@ Learning effectiveness 是独立 claim。
 - message count；
 - session duration；
 - activity completion alone；
+- Product task success alone；
 - Engineering PASS；
 - Policy Correctness PASS。
 
 ---
 
-## 15. Evidence Taxonomy
+## 17. Evidence Taxonomy
 
 | Evidence | Answers | Typical Sources |
 |---|---|---|
 | Research / Discovery Evidence | Is the problem/user/JTBD/value assumption supported? | interviews, observation, alternative research, experiments |
+| Product / Usability Evidence | Does product behavior satisfy intended user outcome? | real product use, task success, usability evidence |
 | Engineering Evidence | Did implementation satisfy technical contract? | Required CI, tests, build, migration |
 | Security / Privacy Evidence | Are ownership, secrets and recovery boundaries preserved? | threat-specific tests, audit |
-| Product / Usability Evidence | Can target user obtain expected product outcome? | real product use, task success, usability evidence |
 | Learning Evidence | Does capability improve intended learning outcome? | independent/delayed/transfer real-user measures |
 
 一个 evidence class 的 PASS 不能自动升级另一个 class。
 
 ---
 
-## 16. Product Validation Loop
+## 18. Product Validation Loop
 
-Release 后，相关 Opportunity / Assumption 应在有足够证据时重新判断：
-
-- **Validated**；
-- **Partially validated**；
-- **Not validated**；
-- **Insufficient evidence**。
+Release 后，相关 Opportunity / Assumption / Product Requirement 应在有足够证据时重新判断。
 
 如果新证据推翻当前产品假设：
 
@@ -495,6 +605,7 @@ Release 后，相关 Opportunity / Assumption 应在有足够证据时重新判�
 Evidence
 → Research update
 → Product Strategy / Positioning Delta when needed
+→ Product Definition Delta
 → re-freeze
 → next design / implementation cycle
 ```
@@ -503,6 +614,6 @@ Feature shipped 不是 Product Learning 的终点。
 
 ---
 
-## 17. Working Rule
+## 19. Working Rule
 
-> **Research 说明我们为什么相信问题存在；Product Strategy 决定为什么值得做；Product Positioning 决定 Askora 允许成为什么；Design / ADR / Specs 冻结如何成立；Linear 管理当前应该做什么；EXEC / Codex 执行冻结任务；PR / CI / Review 判断能否合并；Product / Learning Evidence 决定最后能够声称什么。**
+> **Research 说明我们为什么相信问题存在；Product Strategy 决定为什么值得做；Product Positioning 决定 Askora 允许成为什么；Product Definition 决定产品必须具备什么能力、行为和验收条件；Experience / Teaching / Architecture / Specs 冻结这些能力如何成立；Linear 管理当前应该做什么；EXEC / Codex 执行冻结任务；PR / CI / Review 判断能否合并；Product / Learning Evidence 决定最后能够声称什么。**
