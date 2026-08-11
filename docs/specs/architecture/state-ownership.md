@@ -290,6 +290,22 @@ v1 alignment AC：
 
 `OnboardingJourneyViewV1` 和 SYS06 `FirstActivityCompletionProjectionV1` 均为只读投影。Query hosting、API serialization 或 UI presentation MUST NOT 取得 SYS01～SYS08 写入权；投影失效只能重查 owner，不得回写或修补 owner state。
 
+### STATE-310 — UI Workspace Read Projections
+
+`WorkspaceContextResponseV1` 与 `LearningContextResponseV1` 是 ADR-0019 冻结的只读 UI 聚合投影：
+
+- Workspace identity/name/version 只读 Platform Workspace Registry；
+- Drawer stage 只读 exact SYS05 TeachingAction；
+- Drawer next directions 只读 ordered exact SYS06 LearningActivity；
+- stage-goal presentation catalog 必须版本化，且不得成为 LearningGoal、LearningObjective、TeachingStage mapper 或 TeachingAction 的 writer/truth；
+- query assembler 只拥有 composition/serialization，不拥有任何被读取状态。
+
+任何 frontend cache、route、chat text、LLM output 或 read-model row MUST NOT 成为第二 Workspace/Stage/Plan truth。
+
+### STATE-AC-310
+
+Architecture/contract tests MUST 证明两个 projection 无 write path、无新持久化表、无 frontend inference，并保留 exact owner source refs。
+
 ### STATE-AC-300
 
 Architecture tests MUST 证明 onboarding 只有 presentation preference writer，且 activity completion 仍只由 SYS06 lifecycle transition 产生。

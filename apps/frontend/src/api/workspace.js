@@ -1,5 +1,8 @@
 import api from './client'
 
+export const getWorkspaceContext = () =>
+  api.get('/workspace/context').then((response) => response.data)
+
 export const getTodayWorkspace = (timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) =>
   api.get('/workspace/today', { params: { timezone: timezone || 'Asia/Shanghai' } })
     .then((response) => response.data)
@@ -10,6 +13,11 @@ export const getGoalsWorkspace = () =>
 export const getLearningPath = (goalId) =>
   api.get('/workspace/path', { params: goalId ? { goal_id: goalId } : {} })
     .then((response) => response.data)
+
+export const getLearningContext = (activityId) =>
+  api.get('/workspace/learning-context', {
+    params: activityId ? { activity_id: activityId } : {},
+  }).then((response) => response.data)
 
 export const getEvidenceWorkspace = () =>
   api.get('/workspace/evidence').then((response) => response.data)

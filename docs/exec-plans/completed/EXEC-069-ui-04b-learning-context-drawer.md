@@ -1,8 +1,8 @@
 # EXEC-069 — UI-04B Learning Context Drawer Query and UI
 
-> Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
+> Status: **DONE / ARCHIVED**
 > Priority: P1 UX Architecture  
-> Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0018, `UXA-IA-004`, `UXA-SCREEN-120..124`, `UXA-DATA-220..222`, `UXA-IES-01`, `UXA-COMP-071`, UI-04 Vertical Slice  
+> Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0018, ADR-0019, `UXA-IA-004`, `UXA-SCREEN-120..124`, `UXA-DATA-220..223`, `UXA-IES-01`, `UXA-COMP-071`, UI-04 Vertical Slice
 > Depends on: `EXEC-068 DONE`
 
 ## Objective
@@ -12,7 +12,7 @@
 ## Dependency Gate
 
 - `EXEC-068 DONE`；
-- Drawer canonical query contract 已冻结（否则返回 `BLOCKED_BY_SPEC_GAP`）；
+- ADR-0019 Drawer canonical read query contract 已冻结；
 - 无其他 active EXEC 修改 Drawer 相关 frontend files。
 
 ## Required Sources
@@ -20,20 +20,40 @@
 - `AGENTS.md`
 - `docs/product/PRODUCT-POSITIONING.md`
 - ADR-0018
+- ADR-0019
 - `UXA-IA-004`、`UXA-SCREEN-120..124`、`UXA-DATA-220..222`
 - UI-04 Vertical Slice
 
 ## Current Reality
 
-中央 composer 上方尚无 Drawer；当前阶段/接下来方向信息或多由页面文本或 LLM 输出承载，不符合 canonical query 要求。
+PR #30 已加入名为 `LearningContextDrawer` 的材料管理 dialog，但它读取 `MOCK_RESOURCES`/React state、并非 composer 上方的 stage/goal/next Disclosure。该实现不得因文件名相同被视为完成；本 EXEC 只把它收敛到 ADR-0019 query 和冻结状态矩阵。
 
 ## Allowed Files
 
 ```text
 apps/frontend/src/components/LearningContextDrawer*.jsx   # new
+apps/frontend/src/components/LearningContextDrawer*.css
+apps/frontend/src/api/workspace.js
 apps/frontend/src/pages/ActivityLearning.jsx              # composer region integration
+apps/frontend/src/pages/ActivityLearning.css
 apps/frontend/src/pages/TutorWorkspace.jsx
+apps/frontend/src/pages/TutorWorkspace.css
+apps/frontend/src/pages/LearningWorkspace.jsx
+apps/frontend/src/pages/LearningWorkspace.css
 apps/frontend/src/test/**ContextDrawer**
+apps/frontend/src/test/ActivityLearning.test.jsx
+apps/frontend/src/test/TutorWorkspace.test.jsx
+apps/backend/app/contracts/workspace.py
+apps/backend/app/queries/workspace.py
+apps/backend/app/api/v1/workspace.py
+apps/backend/tests/**ui04*learning_context**
+docs/adr/ADR-0019-ui-workspace-read-projections.md
+docs/adr/README.md
+docs/specs/architecture/state-ownership.md
+docs/specs/interfaces/api-contract.md
+docs/specs/ui/data-contracts.md
+docs/specs/vertical-slices/ui-04-ux-workspace-context.md
+docs/document-inventory.md
 docs/exec-plans/active/EXEC-069-ui-04b-learning-context-drawer.md
 docs/exec-plans/completed/EXEC-069-ui-04b-learning-context-drawer.md
 docs/exec-plans/README.md
@@ -47,7 +67,7 @@ docs/exec-plans/completed/README.md
 - LLM 输出写成 canonical next knowledge point；
 - 在 Drawer 加入完整 Goal editor / Plan / Progress / Evidence 管理 / mastery / ReviewSchedule / TeachingAction 控制；
 - expand/collapse 触发 owner command；
-- 修改 backend API / schema / migration / Teaching Policy。
+- 修改 database schema / migration / Teaching Policy；除 ADR-0019 只读 query 外修改 backend API。
 
 ## Implementation Tasks
 

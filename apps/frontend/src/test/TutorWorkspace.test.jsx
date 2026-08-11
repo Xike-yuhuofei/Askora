@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as dialogApi from '../api/dialog'
+import * as workspaceApi from '../api/workspace'
 import TutorWorkspace from '../pages/TutorWorkspace'
 import { RouterProvider } from '../router'
 
@@ -10,6 +11,9 @@ vi.mock('../api/dialog', () => ({
   getMessages: vi.fn(),
   getSessions: vi.fn(),
   sendMessage: vi.fn(),
+}))
+vi.mock('../api/workspace', () => ({
+  getLearningContext: vi.fn(),
 }))
 
 describe('UI-SCREEN-AC-011 compatibility tutor workspace', () => {
@@ -29,6 +33,14 @@ describe('UI-SCREEN-AC-011 compatibility tutor workspace', () => {
     })
     dialogApi.getSessions.mockResolvedValue({
       items: [{ id: 'session-1', subject: 'math', knowledge_point: '函数与导数', status: 'active' }],
+    })
+    workspaceApi.getLearningContext.mockResolvedValue({
+      data: {
+        view_state: 'MISSING',
+        stage_name: null,
+        stage_goal: null,
+        next_directions: [],
+      },
     })
     vi.stubGlobal('navigator', {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },

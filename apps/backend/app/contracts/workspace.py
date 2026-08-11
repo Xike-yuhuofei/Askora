@@ -21,8 +21,10 @@ from app.contracts.library_management import LibraryCollectionViewV1, LibraryTag
 
 
 class WorkspaceSourceSystem(StrEnum):
+    PLATFORM_WORKSPACE = "PLATFORM_WORKSPACE"
     SYS01 = "SYS01"
     SYS03 = "SYS03"
+    SYS05 = "SYS05"
     SYS06 = "SYS06"
     SYS07 = "SYS07"
     LEGACY_COMPATIBILITY = "LEGACY_COMPATIBILITY"
@@ -33,6 +35,62 @@ class WorkspaceSourceStatusV1(ContractModel):
     availability: AvailabilityStatus
     source_ref: str | None = None
     reason_codes: tuple[str, ...] = ()
+
+
+class WorkspaceContextItemV1(ContractModel):
+    workspace_id: UUID
+    workspace_ref: str
+    display_name: str
+    version: int = Field(ge=1)
+    lifecycle: Literal["active", "trash"]
+    is_default: bool
+
+
+class WorkspaceContextDataV1(ContractModel):
+    view_state: Literal["READY", "MISSING", "PARTIAL", "STALE"]
+    current_workspace: WorkspaceContextItemV1 | None = None
+    switch_capability: Literal["SINGLE_WORKSPACE", "UNAVAILABLE"]
+
+
+class WorkspaceContextResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: WorkspaceContextDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
+
+
+class LearningContextFieldSourceV1(ContractModel):
+    source_system: Literal[WorkspaceSourceSystem.SYS05] = WorkspaceSourceSystem.SYS05
+    source_ref: str
+    presentation_version: str | None = None
+
+
+class LearningContextDirectionV1(ContractModel):
+    kind: Literal["KNOWLEDGE_POINT", "TEACHING_DIRECTION"]
+    ref: str
+    label: str
+    source_system: Literal[WorkspaceSourceSystem.SYS06] = WorkspaceSourceSystem.SYS06
+    source_ref: str
+
+
+class LearningContextDataV1(ContractModel):
+    view_state: Literal["READY", "MISSING", "PARTIAL", "STALE"]
+    stage_ref: str | None = None
+    stage_name: str | None = None
+    stage_goal: str | None = None
+    stage_source: LearningContextFieldSourceV1 | None = None
+    stage_goal_source: LearningContextFieldSourceV1 | None = None
+    next_directions: tuple[LearningContextDirectionV1, ...] = Field(default=(), max_length=3)
+    reason_codes: tuple[str, ...] = ()
+
+
+class LearningContextResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: LearningContextDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
 
 
 class ActiveGoalSummaryV1(ContractModel):

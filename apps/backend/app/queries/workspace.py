@@ -5,7 +5,7 @@ state. Missing objective metadata and ambiguous current-plan scope stay
 explicit instead of being inferred from legacy sessions or presentation data.
 
 Spec coverage: UI-DATA-001..004/020..042/070..083,
-UI02B-VSLICE-AC-001..007, ADR-0006.
+UI02B-VSLICE-AC-001..007, UXA-DATA-200, ADR-0006, ADR-0019.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import AvailabilityStatus, ReviewSchedule
+from app.contracts.adaptive import TeachingActionV03
 from app.contracts.learning import LearningActivity, LearningPlan
 from app.contracts.planning import LearningGoalV1
 from app.contracts.workspace import (
@@ -35,6 +36,10 @@ from app.contracts.workspace import (
     GoalListDataV1,
     GoalListItemV1,
     GoalListResponseV1,
+    LearningContextDataV1,
+    LearningContextDirectionV1,
+    LearningContextFieldSourceV1,
+    LearningContextResponseV1,
     LearningPathActivityV1,
     LearningPathDataV1,
     LearningPathObjectiveV1,
@@ -44,12 +49,16 @@ from app.contracts.workspace import (
     ReviewDueCandidateViewV1,
     TodayWorkspaceDataV1,
     TodayWorkspaceResponseV1,
+    WorkspaceContextDataV1,
+    WorkspaceContextItemV1,
+    WorkspaceContextResponseV1,
     WorkspaceSourceStatusV1,
     WorkspaceSourceSystem,
 )
 from app.core.exceptions import BusinessError, ResourceNotFoundError
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
+from app.models.adaptive import TeachingActionV03Record
 from app.models.assessment import MasteryEstimateRecord
 from app.models.dialog import DialogSession, SessionStatus
 from app.models.document import MaterialLifecycle, ModerationStatus, ProcessingStatus, UserDocument
@@ -60,6 +69,7 @@ from app.models.planning import (
     ReviewScheduleRecord,
 )
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.services.owner.canonical_identity import canonical_user_id
 
 _ACTIVITY_TITLES = {
@@ -71,6 +81,64 @@ _ACTIVITY_TITLES = {
     "transfer_check": "迁移应用",
     "metacognitive_review": "复盘学习方法",
 }
+
+_STAGE_PRESENTATION_VERSION = "ui-stage-copy/1.0"
+_STAGE_PRESENTATION = {
+    "DIAGNOSE": ("诊断当前基础", "确认当前基础与信息缺口"),
+    "EXPLICIT_INSTRUCTION": ("建立明确理解", "建立当前知识点的可解释理解"),
+    "GUIDED_PRACTICE": ("引导练习", "在引导下完成当前任务"),
+    "FADING_PRACTICE": ("逐步独立", "逐步减少支架并独立完成"),
+    "RETRIEVAL_PRACTICE": ("提取练习", "通过独立提取巩固当前知识"),
+    "DELAYED_RETRIEVAL": ("延迟提取", "验证延迟保持"),
+    "ERROR_REMEDIATION": ("错误修正", "定位并修正当前错误"),
+    "TRANSFER_CHALLENGE": ("迁移应用", "在新情境中应用当前知识"),
+}
+
+
+class WorkspaceContextQueryService:
+    """ADR-0019 read-only projection over the Platform Workspace Registry."""
+
+    def __init__(self, *, clock: Callable[[], datetime] | None = None) -> None:
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    def get_context(
+        self,
+        workspace: Workspace,
+        *,
+        correlation_id: str,
+    ) -> WorkspaceContextResponseV1:
+        workspace_ref = f"workspace:{workspace.workspace_id}:v{workspace.version}"
+        is_current = workspace.lifecycle == "active" and workspace.is_default
+        return WorkspaceContextResponseV1(
+            generated_at=self._clock(),
+            correlation_id=correlation_id,
+            data=WorkspaceContextDataV1(
+                view_state="READY" if is_current else "STALE",
+                current_workspace=WorkspaceContextItemV1(
+                    workspace_id=UUID(workspace.workspace_id),
+                    workspace_ref=workspace_ref,
+                    display_name=workspace.display_name,
+                    version=workspace.version,
+                    lifecycle=cast(Literal["active", "trash"], workspace.lifecycle),
+                    is_default=workspace.is_default,
+                ),
+                switch_capability="SINGLE_WORKSPACE" if is_current else "UNAVAILABLE",
+            ),
+            source_status=(
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.PLATFORM_WORKSPACE,
+                    availability=(
+                        AvailabilityStatus.AVAILABLE if is_current else AvailabilityStatus.STALE
+                    ),
+                    source_ref=workspace_ref,
+                    reason_codes=(
+                        ("CANONICAL_DEFAULT_WORKSPACE",)
+                        if is_current
+                        else ("DEFAULT_WORKSPACE_NOT_CURRENT",)
+                    ),
+                ),
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -377,6 +445,220 @@ class WorkspaceTodayQueryService:
                 ),
             ),
         )
+
+    async def get_learning_context(
+        self,
+        current_user: User,
+        *,
+        activity_id: UUID | None,
+        correlation_id: str,
+    ) -> LearningContextResponseV1:
+        """ADR-0019 side-effect-free SYS05/SYS06 Drawer composition."""
+        if activity_id is None:
+            selection = await self._select_path(current_user, goal_id=None)
+            target = self._current_activity(selection.activities)
+        else:
+            selection, target = await self._selection_for_activity(
+                current_user, activity_id=activity_id
+            )
+
+        if target is None:
+            return LearningContextResponseV1(
+                generated_at=self._clock(),
+                correlation_id=correlation_id,
+                data=LearningContextDataV1(
+                    view_state="MISSING",
+                    reason_codes=("CURRENT_LEARNING_ACTIVITY_MISSING",),
+                ),
+                source_status=(
+                    WorkspaceSourceStatusV1(
+                        source_system=WorkspaceSourceSystem.SYS06,
+                        availability=AvailabilityStatus.MISSING,
+                        reason_codes=("CURRENT_LEARNING_ACTIVITY_MISSING",),
+                    ),
+                    WorkspaceSourceStatusV1(
+                        source_system=WorkspaceSourceSystem.SYS05,
+                        availability=AvailabilityStatus.NOT_APPLICABLE,
+                        reason_codes=("NO_ACTIVITY_FOR_TEACHING_ACTION",),
+                    ),
+                ),
+            )
+
+        ordered = selection.activities
+        target_index = next(
+            index for index, item in enumerate(ordered) if item.activity_id == target.activity_id
+        )
+        direction_activities = tuple(
+            item for item in ordered[target_index:] if item.status not in {"skipped", "superseded"}
+        )[:3]
+        directions = tuple(
+            LearningContextDirectionV1(
+                kind="TEACHING_DIRECTION",
+                ref=self._activity_ref(item),
+                label=_ACTIVITY_TITLES.get(item.type, "学习活动"),
+                source_ref=self._activity_ref(item),
+            )
+            for item in direction_activities
+        )
+        action = await self._latest_action_for_activity(target)
+        is_stale = (
+            selection.plan is None
+            or selection.plan.status not in {"active", "paused"}
+            or target.status in {"completed", "skipped", "superseded"}
+        )
+
+        if action is None:
+            view_state: Literal["PARTIAL", "STALE"] = "STALE" if is_stale else "PARTIAL"
+            reasons = (
+                ("LEARNING_CONTEXT_ACTIVITY_STALE", "TEACHING_ACTION_MISSING")
+                if is_stale
+                else ("TEACHING_ACTION_MISSING",)
+            )
+            return LearningContextResponseV1(
+                generated_at=self._clock(),
+                correlation_id=correlation_id,
+                data=LearningContextDataV1(
+                    view_state=view_state,
+                    next_directions=directions,
+                    reason_codes=reasons,
+                ),
+                source_status=(
+                    WorkspaceSourceStatusV1(
+                        source_system=WorkspaceSourceSystem.SYS06,
+                        availability=(
+                            AvailabilityStatus.STALE if is_stale else AvailabilityStatus.AVAILABLE
+                        ),
+                        source_ref=self._plan_ref(selection.plan) if selection.plan else None,
+                        reason_codes=(
+                            ("LEARNING_CONTEXT_ACTIVITY_STALE",)
+                            if is_stale
+                            else ("CANONICAL_DIRECTIONS_AVAILABLE",)
+                        ),
+                    ),
+                    WorkspaceSourceStatusV1(
+                        source_system=WorkspaceSourceSystem.SYS05,
+                        availability=AvailabilityStatus.MISSING,
+                        reason_codes=("TEACHING_ACTION_MISSING",),
+                    ),
+                ),
+            )
+
+        action_ref = f"teaching_action:{action.action_id}:v{action.action_schema_version}"
+        activity_version_matches = str(action.learning_activity_ref.version) == str(
+            target.plan_version
+        )
+        is_stale = is_stale or not activity_version_matches
+        stage_name, stage_goal = _STAGE_PRESENTATION[action.teaching_stage.value]
+        source = LearningContextFieldSourceV1(
+            source_system=WorkspaceSourceSystem.SYS05,
+            source_ref=action_ref,
+            presentation_version=_STAGE_PRESENTATION_VERSION,
+        )
+        reasons = (
+            ("LEARNING_CONTEXT_ACTIVITY_STALE",)
+            if is_stale
+            else ("EXACT_SYS05_SYS06_CONTEXT_AVAILABLE",)
+        )
+        return LearningContextResponseV1(
+            generated_at=self._clock(),
+            correlation_id=correlation_id,
+            data=LearningContextDataV1(
+                view_state="STALE" if is_stale else "READY",
+                stage_ref=action_ref,
+                stage_name=stage_name,
+                stage_goal=stage_goal,
+                stage_source=source,
+                stage_goal_source=source,
+                next_directions=directions,
+                reason_codes=reasons,
+            ),
+            source_status=(
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.SYS05,
+                    availability=(
+                        AvailabilityStatus.STALE if is_stale else AvailabilityStatus.AVAILABLE
+                    ),
+                    source_ref=action_ref,
+                    reason_codes=reasons,
+                ),
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.SYS06,
+                    availability=(
+                        AvailabilityStatus.STALE if is_stale else AvailabilityStatus.AVAILABLE
+                    ),
+                    source_ref=self._plan_ref(selection.plan) if selection.plan else None,
+                    reason_codes=reasons,
+                ),
+            ),
+        )
+
+    async def _selection_for_activity(
+        self,
+        current_user: User,
+        *,
+        activity_id: UUID,
+    ) -> tuple[_PathSelection, LearningActivity]:
+        record = await self._db.scalar(
+            select(LearningActivityRecord).where(LearningActivityRecord.id == str(activity_id))
+        )
+        if record is None:
+            raise ResourceNotFoundError("学习活动")
+        plan_record = await self._db.scalar(
+            select(LearningPlanRecord).where(
+                LearningPlanRecord.plan_id == record.plan_id,
+                LearningPlanRecord.version == record.plan_version,
+            )
+        )
+        if plan_record is None:
+            raise ResourceNotFoundError("学习活动")
+        goals = {goal.goal_id: goal for goal in await self._latest_goals(current_user)}
+        goal_id = UUID(plan_record.learning_goal_id)
+        goal = goals.get(goal_id)
+        if goal is None:
+            raise ResourceNotFoundError("学习活动")
+        plan = LearningPlan.model_validate(plan_record.payload).model_copy(
+            update={"status": plan_record.status}
+        )
+        activities = await self._ordered_activities(plan)
+        target = next(
+            (item for item in activities if item.activity_id == activity_id),
+            None,
+        )
+        if target is None:
+            raise ResourceNotFoundError("学习活动")
+        return (
+            _PathSelection(
+                goal=goal,
+                plan=plan,
+                activities=activities,
+                available_goal_refs=(self._goal_ref(goal),),
+                reason_codes=("EXPLICIT_ACTIVITY_SCOPE",),
+            ),
+            target,
+        )
+
+    async def _latest_action_for_activity(
+        self, activity: LearningActivity
+    ) -> TeachingActionV03 | None:
+        records = (
+            await self._db.scalars(
+                select(TeachingActionV03Record).order_by(
+                    TeachingActionV03Record.created_at.desc(),
+                    TeachingActionV03Record.action_id.desc(),
+                )
+            )
+        ).all()
+        latest_other_version: TeachingActionV03 | None = None
+        for record in records:
+            ref = record.payload.get("learning_activity_ref") or {}
+            if ref.get("entity_id") != str(activity.activity_id):
+                continue
+            action = TeachingActionV03.model_validate(record.payload)
+            if str(action.learning_activity_ref.version) == str(activity.plan_version):
+                return action
+            if latest_other_version is None:
+                latest_other_version = action
+        return latest_other_version
 
     async def _latest_goals(self, current_user: User) -> list[LearningGoalV1]:
         owner_id = str(canonical_user_id(current_user.id))

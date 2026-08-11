@@ -224,3 +224,24 @@ version 与 idempotency key；response 不得包含 secret、Prompt、grader-onl
 `/api/v1/goals` 提供 draft/query/preview/apply/state/evaluation command。每个 write body 必须携带
 expected aggregate version 与 idempotency key，correlation id 由 header/middleware 传播。legacy
 Book Learning goal writes 只能调用同一 SYS06 application service；前端迁移完成后停止旧合同写入。
+
+## 15. UI-04 Workspace Read Projections
+
+### API-310 — Canonical Workspace Context Query
+
+`GET /api/v1/workspace/context` MUST 调用 Platform Workspace Registry read query，返回 strict
+`WorkspaceContextResponseV1`。它 current-owner scoped、`private, no-store`，不得使用 route/localStorage/React
+state 提供 `current_workspace_id`，不得触发 Workspace command。V1 单一 Workspace 返回
+`switch_capability=SINGLE_WORKSPACE`。
+
+### API-311 — Learning Context Drawer Query
+
+`GET /api/v1/workspace/learning-context?activity_id=<optional UUID>` MUST 返回 strict
+`LearningContextResponseV1`：stage 来自 exact SYS05 TeachingAction；next 1..3 来自 exact ordered SYS06
+LearningActivity；每项保留 source system/ref/version。query MUST 表达 READY/MISSING/PARTIAL/STALE，
+不得调用 LLM、执行 owner command、从 transcript/chat 推断或写任何 canonical state。
+
+### API-AC-310
+
+两个 query current Workspace scoped、side-effect free、foreign ref fail closed、response 无 Prompt/transcript
+正文/grader-only/secret/local path，且 refresh/retry 不产生新事实。

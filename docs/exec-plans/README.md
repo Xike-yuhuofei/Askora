@@ -56,14 +56,14 @@ Read current main
 
 | EXEC | Task | Status | Dependency |
 |---|---|---|---|
-| [EXEC-068](active/EXEC-068-ui-04a-workspace-context-shell-routes.md) | UI-04A Workspace Context / Shell / Route Migration | FROZEN / BLOCKED | ADR-0018 + EXEC-1062 + Workspace Product Arch entry gate |
-| [EXEC-069](active/EXEC-069-ui-04b-learning-context-drawer.md) | UI-04B Learning Context Drawer Query and UI | FROZEN / BLOCKED | 068 DONE |
+| [EXEC-068](completed/EXEC-068-ui-04a-workspace-context-shell-routes.md) | UI-04A Workspace Context / Shell / Route Migration | **DONE / ARCHIVED** | ADR-0018/0019 + EXEC-1062 + Workspace Product Arch entry gate |
+| [EXEC-069](completed/EXEC-069-ui-04b-learning-context-drawer.md) | UI-04B Learning Context Drawer Query and UI | **DONE / ARCHIVED** | 068 DONE |
 | [EXEC-070](active/EXEC-070-ui-04c-usernote-current-material-right-rail.md) | UI-04C UserNote + Current Material Right Rail | FROZEN / BLOCKED | 069 DONE |
 | [EXEC-071](active/EXEC-071-ui-04d-learning-management-exposure-removal.md) | UI-04D Learning Management Exposure Removal | FROZEN / BLOCKED | 070 DONE |
 | [EXEC-072](active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md) | UI-04E Library v1 No-OCR Exposure | FROZEN / BLOCKED | 071 DONE |
 | [EXEC-073](active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md) | UI-04F Responsive / Accessibility / Release Acceptance | FROZEN / BLOCKED | 072 DONE |
 
-UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）。Workspace switch command / UserNote owner 未由上位合同冻结的 EXEC 标记 `BLOCKED_BY_SPEC_GAP`，不得用前端 mock 绕过。
+UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）。ADR-0019 已冻结 EXEC-068/069 的只读 query composition；Workspace switch command / UserNote owner 仍须由对应后续 EXEC 独立检查，不得用前端 mock 绕过。
 
 ### 2.3 Quality / CI
 

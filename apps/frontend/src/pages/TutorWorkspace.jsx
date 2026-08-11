@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, BookOpen, History as HistoryIcon, Send } from 'lucide-react'
 import * as dialogApi from '../api/dialog'
+import LearningContextDrawer from '../components/LearningContextDrawer'
 import { useNavigate } from '../router'
 import WorkspaceMessage from '../components/messages/WorkspaceMessage'
 import './TutorWorkspace.css'
@@ -235,6 +236,7 @@ export default function TutorWorkspace({ sessionId }) {
 
         <div className="workspace-composer">
           {!isActive && <p className="inline-notice">该会话已结束，仅可查看历史内容。</p>}
+          <LearningContextDrawer />
           <div className={`composer-box ${!isActive ? 'composer-box--disabled' : ''}`}>
             <textarea
               ref={textareaRef}

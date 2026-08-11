@@ -71,6 +71,7 @@
 | `docs/adr/ADR-0016-workspace-project-and-learning-session-scope-ownership.md` | CANONICAL-RETAIN | Accepted Workspace/Project/Session scope、ownership 与 migration decision |
 | `docs/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md` | CANONICAL-RETAIN | Accepted OS-backed LocalSecretStore 与 crash-consistent activation decision |
 | `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | CANONICAL-RETAIN | Accepted Workspace Context UX architecture decision；保留 Today single-primary invariant |
+| `docs/adr/ADR-0019-ui-workspace-read-projections.md` | CANONICAL-RETAIN | Accepted UI-04 current Workspace / Drawer read-projection ownership and versioning decision |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | 历史 account deletion integration；Account semantics 由 ADR-0015 supersede，owner-safe erasure invariant 保留 |
@@ -233,8 +234,8 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/active/EXEC-057-ci-workflow-quality-supply-chain.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-058-required-gate-main-protection-closure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-059-ui-design-system-component-foundation.md` | CANONICAL-RETAIN |
-| `docs/exec-plans/active/EXEC-068-ui-04a-workspace-context-shell-routes.md` | CANONICAL-RETAIN |
-| `docs/exec-plans/active/EXEC-069-ui-04b-learning-context-drawer.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-068-ui-04a-workspace-context-shell-routes.md` | HISTORICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-069-ui-04b-learning-context-drawer.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-070-ui-04c-usernote-current-material-right-rail.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | CANONICAL-RETAIN |
