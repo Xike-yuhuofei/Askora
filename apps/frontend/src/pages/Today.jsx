@@ -14,6 +14,45 @@ const quickSubjects = [
 ]
 
 const activityStatusLabels = { planned: '已规划', available: '可开始', active: '进行中', completed: '已完成', skipped: '已跳过', superseded: '已替代' }
+const activityTypeLabels = {
+  learn_new: '学习新内容',
+  prerequisite_remediation: '补齐前置知识',
+  diagnostic: '诊断活动',
+  practice: '练习活动',
+  delayed_review: '计划内复习',
+  transfer_check: '迁移应用检查',
+  metacognitive_review: '学习反思',
+}
+const activityReasonLabels = {
+  PLAN_TARGET_STATE_UNKNOWN: '需要先了解当前基础',
+  PLAN_MASTERY_GAP: '当前学习证据显示仍需练习',
+  PLAN_PREREQUISITE_UNKNOWN: '前置知识状态尚不明确',
+  PLAN_HARD_PREREQUISITE_UNMET: '需要先补齐前置知识',
+  PLAN_REVIEW_DUE: '已到建议复习时间',
+  PLAN_REVIEW_OVERDUE: '复习建议已到期',
+  PLAN_TRANSFER_EVIDENCE_NEEDED: '需要新的迁移应用证据',
+}
+const viewStateLabels = {
+  READY: '计划可用',
+  PARTIAL: '部分信息可用',
+  EMPTY: '暂无安排',
+}
+
+function formatActivityReasons(reasonCodes = []) {
+  const mapped = reasonCodes
+    .map((reason) => activityReasonLabels[reason])
+    .filter(Boolean)
+  return mapped.length > 0 ? [...new Set(mapped)].join(' · ') : '推荐依据暂未提供可读说明'
+}
+
+function validationCopy(summary) {
+  if (!summary) return null
+  if (summary.validation_obligation === 'INDEPENDENT_VALIDATION_REQUIRED') {
+    return '后续需要一次不依赖提示的独立验证'
+  }
+  if (summary.validation_obligation === 'NONE') return '当前没有待独立验证要求'
+  return '待独立验证状态暂不可用'
+}
 
 function formatDue(value) {
   if (!value) return '时间未知'
@@ -32,7 +71,7 @@ export default function Today() {
   const [topic, setTopic] = useState(quickSubjects[0].topics[0])
   const [creating, setCreating] = useState(false)
   const [actionError, setActionError] = useState('')
-  const [quickStartOpen, setQuickStartOpen] = useState(false)
+  const [quickStartOpen, setQuickStartOpen] = useState(null)
 
   const selectedSubject = useMemo(
     () => quickSubjects.find((subject) => subject.id === subjectId) || quickSubjects[0],
@@ -103,13 +142,20 @@ export default function Today() {
   const { data, source_status: sourceStatus } = state.payload
   const sessions = data.compatibility_quick_start?.recent_sessions || []
   const reviews = data.review_due_candidates || []
+  const plannedActivities = (data.planned_activities || []).slice(0, 3)
   const activeGoal = data.active_goal
   const currentActivity = data.current_activity
+  const currentValidationCopy = validationCopy(data.current_evidence_summary)
   const planSource = sourceStatus.find((item) => item.source_system === 'SYS06')
   const multiplePlans = planSource?.reason_codes?.includes('MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE')
   const currentActivityId = currentActivity?.activity_ref?.split(':')[1]
-  const activityAction = currentActivity?.launch_state === 'RESUMABLE' ? '继续学习' : currentActivity?.launch_state === 'REQUIRES_START_COMMAND' ? '开始学习' : ''
-  const hasCanonicalActivity = Boolean(activeGoal && currentActivity)
+  const activityAction = ['ACTIVE', 'RESUMABLE'].includes(currentActivity?.launch_state)
+    ? '继续学习'
+    : currentActivity?.launch_state === 'REQUIRES_START_COMMAND'
+      ? '开始学习'
+      : ''
+  const hasCanonicalActivity = Boolean(currentActivity)
+  const isQuickStartOpen = quickStartOpen ?? !hasCanonicalActivity
 
   return (
     <div className="today-page page-stack">
@@ -120,22 +166,41 @@ export default function Today() {
           <p>先看清当前可用信息，再决定下一步学习。</p>
         </div>
         <span className={`status-pill status-pill--${data.view_state.toLowerCase()}`}>
-          {data.view_state === 'READY' ? '计划可用' : '部分信息可用'}
+          {viewStateLabels[data.view_state] || '状态未知'}
         </span>
       </header>
 
       {hasCanonicalActivity ? (
         <section className="surface canonical-next" aria-labelledby="canonical-next-title">
           <div className="canonical-next__content">
-            <p className="eyebrow">当前目标 · {activeGoal.title}</p>
-            <h2 id="canonical-next-title">{currentActivity.title}</h2>
-            <p>
-              {currentActivity.estimated_duration_minutes
-                ? `预计 ${currentActivity.estimated_duration_minutes} 分钟`
-                : '预计时间尚未提供'}
-              {' · '}
-              {activityStatusLabels[currentActivity.status] || currentActivity.status}
+            <p className="eyebrow">
+              {activeGoal ? `当前目标 · ${activeGoal.title}` : '当前学习活动'}
             </p>
+            <h2 id="canonical-next-title">{currentActivity.title}</h2>
+            <dl className="today-supporting">
+              <div>
+                <dt>活动</dt>
+                <dd>
+                  {activityTypeLabels[currentActivity.type] || '学习活动'}
+                  {' · '}
+                  {currentActivity.estimated_duration_minutes
+                    ? `预计 ${currentActivity.estimated_duration_minutes} 分钟`
+                    : '预计时间尚未提供'}
+                  {' · '}
+                  {activityStatusLabels[currentActivity.status] || currentActivity.status}
+                </dd>
+              </div>
+              <div>
+                <dt>安排原因</dt>
+                <dd>{formatActivityReasons(currentActivity.reason_codes)}</dd>
+              </div>
+              {currentValidationCopy && (
+                <div>
+                  <dt>验证要求</dt>
+                  <dd>{currentValidationCopy}</dd>
+                </div>
+              )}
+            </dl>
             <small>活动状态来自 SYS06；完成本项不等于已经掌握。</small>
           </div>
           {activityAction && currentActivityId ? (
@@ -148,10 +213,14 @@ export default function Today() {
               <ArrowRight size={16} />
             </button>
           ) : (
-            <button type="button" className="button button--secondary" onClick={() => navigate('/learning/plan')}>
-              查看路径
-              <ArrowRight size={16} />
-            </button>
+            <div className="canonical-next__unavailable">
+              <strong>当前活动暂不可启动</strong>
+              <small>请查看当前学习安排或稍后重试。</small>
+              <button type="button" className="button button--secondary" onClick={() => navigate('/learning/plan')}>
+                查看学习安排
+                <ArrowRight size={16} />
+              </button>
+            </div>
           )}
         </section>
       ) : (
@@ -161,7 +230,11 @@ export default function Today() {
           </div>
           <div>
             <h2 id="plan-notice-title">
-              {multiplePlans ? '请选择一个学习目标' : '还没有可展示的当前计划'}
+              {multiplePlans
+                ? '请选择一个学习目标'
+                : data.view_state === 'EMPTY'
+                  ? '今天还没有学习安排'
+                  : '还没有可展示的当前计划'}
             </h2>
             <p>
               {multiplePlans
@@ -181,44 +254,84 @@ export default function Today() {
         </section>
       )}
 
-      {reviews.length > 0 && (
-        <section className="surface today-reviews" aria-labelledby="review-title">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <p className="eyebrow">复习安排</p>
-              <h2 id="review-title">到期复习</h2>
-            </div>
-            <Clock3 size={18} />
-          </div>
-          <ul className="review-list">
-            {reviews.map((review) => (
-              <li key={review.schedule_ref}>
-                <strong>待复习知识单元</strong>
-                <span>建议时间：{formatDue(review.next_due_at)}</span>
-                <small>尚未纳入学习计划</small>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {(plannedActivities.length > 0 || reviews.length > 0) && (
+        <div className="today-secondary-grid">
+          {plannedActivities.length > 0 && (
+            <section className="surface today-upcoming" aria-labelledby="upcoming-title">
+              <div className="section-heading section-heading--compact">
+                <div>
+                  <p className="eyebrow">后续安排</p>
+                  <h2 id="upcoming-title">接下来的学习活动</h2>
+                </div>
+              </div>
+              <ol className="upcoming-list">
+                {plannedActivities.map((activity) => (
+                  <li key={activity.activity_ref}>
+                    <div>
+                      <strong>{activity.title}</strong>
+                      <span className="status-pill">
+                        {activityStatusLabels[activity.status] || activity.status}
+                      </span>
+                    </div>
+                    <span>
+                      {activityTypeLabels[activity.type] || '学习活动'}
+                      {activity.estimated_duration_minutes
+                        ? ` · 预计 ${activity.estimated_duration_minutes} 分钟`
+                        : ''}
+                    </span>
+                    <small>{formatActivityReasons(activity.reason_codes)}</small>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {reviews.length > 0 && (
+            <section className="surface today-reviews" aria-labelledby="review-title">
+              <div className="section-heading section-heading--compact">
+                <div>
+                  <p className="eyebrow">候选信息</p>
+                  <h2 id="review-title">复习建议</h2>
+                </div>
+                <Clock3 size={18} />
+              </div>
+              <ul className="review-list">
+                {reviews.map((review) => (
+                  <li key={review.schedule_ref}>
+                    <strong>{review.included_activity_ref ? '已计划的复习建议' : '待复习知识单元'}</strong>
+                    <span>建议时间：{formatDue(review.next_due_at)}</span>
+                    <small>
+                      {review.included_activity_ref ? '已纳入学习计划' : '尚未纳入学习计划'}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
 
-      <section className="surface today-quick" aria-labelledby="quick-title">
+      <section
+        className={`surface today-quick${hasCanonicalActivity ? '' : ' today-quick--fallback'}`}
+        aria-labelledby="quick-title"
+      >
         <button
           type="button"
           className="today-quick__toggle"
-          aria-expanded={quickStartOpen}
-          onClick={() => setQuickStartOpen((v) => !v)}
+          aria-expanded={isQuickStartOpen}
+          aria-controls="quick-start-content"
+          onClick={() => setQuickStartOpen(!isQuickStartOpen)}
         >
           <div>
             <p className="eyebrow">兼容入口</p>
             <h2 id="quick-title">快速学习</h2>
             <small className="today-quick__hint">非计划活动 · 不会生成学习目标或计划</small>
           </div>
-          {quickStartOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          {isQuickStartOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
 
-        {quickStartOpen && (
-          <div className="today-quick__body">
+        {isQuickStartOpen && (
+          <div className="today-quick__body" id="quick-start-content">
             <div className="quick-form">
               <label>
                 <span>学科</span>
@@ -242,7 +355,7 @@ export default function Today() {
               </label>
               <button
                 type="button"
-                className="button button--primary"
+                className={`button ${hasCanonicalActivity ? 'button--secondary' : 'button--primary'}`}
                 onClick={startCompatibilitySession}
                 disabled={creating}
               >
