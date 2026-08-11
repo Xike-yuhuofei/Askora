@@ -2,7 +2,7 @@
 
 > 适用对象：Codex / TraeCode / 其他代码执行代理  
 > 状态：强制执行入口  
-> 原则：执行代理负责已冻结设计与工程任务的实现；不得在实现过程中自行重新定义产品战略、产品边界或重大共享语义。
+> 原则：执行代理负责已冻结产品定义、设计与工程任务的实现；不得在实现过程中自行重新定义产品战略、产品边界、产品能力或重大共享语义。
 
 ## 1. 开始任务前的读取顺序
 
@@ -11,17 +11,19 @@
 1. `AGENTS.md`
 2. `docs/product/PRODUCT-STRATEGY.md`
 3. `docs/product/PRODUCT-POSITIONING.md`
-4. `docs/specs/README.md`
-5. 与任务相关的 current Canonical Design / Accepted ADR
-6. `docs/specs/architecture/`、`domain/`、`systems/`、`interfaces/`、`quality/`、`ui/` 中相关合同
-7. 对应 Linear Issue / Project 状态
-8. 当前 `docs/exec-plans/active/` 中明确指定的 EXEC（如有）
-9. 仅在需要理解证据或形成上位 Delta 时读取 `docs/research/` / `docs/design/research/`
+4. `docs/product/PRODUCT-DEFINITION.md`
+5. `docs/specs/README.md`
+6. 与任务相关的 current Canonical Design / Accepted ADR
+7. `docs/specs/architecture/`、`domain/`、`systems/`、`interfaces/`、`quality/`、`ui/` 中相关合同
+8. 对应 Linear Issue / Project 状态
+9. 当前 `docs/exec-plans/active/` 中明确指定的 EXEC（如有）
+10. 仅在需要理解证据或形成上位 Delta 时读取 `docs/research/` / `docs/design/research/`
 
 职责解释：
 
 - `PRODUCT-STRATEGY.md`：最高产品战略意图，回答 Why / Who / Problem / Value / Success；
 - `PRODUCT-POSITIONING.md`：最高可执行产品边界，回答 Category / Product Shape / Constraints / Non-goals；
+- `PRODUCT-DEFINITION.md`：Canonical Product WHAT，回答 Product Objects / Capabilities / Rules / Requirements / Product Acceptance / v1 Scope；
 - Research：支持证据，不是实现接口合同；
 - Linear：当前工作状态，不是长期设计事实。
 
@@ -30,6 +32,7 @@
 ```text
 PRODUCT-STRATEGY
 → PRODUCT-POSITIONING
+→ PRODUCT-DEFINITION
 → Canonical Design / Design Delta
 → Accepted ADR
 → Canonical Specs
@@ -38,12 +41,13 @@ PRODUCT-STRATEGY
 → Agent inference
 ```
 
-注意：`PRODUCT-STRATEGY.md` 不直接规定 API、schema 或实现 mechanics，但任何会改变 Target User、核心 Problem、Value Proposition、Strategic Principles 或 Success Definition 的工作必须先回到 Strategy 层。
+注意：Product 文档不直接规定 API、schema 或实现 mechanics；但执行代理不得绕过 Product Definition 从页面、历史代码或技术系统反向推导产品范围。
 
 发生冲突时：
 
 - Strategy 与 Positioning 冲突：停止下游扩张，报告 `STRATEGY GAP` / Product Delta；
-- Positioning 与 Design / ADR / Spec 冲突：下位必须收敛；
+- Positioning 与 Product Definition 冲突：停止下游扩张，报告 `POSITIONING GAP`；
+- Product Definition 与 Design / ADR / Spec 冲突：下位必须收敛，或先报告 `PRODUCT DEFINITION GAP`；
 - Design / ADR 与 Spec 冲突：先修正治理链，再实现；
 - Spec 与代码冲突：默认 implementation drift，不得修改 Spec 迁就现有代码；
 - 历史 Research / Release / Gap Analysis 与 current truth 冲突：历史文件保留，但不覆盖 current Canonical docs / current `main`。
@@ -54,21 +58,23 @@ PRODUCT-STRATEGY
 
 - 首先确认任务服务 `PRODUCT-STRATEGY.md` 中的 Problem / User / Outcome；
 - 确认不突破 `PRODUCT-POSITIONING.md`；
+- 确认任务对应 `PRODUCT-DEFINITION.md` 中的 Capability / Product Rule / Requirement / Product Acceptance；
 - 严格按照 current Design / ADR / Spec / EXEC 实现；
 - 只修改任务允许的 Scope；
 - 为关键行为补充可追踪测试；
 - 对公共 Schema、迁移、状态所有权和跨模块依赖保持最小必要变更；
 - 发现旧实现越过系统边界时，通过明确 adapter / migration / retirement path 收敛；
 - 报告修改文件、实际测试、候选 SHA、未完成项与任何 GAP；
-- 区分 Engineering / Product / Learning Evidence，不能用工程 PASS 声称真人学习有效。
+- 区分 Product Acceptance / UX / Engineering / Quality / Learning Evidence，不能用工程 PASS 声称产品或真人学习有效。
 
 执行代理不得：
 
-- 因“实现更方便”修改 Product Strategy / Positioning；
+- 因“实现更方便”修改 Product Strategy / Positioning / Definition；
 - 把未验证用户假设写成已验证事实；
+- 擅自新增/删除一级 Product Capability 或改变当前 v1 Feature Scope；
 - 擅自扩大目标用户或产品类别；
 - 用历史代码存在性恢复已 supersede 的 Account / Electron / OCR-as-core / service-infrastructure 产品语义；
-- 先改代码、再用 ADR / Spec 追认既成事实。
+- 先改代码、再用 Product Definition / ADR / Spec 追认既成事实。
 
 ## 4. 用户授权下的设计 / 架构自治
 
@@ -85,9 +91,12 @@ PRODUCT-STRATEGY
 - Product Vision / Value Proposition；
 - Product Success Definition；
 - Product Category；
-- v1 Strategic Constraints / Non-goals。
+- v1 Strategic Constraints / Non-goals；
+- Core Product Capability taxonomy；
+- Product Rule / Requirement / Product Acceptance 的产品意义；
+- v1 committed / deferred scope。
 
-若目标需要改变这些内容，必须先报告 `STRATEGY GAP` 或 `POSITIONING GAP`，由 ChatGPT 完成上位研究/设计并由用户明确接受。
+若目标需要改变这些内容，必须先报告 `STRATEGY GAP`、`POSITIONING GAP` 或 `PRODUCT DEFINITION GAP`，由 ChatGPT 完成上位研究/设计并由用户明确接受。
 
 ### 必须先冻结再实现的共享语义
 
@@ -106,7 +115,7 @@ PRODUCT-STRATEGY
 
 自主设计仍必须：
 
-- 不违反 Product Strategy / Positioning；
+- 不违反 Product Strategy / Positioning / Definition；
 - 不建立第二套长期 truth 或永久双写；
 - 公共 API / Schema / DB 变化版本化、可迁移并有 rollback / forward-fix；
 - 不削弱 security / privacy / grader-only / answer-exposure；
@@ -117,7 +126,7 @@ PRODUCT-STRATEGY
 
 ## 5. 局部实现自治
 
-在不改变公共行为、领域语义、依赖边界和 Product docs 的前提下，可以自行决定：
+在不改变公共行为、产品定义、领域语义、依赖边界和 Product docs 的前提下，可以自行决定：
 
 - 局部变量、私有函数、fixture 命名；
 - 单模块内部私有拆分；
@@ -146,6 +155,7 @@ New evidence / conflict
 → user acceptance
 → re-freeze Strategy
 → Positioning check / delta
+→ Product Definition check / delta
 → downstream work
 ```
 
@@ -155,18 +165,30 @@ New evidence / conflict
 
 包括：
 
-- 任务突破 Product Category、v1 Scope、Non-goals 或 Hard Boundaries；
+- 任务突破 Product Category、v1 Product Shape、Non-goals 或 Hard Boundaries；
 - 需要改变 Local Web、single-user、Local-first、BYOK、no-central-cloud 等产品级约束；
-- 需要新增当前 Positioning 明确排除的核心产品能力；
-- 下位文档与 Product Positioning 冲突。
+- 需要新增当前 Positioning 明确排除的核心产品方向；
+- Product Definition 或下位文档与 Product Positioning 冲突。
 
 处理：提出 Product Positioning Delta、理由、影响与候选方案；用户明确接受前不得用代码制造既成事实。
+
+### `PRODUCT DEFINITION GAP`
+
+包括：
+
+- 任务需要新增/删除一级 Capability；
+- Core Product Object 的产品意义缺失或冲突；
+- 当前 v1 是否包含某个 Feature 无法从 Canonical Product Definition 判断；
+- Product Rule / Product Requirement / Product Acceptance 缺失或冲突；
+- UX / Architecture / Specs 正在自行决定 Product Scope。
+
+处理：停止下游实现，回到 `PRODUCT-DEFINITION.md` 或明确 Product Feature Spec 完成定义、影响分析与用户接受，再进入 Design / Specs / Linear。
 
 ### `DESIGN GAP`
 
 包括：
 
-- 产品/学习/交互语义尚未冻结；
+- 已冻结 Product Definition 需要转化为具体用户交互或学习语义，但尚未冻结；
 - 多种方案会形成不同用户行为或领域语义；
 - 现有 Design 与 Product docs 存在未处理冲突。
 
@@ -197,6 +219,8 @@ New evidence / conflict
 4.8 LLM / Agent 编排与可信控制 → model / tool execution / rendering / audit execution
 ```
 
+这些是技术/教学 ownership，不是 Product Capability taxonomy。Product Capability 以 `PRODUCT-DEFINITION.md` 的 `CAP-*` 为准。
+
 特别禁止：
 
 - Assessment 直接写 mastery；
@@ -208,7 +232,7 @@ New evidence / conflict
 
 ## 8. Legacy Code
 
-当前代码结构只是迁移起点，不自动授予 canonical ownership。
+当前代码结构只是迁移起点，不自动授予 canonical ownership 或 Product Scope。
 
 例如：
 
@@ -222,10 +246,10 @@ New evidence / conflict
 
 规则：
 
-- 新能力向 current Product / Architecture / Specs 收敛；
+- 新能力向 current Product Definition / Architecture / Specs 收敛；
 - 可以存在 temporary adapter / compatibility layer，但必须有退休条件；
 - 禁止长期双 truth / 双默认主链；
-- 历史目录名不决定当前产品类别或系统 ownership。
+- 历史目录名不决定当前产品类别、Capability 或系统 ownership。
 
 ## 9. 默认验证
 
@@ -267,13 +291,13 @@ python3 .github/workflows/check_docs.py
 
 执行代理只有在以下条件满足时才能标记任务完成：
 
-- 未违反 `PRODUCT-STRATEGY.md` 与 `PRODUCT-POSITIONING.md`；
-- 所有 Acceptance Criteria 满足；
+- 未违反 `PRODUCT-STRATEGY.md`、`PRODUCT-POSITIONING.md` 与 `PRODUCT-DEFINITION.md`；
+- 所有 Product / UX / Technical / Quality Acceptance Criteria 按任务适用范围满足；
 - 未违反 canonical state ownership / dependency rules；
 - 必要 migration 可前向执行并有 rollback / compatibility strategy；
 - 新增关键行为有自动化测试；
 - error / retry / idempotency / observability 符合 Spec；
 - 无未声明公共 API / Schema 变化；
-- 所有 `STRATEGY GAP` / `POSITIONING GAP` / `DESIGN GAP` / `SPEC GAP` 已显式报告或在正确层关闭；
+- 所有 `STRATEGY GAP` / `POSITIONING GAP` / `PRODUCT DEFINITION GAP` / `DESIGN GAP` / `SPEC GAP` 已显式报告或在正确层关闭；
 - 没有占位实现、`TODO` 伪完成或仅 Mock 的“真实能力可用”结论；
 - Product / Learning claim 没有超出实际 evidence。
