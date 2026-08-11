@@ -135,8 +135,8 @@ export default function TutorWorkspace({ sessionId }) {
       <div className="page-state page-state--error" role="alert">
         <h1>学习工作台</h1>
         <p>{view.error}</p>
-        <button type="button" className="button button--secondary" onClick={() => navigate('/history')}>
-          返回历史记录
+        <button type="button" className="button button--secondary" onClick={() => navigate('/today')}>
+          返回今天
         </button>
       </div>
     )
@@ -181,7 +181,7 @@ export default function TutorWorkspace({ sessionId }) {
             </div>
             <h1 id="workspace-title">{session.knowledge_point || session.topic || session.subject || '学习会话'}</h1>
           </div>
-          <button type="button" className="button button--ghost" onClick={() => navigate('/history')}>
+          <button type="button" className="button button--ghost" onClick={() => navigate('/learning/history')}>
             查看历史
           </button>
         </header>

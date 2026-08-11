@@ -10,6 +10,8 @@ import {
   X,
   BookOpen,
 } from 'lucide-react'
+import { WorkspaceContextDisplay } from './WorkspaceContext'
+import './WorkspaceContext.css'
 import './Sidebar.css'
 
 const productNavItems = [
@@ -102,6 +104,8 @@ export default function Sidebar() {
             <div className="logo-sub">AI 学习伙伴</div>
           </div>
         </div>
+
+        <WorkspaceContextDisplay />
 
         <nav className="sidebar-nav" aria-label="产品域导航">
           <div className="sidebar-nav-section">
