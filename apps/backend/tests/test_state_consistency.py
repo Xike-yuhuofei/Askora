@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
@@ -28,7 +29,60 @@ class FailingRedis:
         raise ConnectionError("offline")
 
 
+class StaticRedis:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self, _key):
+        return self.value
+
+    def setex(self, _key, _ttl, _value):
+        return None
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        json.dumps({"p": 0.75, "n_attempts": 3, "n_correct": 2, "n_wrong": 1}),
+        json.dumps(
+            {"p": 0.75, "n_attempts": 3, "n_correct": 2, "n_wrong": 1}
+        ).encode(),
+    ],
+)
+def test_kt_redis_json_text_and_bytes_are_loaded(payload):
+    """TEST-060: supported Redis response types load the persisted KT state."""
+    service = KnowledgeTracingService()
+    service._redis = StaticRedis(payload)
+
+    result = service.get_mastery("user-1", "kp-1")
+
+    assert result.p == 0.75
+    assert result.n_attempts == 3
+    assert result.n_correct == 2
+    assert result.n_wrong == 1
+
+
+def test_kt_redis_none_uses_memory_fallback():
+    """CI-101: a Redis cache miss preserves the production-local fallback."""
+    service = KnowledgeTracingService()
+    service._redis = StaticRedis(None)
+    service._memory_store[service._get_key("user-1", "kp-1")] = {
+        "p": 0.6,
+        "n_attempts": 2,
+        "n_correct": 1,
+        "n_wrong": 1,
+        "last_updated": 123.0,
+    }
+
+    result = service.get_mastery("user-1", "kp-1")
+
+    assert result.p == 0.6
+    assert result.n_attempts == 2
+    assert result.last_updated == 123.0
+
+
 def test_kt_memory_fallback_preserves_previous_update():
+    """CI-101: a Redis connection failure preserves the in-memory state."""
     service = KnowledgeTracingService()
     service._redis = FailingRedis()
 

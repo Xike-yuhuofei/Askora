@@ -99,3 +99,31 @@ jobs:
 
       - name: Run required tests on 3.12
         run: uv run pytest tests/ -m required -v --tb=short
+
+  py313-compat:
+    name: Optional / Python 3.13 compatibility
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    env:
+      APP_ENV: test
+      PRIVATE_APP: "true"
+      DATABASE_URL: sqlite+aiosqlite:///./ci.db
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install uv==0.9.5
+          uv sync --frozen --extra dev
+
+      - name: Run type and required compatibility gates on 3.13
+        run: |
+          uv run mypy app
+          uv run pytest tests/test_state_consistency.py -v --tb=short
+          uv run pytest tests/ -m required -v --tb=short
