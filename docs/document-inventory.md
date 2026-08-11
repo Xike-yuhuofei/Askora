@@ -2,7 +2,7 @@
 
 > 状态：Current
 > 校准日期：2026-08-11
-> 基线提交：`db963d75adade6e8fe3c52d828ac1c4c27bc2dda`
+> 基线提交：`a4e682a9bd23288ce3b383c70a143ffe67666bf7`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态以 Linear 和 current `main` 为准。
 
 处置代码：
@@ -109,6 +109,7 @@
 | `docs/research/product-strategy/USER-PROBLEM-JTBD-RESEARCH.md` | SUPPORT-RETAIN |
 | `docs/research/product-strategy/ALTERNATIVES-OPPORTUNITY-RESEARCH.md` | SUPPORT-RETAIN |
 | `docs/research/product-strategy/DISCOVERY-EVIDENCE-SYNTHESIS.md` | SUPPORT-RETAIN |
+| `docs/research/product-strategy/PRIMARY-DISCOVERY-PROTOCOL.md` | SUPPORT-RETAIN |
 | `docs/design/research/README.md` | CURRENT-UPDATED |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN |
