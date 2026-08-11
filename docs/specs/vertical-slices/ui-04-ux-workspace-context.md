@@ -52,7 +52,7 @@ Workspace switch   Learner answers               Citation/source context
 如果 owner/query/command contract 不明确：`BLOCKED_BY_SPEC_GAP`。  
 不得以前端 local state 绕过 gate。
 
-实时完成状态属于 Linear 与 `docs/exec-plans/` current index，本 Vertical Slice 不维护第二套实时状态。
+实时完成状态属于 Linear 与 `docs/planning/` current index，本 Vertical Slice 不维护第二套实时状态。
 
 ---
 

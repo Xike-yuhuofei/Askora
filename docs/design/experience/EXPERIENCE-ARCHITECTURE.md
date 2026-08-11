@@ -4,8 +4,8 @@
 > 冻结日期：2026-08-11  
 > 适用范围：Askora v1 Experience / IA / Navigation / Workspace / Journey 设计  
 > 上游：[`../../product/PRODUCT-STRATEGY.md`](../../product/PRODUCT-STRATEGY.md)、[`../../product/PRODUCT-POSITIONING.md`](../../product/PRODUCT-POSITIONING.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../adr/ADR-0018-ux-workspace-context-architecture.md`](../../adr/ADR-0018-ux-workspace-context-architecture.md)  
-> 下游实现合同：[`../../specs/ui/`](../../specs/ui/)
+> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)
+> 下游实现合同：[`../../specs/ui/`](../../specs/ui)
 
 ---
 

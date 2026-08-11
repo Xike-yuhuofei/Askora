@@ -10,7 +10,6 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[2]
 MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-INVENTORY_ROW = re.compile(r"^\| `([^`]+)` \|", re.MULTILINE)
 SCHEMES = ("http:", "https:", "mailto:", "tel:", "data:")
 EXCLUDED_DIRECTORIES = {
     ".git",
@@ -28,23 +27,25 @@ STALE_PATTERNS = {
         "docs/architecture/当前项目架构.md",
         "本仓库当前尚无正式提交",
     ),
-    "docs/exec-plans/README.md": (
-        "active/EXEC-007-v0.3-governance-preconditions.md",
+    "docs/planning/README.md": (
+        "execs/EXEC-007-v0.3-governance-preconditions.md",
         "当前 active contracts",
     ),
     "docs/specs/README.md": ("下一阶段：正式生成 `EXEC-007`",),
     "docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md": (
         "下一阶段为生成 `EXEC-007`",
     ),
-    "docs/design/个人AI辅助学习平台设计方案.md": (
+    "docs/design/learning/个人AI辅助学习平台设计方案.md": (
         "进入实现前依次完成",
         "本阶段不修改 `docs/specs/**`",
     ),
-    "docs/design/AI学习系统算法与教学内核设计.md": (
+    "docs/design/learning/AI学习系统算法与教学内核设计.md": (
         "当前阶段完成的是 Canonical Design，不是 Spec 或实现",
         "后续流程必须先进入 ADR Resolution",
     ),
-    "docs/design/research/README.md": ("研究完成前不得直接生成 v0.3 EXEC",),
+    "docs/research/learning-core/README.md": (
+        "研究完成前不得直接生成 v0.3 EXEC",
+    ),
 }
 
 
@@ -88,7 +89,7 @@ def check_links(files: list[Path]) -> list[str]:
 
 
 def active_exec_files() -> list[Path]:
-    active = ROOT / "docs/exec-plans/active"
+    active = ROOT / "docs/planning/execs"
     if not active.exists():
         return []
     return sorted(path for path in active.glob("EXEC-*.md") if path.is_file())
@@ -99,15 +100,15 @@ def check_active_exec_index() -> list[str]:
     if not active_files:
         return []
 
-    index = ROOT / "docs/exec-plans/README.md"
+    index = ROOT / "docs/planning/README.md"
     content = index.read_text(encoding="utf-8")
     errors: list[str] = []
 
     for path in active_files:
-        relative_target = f"active/{path.name}"
+        relative_target = f"execs/{path.name}"
         if relative_target not in content:
             errors.append(
-                f"docs/exec-plans/active: {path.name} is active but missing from docs/exec-plans/README.md"
+                f"docs/planning/execs: {path.name} is active but missing from docs/planning/README.md"
             )
 
     exec_numbers = []
@@ -116,7 +117,7 @@ def check_active_exec_index() -> list[str]:
         if match:
             exec_numbers.append(int(match.group(1)))
     if len(exec_numbers) != len(set(exec_numbers)):
-        errors.append("docs/exec-plans/active: duplicate EXEC number detected")
+        errors.append("docs/planning/execs: duplicate EXEC number detected")
 
     return errors
 
@@ -134,23 +135,23 @@ def check_stale_claims() -> list[str]:
 
 
 def check_inventory(files: list[Path]) -> list[str]:
-    inventory = ROOT / "docs/document-inventory.md"
-    listed = set(INVENTORY_ROW.findall(inventory.read_text(encoding="utf-8")))
+    inventory = ROOT / "docs/governance/document-inventory.md"
+    listed: set[str] = set()
+    for line in inventory.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.split("|")[1:-1]]
+        if len(cells) != 7 or cells[0] == "Current Path":
+            continue
+        target = cells[6]
+        match = re.fullmatch(r"`([^`]+)`", target)
+        if match:
+            listed.add(match.group(1))
     actual = {str(path.relative_to(ROOT)) for path in files}
 
-    # Active EXEC contracts are transient execution-state documents. Their lifecycle
-    # is governed by docs/exec-plans/README.md while active, then each file becomes
-    # explicitly inventoried when archived under completed/.
-    exec_index = (ROOT / "docs/exec-plans/README.md").read_text(encoding="utf-8")
-    active_indexed = {
-        str(path.relative_to(ROOT))
-        for path in active_exec_files()
-        if f"active/{path.name}" in exec_index
-    }
-
     return [
-        f"docs/document-inventory.md: missing disposition for {name}"
-        for name in sorted(actual - listed - active_indexed)
+        f"docs/governance/document-inventory.md: missing disposition for {name}"
+        for name in sorted(actual - listed)
     ]
 
 

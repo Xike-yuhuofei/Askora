@@ -5,26 +5,37 @@
 
 `docs/research/` 保存跨产品战略、用户问题、替代方案、市场、可行性与后续 Product Learning 的研究资产。
 
-现有 `docs/design/research/` 继续保存 Learning Core / 教学系统形成过程中已经存在的 evidence 与 synthesis；本轮不机械搬迁历史研究，以避免无收益的大规模路径重写。
+Learning Core / 教学系统形成过程中的 evidence 与 synthesis 统一位于 `docs/research/learning-core/`；研究资产不再嵌在 Canonical Design 目录中。
 
 ## 1. 当前结构
 
 ```text
 docs/research/
 ├── README.md
-└── product-strategy/
-    ├── USER-PROBLEM-JTBD-RESEARCH.md
-    ├── ALTERNATIVES-OPPORTUNITY-RESEARCH.md
-    ├── DISCOVERY-EVIDENCE-SYNTHESIS.md
-    └── PRIMARY-DISCOVERY-PROTOCOL.md
+├── product-discovery/
+│   ├── USER-PROBLEM-JTBD-RESEARCH.md
+│   ├── ALTERNATIVES-OPPORTUNITY-RESEARCH.md
+│   ├── DISCOVERY-EVIDENCE-SYNTHESIS.md
+│   └── PRIMARY-DISCOVERY-PROTOCOL.md
+└── learning-core/
+    ├── evidence/
+    └── synthesis/
 ```
 
 ### Product Strategy Research
 
-- [`USER-PROBLEM-JTBD-RESEARCH.md`](product-strategy/USER-PROBLEM-JTBD-RESEARCH.md)：建立 Problem / Primary User / JTBD 假设与 Primary Discovery protocol。
-- [`ALTERNATIVES-OPPORTUNITY-RESEARCH.md`](product-strategy/ALTERNATIVES-OPPORTUNITY-RESEARCH.md)：记录替代产品能力与 Askora 的机会假设。
-- [`DISCOVERY-EVIDENCE-SYNTHESIS.md`](product-strategy/DISCOVERY-EVIDENCE-SYNTHESIS.md)：XIK-181 外部经验研究、替代产品、Assessment 边界与 assumption status synthesis；明确哪些结论仍需 Primary Discovery。
-- [`PRIMARY-DISCOVERY-PROTOCOL.md`](product-strategy/PRIMARY-DISCOVERY-PROTOCOL.md)：XIK-182 真人 JTBD / behavior / friction / first-value / assessment calibration 执行协议；protocol 本身不算 Primary Evidence。
+- [`USER-PROBLEM-JTBD-RESEARCH.md`](product-discovery/USER-PROBLEM-JTBD-RESEARCH.md)：建立 Problem / Primary User / JTBD 假设与 Primary Discovery protocol。
+- [`ALTERNATIVES-OPPORTUNITY-RESEARCH.md`](product-discovery/ALTERNATIVES-OPPORTUNITY-RESEARCH.md)：记录替代产品能力与 Askora 的机会假设。
+- [`DISCOVERY-EVIDENCE-SYNTHESIS.md`](product-discovery/DISCOVERY-EVIDENCE-SYNTHESIS.md)：XIK-181 外部经验研究、替代产品、Assessment 边界与 assumption status synthesis；明确哪些结论仍需 Primary Discovery。
+- [`PRIMARY-DISCOVERY-PROTOCOL.md`](product-discovery/PRIMARY-DISCOVERY-PROTOCOL.md)：XIK-182 真人 JTBD / behavior / friction / first-value / assessment calibration 执行协议；protocol 本身不算 Primary Evidence。
+
+### Learning Core Research
+
+- [`learning-core/evidence/`](learning-core/evidence/)：教育科学、ITS、检索、教学策略、复习调度与 LLM/Agent 治理的来源证据；
+- [`learning-core/synthesis/`](learning-core/synthesis/)：八类系统研究、DR-03 系列、研究综合、候选范围与历史研究议程；
+- [`learning-core/README.md`](learning-core/README.md)：Research → Synthesis → Canonical Design / ADR / Spec 的形成链与历史边界。
+
+这些文件可以包含历史架构候选与研究结论；其 current canonical 吸收结果必须从 `docs/design/learning/`、`docs/architecture/decisions/` 与 `docs/specs/` 读取。
 
 ## 2. Research 职责
 

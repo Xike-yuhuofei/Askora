@@ -16,8 +16,8 @@
 6. 与任务相关的 current Canonical Design / Accepted ADR
 7. `docs/specs/architecture/`、`domain/`、`systems/`、`interfaces/`、`quality/`、`ui/` 中相关合同
 8. 对应 Linear Issue / Project 状态
-9. 当前 `docs/exec-plans/active/` 中明确指定的 EXEC（如有）
-10. 仅在需要理解证据或形成上位 Delta 时读取 `docs/research/` / `docs/design/research/`
+9. 当前 `docs/planning/execs/` 中明确指定的 EXEC（如有）
+10. 仅在需要理解证据或形成上位 Delta 时读取 `docs/research/` / `docs/research/learning-core/`
 
 职责解释：
 

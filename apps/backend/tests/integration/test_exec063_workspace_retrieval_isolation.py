@@ -3,7 +3,7 @@
 Core proof: ordinary retrieval scoped to Workspace A can never read, hit a
 cache entry for, or leak Material/KU that belongs to Workspace B.
 
-Governing: ``docs/exec-plans/active/EXEC-063-workspace-scoped-retrieval-cutover.md``
+Governing: ``docs/archive/exec-plans/EXEC-063-workspace-scoped-retrieval-cutover.md``
 (EXEC063-AC-001..AC-010), ADR-0016, SYS02-*.
 """
 

@@ -169,6 +169,7 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 - [First-use Onboarding](interfaces/onboarding-contract.md) — LocalOwner bootstrap and first learning readiness; no register/login.
 - [Rich Response Rendering](interfaces/render-content-contract.md) — rendering boundary only.
 - [Learning Conversation Message System](interfaces/learning-conversation-message-system-spec-delta.md) — LearningActivity-scoped SYS08 message artifact、six typed blocks、capability dispatch、state/owner/frontend/testing boundaries.
+- [UserNote and Source Inspection](interfaces/user-note-source-inspection-contract.md) — Workspace-scoped durable UserNote owner、version/conflict/recovery、source inspection handoff 与 data-control contract.
 - [Schema Versioning](interfaces/schema-versioning.md) — schema evolution/startup compatibility.
 
 ### Frontend Technical Contracts
@@ -178,7 +179,6 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 ### Quality
 
 - [Testing Standard](quality/testing-standard.md) — L0～L6 + OPVE/G0/G1/G2.
-- [Test Oracle Classification](quality/test-oracle-classification.md) — Required/Optional/Informational oracle semantics.
 - [CI Infrastructure Standard](quality/ci-infrastructure-standard.md) — v1 Local Web Required CI and optional compatibility evidence.
 - [v1 Local Web Quality Reconciliation](quality/v1-local-web-quality-reconciliation.md) — Product Positioning ↔ Quality alignment.
 - [Observability Standard](quality/observability-standard.md) — local diagnostics + decision/outcome observability.
@@ -186,6 +186,8 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 - [Security Standard](quality/security-standard.md) — Learning Core hard rules plus LocalOwner/Workspace/LocalSecretStore security.
 
 Quality Specs own technical/quality gates. Product Acceptance remains upstream in `PRODUCT-DEFINITION.md` or an explicit Product Feature Spec。
+
+EXEC-052 的单次 Test Oracle 分类与后续完成记录属于历史审计证据，已迁至 [archive/audits/quality/test-oracle-classification.md](../archive/audits/quality/test-oracle-classification.md)，不再作为 current Quality Spec 索引成员。
 
 ### UI / UX — Current Only
 
@@ -195,15 +197,16 @@ Quality Specs own technical/quality gates. Product Acceptance remains upstream i
 - [Design System](ui/design-system.md)
 - [UI/UX Quality & Regression](ui/quality-and-regression.md)
 
-以下旧 UI contract files 仅作 historical/migration reference，不再作为新实现 current Authority：
+以下旧 UI contract files 已归档，仅作 historical/migration reference，不再作为新实现 current Authority：
 
-- `ui/interactive-element-system.md`
-- `ui/information-architecture.md`
-- `ui/screen-contracts.md`
-- `ui/data-contracts.md`
-- `ui/visual-system.md`
-- `ui/component-state-contracts.md`
-- `ui/quality-and-migration.md`
+- [interactive-element-system.md](../archive/specs/ui/interactive-element-system.md)
+- [information-architecture.md](../archive/specs/ui/information-architecture.md)
+- [screen-contracts.md](../archive/specs/ui/screen-contracts.md)
+- [visual-system.md](../archive/specs/ui/visual-system.md)
+- [component-state-contracts.md](../archive/specs/ui/component-state-contracts.md)
+- [quality-and-migration.md](../archive/specs/ui/quality-and-migration.md)
+
+`frontend/ui-read-model-contracts.md` 是 current technical contract，不属于历史列表；原 `ui/data-contracts.md` 完全重复副本已删除。
 
 新的 implementation task 不得要求 Agent 从旧条款 + Supersession Matrix 推导 current truth。
 
@@ -218,15 +221,15 @@ Primary current/historical references include：
 - [Book-to-Adaptive-Learning](vertical-slices/book-to-adaptive-learning.md) — book-learning E2E, with current v1 material/scope/runtime rules applied.
 - [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — identity migration.
 - [UI-04 Workspace Context](vertical-slices/ui-04-ux-workspace-context.md) — current Workspace Experience implementation slice，已改用 consolidated Experience/UI contracts。
-- [UI-03 Interactive Element System](vertical-slices/ui-03-interactive-element-system-refactor.md) — historical UI architecture migration reference；current behavior 服从 consolidated contracts。
+- [UI-03 Interactive Element System](../archive/specs/vertical-slices/ui-03-interactive-element-system-refactor.md) — historical UI architecture migration reference；current behavior 服从 consolidated contracts。
 - [P1-03 Data Control](vertical-slices/p1-03-data-control-recovery.md) — local backup/export/erasure reference.
 - [P1-06 First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — no-auth LocalOwner semantics.
 
 Historical/partially superseded：
 
-- [P1-05 Account Lifecycle](vertical-slices/p1-05-account-lifecycle.md) — historical only; no Account/Auth resurrection.
-- [P1-04C OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — implemented optional/historical; not v1 core/release prerequisite.
-- [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — historical Desktop implementation; current new writes use ADR-0017/LSS/MODEL-CONFIG.
+- [P1-05 Account Lifecycle](../archive/specs/vertical-slices/p1-05-account-lifecycle.md) — historical only; no Account/Auth resurrection.
+- [P1-04C OCR Review](../archive/specs/vertical-slices/p1-04c-library-ocr-review.md) — implemented optional/historical; not v1 core/release prerequisite.
+- [P1-02 Model Settings](../archive/specs/vertical-slices/p1-02-model-settings.md) — historical Desktop implementation; current new writes use ADR-0017/LSS/MODEL-CONFIG.
 
 Vertical Slice 可以实现一个或多个 Product Capability，但不能以自身存在作为新 Product Requirement 的来源。实时工作状态属于 Linear；EXEC index 不复制 Product Backlog。
 

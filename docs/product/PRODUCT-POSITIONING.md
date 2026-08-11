@@ -408,13 +408,13 @@ Discovery / Evidence
 
 ### Product / Overall Design
 
-- [`../design/个人AI辅助学习平台设计方案.md`](../design/个人AI辅助学习平台设计方案.md)
-- [`../design/AI学习系统算法与教学内核设计.md`](../design/AI学习系统算法与教学内核设计.md)
+- [`../design/learning/个人AI辅助学习平台设计方案.md`](../design/learning/个人AI辅助学习平台设计方案.md)
+- [`../design/learning/AI学习系统算法与教学内核设计.md`](../design/learning/AI学习系统算法与教学内核设计.md)
 
 ### UX / Interaction
 
-- [`../design/UX-Architecture-Canonical-Design-Delta.md`](../design/UX-Architecture-Canonical-Design-Delta.md)
-- [`../design/Interactive-Element-System-Canonical-Design-Delta.md`](../design/Interactive-Element-System-Canonical-Design-Delta.md)
+- [`../archive/design/UX-Architecture-Canonical-Design-Delta.md`](../archive/design/UX-Architecture-Canonical-Design-Delta.md)
+- [`../archive/design/Interactive-Element-System-Canonical-Design-Delta.md`](../archive/design/Interactive-Element-System-Canonical-Design-Delta.md)
 - [`../specs/ui/README.md`](../specs/ui/README.md)
 
 ### Architecture / Domain / Platform

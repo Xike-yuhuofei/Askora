@@ -706,7 +706,7 @@ Linear Issue 可以引用 `CAP-*` / `PD-REQ-*` / `PD-AC-*`，但不得复制并�
 | Domain ownership / API / persistence / technical contracts | ADR / `docs/specs/**` |
 | Quality thresholds / test oracle | `docs/specs/quality/**` |
 | Current priority / milestone / task / dependency / status | Linear |
-| Historical completion evidence | `docs/releases/**` |
+| Historical completion evidence | `docs/archive/releases/**` |
 
 ---
 

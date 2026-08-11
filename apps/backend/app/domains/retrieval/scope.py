@@ -1,6 +1,6 @@
 """Typed RetrievalScope for SYS02 workspace-scoped retrieval (EXEC-063 / XIK-172).
 
-Frozen contract (``docs/exec-plans/active/EXEC-063-*.md`` §4):
+Historical implementation contract (``docs/archive/exec-plans/EXEC-063-*.md`` §4):
 
     workspace_id:       required
     project_ids:        optional
