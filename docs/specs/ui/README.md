@@ -1,180 +1,203 @@
 # Askora UI Specification Set
 
-> 状态：`FROZEN — Current Experience Design + ADR-0014/0018 UI Contract Set`  
-> 权威性：Canonical UI Implementation Contract  
+> 状态：**Canonical UI/UX Implementation Contract Index — Current Only**  
+> 校准日期：2026-08-11  
 > 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`  
-> Governing Design：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`docs/design/experience/LEARNING-EXPERIENCE.md`、`docs/design/experience/INTERACTION-MODEL.md`  
-> Governing ADR：`docs/adr/ADR-0014-user-job-driven-interaction-architecture.md`、`docs/adr/ADR-0018-ux-workspace-context-architecture.md`  
-> Historical design inputs：`docs/design/Interactive-Element-System-Canonical-Design-Delta.md`、`docs/design/UX-Architecture-Canonical-Design-Delta.md`
+> Governing Experience：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`LEARNING-EXPERIENCE.md`、`INTERACTION-MODEL.md`  
+> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0019
+
+---
 
 ## 1. Purpose
 
-本目录定义 Askora 的 Information Architecture、Interactive Element semantics、screen behavior、UI read models、visual system 与 UI migration / quality gates。
+本目录回答：
 
-UI Specs 回答的是：
+> **已经由 Product Definition 冻结的能力，用户具体如何看到、导航、理解和操作，以及 UI 如何被实现与验收。**
 
-> **用户如何看到、理解和操作已经由 Product Definition 冻结、并由 current Experience Design 组织为体验模型的产品能力。**
+UI Specs 不拥有 Product Capability、v1 Feature inclusion、Product Rule、Teaching Policy、domain ownership 或 Product Acceptance。
 
-它们不拥有 Product Capability、v1 Feature inclusion、Product Rule 或 Product Acceptance。任何“某能力是否属于 v1”的判断必须回到 `PRODUCT-DEFINITION.md` 或明确的 Product Feature Spec。
-
-历史 UX / Interactive Delta 用于解释设计演进和 ADR rationale，不再与 `docs/design/experience/**` 形成第二套 current Experience truth。
-
-Askora UI 的学习主链仍然围绕：
+正式职责边界：
 
 ```text
-Today next action
-→ LearningActivity
-→ Tutor / Task / Assessment
-→ Evidence / Review / Plan update
-→ Next action
+Product Definition = WHAT
+Experience Design  = HOW USER USES IT / stable experience model
+UI / UX Spec       = WHAT THE INTERFACE MUST IMPLEMENT
+Technical Spec     = HOW DATA / SOFTWARE INTERFACES WORK
 ```
 
-UI 不得改变 SYS01～SYS08 状态所有权、TeachingAction、AssessmentResult、MasteryEstimate、LearningPlan 或 ReviewSchedule 语义。
+---
 
-## 2. Product Definition Traceability
+## 2. Current Canonical UI Contracts
 
-UI Spec Set 的主要上游 Product Definition 映射：
+当前 UI/UX 实现只需以以下 4 份长期合同为主：
 
-| UI Area | Product Definition Trace | UI Ownership |
-|---|---|---|
-| Workspace / Library | `CAP-01`、`CAP-07`、`PD-REQ-0101..0104`、`PD-RULE-006/009/011` | 导航、呈现、contextual commands、source disclosure |
-| Goal / Plan / Next Activity | `CAP-02`、`CAP-03`、`CAP-07`、`PD-REQ-0201..0203`、`PD-REQ-0301..0303` | task flow、信息层级、状态解释、入口 |
-| Tutor / Learning Canvas | `CAP-04`、`CAP-05`、`PD-REQ-0401..0403`、`PD-REQ-0501..0503` | 同一 canonical activity 的交互与呈现 |
-| Review / validation disclosure | `CAP-06`、`CAP-07`、`PD-REQ-0601..0603`、`PD-REQ-0701..0703` | obligation / history / next-step 的可理解呈现 |
-| Local data / Settings | `CAP-08`、`PD-REQ-0801..0804`、`PD-RULE-008/010/011` | utility IA、配置呈现、恢复/删除确认 |
-| Accessibility / usability | `PD-NFR-005` | UI-specific responsive / accessibility contract |
+1. [`screen-and-navigation-contracts.md`](screen-and-navigation-contracts.md)  
+   user-facing IA、Navigation、routes、shell、Today/Learning/Library/Settings/Welcome、responsive screen rules。
 
-规则：
+2. [`learning-interaction-contracts.md`](learning-interaction-contracts.md)  
+   Learning Canvas、Question/Attempt/Feedback/Hint/Remediation、streaming、assistance、citation、SourceSpan、UserNote、Context Drawer、long-session interaction。
 
-- 新建或实质重构 UI Spec 时 MUST 引用适用的 `CAP-*` / `PD-REQ-*` / `PD-RULE-*`；
-- 不得为了“完整”把所有 CAP 机械挂到每份 UI 文档；
-- Product Definition 缺失时报告 `PRODUCT DEFINITION GAP`，不得由 UI 自行补成永久产品范围；
-- UI Acceptance 只证明用户交互合同成立，不自动等同 Product Acceptance 或 Learning Evidence。
+3. [`design-system.md`](design-system.md)  
+   semantic tokens、typography、spacing、components、states、patterns、motion、visual accessibility。
 
-## 3. ADR-0014 Retained UX Decisions
+4. [`quality-and-regression.md`](quality-and-regression.md)  
+   semantic regression、responsive、keyboard/a11y、Workspace isolation、security、UX acceptance 与 completion claim boundary。
 
-ADR-0014 当前仍有效、且已被 current Experience Design consolidation 吸收的 UX / Interaction Architecture 语义包括：
+UI read-model / query / ownership contract 已移到技术层：
 
-1. UI 推导顺序：
+- [`../frontend/ui-read-model-contracts.md`](../frontend/ui-read-model-contracts.md)
 
-```text
-User Job
-→ Product / Domain Meaning
-→ Information Architecture
-→ Interaction Semantics
-→ Interaction Pattern
-→ Visual Component
-```
+它继续保留原 `UI-DATA-* / UXA-DATA-*` 精确技术条款，但不再属于 Experience Design Authority。
 
-2. L0 Product Domain：
+---
+
+## 3. Product Definition Traceability
+
+主要映射：
+
+| UI Area | Product Definition Trace |
+|---|---|
+| Workspace / Material / Notes | `CAP-01`、`CAP-07`、`PD-REQ-0101..0104`、`PD-RULE-006/009/011` |
+| Goal / Plan / Next Activity | `CAP-02`、`CAP-03`、`CAP-07`、`PD-REQ-0201..0303` |
+| Learning Canvas / Attempt / Feedback | `CAP-04`、`CAP-05`、`PD-REQ-0401..0503` |
+| Review / validation / continuity | `CAP-06`、`CAP-07`、`PD-REQ-0601..0703` |
+| Local data / BYOK / Recovery | `CAP-08`、`PD-REQ-0801..0804`、`PD-RULE-008/010/011` |
+| Accessibility / usability | `PD-NFR-005` |
+
+新建或实质重构 UI Contract / Vertical Slice / EXEC 必须引用适用 Product Definition；如果 Product Definition 缺失，报告 `PRODUCT DEFINITION GAP`。
+
+---
+
+## 4. Current Experience Invariants
+
+当前实现不得突破：
+
+1. L0 Product Domains 只有：
 
 ```text
 今天 / 学习 / 资料库
 ```
 
-3. Settings / Recovery / Search 属于 App Utility，不与 Product Domain 等权。
-4. Chat/Tutor 是 LearningActivity interaction mode，不是 Product Domain。
-5. Today 在 canonical activity 可用时只允许一个 Primary Learning Task；Quick Start 降为 fallback/secondary。
-6. Interactive Element 顶层 semantic primitives 固定为 7 类：Navigation、Action、Control、Selection、Disclosure、InteractiveContent、StatusFeedback。
-7. Card/Button/Toolbar/Menu/Modal 是 pattern/component，不是 semantic role。
-8. Settings landing 使用 hierarchical category navigation，不再是 giant control grid。
+2. Settings / Recovery 是 App Utility。
+3. Chat/Tutor 是 LearningActivity interaction mode，不是 Product Domain。
+4. Learning 不再暴露 Goal / Plan / Progress / History 常驻管理中心；domain truth 保留并按明确 user job contextually expose。
+5. Today 有可靠 canonical activity 时只允许一个 Primary Learning Task。
+6. Workspace 是 Left / Center / Right / Drawer 共享的 canonical context。
+7. Center 是唯一 Primary Learning Canvas。
+8. Right Rail v1 只允许 User-authored Learning Notes + Current Material / Source Context。
+9. Context Drawer 默认收起，只呈现 stage / stage goal / next 1..3。
+10. Library v1 normal UI 不暴露 OCR；deferred candidates 不建立 placeholder。
+11. 7 semantic interaction primitives 保持：Navigation / Action / Control / Selection / Disclosure / InteractiveContent / StatusFeedback。
+12. UI 不得通过 frontend-only state 改写 Workspace、Plan、Evidence、TeachingAction、UserNote 等 canonical truth。
 
-ADR-0014 中关于 Learning 常驻 facets、OCR progressive disclosure 等条款已被 ADR-0018 部分 supersede；current Experience truth 直接读取 `docs/design/experience/**`，不再由实现方自行叠加历史 Delta / supersession matrix 推导。
+---
 
-## 4. ADR-0018 Retained UX Decisions
-
-ADR-0018 在 ADR-0014 之上冻结并已被 current Experience Design consolidation 吸收：
-
-1. 三栏职责：Left = Where（导航 + Workspace），Center = Learn（唯一 Primary Canvas），Right = Reference / Notes（可隐藏）。
-2. Workspace 是三栏共享的 canonical `current_workspace_id` 上下文；切换处理 draft / stream / note / session / material-tab。
-3. Learning Context Drawer 固定在中栏 composer 正上方，默认收起，只显示 stage / stage goal / next 1..3。
-4. Learning 不再暴露 Goal / Plan / Progress / History 常驻管理 facet（domain truth 保留）。
-5. Library v1 正常 UI 不暴露 OCR；扫描 PDF 诚实显示 unsupported / partial。
-6. 大纲 / Evidence 管理中心 / 知识图谱管理 UI / Progress Dashboard / AI Summary / Flashcards / 错题本等当前 deferred candidates 不建 placeholder。
-
-其中第 5、6 项的 **Feature inclusion / exclusion authority** 来自当前 Product Definition；ADR / Experience / UI Spec 只拥有相应 UX consequences。若 Product Definition 未来改变，必须先完成上游 Product Delta，再更新 Experience / ADR / UI Specs。
-
-`UserNote` 已是 `PRODUCT-DEFINITION.md` 的 Core Product Object，并属于 `CAP-01` 的辅助沉淀能力。历史 UI-03 “persistent notes 非目标”语义已被 ADR-0018 / current Product Definition supersede；当前 UI 只能在 owner / persistence contract 明确后呈现 UserNote，不得用 frontend-only state 冒充持久化笔记。
-
-## 5. Spec Index
-
-- [Interactive Element System](interactive-element-system.md)：7 类 semantic primitives、L0～L5 hierarchy、pattern qualification、cross-platform mapping 与 anti-patterns。
-- [Information Architecture](information-architecture.md)：当前三栏学习架构、Workspace context、routes、legacy migration 与 responsive IA；与历史条款冲突时服从 current Experience Design / applicable ADR supersession。
-- [Screen Contracts](screen-contracts.md)：Today / Learning Canvas / Workspace / Library / Settings 等 task/state/action contracts。
-- [UI Data Contracts](data-contracts.md)：领域来源、UI Read Model、Query/API 与兼容边界。
-- [Visual System](visual-system.md)：semantic-before-component、tokens、hierarchy、rows/cards、contextual actions 与 accessibility。
-- [Quality and Migration](quality-and-migration.md)：UI migration、tests、responsive/security/claim gates。
-- [Component State Contracts](component-state-contracts.md)：组件状态与交互状态合同。
-
-## 6. Authority
-
-UI 工作遵守：
+## 5. Authority Chain
 
 ```text
 PRODUCT-STRATEGY
 → PRODUCT-POSITIONING
 → PRODUCT-DEFINITION
-→ Current Experience Design (`docs/design/experience/**`)
+→ Learning / Domain Canonical Design
+→ Current Experience Canonical Design
 → Accepted ADR
-→ Domain / System / Interface / UI Specs
-→ Frozen Vertical Slice（需要时）
-→ Linear Issue / EXEC
-→ Code / Test
+→ Current UI/UX Contracts（本目录）
+→ Frontend / Interface Technical Specs
+→ Vertical Slice / Linear / EXEC
+→ Code / Tests
 ```
 
-发生冲突时：
+冲突处理：
 
-- Product Definition 与 Experience/UI Design/Spec 冲突：报告 `DESIGN–DEFINITION GAP`，下游不得自行改变 Product Scope；
-- historical Design Delta 与 current Experience Design 冲突：current Experience Design 为 current truth，历史 Delta 保留 rationale；
-- UI Spec 与更高权威 domain/system/security contract 冲突：报告 `SPEC GAP`；
-- UI 与 current code 冲突：默认视为 implementation drift，除非上游已明确 supersede。
+- Product Definition ↔ Experience/UI：`DESIGN–DEFINITION GAP`；
+- Experience ↔ UI Spec：`SPEC GAP`；
+- UI Spec ↔ technical owner/security contract：`SPEC GAP`；
+- current UI Contract ↔ code：`DESIGN–IMPLEMENTATION GAP` / implementation drift。
 
-不得用视觉、route 或 frontend-only state 绕过 owner truth。
+下游不得自行选择冲突的一套 truth。
 
-## 7. System / Domain Traceability
+---
 
-| UI Area | Primary Technical / Experience Upstream | UI 只允许决定 |
-|---|---|---|
-| Interactive Elements / IA | current Experience Design、ADR-0014、ADR-0018、System Architecture | semantic role、navigation、hierarchy、pattern |
-| Today / Goal / Plan | SYS06、SYS07、Goal/Activity lifecycle | owner state 的组合、解释、入口 |
-| Tutor / Focus | SYS04、SYS05、SYS08 | 同 activity execution 的呈现与 user request |
-| Library | SYS01、SYS02、Library Management | Material / source 呈现与 contextual commands |
-| Progress / Evidence disclosure | SYS03、State Ownership | canonical evidence projection、uncertainty、source |
-| Settings / Data Control | LID / LSS / Data Control / Recovery / Security | category/navigation/presentation，不改变 security semantics |
-| Rich Response | RENDER、Security | typed payload layout 与 safe fallback |
-| Quality | TEST、DOD、Security | UI-specific gates、migration、claims |
+## 6. Historical UI Contract Set
 
-SYS01～SYS08 是 technical / teaching ownership，不是 Product Capability taxonomy。
+以下文件继续保留为**历史/迁移参考**，不再作为新实现 current Authority：
 
-## 8. Current Implementation Boundary
+- `interactive-element-system.md`
+- `information-architecture.md`
+- `screen-contracts.md`
+- `visual-system.md`
+- `component-state-contracts.md`
+- `quality-and-migration.md`
+- `data-contracts.md`
 
-当前代码、历史 Release、历史 Design Delta 与旧 Vertical Slice 只作为 migration / rationale starting point，不拥有 Product Definition，也不构成实时工作状态。
+这些文件记录 ADR-0014 → ADR-0018 / UI-03 → UI-04 的演进，并包含 supersession matrices、旧 route/facet、一次性 migration 与历史 EXEC 语境。
 
-判断“当前是否已实现/是否正在做”时：
+新的 implementation task **不得**要求 Agent 通过这些文件中的旧条款 + Supersession Matrix 自行推导 current truth。
 
-1. 读取 current `main` 与 tests；
-2. 读取 current Product Definition / Experience Design / applicable ADR / Spec；
-3. 读取 Linear 当前 Issue / Milestone；
-4. 不从历史 Delta、Release、EXEC 清单推断实时进度。
+如需追踪历史 clause ID（`UI-*` / `UXA-*`），可以读取历史文件或 Vertical Slice；当前行为必须最终回到本 README 所列 current contracts。
 
-因此本文件不维护 `EXEC-*` 的实时执行队列、等待关系或“当前仍由某 EXEC 管理”的静态状态。该信息属于 Linear 与 `docs/exec-plans/` 的当前索引。
+---
 
-## 9. Explicit Non-goals
+## 7. Technical UI Read Model Boundary
 
-UI / Interaction Design 不授权：
+`docs/specs/frontend/ui-read-model-contracts.md` 管理：
 
-- 改变 Teaching Strategy / TeachingAction；
-- frontend mastery threshold；
-- Plan manual reorder/replan；
-- LearnerState direct edit；
-- 新的 global search backend；
-- 新生产依赖或 telemetry；
-- 重写已冻结 security / data flows；
-- 把 UI 改善称为学习效果改善；
-- 用 frontend mock / local state 冒充 Workspace、UserNote、LearningPlan、Evidence 等 canonical truth；
-- 删除 Goal / Plan / Evidence / History domain truth 只是因为不再常驻展示；
-- 扩展 OCR 或为 Product Definition 当前 deferred candidates 建 placeholder / disabled tab。
+- UI read-model aggregation；
+- source/version/freshness；
+- query / endpoint contract；
+- frontend no-owner rule；
+- current Workspace / Drawer / Goal / Path / Evidence 等技术 projection；
+- compatibility data boundary。
+
+Experience/UI Spec 只决定“哪些事实必须被用户理解、如何呈现”，不定义第二份 API/owner truth。
+
+---
+
+## 8. Design System Boundary
+
+Design System 管理：
+
+```text
+Token
+Typography
+Spacing
+Component
+State
+Pattern
+Visual Accessibility
+```
+
+不管理：
+
+```text
+Product Capability
+IA
+Navigation Decision
+Screen Responsibility
+Learning Flow
+Domain State
+```
+
+`.design_library/Askora/**` 是 supporting asset；frontend code 是 implementation。二者都不是第二 Design System Authority。
+
+---
+
+## 9. Quality / Acceptance Boundary
+
+必须分开报告：
+
+```text
+Product Acceptance
+UX Acceptance
+UI Engineering / Contract Acceptance
+Accessibility / Security Acceptance
+Learning Evidence
+```
+
+UI/UX PASS 不得自动升级为 Product Acceptance，也不得声称 retention / transfer / mastery 已改善。
+
+---
 
 ## 10. Working Rule
 
-> **Product Definition 决定 Askora 必须具备什么产品能力；current Experience Design 决定这些能力如何形成一致体验模型；UI Specs 决定可实现的界面合同。历史 Delta / ADR 保留设计理由，但不能反向创造 Product Scope 或第二套 current Experience truth。**
+> **新实现只读取 current Product / Experience / UI Contracts；历史 Delta、旧 UI Spec 和 Migration Matrix 用来解释过去，不再要求 Codex 从历史冲突中推断现在。**
