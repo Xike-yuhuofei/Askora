@@ -4,7 +4,7 @@
 > 冻结日期：2026-08-11  
 > 适用范围：Askora v1 semantic interaction model  
 > 上游：[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)
+> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)、[`../../architecture/decisions/ADR-0022-course-centric-information-architecture.md`](../../architecture/decisions/ADR-0022-course-centric-information-architecture.md)
 > 下游：UI Screen / Learning Interaction / Design System Specs
 
 ---
@@ -65,7 +65,8 @@ StatusFeedback
 
 典型用途：
 
-- 进入 Today / Learning / Library；
+- 进入 Course、Library 或 Utility；
+- 打开已存在的 LearningActivity；
 - 返回；
 - 打开对象详情；
 - 进入明确 task flow；
@@ -240,17 +241,18 @@ Delete
 
 ## 7. Askora-specific Semantic Mapping
 
-### INT-MAP-001 — Workspace
+### INT-MAP-001 — Course / Workspace
 
 ```text
-查看当前 Workspace       → StatusFeedback / Context
-选择候选 Workspace       → Selection
-提交 Workspace 切换      → Action
-进入某 Workspace 上下文   → Navigation
+查看当前课程              → StatusFeedback / Context
+选择候选课程              → Selection
+提交课程切换              → Action
+进入某课程上下文           → Navigation
+＋ 新课程                 → Action
 切换中的保存/恢复状态      → StatusFeedback
 ```
 
-单一 Workspace 不展示虚假 selector。
+用户界面使用“课程”；owner/domain contract 继续使用 Workspace。Course row 是 Navigation / InteractiveContent，不因为视觉上是 Button/Card 改变语义。
 
 ### INT-MAP-002 — Learning Activity
 
@@ -261,9 +263,13 @@ Delete
 请求帮助                 → Action
 帮助 / 暴露状态           → StatusFeedback
 查看来源                 → Disclosure / Navigation
+Activity Switcher row    → Navigation / InteractiveContent
+启动尚未 active 的 Activity → Action
 ```
 
 Conversation 是 Activity 的交互形式，不是独立 Product Domain。
+
+Activity title 必须有学习语义；禁止使用 Chat 1/2/3 将 switcher 设计为聊天线程管理器。
 
 ### INT-MAP-003 — Goal / Plan / Evidence / History
 
@@ -274,7 +280,7 @@ Conversation 是 Activity 的交互形式，不是独立 Product Domain。
 直接编辑 canonical state → FORBIDDEN unless explicitly authorized
 ```
 
-它们不自动成为 Learning 常驻 navigation facet。
+它们不自动成为 Course 常驻 navigation facet。
 
 ### INT-MAP-004 — Material
 

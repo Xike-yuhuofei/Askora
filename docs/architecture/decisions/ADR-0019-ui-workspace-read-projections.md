@@ -1,6 +1,6 @@
 # ADR-0019 — UI Workspace Context and Learning Context Read Projections
 
-Status: accepted
+Status: accepted; experience assumption amended by ADR-0022
 Date: 2026-08-11
 Decision owners: user-authorized Askora product governance
 Decision authority: user-delegated Codex；用户于 2026-08-11 明确采纳 EXEC-068/069 SPEC GAP 收敛建议并授权执行
@@ -116,3 +116,5 @@ Engineering / Policy-Ownership / Learning Evidence conclusions remain separate. 
 ## Supersedes / Superseded By
 
 This ADR closes the read-query gaps explicitly left open by ADR-0018. It does not supersede ADR-0016, ADR-0018, SYS05, SYS06 or Product Positioning.
+
+ADR-0022 amends the target Experience beyond this ADR's `SINGLE_WORKSPACE` presentation assumption. The current query remains a valid compatibility projection, but Course list/create/current/switch and conflict recovery require a separate accepted technical ADR/Spec before frontend implementation.

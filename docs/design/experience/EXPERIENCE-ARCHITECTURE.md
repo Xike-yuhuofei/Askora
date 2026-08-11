@@ -4,7 +4,8 @@
 > 冻结日期：2026-08-11  
 > 适用范围：Askora v1 Experience / IA / Navigation / Workspace / Journey 设计  
 > 上游：[`../../product/PRODUCT-STRATEGY.md`](../../product/PRODUCT-STRATEGY.md)、[`../../product/PRODUCT-POSITIONING.md`](../../product/PRODUCT-POSITIONING.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)
+> 关键已接受决策：[`../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md`](../../architecture/decisions/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md`](../../architecture/decisions/ADR-0018-ux-workspace-context-architecture.md)、[`../../architecture/decisions/ADR-0022-course-centric-information-architecture.md`](../../architecture/decisions/ADR-0022-course-centric-information-architecture.md)
+> Current Delta：[`../features/course-centric-information-architecture-canonical-design-delta.md`](../features/course-centric-information-architecture-canonical-design-delta.md)
 > 下游实现合同：[`../../specs/ui/`](../../specs/ui)
 
 ---
@@ -138,33 +139,30 @@ Experience Design 拥有：
 
 ## 5. Canonical User-facing IA
 
-### EXP-IA-001 — Stable Product Domains
+### EXP-IA-001 — Course-centric Product IA
 
-Askora v1 的稳定 Product Domain 为：
+Askora v1 的稳定用户侧 IA 为：
 
 ```text
-今天
-学习
-资料库
+＋ 新课程                  Primary Action
+课程列表 / 当前课程          Long-term Context Navigation
+资料库                     Stable Product Domain Navigation
+Settings / Recovery        Utilities
 ```
 
-它们分别回答：
+`今天` 与 `学习` 不再是 stable Product Domain 或 L0 Navigation。课程回答“我正在长期学习什么、当前可恢复哪个 LearningActivity”；资料库回答“我的学习资料与来源在哪里”。
 
-| Domain | 用户问题 |
-|---|---|
-| 今天 | 我现在最值得做什么？为什么？ |
-| 学习 | 我现在在哪里学习，并如何继续？ |
-| 资料库 | 我的学习资料与来源在哪里？ |
+不得以 Goal、Plan、Progress、Knowledge Graph、Agent、Chat History 或新的 Dashboard 替代已移除的 Today/Learning 入口。
 
 ### EXP-IA-002 — Utilities Are Not Product Domains
 
-Settings、Recovery 等是 App Utility，不与三个 Product Domain 等权。
+Settings、Recovery 等是 App Utility，不与课程上下文或资料库等权。
 
 Search / Command 只有在正式 capability 与 contract 存在时才作为 Utility 暴露，不得为了“功能完整”预留空入口。
 
-### EXP-IA-003 — Learning Is Not a Four-facet Management Center
+### EXP-IA-003 — Course Is Not a Management Center
 
-`Goal / Plan / Progress / History` 继续作为 canonical product truth 与必要的 contextual task flow 存在，但**不再作为 Learning 的常驻管理 Facets**。
+`Goal / Plan / Progress / History` 继续作为 canonical product truth 与必要的 contextual task flow 存在，但不作为 Course 的常驻管理 Facets。
 
 用户只有在明确任务需要时进入：创建/纠正目标、查看计划原因、理解证据、恢复历史或审计状态。
 
@@ -172,13 +170,19 @@ Search / Command 只有在正式 capability 与 contract 存在时才作为 Util
 
 Conversation / Tutor 是 LearningActivity 的交互形式之一，不是 L0 Product Domain，也不是 Askora 的产品心智模型。
 
+### EXP-IA-005 — New Course Is an Action
+
+`＋ 新课程` 是 Primary `Action`。进入 creation flow 的 Navigation 不得产生业务写入；只有提交 owner-defined create command 才能创建真实 Workspace。没有真实 command/readiness 时不得显示 placeholder、disabled future entry 或 frontend-only success。
+
 ---
 
 ## 6. Workspace Experience Model
 
-### EXP-WSP-001 — Workspace Is the Long-term Context
+### EXP-WSP-001 — Course Is the User-facing Long-term Context
 
-Workspace 是用户可理解的长期学习上下文，同时服从 Product / ADR 已冻结的 durable scope。
+用户界面统一使用“课程”表达长期学习上下文；canonical `Workspace` identity、scope 与 owner 保持不变。
+
+`LearningProject` 继续是 Workspace 内可选组织对象，不与“课程”互换。
 
 界面不得用 route、subject、session title 或 frontend local state 冒充 Workspace truth。
 
@@ -200,6 +204,14 @@ Workspace 切换不得静默丢弃：
 
 exact persistence / command / version mechanics 由下游 Spec 定义。
 
+### EXP-WSP-004 — Course Switching Changes Real Scope
+
+切换课程必须切换同一 canonical Workspace scope 下的 Activity、Session、Materials、Retrieval、Notes、Current Material、Goal/Plan/LearnerState/Review projections 与 History/resumable state。Selection 与 switch Action 分离；route、Sidebar selected state、React state 或 localStorage 不构成切换成功。
+
+### EXP-WSP-005 — One Course, Many Learning Activities
+
+一个课程可以包含多个 LearningActivity。当前课程提供 Activity Switcher / Recent Learning；Activity 标题使用学习目的，不使用 Chat 1/2/3。打开可恢复 Activity 可以是 Navigation / InteractiveContent；启动或恢复 lifecycle 必须使用正式 Action。
+
 ---
 
 ## 7. Primary Learning Workspace
@@ -209,9 +221,11 @@ exact persistence / command / version mechanics 由下游 Spec 定义。
 ```text
 Left / Where        Center / Learn             Right / Reference & Notes
 
-Product navigation  Teaching content           Learning Notes
-Workspace context   Questions / tasks           Current Material
-Workspace switch    Learner answers             Citation / source context
+Create Course        Teaching content           Learning Notes
+Course context       Questions / tasks           Current Material
+Course switch        Learner answers             Citation / source context
+Activity switcher
+Library / Utilities
                     Feedback
                     Learning Context Drawer
                     Composer
@@ -221,9 +235,11 @@ Workspace switch    Learner answers             Citation / source context
 
 左侧只承担：
 
-- 稳定产品导航；
-- 当前 Workspace 可见性；
-- Workspace 切换。
+- `＋ 新课程` Action；
+- 当前课程与课程列表；
+- Course / Workspace 切换；
+- 当前课程的 Activity Switcher / Recent Learning；
+- 资料库与 Utility navigation。
 
 不得承担 Goal/Plan/Progress/Evidence 的常驻管理 Dashboard。
 
@@ -265,29 +281,34 @@ Learning Context Drawer 位于输入/Composer 上方，默认收起，只提供�
 
 ## 8. Core Journeys
 
-### EXP-JOURNEY-001 — First Meaningful Learning
+### EXP-JOURNEY-001 — New Course to First Meaningful Learning
 
 ```text
-准备必要条件
-→ 导入/确认学习材料
+＋ 新课程
+→ 创建课程
+→ 添加/选择学习材料（适用时）
 → 明确 Learning Goal
 → 建立可开始的 LearningActivity
-→ 进入真实学习
+→ 进入 Course-scoped Learning Workspace
 ```
 
 首次使用流程只解释用户必须理解的步骤，不暴露内部系统阶段。
 
-### EXP-JOURNEY-002 — Daily Continuation
+### EXP-JOURNEY-002 — App Start / Continuation
 
 ```text
-Today
-→ 当前最值得进行的 LearningActivity
-→ 理解为什么现在做
-→ 开始/继续
-→ Learning Workspace
+最近活动课程 + resumable Activity
+→ 恢复 Course / Activity
+
+有课程、无 resumable Activity
+→ 最近课程 orientation / Activity Switcher
+
+无课程
+→ Course Empty State
+→ Primary Action: 新课程
 ```
 
-当存在 canonical activity 时，Today 只有一个最高层级 Primary Learning Task。
+启动解析与 redirect 不得创建 Course、Activity 或 Session，也不得修改 Workspace truth。
 
 ### EXP-JOURNEY-003 — Material to Active Learning
 
@@ -305,7 +326,7 @@ Library / Current Material
 
 ```text
 重新进入 Askora
-→ 恢复 Workspace
+→ 恢复 Course / canonical Workspace
 → 恢复 current activity/session/context
 → 识别未完成状态
 → 继续学习
@@ -346,6 +367,7 @@ Primary learning task
 
 - 使用简体中文作为 v1 正式语言；
 - 优先使用学习者可理解词汇，而不是 `SYSxx`、DTO、version id；
+- 正常用户界面使用“课程”，不用 `Workspace`；工程/诊断层仍保持 canonical naming；
 - 清楚区分“建议”“估计”“已验证”“受助”“答案已暴露”；
 - 错误说明回答：发生了什么、数据是否安全、现在能做什么；
 - 不把系统/模型故障表达成学习者失败；

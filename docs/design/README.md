@@ -21,6 +21,7 @@ Design 可以细化**已定义产品能力如何成立**，但不得自行改变
 - [AI 学习系统算法与教学内核设计](learning/AI学习系统算法与教学内核设计.md)：学习科学、八系统边界、Teaching Policy 与学习效果验证；
 - [v0.3 Canonical Design Delta](learning/v0.3-Canonical-Design-Delta.md)：DR-03-01～04 到 Adaptive Teaching Loop 的 Canonical Decision Register、breaking change 与 change-control；
 - [Learning Conversation Message System Canonical Design Delta](features/Learning-Conversation-Message-System-Canonical-Design-Delta.md)：LearningActivity-scoped SYS08 message/transcript artifact、six typed blocks、capability dispatch 与跨 owner 状态拆分；
+- [Course-centric Information Architecture Canonical Design Delta](features/course-centric-information-architecture-canonical-design-delta.md)：用户侧「课程」词汇、Course-centric L0、Course/Activity switching、default entry、creation journey 与 route migration；canonical Workspace identity 保持不变；
 - [Local Single-User Identity & Authentication Removal Canonical Design Delta](features/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md)：LocalOwner、无 Account/Login/JWT/AuthSession 与 loopback identity boundary；
 - [P1-03 Data Control and Recovery](features/p1-03-data-control-and-recovery.md)：本地数据恢复、导出、删除与 no-resurrection 设计；
 - [P1-06 事实驱动的首次学习旅程设计](features/p1-06-fact-driven-first-use-journey.md)：first-use readiness、presentation preference 与首次学习闭环。
@@ -194,6 +195,7 @@ Gap Analysis 是**带 commit/time 边界的审计快照**，不是永久 current
 - [v1 Product Positioning — Current Main Conformance Gap Analysis](../archive/audits/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md)：Historical Snapshot；判断 current conformance 必须重新读取 current `main`；
 - [v0.3 Current Main Conformance Gap Analysis](../archive/audits/v0.3-Current-Main-Conformance-Gap-Analysis.md)：Historical Snapshot；其 Teaching Policy production gap 已由后续 closure 处理；
 - [CI / Test Infrastructure Gap Analysis](../archive/audits/CI-Test-Infrastructure-Gap-Analysis.md)：Quality / CI 审计文档，判断 current 状态时仍需核对其 audited SHA 与最新 main。
+- [Course-centric IA Current-state Gap Analysis](../archive/audits/course-centric-ia-current-state-gap-analysis.md)：`origin/main@6a94cf7b` 的变更前审计快照；current IA 以 ADR-0022 + current Experience/UI contracts 为准。
 
 规则：
 

@@ -4,7 +4,7 @@
 > 冻结日期：2026-08-11  
 > 上游产品定义：`CAP-04`、`CAP-05`、`CAP-06`、`CAP-07`  
 > Governing Experience：`docs/design/experience/LEARNING-EXPERIENCE.md`、`docs/design/experience/INTERACTION-MODEL.md`  
-> Governing ADR：ADR-0018、ADR-0019  
+> Governing ADR：ADR-0018、ADR-0019、ADR-0022
 > 技术上游：Assessment / Teaching Policy / Activity Lifecycle / Render / Workspace Read Projection current Specs
 
 ---
@@ -38,7 +38,7 @@ LearningActivity 是 Learning Workspace 的主要体验上下文。单条 messag
 
 ### UI-LRN-002
 
-进入/切换 presentation mode、展开 Drawer、打开 Material、隐藏 Right Rail 不得生成新的：
+进入/切换 Course/Activity presentation、展开 Drawer、打开 Material、隐藏 Right Rail 不得生成新的：
 
 ```text
 LearningActivity
@@ -51,6 +51,20 @@ transcript truth
 ### UI-LRN-003
 
 兼容 `/quick/:sessionId` 或历史 dialog 必须明确 compatibility source；缺少 canonical activity/policy/evidence data 时显示“当前记录不可用”，不得补造。
+
+### UI-LRN-004 — Course Scope
+
+Learning Workspace 必须显示用户可理解的当前课程，并解析同一 canonical `workspace_id`。Course route、Activity ref 与 Workspace query 不一致时 fail closed，不得用 route 覆盖 owner truth。
+
+### UI-LRN-005 — Activity Switcher / Recent Learning
+
+Activity Switcher 只读取当前 Course 内 exact Activity refs：
+
+- current/active/resumable/available state 来自 SYS06 owner；
+- title 描述学习目的，不使用 Chat 1/2/3；
+- 打开 active/resumable Activity 不复制 Activity、Session 或 transcript；
+- 启动 available Activity 调用正式 lifecycle Action；
+- conversation/message count 不参与排序或学习优先级推断。
 
 ---
 
@@ -498,6 +512,7 @@ Drawer、Right Rail、Material tabs、transient sheet 必须：
 - filename/summary → fabricated original；
 - frontend-only note/localStorage → durable UserNote；
 - 切换 Workspace / rail / route 静默丢 draft/stream/note；
+- Activity Switcher 使用 Chat thread title/count 或跨 Course refs；
 - Right Rail 建通用 extension host；
 - 无限 chat thread 取代 LearningActivity continuity。
 
@@ -518,3 +533,4 @@ Drawer、Right Rail、Material tabs、transient sheet 必须：
 - `UI-LRN-AC-011`：历史/current state 不混淆，长 session 可扩展而不改 durable order；
 - `UI-LRN-AC-012`：keyboard/screen-reader/focus/live-region 行为可自动/人工验证；
 - `UI-LRN-AC-013`：UI interaction pass 不被描述成 Product Acceptance 或 Learning Evidence pass。
+- `UI-LRN-AC-014`：Course / Activity / Session hierarchy 清晰，Activity Switcher 只使用当前 Course exact refs。

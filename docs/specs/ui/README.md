@@ -4,7 +4,7 @@
 > 校准日期：2026-08-11  
 > 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`  
 > Governing Experience：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`LEARNING-EXPERIENCE.md`、`INTERACTION-MODEL.md`  
-> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0019
+> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0019、ADR-0022
 
 ---
 
@@ -32,7 +32,7 @@ Technical Spec     = HOW DATA / SOFTWARE INTERFACES WORK
 当前 UI/UX 实现只需以以下 4 份长期合同为主：
 
 1. [`screen-and-navigation-contracts.md`](screen-and-navigation-contracts.md)  
-   user-facing IA、Navigation、routes、shell、Today/Learning/Library/Settings/Welcome、responsive screen rules。
+   user-facing IA、Course/Library/Utilities Navigation、routes、shell、Course creation/empty/switch、Activity Switcher、Settings/Welcome、responsive screen rules。
 
 2. [`learning-interaction-contracts.md`](learning-interaction-contracts.md)  
    Learning Canvas、Question/Attempt/Feedback/Hint/Remediation、streaming、assistance、citation、SourceSpan、UserNote、Context Drawer、long-session interaction。
@@ -73,23 +73,30 @@ UI read-model / query / ownership contract 已移到技术层：
 
 当前实现不得突破：
 
-1. L0 Product Domains 只有：
+1. Course-centric IA 只有：
 
 ```text
-今天 / 学习 / 资料库
+＋ 新课程（Action）
+课程列表 / 当前课程（Navigation / InteractiveContent）
+资料库（Stable Product Domain Navigation）
+Settings / Recovery（Utilities）
 ```
 
-2. Settings / Recovery 是 App Utility。
-3. Chat/Tutor 是 LearningActivity interaction mode，不是 Product Domain。
-4. Learning 不再暴露 Goal / Plan / Progress / History 常驻管理中心；domain truth 保留并按明确 user job contextually expose。
-5. Today 有可靠 canonical activity 时只允许一个 Primary Learning Task。
-6. Workspace 是 Left / Center / Right / Drawer 共享的 canonical context。
-7. Center 是唯一 Primary Learning Canvas。
-8. Right Rail v1 只允许 User-authored Learning Notes + Current Material / Source Context。
-9. Context Drawer 默认收起，只呈现 stage / stage goal / next 1..3。
-10. Library v1 normal UI 不暴露 OCR；deferred candidates 不建立 placeholder。
-11. 7 semantic interaction primitives 保持：Navigation / Action / Control / Selection / Disclosure / InteractiveContent / StatusFeedback。
-12. UI 不得通过 frontend-only state 改写 Workspace、Plan、Evidence、TeachingAction、UserNote 等 canonical truth。
+2. Today / Learning 不再是 stable Product Domain 或 L0 Navigation；不得新增替代 Dashboard。
+3. 用户界面使用“课程”，canonical Workspace identity / API / persistence naming 不变。
+4. Settings / Recovery 是 App Utility。
+5. Chat/Tutor 是 LearningActivity interaction mode，不是 Product Domain。
+6. Course 不暴露 Goal / Plan / Progress / History 常驻管理中心；domain truth 保留并按明确 user job contextually expose。
+7. 一个 Course 可包含多个 LearningActivity；Activity Switcher 使用学习语义 title，不使用 Chat 1/2/3。
+8. Workspace 是 Left / Center / Right / Drawer 共享的 canonical context；Course switch 必须改变真实 scope。
+9. Center 是唯一 Primary Learning Canvas。
+10. Right Rail v1 只允许 User-authored Learning Notes + Current Material / Source Context。
+11. Context Drawer 默认收起，只呈现 stage / stage goal / next 1..3。
+12. Library v1 normal UI 不暴露 OCR；deferred candidates 不建立 placeholder。
+13. 7 semantic interaction primitives 保持：Navigation / Action / Control / Selection / Disclosure / InteractiveContent / StatusFeedback。
+14. UI 不得通过 frontend-only state 改写 Workspace、Activity、Plan、Evidence、TeachingAction、UserNote 等 canonical truth。
+
+当前已知 technical gate：ADR-0019 仍只提供 single-default Workspace read projection；Course list/create/current/switch、冲突恢复与 Course-scoped Activity Switcher 在独立 technical ADR/Spec accepted 前为 `BLOCKED_BY_SPEC_GAP`。
 
 ---
 
