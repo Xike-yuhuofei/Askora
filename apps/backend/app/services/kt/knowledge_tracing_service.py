@@ -89,7 +89,7 @@ class KnowledgeTracingService:
             try:
                 data = self._redis.get(key)
                 self._redis_available = True
-                if data:
+                if isinstance(data, (str, bytes, bytearray)):
                     return json.loads(data)
             except Exception as e:
                 self._redis_available = False
