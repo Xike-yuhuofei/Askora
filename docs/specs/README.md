@@ -134,6 +134,7 @@ PRODUCT-DEFINITION CAP-01 / PD-REQ-0104
 
 - [Local Identity and Privacy Lifecycle](platform/identity-privacy-lifecycle.md) — ADR-0015 / `LID-*`: LocalOwner, no Login/JWT/AuthSession, loopback boundary and legacy identity migration.
 - [Workspace / LearningProject / LearningSession Scope](platform/workspace-project-session-scope.md) — ADR-0016 / `WSP-*`: durable Workspace/Project/Session ownership, stable Material identity, SourceFile normalization, default Workspace migration and same-workspace invariants.
+- [Course Workspace Selection and Activity Projection](platform/course-workspace-selection.md) — ADR-0023 / `CWSP-*`: fresh-empty vs legacy default, durable current selection, atomic create/switch, recovery guard and exact-SYS06 Course Activity index.
 - [Local SecretStore](platform/local-secret-store.md) — ADR-0017 / `LSS-*`: exact OS-backed keyring adapters, backend allowlist, opaque refs, non-secret activation journal and crash reconciliation.
 
 ### Systems
@@ -314,7 +315,7 @@ Current LocalSecretStore authority. Production supports exact approved OS-backed
 
 ### ADR-0018 / ADR-0019 / ADR-0022
 
-Current Experience/UI Workspace authority. ADR-0022 freezes Course-centric IA while retaining canonical Workspace identity. Historical UXA clauses remain traceable, but new UI implementation reads consolidated Experience/UI contracts plus the frontend technical read-model contract。Course list/create/current/switch and Activity Switcher require an additional accepted technical query/command delta before frontend implementation。
+Current Experience/UI Workspace authority. ADR-0022 freezes Course-centric IA while retaining canonical Workspace identity；ADR-0023 / `CWSP-*` closes Course list/create/current/switch、recovery and Activity Switcher technical query/command semantics。Historical UXA clauses remain traceable；frontend implementation reads consolidated Experience/UI contracts plus `CWSP-*` and remains dependency-blocked until XIK-189 provides the real Platform implementation。
 
 ## 8. Migration and Compatibility Rules
 

@@ -301,13 +301,16 @@ Workspace migration starts only after ADR-0015 LocalOwner foundation can resolve
 
 If LocalOwner is missing/ambiguous, startup/migration MUST fail closed; it MUST NOT create multiple owners/workspaces to guess around corrupted identity state.
 
-### WSP-051 — Exactly One Default Workspace
+### WSP-051 — Default Workspace Depends on Migration State
 
-Migration/first-use bootstrap MUST ensure exactly one active default Workspace for the LocalOwner.
+ADR-0023 / `CWSP-*` amends the original unconditional first-use bootstrap：
 
-Creation MUST be idempotent. Rerunning bootstrap resolves the existing default rather than creating a new row.
+- fresh LocalOwner with no legacy data MAY have zero Workspace/default/selection so Course Empty State is real；
+- legacy-data migration MUST ensure exactly one active default Workspace before backfill；
+- first explicit Workspace create MUST create the first active default and current selection atomically；
+- once any active Workspace exists, DB/application invariants MUST prevent multiple active defaults for the same owner。
 
-DB/application invariants MUST prevent multiple active default Workspaces for the same owner.
+Legacy default creation MUST remain idempotent. Rerunning migration resolves the existing default rather than creating a new row。Current selection is a separate Platform Workspace Registry fact governed by `CWSP-*`；`is_default` MUST NOT be used as switch state。
 
 ### WSP-052 — Backfill Scope
 
@@ -397,7 +400,7 @@ or an equivalent collision-safe scope. The same client key in two Workspaces MUS
 
 ### WSP-063 — Focus / Current Selection
 
-Current UI-selected Workspace is presentation/application preference, not ownership truth. Backend commands MUST still carry/resolve exact Workspace; browser local state MUST NOT be the only source of Workspace identity.
+Current UI-selected Workspace is durable application preference, not ownership truth。Its canonical owner/schema/version/idempotency contract is ADR-0023 / `CWSP-*`。Backend commands MUST still carry/resolve exact Workspace；browser local state、route与 `is_default` MUST NOT become selection truth。
 
 ## 9. API/Application Contract
 
@@ -420,6 +423,19 @@ DELETE /api/v1/workspaces/{workspace_id}/projects/{project_id}/materials/{materi
 ```
 
 Exact route naming MAY preserve existing API conventions, but scope semantics are mandatory and schema-versioned.
+
+Course list/create/current/switch and Course-scoped Activity projection use the additive ADR-0023 surface：
+
+```text
+GET  /api/v1/workspaces
+POST /api/v1/workspaces
+GET  /api/v1/workspaces/current
+GET  /api/v1/workspaces/{workspace_id}
+POST /api/v1/workspaces/{workspace_id}/switch
+GET  /api/v1/workspaces/{workspace_id}/activities
+```
+
+These routes MUST obey `CWSP-*` and MUST NOT turn GET/deep-link resolution into a hidden command。
 
 ### WSP-071 — Material / Goal / Session Commands
 
@@ -536,7 +552,7 @@ Create Workspace A/B with overlapping titles/KU topics and prove:
 
 ## 15. Acceptance Criteria
 
-- `WSP-AC-001`：fresh local datastore has exactly one LocalOwner and one active default Workspace after bootstrap.
+- `WSP-AC-001`：fresh local datastore has exactly one LocalOwner and may have zero Workspace until explicit Course create；legacy-data migration has exactly one active default Workspace before backfill.
 - `WSP-AC-002`：existing stable Material IDs survive migration.
 - `WSP-AC-003`：each migrated valid Material has canonical Workspace and normalized managed SourceFile identity.
 - `WSP-AC-004`：one Material can belong to multiple Projects in the same Workspace; cross-workspace membership is impossible.
@@ -566,9 +582,11 @@ Create Workspace A/B with overlapping titles/KU topics and prove:
 - downgrade 丢失多 Workspace/Project/SourceFile identity；
 - Workspace cascade delete child data；
 - browser localStorage 作为唯一 current Workspace truth。
+- `Workspace.is_default` 或 route 作为 current selection truth；
+- fresh empty owner 在 query/startup 时被隐式创建默认 Course。
 
 ## 17. Freeze Result
 
-`WSP-*`：**FROZEN / READY_FOR_EXEC_DECOMPOSITION**。
+`WSP-*`：**FROZEN / READY_FOR_EXEC_DECOMPOSITION**；Course selection/default-bootstrap amendment 由 ADR-0023 / `CWSP-*` 优先。
 
 XIK-171 MAY 在本合同下实现 Workspace/Project/Session/SourceFile persistence and migration。Workspace-scoped SYS02 retrieval cutover remains XIK-172。Learner evidence/state schema work MAY be split into a dedicated implementation issue if keeping XIK-171 narrow improves verification, but it MUST complete before Product Positioning Conformance can pass。

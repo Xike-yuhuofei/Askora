@@ -276,3 +276,17 @@ Onboarding view/preference/log MUST NOT 包含 Key/fragment、Prompt、grader-on
 ### SEC-321
 
 Onboarding MUST NOT 自动 probe provider、加载未经选择的私人文档、创建样例/Goal/Activity 或执行 recovery command。所有导航后的副作用仍由原 owner command 的 idempotency/security gate 控制。
+
+## 19. Course Workspace Selection Security
+
+### SEC-330
+
+ADR-0023 / `CWSP-*` list/get/create/current/switch/Activity query MUST resolve LocalOwner first and validate exact Workspace before returning metadata。Foreign and nonexistent refs use the same non-enumerable result；logs/errors MUST NOT expose other-Workspace name、Activity title、note/transcript content or local path。
+
+### SEC-331
+
+Workspace transition guard may carry only typed state and versioned refs, never draft/note正文、Prompt or secret。Create/switch idempotency receipt stores sanitized result only。Route/GET/refresh cannot mutate selection；browser state cannot bypass server owner/version/isolation checks。
+
+### SEC-AC-330
+
+Isolation/security tests prove no cross-Workspace existence leakage、no transition-content logging、no GET hidden write and no browser/default-marker selection takeover。

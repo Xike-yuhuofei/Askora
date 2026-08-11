@@ -289,3 +289,13 @@ P1-06 只有在 P1-02/P1-03/P1-07 真实依赖、对应 current implementation e
 ### DOD-301
 
 Engineering、Security/Privacy、Product Acceptance / Product Usability 与 Learning Evidence 必须分开。Onboarding 完成、activity completion 或真实模型可用均不得把 Learning Evidence 从 `LEARNING_EVIDENCE_INSUFFICIENT` 改为有效。
+
+## 14. Course Workspace Completion Gate
+
+### DOD-320
+
+Course Workspace implementation is not DONE until ADR-0023 / `CWSP-AC-001..012`、migration/rollback/forward-fix、contract/isolation/recovery tests、fresh SQLite upgrade/check、current full backend gates and real API evidence PASS。Frontend selected styling、mock list or default-only query cannot close the Platform gate。
+
+### DOD-321
+
+Course-centric frontend/route completion additionally requires live browser evidence for multi-Course create/switch/recovery、Activity resume/start、legacy route no-side-effect、responsive/accessibility/console。Engineering PASS must still report Product Acceptance、UX、Security、Quality and Learning Evidence separately。

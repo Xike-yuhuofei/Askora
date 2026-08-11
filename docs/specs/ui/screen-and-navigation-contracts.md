@@ -306,7 +306,7 @@ Redirect / route change / facet-like presentation change不得自动：
 
 ### UI-COURSE-GAP-001 — Technical Command/Query Gate
 
-ADR-0019 当前 `SINGLE_WORKSPACE` read projection 不足以实现本节。Course list/create/current/switch、switch conflict recovery 与 Course-scoped recent/resumable Activity projection 必须先由独立 accepted technical ADR/Spec 冻结 owner、schema、version、idempotency、error 与 recovery；在此之前对应 frontend implementation 为 `BLOCKED_BY_SPEC_GAP`。
+**CLOSED by ADR-0023 / `CWSP-*`**。Course list/create/current/switch、switch conflict recovery 与 Course-scoped recent/resumable Activity projection 的 owner、strict v1 schema、version、idempotency、error、migration 与 recovery 已冻结。Frontend implementation MUST consume that contract and remains blocked only by XIK-189 platform implementation dependency；不得重新发明 schema/owner。
 
 ---
 

@@ -147,3 +147,17 @@ latest `status=completed` 且 completion transition 已验证 accepted transcrip
 
 相同 owner state 重查必须返回相同 first completion；删除/supersede/unauthorized/stale source 时不得保留
 onboarding 缓存完成状态。
+
+## 12. Course-scoped Activity Index Source
+
+### SYS06-ACT-090
+
+ADR-0023 / `CWSP-050..054` authorizes a read-only Course Activity index assembler to consume exact immutable LearningActivity + latest `LearningActivityStateV1` refs after resolving the Activity's exact Goal/Plan Workspace chain。The assembler is not a SYS06 writer；it MUST NOT infer current/resumable/available from transcript、Conversation、route、session recency or frontend state。
+
+### SYS06-ACT-091
+
+`active` MAY be presented as resumable；`available` still requires `StartLearningActivityV1`；all other states are unavailable unless a future SYS06 command says otherwise。Multiple active current-plan activities are returned as `PARTIAL` integrity state, not arbitrarily selected。
+
+### SYS06-ACT-AC-009
+
+Course Activity index refresh is deterministic/side-effect-free、same-Workspace only、stable ordered and preserves exact Activity/lifecycle/Plan/Goal source refs；it does not create Session、Activity state、Evidence or completion。
