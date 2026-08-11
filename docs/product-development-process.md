@@ -2,307 +2,507 @@
 
 > Status: Current Governance Process  
 > Scope: product discovery, prioritization, design, implementation, review, release, and evidence  
-> Highest authority: [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md)
+> Product Strategy: [`product/PRODUCT-STRATEGY.md`](product/PRODUCT-STRATEGY.md)  
+> Product Boundary: [`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md)  
+> Work Management: Linear `Askora` Initiative
 
-Askora already has a strong downstream engineering authority chain. This process adds the missing upstream discovery and downstream validation loop without weakening the existing Product Positioning → Design/ADR → Spec → EXEC governance.
+Askora 的流程必须同时避免两种失败：
 
-## 1. End-to-end flow
+1. **先实现，再反向解释为什么值得做；**
+2. **只做上游研究，不把冻结结论转换成可验收工程任务。**
+
+因此使用：
+
+> **Research → Strategy → Positioning → Design / ADR → Spec → Linear / EXEC → PR → Verification → Product / Learning Evidence → Product Learning。**
+
+---
+
+## 1. End-to-end Flow
 
 ```text
-User Problem / Research
-→ Product Opportunity or Bug
-→ Evidence & Hypothesis
-→ Priority / Product Positioning Check
-→ Canonical Design / ADR when needed
+Observed Problem / Opportunity / Research
+→ Evidence & Assumptions
+→ PRODUCT-STRATEGY check
+→ PRODUCT-POSITIONING check / delta when needed
+→ Canonical Design / ADR when shared semantics change
 → Spec / Vertical Slice
-→ EXEC
+→ Linear Project / Issue
+→ EXEC when implementation contract is needed
 → Pull Request
 → Askora CI / Required
 → Review
 → Merge
 → Release Evidence
-→ Product / User / Learning Evidence
-→ Retrospective
+→ Product / Usability Evidence
+→ Learning Evidence when applicable
+→ Retrospective / Product Learning
 → next Opportunity
 ```
 
-The flow is evidence-driven rather than document-driven: every document exists to make a decision, execution boundary, or result auditable. More documents are not a goal by themselves.
+流程是 evidence-driven，不是 document-count-driven。只有在需要冻结不同职责的事实时才增加文档。
 
-## 2. Authority and artifact roles
+---
 
-### 2.1 Product Opportunity / Bug — why work should exist
+## 2. Source-of-Truth Roles
 
-GitHub Issues are the intake and prioritization layer.
+### 2.1 GitHub — Long-term Product / Engineering Truth
 
-A **Product Opportunity** records:
+GitHub 保存：
 
-- the concrete user problem and scenario;
-- observed evidence versus assumptions;
-- desired user outcome;
-- success evidence;
-- confidence and important constraints.
+- Product Strategy / Positioning；
+- Research evidence；
+- Canonical Design；
+- ADR；
+- Specs；
+- tests / CI / code；
+- immutable EXEC / Release Evidence history。
 
-A **Bug / Regression** records:
+GitHub 回答：
 
-- current and expected behavior;
-- severity based on impact rather than effort;
-- deterministic reproduction when available;
-- governing contract;
-- affected SHA/version and sanitized evidence;
-- data, security, privacy, migration, or learning risk.
+> **为什么这样设计、应该怎样设计和实现、当时验证了什么。**
 
-An Issue is **not** an EXEC. It may exist before the solution is known and may be rejected, deferred, researched, or split.
+### 2.2 Linear — Work Management Truth
 
-### 2.2 Product Positioning — what Askora is allowed to become
+Linear 保存：
 
-`docs/product/PRODUCT-POSITIONING.md` remains the highest frozen product baseline.
+- Initiative；
+- Project；
+- Milestone；
+- Issue；
+- priority；
+- dependency；
+- execution status；
+- acceptance status。
 
-No Opportunity, ADR, Spec, EXEC, PR, test, or implementation may silently expand beyond Product Positioning. A conflict is a product decision and must be resolved at the Product Positioning layer before downstream implementation proceeds.
+Linear 回答：
 
-### 2.3 Canonical Design / ADR — decisions that change shared semantics
+> **现在应该做什么、做到哪一步、是否完成。**
 
-Use Canonical Design and/or an ADR when work introduces or changes a shared decision such as:
+不得继续用 GitHub 中的静态 P1/P2 清单维护第二套实时 backlog。
 
-- domain ownership or single-writer semantics;
-- user-visible information architecture;
-- security/privacy boundaries;
-- durable persistence/recovery behavior;
-- cross-system contracts;
-- production runtime architecture;
-- a choice whose reversal would materially affect multiple EXECs.
+### 2.3 ChatGPT — Research / Design / Review Layer
 
-Do not create an ADR merely to document an implementation detail already determined by a frozen Spec.
+ChatGPT 负责：
 
-### 2.4 Spec / Vertical Slice — what must be true
+```text
+research
+→ judgment
+→ design
+→ freeze
+→ task decomposition
+→ acceptance review
+```
 
-Specs define stable contracts, invariants, state transitions, interfaces, quality constraints, and acceptance semantics.
+重大 Product / Architecture / Interaction decisions 不能留给 Codex 在实现中临时决定。
 
-A Vertical Slice binds those contracts into a deliverable user/system capability. It should be narrow enough that completion can be verified independently.
+### 2.4 TraeCode / Codex — Local Execution Layer
 
-### 2.5 EXEC — how a frozen slice is executed
+TraeCode / Codex 负责已冻结任务的：
 
-EXEC remains the engineering task contract. It must not become a general backlog or product discovery document.
+- code / file modification；
+- tests；
+- build / lint / typecheck；
+- local verification；
+- execution report。
 
-Every new EXEC must retain the existing Askora contract fields:
+发现 Strategy / Positioning / Spec gap 时应停止扩大 Scope 并报告，而不是自行补产品决策。
 
-- Objective;
-- Dependencies;
-- Required Product Positioning;
-- Required Specs;
-- Current Reality;
-- Allowed Files;
-- Forbidden Changes;
-- Implementation Tasks;
-- Acceptance Criteria;
-- Required Tests;
-- Completion Report Format.
+---
 
-If implementation exposes an unresolved product or shared semantic choice, report `POSITIONING GAP` or `SPEC GAP` instead of inventing the decision inside the EXEC.
+## 3. Product Strategy — Why Work Should Exist
 
-### 2.6 Pull Request — reviewable delivery boundary
+[`product/PRODUCT-STRATEGY.md`](product/PRODUCT-STRATEGY.md) 回答：
 
-Prefer:
+- Why now；
+- Problem；
+- Primary User；
+- JTBD；
+- Vision；
+- Value Proposition；
+- Differentiation；
+- Principles；
+- Assumptions / Risks；
+- Product / Learning Success Definition。
+
+新的 Product Opportunity 必须先问：
+
+1. 它服务哪个已知 Problem / JTBD？
+2. 它强化哪个 Product Outcome / Learning Outcome？
+3. 当前依据是 evidence 还是 assumption？
+4. 如果不存在当前 Strategy 中，它是在验证新机会，还是正在偷偷扩大产品类别？
+
+Strategy 不是 Implementation Spec；但如果工作改变 Primary User、核心 Problem、Value Proposition 或 Success Definition，必须先做 Product Strategy Delta。
+
+---
+
+## 4. Product Positioning — What Askora Is Allowed to Become
+
+[`product/PRODUCT-POSITIONING.md`](product/PRODUCT-POSITIONING.md) 是下游设计与实现的最高可执行产品边界。
+
+任何 Opportunity、Design、ADR、Spec、EXEC、PR 或代码都不得默默突破：
+
+- Category；
+- v1 Product Shape；
+- single-user / Local-first / BYOK boundaries；
+- Non-goals；
+- AI / Learning Evidence authority；
+- Strategic Constraints。
+
+如果一个机会确实值得突破现有边界：
+
+```text
+new evidence
+→ Strategy check
+→ Product Positioning Delta
+→ user acceptance
+→ re-freeze
+→ downstream work
+```
+
+不能因为历史代码或某个 library 已存在，就自动把它提升为 product requirement。
+
+---
+
+## 5. Research / Opportunity Intake
+
+新的工作可以来自：
+
+- user-observed problem；
+- Product Discovery；
+- Research；
+- Product / Learning Evidence；
+- bug / regression；
+- conformance gap；
+- security / reliability risk；
+- required migration / maintenance。
+
+### Product Opportunity 必须记录
+
+- concrete user problem / scenario；
+- observed evidence vs assumption；
+- desired user outcome；
+- relation to Product Strategy；
+- success evidence；
+- confidence；
+- important constraints；
+- why now。
+
+### Bug / Regression 必须记录
+
+- current / expected behavior；
+- severity by impact；
+- reproducible evidence when possible；
+- governing Product / Design / Spec；
+- affected SHA/version；
+- data/security/privacy/migration/learning risk。
+
+进入实施后，这些工作以 **Linear Issue** 管理状态；Research / Canonical conclusions 仍沉淀在 GitHub。
+
+---
+
+## 6. Canonical Design / ADR — Shared Decisions
+
+当工作改变以下 shared semantics 时，需要 Canonical Design 和/或 ADR：
+
+- domain ownership / single-writer；
+- learning semantics；
+- user-visible information / interaction architecture；
+- security / privacy boundary；
+- durable persistence / recovery behavior；
+- cross-system contract；
+- production runtime architecture；
+- reversal 会影响多个 EXEC 的决策。
+
+不要为了记录已由 frozen Spec 唯一决定的 implementation detail 创建 ADR。
+
+如果尚未解决的是用户价值、目标用户或产品类别问题，应回到 Product Strategy / Discovery，而不是继续向下建 ADR。
+
+---
+
+## 7. Spec / Vertical Slice — What Must Be True
+
+Specs 定义：
+
+- stable contract；
+- invariant；
+- state transition；
+- interface；
+- domain / platform ownership；
+- quality / security / reliability constraint；
+- acceptance semantics。
+
+Vertical Slice 把多个合同组合成一个可以独立验证的 user/system capability。
+
+Product Positioning 不再重复：
+
+- database schema；
+- API fields；
+- RetrievalScope fields；
+- job state；
+- retry；
+- migration；
+- logging；
+- test mechanics。
+
+这些属于 Spec / Architecture / Quality。
+
+---
+
+## 8. Linear Project / Issue — Current Work Control
+
+Askora 顶层使用 **Initiative: Askora**。
+
+不同性质工作应使用相对独立 Project，例如：
+
+- Product Strategy & Discovery；
+- UI Redesign；
+- Quality；
+- Architecture / Learning Core 等独立工作流。
+
+不要把 Product Discovery、UI、CI 与 Learning Core 实现长期混在同一 Project。
+
+一个 implementation-ready Issue 至少应包含：
+
+- Objective；
+- Context；
+- Scope；
+- Non-goals；
+- Relevant Files / Docs；
+- Requirements；
+- Constraints；
+- Acceptance Criteria；
+- Verification；
+- Dependencies。
+
+理想状态：
+
+> **TraeCode / Codex 读取 Issue + Repository 后可以执行，而不需要重新进行产品设计。**
+
+---
+
+## 9. EXEC — Frozen Engineering Task Contract
+
+需要严格文件边界、迁移步骤或执行报告时使用 EXEC。
+
+EXEC 不成为 general backlog，也不拥有 Product Discovery。
+
+应继续包含：
+
+- Objective；
+- Dependencies；
+- Required Product Strategy / Positioning；
+- Required Design / ADR / Specs；
+- Current Reality；
+- Allowed Files；
+- Forbidden Changes；
+- Implementation Tasks；
+- Acceptance Criteria；
+- Required Tests；
+- Completion Report Format。
+
+如果实现暴露未冻结重大决策，报告：
+
+- `STRATEGY GAP`；
+- `POSITIONING GAP`；
+- `DESIGN GAP`；
+- `SPEC GAP`。
+
+不要在 EXEC 内自行解决上位问题。
+
+---
+
+## 10. Definition of Ready
+
+Implementation-ready work 至少满足：
+
+- concrete problem / opportunity / defect 已明确；
+- evidence confidence 显式；
+- assumptions 没有被当作 validated facts；
+- 与 Product Strategy 对齐；
+- 与 Product Positioning / Non-goals 对齐；
+- expected product/user outcome 可以判断；
+- Acceptance Criteria 与 dependencies 已知；
+- shared product/architecture choices 已在正确层冻结；
+- slice 足够小，可以独立 review / verify。
+
+### Not Ready
+
+以下情况不应交给 Codex 自主实现：
+
+- 理由只有“这个功能有用”；
+- Primary User / JTBD 尚未决定；
+- Product Positioning 需要被突破但尚未更新；
+- EXEC 需要临时决定 domain ownership；
+- success 只有“code merged”；
+- known P0/P1 correctness/security contradiction 未解决。
+
+---
+
+## 11. Pull Request Gate
+
+Prefer：
 
 ```text
 one problem / vertical slice / EXEC
 → one independently reviewable PR
 ```
 
-A PR is the first mandatory peer/automated review boundary, not merely a transport mechanism for code already considered done.
-
-A multi-EXEC **integration/release PR** is acceptable only when:
-
-- its integration role is explicit;
-- constituent changes already have independently reviewable evidence;
-- the PR does not become the first meaningful review of multiple unrelated task domains;
-- cross-domain integration risks and rollback behavior are stated.
-
-## 3. Definition of Ready
-
-An implementation EXEC should not start until all applicable Ready conditions are satisfied.
-
-### Required
-
-- A concrete user problem, product opportunity, or reproducible defect exists.
-- Evidence confidence is explicit; assumptions are not presented as validated facts.
-- The work has been checked against current Product Positioning and Non-goals.
-- The expected user/product outcome is clear enough to judge success.
-- Acceptance criteria and important dependencies are known.
-- Required shared product/architecture choices are frozen in Design/ADR/Spec.
-- The proposed slice is small enough to review and verify independently.
-
-### Not Ready
-
-Work is not Ready when:
-
-- the only rationale is “the implementation would be useful”;
-- an EXEC needs to decide Product Positioning, domain ownership, or another unfrozen shared semantic;
-- success is defined only as “code merged”;
-- a dependency gate is unsatisfied;
-- a known P0/P1 correctness or security contradiction is being deferred without an explicit governing decision.
-
-## 4. Pull-request gate
-
-Before merge, every applicable PR must answer four questions.
+PR 必须回答：
 
 ### Why
 
-- What problem or outcome does this solve?
-- Which Issue / Product Gap originated the work?
+- What user/system problem does this solve?
+- Which Linear Issue / Product Opportunity originated it?
 
-### What authority
+### Authority
 
-- Which Product Positioning, Design/ADR, Spec, Vertical Slice, and EXEC govern the change?
-- Is any authority intentionally being changed? If yes, that change must occur at the correct level first.
+- Which Product Strategy / Positioning / Design / ADR / Spec / EXEC govern it?
+- Is authority intentionally changing? If yes, was the upper-level document changed first?
 
-### What risk
+### Risk
 
-At minimum consider:
+至少考虑：
 
-- product and learning semantics;
-- owner/data isolation;
-- secrets/privacy/security;
-- persistence/migrations/recovery/no-resurrection;
-- Local Web runtime/network boundaries;
-- external provider behavior and failure modes;
-- rollback or fail-closed behavior.
+- product / learning semantics；
+- owner / data isolation；
+- secrets / privacy / security；
+- persistence / migration / recovery / no-resurrection；
+- Local Web runtime boundary；
+- external provider failure；
+- rollback / fail-closed behavior。
 
-### What evidence
+### Evidence
 
-Record the candidate SHA and the actual gates run. Do not write only “tests pass”.
+必须记录 candidate SHA 与实际执行的 gates，不只写“tests pass”。
 
-## 5. Required CI and merge policy
+---
 
-`Askora CI / Required` is the engineering merge gate. Required checks must not be converted to Optional merely because they fail during a migration.
+## 12. Required CI and Merge Policy
 
-Target merge order:
+`Askora CI / Required` 是工程合并门禁。
 
 ```text
 Candidate SHA
 → Askora CI / Required GREEN
-→ review findings resolved
+→ review P0/P1 resolved
 → merge
 → main remains GREEN
 ```
 
-A red Required gate means the candidate is not merge-ready.
+不得为了迁移便利把 Required check 降为 Optional，也不得删改失败测试来制造绿色状态。
 
-Until repository branch protection is technically enforced, maintainers must follow the same policy manually. Once the GitHub ruleset is enabled, the repository configuration becomes the enforcement mechanism rather than relying on convention.
+---
 
-## 6. Review severity and closure
+## 13. Review Severity
 
 ### P0
 
-Release blocker: data loss/corruption, critical security/privacy violation, broken recovery/no-resurrection guarantee, or direct violation of a frozen critical product boundary.
+Release blocker：
 
-A known P0 must be resolved before merge.
+- data loss / corruption；
+- critical security/privacy violation；
+- broken recovery/no-resurrection；
+- direct violation of frozen critical product boundary。
+
+Known P0 必须解决后再合并。
 
 ### P1
 
-Major correctness, user-flow, architecture ownership, or security defect that materially invalidates the claimed capability.
+重大 correctness、user-flow、architecture ownership 或 security defect，会实质性否定当前 capability claim。
 
-A known P1 must be resolved before merge or the claimed capability must be explicitly reduced/reopened so that the PR no longer makes the invalid claim.
+必须修复，或缩减/重新打开 capability claim。
 
 ### P2 / P3
 
-May be deferred when the remaining behavior still satisfies the frozen acceptance/release contract. Deferred work must have a traceable Issue when it materially affects product quality.
+在仍满足 frozen acceptance contract 的前提下可延期；若影响产品质量，应有可追踪 Linear Issue。
 
-Review threads should be resolved only after the candidate code, scope, or product claim actually addresses the finding.
+---
 
-## 7. Definition of Done
+## 14. Definition of Done
 
-A change is DONE only when all applicable completion conditions hold.
+### Engineering Done
 
-### Engineering
+- implementation matches frozen contracts；
+- Required tests / CI pass on candidate SHA；
+- review P0/P1 resolved；
+- migration/recovery/security gates pass when applicable；
+- current docs reconciled。
 
-- implementation matches frozen contracts;
-- Required tests pass on the candidate SHA;
-- `Askora CI / Required` is green;
-- review P0/P1 findings are resolved;
-- migrations, recovery and security/privacy gates pass when applicable;
-- no failing test was deleted, weakened, skipped, or reclassified merely to manufacture green status;
-- current documentation is reconciled.
+### Delivery Done
 
-### Delivery evidence
+- candidate SHA recorded；
+- completion / release evidence reflects actual results；
+- completed EXEC archived correctly；
+- historical evidence not rewritten as current evidence。
 
-When the work closes an EXEC or release baseline:
+### Product Done
 
-- the candidate SHA is recorded;
-- Completion / Release Evidence records actual gate results;
-- completed EXEC is archived according to the existing immutable-history rule;
-- historical evidence is not silently rewritten into current evidence.
+Engineering completion 不证明用户问题已解决。
 
-### Product evidence
+需要单独记录：
 
-Engineering completion does not prove that the user problem was solved.
+- Product / Usability Evidence；
+- real browser / Local Web / provider evidence；
+- task success；
+- qualitative user evidence；
+- relevant product behavior metrics。
 
-Report separately, as applicable:
+### Learning Done
 
-- Product / Usability Evidence;
-- real Local Web / browser / provider evidence;
-- task success or qualitative user evidence;
-- product behavior metrics.
+Learning effectiveness 是独立 claim。
 
-### Learning evidence
-
-Learning effectiveness is an independent claim. Unless supported by the required real-user/learning experiment evidence, use the existing explicit status:
+除非有真实学习实验/结果，否则继续使用：
 
 `LEARNING_EVIDENCE_INSUFFICIENT`
 
-Do not infer learning effectiveness from:
+不得由以下内容推导 Learning PASS：
 
-- successful model calls;
-- message count or session duration;
-- Activity completion alone;
-- Engineering PASS;
-- policy-contract correctness alone.
+- successful model call；
+- message count；
+- session duration；
+- activity completion alone；
+- Engineering PASS；
+- Policy Correctness PASS。
 
-## 8. Evidence taxonomy
+---
 
-Use distinct evidence classes so one cannot silently substitute for another.
+## 15. Evidence Taxonomy
 
-| Evidence | Answers | Typical sources |
+| Evidence | Answers | Typical Sources |
 |---|---|---|
-| Engineering Evidence | Did the implementation satisfy the technical contract? | Required CI, tests, build, migrations |
-| Security / Privacy Evidence | Are ownership, secret, network and recovery boundaries preserved? | security tests, threat-specific checks, sanitized audit |
-| Product / Usability Evidence | Can the target user complete the intended task and obtain the expected product outcome? | usability sessions, browser/product checks, task success |
-| Learning Evidence | Does the product improve the intended learning outcome? | predefined real-user learning experiments and measures |
+| Research / Discovery Evidence | Is the problem/user/JTBD/value assumption supported? | interviews, observation, alternative research, experiments |
+| Engineering Evidence | Did implementation satisfy technical contract? | Required CI, tests, build, migration |
+| Security / Privacy Evidence | Are ownership, secrets and recovery boundaries preserved? | threat-specific tests, audit |
+| Product / Usability Evidence | Can target user obtain expected product outcome? | real product use, task success, usability evidence |
+| Learning Evidence | Does capability improve intended learning outcome? | independent/delayed/transfer real-user measures |
 
-A PASS in one row must not automatically promote another row to PASS.
+一个 evidence class 的 PASS 不能自动升级另一个 class。
 
-## 9. Product validation loop
+---
 
-After release, the originating Opportunity should be revisited when sufficient evidence exists.
+## 16. Product Validation Loop
 
-Possible outcomes:
+Release 后，相关 Opportunity / Assumption 应在有足够证据时重新判断：
 
-- **Validated** — evidence supports the expected user outcome;
-- **Partially validated** — some outcomes improved but meaningful gaps remain;
-- **Not validated** — the solution shipped but the expected outcome did not materialize;
-- **Insufficient evidence** — more observation is required.
+- **Validated**；
+- **Partially validated**；
+- **Not validated**；
+- **Insufficient evidence**。
 
-A shipped feature is therefore not the terminal state of product work. Evidence may create a new Opportunity, change priority, or justify removing/reworking a capability.
+如果新证据推翻当前产品假设：
 
-## 10. Governance exceptions
+```text
+Evidence
+→ Research update
+→ Product Strategy / Positioning Delta when needed
+→ re-freeze
+→ next design / implementation cycle
+```
 
-Exceptions must be explicit and narrow.
+Feature shipped 不是 Product Learning 的终点。
 
-Examples:
+---
 
-- emergency recovery fix with a follow-up evidence task;
-- solo-maintainer repository temporarily unable to require an independent human approval;
-- optional compatibility evidence unavailable because the corresponding platform is outside the v1 Required baseline.
+## 17. Working Rule
 
-Exceptions must never be used to:
-
-- bypass Product Positioning;
-- merge known P0/P1 defects;
-- weaken Required CI to hide a regression;
-- fabricate product or learning evidence;
-- expose private data or secrets for debugging convenience.
-
-## 11. Working rule
-
-The practical operating rule is:
-
-> **Issues explain why work deserves to exist; Product/Design/ADR/Specs decide what must be true; EXEC controls how the frozen slice is implemented; PR/Required CI/review decide whether the candidate may merge; Release/Product/Learning Evidence decide what we are justified in claiming afterward.**
+> **Research 说明我们为什么相信问题存在；Product Strategy 决定为什么值得做；Product Positioning 决定 Askora 允许成为什么；Design / ADR / Specs 冻结如何成立；Linear 管理当前应该做什么；EXEC / Codex 执行冻结任务；PR / CI / Review 判断能否合并；Product / Learning Evidence 决定最后能够声称什么。**
