@@ -1071,7 +1071,11 @@ class BookLearningApplication:
         if payload is None or set(payload) != {"text"}:
             raise BookLearningApplicationError("MESSAGE_INTERACTION_INVALID")
         learner_text = payload.get("text")
-        if not isinstance(learner_text, str) or not learner_text.strip() or len(learner_text) > 20_000:
+        if (
+            not isinstance(learner_text, str)
+            or not learner_text.strip()
+            or len(learner_text) > 20_000
+        ):
             raise BookLearningApplicationError("MESSAGE_INTERACTION_INVALID")
         try:
             session_id = UUID(selected_message.conversation_id)
@@ -1402,9 +1406,7 @@ class BookLearningApplication:
         turns: tuple[BookLearningTranscriptTurnV1, ...],
         correlation_id: str,
     ) -> LearningConversationViewV1:
-        generated_at = (
-            turns[-1].accepted_at if turns else datetime.now(timezone.utc)
-        )
+        generated_at = turns[-1].accepted_at if turns else datetime.now(timezone.utc)
         messages = tuple(
             turn.message_envelope for turn in turns if turn.message_envelope is not None
         )

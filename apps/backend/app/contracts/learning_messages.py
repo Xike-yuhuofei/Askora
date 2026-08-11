@@ -15,7 +15,9 @@ from pydantic import Field, model_validator
 from app.contracts.base import ContractModel
 from app.contracts.rendering import RenderPayloadV1
 
-SourceSystem = Literal["SYS01", "SYS02", "SYS03", "SYS04", "SYS05", "SYS06", "SYS07", "SYS08", "PLATFORM"]
+SourceSystem = Literal[
+    "SYS01", "SYS02", "SYS03", "SYS04", "SYS05", "SYS06", "SYS07", "SYS08", "PLATFORM"
+]
 OwnerAvailability = Literal[
     "READY", "MISSING", "PARTIAL", "STALE", "NOT_APPLICABLE", "LEGACY_COMPAT"
 ]
@@ -57,9 +59,7 @@ class TraceReferencesV1(ContractModel):
 
 
 class ProvenanceV1(ContractModel):
-    mode: Literal[
-        "SOURCE_GROUNDED", "EXTERNAL_MODEL", "MIXED", "USER_AUTHORED", "NOT_APPLICABLE"
-    ]
+    mode: Literal["SOURCE_GROUNDED", "EXTERNAL_MODEL", "MIXED", "USER_AUTHORED", "NOT_APPLICABLE"]
     source_refs: tuple[VersionedOwnerRefV1, ...] = Field(default=(), max_length=32)
     source_span_refs: tuple[VersionedOwnerRefV1, ...] = Field(default=(), max_length=32)
     evidence_bundle_ref: VersionedOwnerRefV1 | None = None
@@ -230,9 +230,9 @@ class LearningActivityBlockV1(ContractModel):
             and _has_owner_ref(self.metadata, "SYS05", "TeachingAction")
         ):
             raise ValueError("READY learning activity requires SYS06/SYS05 refs")
-        if any(item.action_type == "SUBMIT_ATTEMPT" for item in self.interactions) and not _has_owner_ref(
-            self.metadata, "SYS04", "AssessmentItem"
-        ):
+        if any(
+            item.action_type == "SUBMIT_ATTEMPT" for item in self.interactions
+        ) and not _has_owner_ref(self.metadata, "SYS04", "AssessmentItem"):
             raise ValueError("SUBMIT_ATTEMPT requires an exact SYS04 AssessmentItem ref")
         return self
 
@@ -249,7 +249,9 @@ class FeedbackBlockV1(ContractModel):
         if self.payload.feedback_basis == "ASSESSMENT_RESULT" and not _has_owner_ref(
             self.metadata, "SYS04", "AssessmentResult"
         ):
-            raise ValueError("ASSESSMENT_RESULT feedback requires an exact SYS04 AssessmentResult ref")
+            raise ValueError(
+                "ASSESSMENT_RESULT feedback requires an exact SYS04 AssessmentResult ref"
+            )
         if (
             self.payload.feedback_basis == "NON_ASSESSMENT_EXECUTION_FEEDBACK"
             and self.payload.correctness is not None
@@ -338,7 +340,11 @@ class LearningMessageV1(ContractModel):
         block_ids = [block.id for block in self.blocks]
         if len(block_ids) != len(set(block_ids)):
             raise ValueError("message block ids must be unique")
-        if self.role == "ASSISTANT" and self.compatibility.source == "CANONICAL" and not self.blocks:
+        if (
+            self.role == "ASSISTANT"
+            and self.compatibility.source == "CANONICAL"
+            and not self.blocks
+        ):
             raise ValueError("canonical assistant message requires at least one block")
         return self
 
@@ -393,7 +399,15 @@ class LearningInteractionInvocationV1(ContractModel):
 class StableErrorV1(ContractModel):
     code: str = Field(min_length=1, max_length=120)
     category: Literal[
-        "validation", "business", "conflict", "not_found", "authorization", "security", "dependency", "transient", "internal"
+        "validation",
+        "business",
+        "conflict",
+        "not_found",
+        "authorization",
+        "security",
+        "dependency",
+        "transient",
+        "internal",
     ]
     message: str = Field(min_length=1, max_length=1_000)
     retryable: bool

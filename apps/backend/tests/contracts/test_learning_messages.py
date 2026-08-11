@@ -109,9 +109,7 @@ def test_lcms_131_supports_exactly_six_strict_block_types() -> None:
         ),
         EvidenceBlockV1(
             id="evidence",
-            payload=EvidenceBlockPayloadV1(
-                excerpt="原文", source_label="资料", locator="第 1 节"
-            ),
+            payload=EvidenceBlockPayloadV1(excerpt="原文", source_label="资料", locator="第 1 节"),
             metadata=_metadata(
                 _ref("SYS01", "SourceSpan"),
                 _ref("SYS02", "EvidenceBundle"),
@@ -120,9 +118,7 @@ def test_lcms_131_supports_exactly_six_strict_block_types() -> None:
         ),
         LearningActivityBlockV1(
             id="activity",
-            payload=LearningActivityBlockPayloadV1(
-                prompt_markdown="请作答", response_mode="TEXT"
-            ),
+            payload=LearningActivityBlockPayloadV1(prompt_markdown="请作答", response_mode="TEXT"),
             metadata=_metadata(activity, action),
         ),
         FeedbackBlockV1(

@@ -556,7 +556,10 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert duplicate_interaction_result.result_refs == interaction_result.result_refs
     assert interaction_result.owner_receipt_ref is not None
     assert interaction_result.owner_receipt_ref.entity_type == "BookLearningTranscriptTurn"
-    assert interaction_result.owner_receipt_ref == teaching.message_envelope.context.transcript_turn_ref
+    assert (
+        interaction_result.owner_receipt_ref
+        == teaching.message_envelope.context.transcript_turn_ref
+    )
     assert len(provider.calls) == 2
 
     with pytest.raises(BookLearningApplicationError, match="MESSAGE_CAPABILITY_STALE"):
