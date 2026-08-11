@@ -6,7 +6,7 @@ Decision owners: user-authorized Askora product governance
 Decision authority: explicit user approval on 2026-08-10 to adopt and execute the Interactive Elements redesign  
 Upper authority: `docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
 Product trace: primarily `CAP-04`、`CAP-07` and applicable experience-facing requirements; Feature inclusion remains owned by Product Definition  
-Affected specs: `docs/specs/ui/information-architecture.md`, `screen-contracts.md`, `visual-system.md`, `quality-and-migration.md`, UI vertical slice / EXEC  
+Affected current contracts: `docs/specs/ui/screen-and-navigation-contracts.md`, `learning-interaction-contracts.md`, `design-system.md`, `quality-and-regression.md`, `docs/specs/frontend/ui-read-model-contracts.md`, applicable UI vertical slice / EXEC  
 Historical canonical design input: `docs/design/Interactive-Element-System-Canonical-Design-Delta.md`  
 Current experience representation: `docs/design/experience/EXPERIENCE-ARCHITECTURE.md` + `LEARNING-EXPERIENCE.md` + `INTERACTION-MODEL.md`
 
