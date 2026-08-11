@@ -16,6 +16,7 @@
 - Prompt structured output schema；
 - tool input/output schema。
 - RenderPayload / RenderBlock presentation schema。
+- LearningConversation / LearningMessage / MessageBlock / capability / interaction schema (`LCMS-*`)。
 - Electron preload IPC request/response schema；
 - desktop encrypted `ModelRouteProfile` payload；
 - local desktop control adapter request/response schema。
@@ -89,6 +90,7 @@ Tool definition 的参数或副作用语义破坏性变化必须升 major，并�
 - LLM 猜测旧事件缺失字段作为 upcaster；
 - tool 参数变化但 workflow version 不变。
 - 同一 RenderPayload major version 静默改变 block 或 card 语义。
+- 同一 LearningMessage major version 静默改变 block、capability、owner routing 或 interaction-result 语义。
 
 ## 10. P1-06 Onboarding Schemas
 

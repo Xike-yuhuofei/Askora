@@ -20,6 +20,7 @@ Design 可以细化**已定义产品能力如何成立**，但不得自行改变
 - [个人 AI 辅助学习平台设计方案](个人AI辅助学习平台设计方案.md)：整体产品语义、学习闭环与系统级设计基线；其中上位 Problem / Vision / Success 语义服从当前 Product Strategy，Product Capability / Requirement 语义服从 Product Definition；
 - [AI 学习系统算法与教学内核设计](AI学习系统算法与教学内核设计.md)：学习科学、八系统边界、Teaching Policy 与学习效果验证；
 - [v0.3 Canonical Design Delta](v0.3-Canonical-Design-Delta.md)：DR-03-01～04 到 Adaptive Teaching Loop 的 Canonical Decision Register、breaking change 与 change-control；
+- [Learning Conversation Message System Canonical Design Delta](Learning-Conversation-Message-System-Canonical-Design-Delta.md)：LearningActivity-scoped SYS08 message/transcript artifact、six typed blocks、capability dispatch 与跨 owner 状态拆分；
 - [Local Single-User Identity & Authentication Removal Canonical Design Delta](Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md)：LocalOwner、无 Account/Login/JWT/AuthSession 与 loopback identity boundary；
 - [P1-03 Data Control and Recovery](p1-03-data-control-and-recovery.md)：本地数据恢复、导出、删除与 no-resurrection 设计；
 - [P1-06 事实驱动的首次学习旅程设计](p1-06-fact-driven-first-use-journey.md)：first-use readiness、presentation preference 与首次学习闭环。
@@ -153,6 +154,20 @@ Research Evidence / Synthesis
 → docs/specs/systems/**
 → EXEC / Implementation / OPVE / Learning Evidence
 ```
+
+### Learning Conversation Message System
+
+```text
+PRODUCT-DEFINITION CAP-04..07
++ v0.3 Learning Core / ADR-0004/0005
+→ Learning Conversation Message System Canonical Design Delta
+→ ADR-0020
+→ LCMS Interface Spec / Vertical Slice
+→ EXEC-075
+→ Implementation / Verification
+```
+
+Message/Conversation 在该链中仍是 LearningActivity-scoped presentation/transcript artifact，不成为核心学习领域模型或 Learning Evidence。
 
 ## 6. Research Boundary
 

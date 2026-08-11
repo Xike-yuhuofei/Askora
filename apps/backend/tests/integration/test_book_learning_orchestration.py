@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import pytest
 from sqlalchemy import select
@@ -18,6 +18,10 @@ from app.contracts.activity_lifecycle import (
 )
 from app.contracts.adaptive import VersionedRef
 from app.contracts.assessment import AssistanceSnapshot
+from app.contracts.learning_messages import (
+    InteractionUserResponseV1,
+    LearningInteractionInvocationV1,
+)
 from app.core.database import Base
 from app.domains.content_knowledge import CONTENT_RECORD_KEY
 from app.infrastructure.adaptive_records import AdaptiveContractRepository
@@ -421,18 +425,55 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert first_transcript.session_id == system_start.session_id
     assert first_transcript.turns[0].learner_text is None
     assert first_transcript.turns[0].evidence
+    assert system_start.message_envelope is not None
+    assert first_transcript.turns[0].message_envelope == system_start.message_envelope
+    assert first_transcript.conversation is not None
+    assert first_transcript.conversation.messages == (system_start.message_envelope,)
 
-    teaching_session_id = uuid4()
+    message = system_start.message_envelope
+    capability = message.blocks[0].interactions[0]
+    interaction_idempotency_key = "canonical:message:follow-up"
+    invocation = LearningInteractionInvocationV1(
+        interaction_id=uuid4(),
+        conversation_id=message.conversation_id,
+        message_id=message.id,
+        message_revision=message.revision,
+        block_id=message.blocks[0].id,
+        capability_id=capability.capability_id,
+        action_type=capability.action_type,
+        expected_owner_versions=capability.input_refs,
+        user_response=InteractionUserResponseV1(
+            payload={"text": "请帮助我理解 ratios 和 fractions 的关系"}
+        ),
+        idempotency_key=interaction_idempotency_key,
+        requested_at=NOW,
+        correlation_id="canonical-message-follow-up",
+    )
+    interaction_result = await app.invoke_message_interaction(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        invocation=invocation,
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    duplicate_interaction_result = await app.invoke_message_interaction(
+        user=user,
+        activity_id=UUID(activity["activity_id"]),
+        invocation=invocation,
+        correlation_id=uuid4(),
+        now=NOW,
+    )
+    interaction_turn_id = f"interaction-{uuid5(NAMESPACE_URL, interaction_idempotency_key)}"
     teaching = await app.start_teaching_round(
         user=user,
         goal_id=goal_id,
         plan_id=UUID(plan["plan_id"]),
         plan_version=plan["version"],
         activity_id=UUID(activity["activity_id"]),
-        session_id=teaching_session_id,
-        turn_id="turn-1",
+        session_id=system_start.session_id,
+        turn_id=interaction_turn_id,
         learner_text="请帮助我理解 ratios 和 fractions 的关系",
-        idempotency_key="canonical:teaching:first",
+        idempotency_key=interaction_idempotency_key,
         correlation_id=uuid4(),
         now=NOW,
     )
@@ -460,10 +501,10 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         plan_id=UUID(plan["plan_id"]),
         plan_version=plan["version"],
         activity_id=UUID(activity["activity_id"]),
-        session_id=teaching_session_id,
-        turn_id="turn-1",
+        session_id=system_start.session_id,
+        turn_id=interaction_turn_id,
         learner_text="请帮助我理解 ratios 和 fractions 的关系",
-        idempotency_key="canonical:teaching:first",
+        idempotency_key=interaction_idempotency_key,
         correlation_id=uuid4(),
         now=NOW,
     )
@@ -471,6 +512,7 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert duplicate_teaching.evidence_bundle == teaching.evidence_bundle
     assert duplicate_teaching.reply_text == teaching.reply_text
     assert duplicate_teaching.model_execution == teaching.model_execution
+    assert duplicate_teaching.message_envelope == teaching.message_envelope
     assert len(provider.calls) == 2
     transcript = await app.get_transcript(
         user=user,
@@ -480,6 +522,12 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
     assert transcript.next_turn_number == 3
     assert [turn.turn_kind for turn in transcript.turns] == ["system_start", "learner"]
     assert transcript.turns[1].learner_text == "请帮助我理解 ratios 和 fractions 的关系"
+    assert teaching.message_envelope is not None
+    assert transcript.turns[1].message_envelope == teaching.message_envelope
+    assert transcript.conversation is not None
+    assert transcript.conversation.messages == tuple(
+        turn.message_envelope for turn in transcript.turns
+    )
     assistance_events = (
         await db.scalars(
             select(LearningEventRecord).where(
@@ -503,6 +551,57 @@ async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bun
         str(teaching.model_execution.inference_id),
     }
     assert all("prompt" not in event.payload for event in model_events)
+
+    assert interaction_result.status == "SUCCEEDED"
+    assert duplicate_interaction_result.result_refs == interaction_result.result_refs
+    assert interaction_result.owner_receipt_ref is not None
+    assert interaction_result.owner_receipt_ref.entity_type == "BookLearningTranscriptTurn"
+    assert (
+        interaction_result.owner_receipt_ref
+        == teaching.message_envelope.context.transcript_turn_ref
+    )
+    assert len(provider.calls) == 2
+
+    with pytest.raises(BookLearningApplicationError, match="MESSAGE_CAPABILITY_STALE"):
+        await app.invoke_message_interaction(
+            user=user,
+            activity_id=UUID(activity["activity_id"]),
+            invocation=invocation.model_copy(
+                update={
+                    "interaction_id": uuid4(),
+                    "idempotency_key": "canonical:message:stale",
+                }
+            ),
+            correlation_id=uuid4(),
+            now=NOW,
+        )
+
+    latest_message = transcript.turns[-1].message_envelope
+    assert latest_message is not None
+    latest_capability = latest_message.blocks[0].interactions[0]
+    invalid_invocation = LearningInteractionInvocationV1(
+        interaction_id=uuid4(),
+        conversation_id=latest_message.conversation_id,
+        message_id=latest_message.id,
+        message_revision=latest_message.revision,
+        block_id=latest_message.blocks[0].id,
+        capability_id="missing-capability",
+        action_type=latest_capability.action_type,
+        expected_owner_versions=latest_capability.input_refs,
+        user_response=InteractionUserResponseV1(payload={"text": "不应被执行"}),
+        idempotency_key="canonical:message:invalid",
+        requested_at=NOW,
+        correlation_id="canonical-message-invalid",
+    )
+    with pytest.raises(BookLearningApplicationError, match="MESSAGE_CAPABILITY_NOT_FOUND"):
+        await app.invoke_message_interaction(
+            user=user,
+            activity_id=UUID(activity["activity_id"]),
+            invocation=invalid_invocation,
+            correlation_id=uuid4(),
+            now=NOW,
+        )
+    assert len(provider.calls) == 2
 
     provider.fail = True
     with pytest.raises(BookLearningApplicationError, match="AI_MODEL_UNAVAILABLE"):

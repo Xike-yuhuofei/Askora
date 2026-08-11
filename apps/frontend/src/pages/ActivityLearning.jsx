@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, ArrowUp, Check, CheckCircle2, Copy, Info, Refres
 import * as bookLearningApi from '../api/bookLearning'
 import * as workspaceApi from '../api/workspace'
 import LearningContextDrawer from '../components/LearningContextDrawer'
-import SafeMarkdown from '../components/messages/SafeMarkdown'
+import ConversationView from '../components/messages/ConversationView'
 import { useNavigate } from '../router'
 import './ActivityLearning.css'
 
@@ -32,18 +32,35 @@ function transcriptRefs(transcript) {
   }))
 }
 
-// 苏格拉底式引导的建议短语：只提供鼓励思考的提示，不给答案、不暴露知识点。
-function suggestionPhrases(lastAskoraText) {
-  if (!lastAskoraText) return []
-  const asksForThought = /[？?]\s*$/.test(lastAskoraText)
-  return asksForThought
-    ? ['给我提示', '换个角度', '说说想法']
-    : ['展开讲讲', '不太理解', '继续思考']
-}
-
 const maxComposerHeight = 168 // ≈ 6 行
 
-const AskoraMessage = memo(function AskoraMessage({ turn, copied, onCopy, isFirst }) {
+function messageForTurn(turn) {
+  return turn.message_envelope || {
+    schema_version: '1.0',
+    id: `legacy-${turn.turn_id}`,
+    revision: 1,
+    conversation_id: 'legacy-book-transcript',
+    sequence: turn.turn_number,
+    role: 'ASSISTANT',
+    timestamp: turn.accepted_at,
+    content: turn.reply_text,
+    blocks: [],
+  }
+}
+
+function askFollowUpCapability(turn) {
+  const message = turn?.message_envelope
+  if (!message || !Array.isArray(message.blocks)) return null
+  for (const block of message.blocks) {
+    const capability = (block.interactions || []).find(
+      (item) => item.action_type === 'ASK_FOLLOW_UP' && item.availability === 'AVAILABLE',
+    )
+    if (capability) return capability
+  }
+  return null
+}
+
+const AskoraMessage = memo(function AskoraMessage({ turn, copied, onCopy, isFirst, interactionInput, onInvoke, onRequestInput }) {
   return (
     <article className="activity-message activity-message--askora">
       <div className="activity-message__avatar" aria-hidden="true">A</div>
@@ -60,7 +77,14 @@ const AskoraMessage = memo(function AskoraMessage({ turn, copied, onCopy, isFirs
             <span>{copied ? '已复制' : '复制'}</span>
           </button>
         </div>
-        <div className="activity-message__bubble"><SafeMarkdown source={turn.reply_text} /></div>
+        <div className="activity-message__bubble">
+          <ConversationView
+            messages={[messageForTurn(turn)]}
+            interactionInput={interactionInput}
+            onInvoke={onInvoke}
+            onRequestInput={onRequestInput}
+          />
+        </div>
       </div>
     </article>
   )
@@ -125,9 +149,9 @@ export default function ActivityLearning({ activityId }) {
     if (busy) return false
     setBusy(true)
     try {
-      await operation()
+      const result = await operation()
       await load({ quiet: true })
-      return true
+      return result ?? true
     } catch (error) {
       await load({ quiet: true })
       setState((current) => ({ ...current, error: errorMessage(error, fallback) }))
@@ -152,8 +176,6 @@ export default function ActivityLearning({ activityId }) {
   const canStart = activity.execution.can_start
   const canResume = activity.execution.can_resume
   const canComplete = activity.execution.can_complete && turns.length > 0
-  const lastAskoraText = turns.length ? turns[turns.length - 1].reply_text : ''
-  const suggestions = canResume && turns.length > 0 ? suggestionPhrases(lastAskoraText) : []
 
   const start = () => run(
     () => workspaceApi.startActivity(activityId, {
@@ -165,35 +187,73 @@ export default function ActivityLearning({ activityId }) {
     '活动暂时没有开始，当前状态已保留。',
   )
 
-  const send = async (overrideText) => {
+  const send = async (overrideText, explicitInteraction = null) => {
     if (!transcript) return
     const learnerText = (overrideText != null ? overrideText : text).trim()
     const isSystemStart = turns.length === 0
     if (!isSystemStart && !learnerText) return
     const turnNumber = transcript.next_turn_number
+    const lastTurn = turns.length ? turns[turns.length - 1] : null
+    const interaction = explicitInteraction || askFollowUpCapability(lastTurn)
+    const interactionBlock = interaction && lastTurn?.message_envelope?.blocks.find(
+      (block) => (block.interactions || []).some(
+        (item) => item.capability_id === interaction.capability_id,
+      ),
+    )
     if (!isSystemStart) setPendingText(learnerText)
     setSending(true)
+    let completed = false
+    let operationResult = false
     try {
-      const completed = await run(
-        () => bookLearningApi.startTeachingRound(activityId, {
-          schema_version: '1.0',
-          goal_id: activity.goal_id,
-          plan_id: current.plan_id,
-          plan_version: current.plan_version,
-          activity_id: activityId,
-          session_id: transcript.session_id,
-          turn_id: isSystemStart ? 'system-start-1' : `learner-turn-${turnNumber}`,
-          turn_kind: isSystemStart ? 'system_start' : 'learner',
-          learner_text: isSystemStart ? null : learnerText,
-          idempotency_key: commandKey(activityId, isSystemStart ? 'system-start' : `turn-${turnNumber}`, current.version),
-        }),
+      operationResult = await run(
+        () => {
+          if (!isSystemStart && interaction && interactionBlock && lastTurn?.message_envelope) {
+            const interactionId = window.crypto?.randomUUID?.()
+              || `07500000-0000-4000-8000-${String(turnNumber).padStart(12, '0')}`
+            return bookLearningApi.invokeMessageInteraction(
+              activityId,
+              lastTurn.message_envelope.id,
+              {
+                schema_version: '1.0',
+                interaction_id: interactionId,
+                conversation_id: lastTurn.message_envelope.conversation_id,
+                message_id: lastTurn.message_envelope.id,
+                message_revision: lastTurn.message_envelope.revision,
+                block_id: interactionBlock.id,
+                capability_id: interaction.capability_id,
+                action_type: interaction.action_type,
+                expected_owner_versions: interaction.input_refs,
+                user_response: { payload: { text: learnerText }, accepted_response_ref: null },
+                idempotency_key: commandKey(activityId, `message-interaction-${turnNumber}`, current.version),
+                requested_at: new Date().toISOString(),
+                correlation_id: lastTurn.message_envelope.trace_references.correlation_id,
+              },
+            )
+          }
+          return bookLearningApi.startTeachingRound(activityId, {
+            schema_version: '1.0',
+            goal_id: activity.goal_id,
+            plan_id: current.plan_id,
+            plan_version: current.plan_version,
+            activity_id: activityId,
+            session_id: transcript.session_id,
+            turn_id: isSystemStart ? 'system-start-1' : `learner-turn-${turnNumber}`,
+            turn_kind: isSystemStart ? 'system_start' : 'learner',
+            learner_text: isSystemStart ? null : learnerText,
+            idempotency_key: commandKey(activityId, isSystemStart ? 'system-start' : `turn-${turnNumber}`, current.version),
+          })
+        },
         '这次教学回应没有完成；活动仍保持进行中，可以重试。',
+      )
+      completed = operationResult !== false && (
+        !interaction || ['ACCEPTED', 'SUCCEEDED'].includes(operationResult?.status)
       )
       if (completed) setText('')
     } finally {
       setSending(false)
       setPendingText('')
     }
+    return completed ? operationResult : false
   }
 
   const complete = () => run(
@@ -258,7 +318,19 @@ export default function ActivityLearning({ activityId }) {
             {turns.length ? turns.map((turn, index) => (
               <Fragment key={turn.turn_id}>
                 {turn.learner_text ? <LearnerMessage text={turn.learner_text} /> : null}
-                <AskoraMessage turn={turn} isFirst={index === 0} copied={copiedTurn === turn.turn_id} onCopy={copyTurn} />
+                <AskoraMessage
+                  turn={turn}
+                  isFirst={index === 0}
+                  copied={copiedTurn === turn.turn_id}
+                  onCopy={copyTurn}
+                  interactionInput={index === turns.length - 1 ? { text } : null}
+                  onInvoke={index === turns.length - 1
+                    ? (interaction, payload) => send(payload?.text, interaction)
+                    : undefined}
+                  onRequestInput={index === turns.length - 1
+                    ? () => composerRef.current?.focus()
+                    : undefined}
+                />
               </Fragment>
             )) : <div className="activity-learning__empty"><h2>从一个聚焦问题开始</h2><p>Askora 会依据当前 TeachingAction 和资料证据开始，不会自行改变计划。</p><button type="button" className="button button--primary" onClick={() => send()} disabled={busy}>进入本次学习<ArrowRight size={16} /></button></div>}
             {sending && pendingText && <LearnerMessage text={pendingText} />}
@@ -273,13 +345,6 @@ export default function ActivityLearning({ activityId }) {
           </div>
           {turns.length > 0 && (
             <>
-              {suggestions.length > 0 && !sending && (
-                <div className="activity-learning__suggestions" aria-label="思考方向建议">
-                  {suggestions.map((phrase) => (
-                    <button type="button" className="activity-learning__suggestion" key={phrase} onClick={() => send(phrase)} disabled={busy}>{phrase}</button>
-                  ))}
-                </div>
-              )}
               <LearningContextDrawer activityId={activityId} />
               <form className="activity-learning__composer" onSubmit={(event) => { event.preventDefault(); send() }}>
                 <label htmlFor="activity-answer" className="visually-hidden">写下你的想法</label>

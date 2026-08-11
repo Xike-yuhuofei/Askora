@@ -211,6 +211,17 @@ Production Local MAY 读取明确的 app-owned configuration metadata；开发/�
 
 用户清除模型配置后 MUST 形成明确的 disabled/unconfigured canonical profile state，并清除相应 secret。重启后 MUST 保持该语义；不得被旧 `.env`、browser cache 或进程继承变量静默重新激活。
 
+### STATE-224 — Learning Conversation Message Artifact
+
+`LearningConversationViewV1` / `LearningMessageV1` / `MessageBlockV1` 是 ADR-0020 / `LCMS-*` 冻结的 SYS08 presentation/transcript projection/artifact：
+
+- Conversation view only owns scope/order/cursor/availability；
+- Message owns accepted learner-visible content/blocks/exact refs；
+- capability descriptor owns no business result and is revalidated by target owner；
+- Message/Block MUST NOT become LearningActivity、Attempt、AssessmentResult、LearnerEvidence、MasteryEstimate、TeachingAction、ReviewSchedule or LearningSession truth；
+- presented/opened/copy/hover/turn count are not LearningEvidence；
+- frontend invocation success requires owner receipt/re-query and MUST NOT persist as second owner truth。
+
 ### STATE-230 — Misconception Four-way Ownership
 
 `Misconception definition → SYS01`；`MisconceptionEvidence → SYS04`；`MisconceptionHypothesis → SYS03`；`Remediation decision → SYS05`。MUST NOT 合并为跨系统可写对象。

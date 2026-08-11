@@ -168,6 +168,7 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 - [Data Control and Recovery](interfaces/data-control-contract.md) — Backup/Export/DOCUMENT erasure/no-resurrection; historical account/Desktop language is subordinate to current Product Positioning/LID.
 - [First-use Onboarding](interfaces/onboarding-contract.md) — LocalOwner bootstrap and first learning readiness; no register/login.
 - [Rich Response Rendering](interfaces/render-content-contract.md) — rendering boundary only.
+- [Learning Conversation Message System](interfaces/learning-conversation-message-system-spec-delta.md) — LearningActivity-scoped SYS08 message artifact、six typed blocks、capability dispatch、state/owner/frontend/testing boundaries.
 - [Schema Versioning](interfaces/schema-versioning.md) — schema evolution/startup compatibility.
 
 ### Frontend Technical Contracts
@@ -213,6 +214,7 @@ Current implementation slices remain useful only inside current Product Definiti
 Primary current/historical references include：
 
 - [v0.3 Adaptive Teaching Loop](vertical-slices/v0.3-adaptive-teaching-loop.md) — Learning Core slice.
+- [Learning Conversation Message System](vertical-slices/learning-conversation-message-system.md) — typed Message/Block→owner capability vertical slice；implementation via EXEC-075.
 - [Book-to-Adaptive-Learning](vertical-slices/book-to-adaptive-learning.md) — book-learning E2E, with current v1 material/scope/runtime rules applied.
 - [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — identity migration.
 - [UI-04 Workspace Context](vertical-slices/ui-04-ux-workspace-context.md) — current Workspace Experience implementation slice，已改用 consolidated Experience/UI contracts。

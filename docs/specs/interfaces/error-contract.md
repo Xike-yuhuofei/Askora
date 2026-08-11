@@ -97,11 +97,22 @@ DATA_EXPORT_EXPIRED
 DATA_ERASURE_PREVIEW_EXPIRED
 DATA_ERASURE_CONFIRMATION_INVALID
 DATA_ERASURE_PARTIAL
+MESSAGE_NOT_FOUND
+MESSAGE_REVISION_CONFLICT
+MESSAGE_BLOCK_NOT_FOUND
+MESSAGE_CAPABILITY_NOT_FOUND
+MESSAGE_CAPABILITY_UNAVAILABLE
+MESSAGE_CAPABILITY_STALE
+MESSAGE_CONTEXT_SCOPE_VIOLATION
+MESSAGE_SCHEMA_UNSUPPORTED
+MESSAGE_INTERACTION_INVALID
 ```
 
 上述 recovery 错误的 category、retryability、data safety、retry budget 与允许动作由
 `recovery-contract.md` 的单一目录冻结。Provider adapter MUST 根据 typed exception/HTTP status
 分类，不得把 provider message 文本作为主分支。
+
+`MESSAGE_*` 是 ADR-0020 / `LCMS-*` façade boundary errors。Target owner 的 assessment/activity/policy/source error code MUST 原样保留；Message adapter 不得把它们改写成自由文本或 learner failure。重复 idempotency key 返回原 receipt/result，不产生第二 side effect。
 
 P1-03 data-control errors 的 category/retryability 由 `data-control-contract.md` 冻结：wrong key、unsafe package、future schema 与 invalid confirmation non-retryable；maintenance busy、temporary storage 与未完成 owner step MAY retryable。任何 error details 不得包含 key、内容原文或完整本地路径。
 

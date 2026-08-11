@@ -12,6 +12,7 @@ from app.contracts.adaptive import EvidenceBundleV03, TeachingActionV03, Version
 from app.contracts.assessment import AssistanceSnapshot
 from app.contracts.base import ContractModel
 from app.contracts.decisions import DecisionTraceV03
+from app.contracts.learning_messages import LearningConversationViewV1, LearningMessageV1
 from app.contracts.model_execution import ModelExecutionV1
 
 BookLearningReadinessState = Literal[
@@ -156,6 +157,7 @@ class BookLearningTeachingResponseV1(ContractModel):
     accepted_at: datetime
     correlation_id: str
     model_execution: ModelExecutionV1 | None = None
+    message_envelope: LearningMessageV1 | None = None
 
 
 class BookLearningTranscriptEvidenceV1(ContractModel):
@@ -176,6 +178,7 @@ class BookLearningTranscriptTurnV1(ContractModel):
     evidence: tuple[BookLearningTranscriptEvidenceV1, ...] = ()
     accepted_at: datetime
     model_execution: ModelExecutionV1 | None = None
+    message_envelope: LearningMessageV1 | None = None
 
 
 class BookLearningTranscriptV1(ContractModel):
@@ -185,3 +188,4 @@ class BookLearningTranscriptV1(ContractModel):
     turns: tuple[BookLearningTranscriptTurnV1, ...]
     next_turn_number: int = Field(ge=1)
     correlation_id: str
+    conversation: LearningConversationViewV1 | None = None

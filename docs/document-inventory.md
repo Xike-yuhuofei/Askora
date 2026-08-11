@@ -73,6 +73,7 @@
 | `docs/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md` | CANONICAL-RETAIN | Accepted OS-backed LocalSecretStore 与 crash-consistent activation decision |
 | `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | CANONICAL-RETAIN | Accepted Workspace Context UX architecture decision；保留 Today single-primary invariant |
 | `docs/adr/ADR-0019-ui-workspace-read-projections.md` | CANONICAL-RETAIN | Accepted UI-04 current Workspace / Drawer read-projection ownership and versioning decision |
+| `docs/adr/ADR-0020-learning-conversation-message-presentation-and-interaction-boundary.md` | CANONICAL-RETAIN | Accepted LearningActivity-scoped message artifact、typed blocks、capability dispatch and owner boundary decision |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | 历史 account deletion integration；Account semantics 由 ADR-0015 supersede，owner-safe erasure invariant 保留 |
@@ -100,6 +101,7 @@
 | `docs/design/experience/INTERACTION-MODEL.md` | CANONICAL-RETAIN |
 | `docs/design/UX-Architecture-Canonical-Design-Delta.md` | HISTORICAL-RETAIN |
 | `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | HISTORICAL-RETAIN |
+| `docs/design/Learning-Conversation-Message-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | HISTORICAL-RETAIN |
@@ -162,6 +164,7 @@
 | `docs/specs/interfaces/material-lifecycle-contract.md` | CANONICAL-RETAIN |
 | `docs/specs/interfaces/onboarding-contract.md` | CANONICAL-RETAIN |
 | `docs/specs/interfaces/render-content-contract.md` | CANONICAL-RETAIN |
+| `docs/specs/interfaces/learning-conversation-message-system-spec-delta.md` | CANONICAL-RETAIN |
 | `docs/specs/interfaces/schema-versioning.md` | CANONICAL-RETAIN |
 | `docs/specs/platform/identity-privacy-lifecycle.md` | CANONICAL-RETAIN |
 | `docs/specs/platform/workspace-project-session-scope.md` | CANONICAL-RETAIN |
@@ -204,6 +207,7 @@
 | `docs/specs/frontend/ui-read-model-contracts.md` | CANONICAL-RETAIN | UI read-model/query/ownership 技术合同（已迁出 Experience Design Authority） |
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CANONICAL-RETAIN |
+| `docs/specs/vertical-slices/learning-conversation-message-system.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/book-to-adaptive-learning.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN |
@@ -251,6 +255,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-075-learning-conversation-message-system-vertical-slice.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-074-postgresql-membership-constraint-reconciliation.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-001-contracts-event-outbox-foundation.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-002-canonical-teaching-entry.md` | HISTORICAL-RETAIN |
