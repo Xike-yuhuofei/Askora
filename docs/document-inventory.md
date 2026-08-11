@@ -230,7 +230,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/active/EXEC-058-required-gate-main-protection-closure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-059-ui-design-system-component-foundation.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-068-ui-04a-workspace-context-shell-routes.md` | HISTORICAL-RETAIN |
-| `docs/exec-plans/active/EXEC-069-ui-04b-learning-context-drawer.md` | CANONICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-069-ui-04b-learning-context-drawer.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-070-ui-04c-usernote-current-material-right-rail.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | CANONICAL-RETAIN |

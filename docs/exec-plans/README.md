@@ -57,7 +57,7 @@ Read current main
 | EXEC | Task | Status | Dependency |
 |---|---|---|---|
 | [EXEC-068](completed/EXEC-068-ui-04a-workspace-context-shell-routes.md) | UI-04A Workspace Context / Shell / Route Migration | **DONE / ARCHIVED** | ADR-0018/0019 + EXEC-1062 + Workspace Product Arch entry gate |
-| [EXEC-069](active/EXEC-069-ui-04b-learning-context-drawer.md) | UI-04B Learning Context Drawer Query and UI | **FROZEN / READY** | 068 DONE |
+| [EXEC-069](completed/EXEC-069-ui-04b-learning-context-drawer.md) | UI-04B Learning Context Drawer Query and UI | **DONE / ARCHIVED** | 068 DONE |
 | [EXEC-070](active/EXEC-070-ui-04c-usernote-current-material-right-rail.md) | UI-04C UserNote + Current Material Right Rail | FROZEN / BLOCKED | 069 DONE |
 | [EXEC-071](active/EXEC-071-ui-04d-learning-management-exposure-removal.md) | UI-04D Learning Management Exposure Removal | FROZEN / BLOCKED | 070 DONE |
 | [EXEC-072](active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md) | UI-04E Library v1 No-OCR Exposure | FROZEN / BLOCKED | 071 DONE |

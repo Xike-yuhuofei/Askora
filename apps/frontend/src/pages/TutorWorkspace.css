@@ -249,6 +249,10 @@
   background: var(--surface);
 }
 
+.workspace-composer > .learning-context-disclosure {
+  margin-bottom: 10px;
+}
+
 .composer-box {
   display: flex;
   align-items: flex-end;

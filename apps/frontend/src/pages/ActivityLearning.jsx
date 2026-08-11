@@ -2,6 +2,7 @@ import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, ArrowUp, Check, CheckCircle2, Copy, Info, RefreshCw } from 'lucide-react'
 import * as bookLearningApi from '../api/bookLearning'
 import * as workspaceApi from '../api/workspace'
+import LearningContextDrawer from '../components/LearningContextDrawer'
 import SafeMarkdown from '../components/messages/SafeMarkdown'
 import { useNavigate } from '../router'
 import './ActivityLearning.css'
@@ -279,6 +280,7 @@ export default function ActivityLearning({ activityId }) {
                   ))}
                 </div>
               )}
+              <LearningContextDrawer activityId={activityId} />
               <form className="activity-learning__composer" onSubmit={(event) => { event.preventDefault(); send() }}>
                 <label htmlFor="activity-answer" className="visually-hidden">写下你的想法</label>
                 <textarea
@@ -295,6 +297,7 @@ export default function ActivityLearning({ activityId }) {
               </form>
             </>
           )}
+          {turns.length === 0 && <LearningContextDrawer activityId={activityId} />}
           <div className="activity-learning__finish"><p className="activity-learning__disclaimer"><Info size={14} aria-hidden="true" />完成本项不等于已掌握</p><button type="button" className="button button--secondary" onClick={complete} disabled={busy || !canComplete}><CheckCircle2 size={16} />完成本项</button></div>
         </main>
       )}

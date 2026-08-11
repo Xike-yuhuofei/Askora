@@ -14,6 +14,11 @@ export const getLearningPath = (goalId) =>
   api.get('/workspace/path', { params: goalId ? { goal_id: goalId } : {} })
     .then((response) => response.data)
 
+export const getLearningContext = (activityId) =>
+  api.get('/workspace/learning-context', {
+    params: activityId ? { activity_id: activityId } : {},
+  }).then((response) => response.data)
+
 export const getEvidenceWorkspace = () =>
   api.get('/workspace/evidence').then((response) => response.data)
 

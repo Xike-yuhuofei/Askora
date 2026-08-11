@@ -7,6 +7,7 @@ import { RouterProvider } from '../router'
 
 vi.mock('../api/workspace', () => ({
   getActivityLifecycle: vi.fn(),
+  getLearningContext: vi.fn(),
   startActivity: vi.fn(),
   completeActivity: vi.fn(),
 }))
@@ -46,6 +47,14 @@ describe('UI02C canonical ActivityLearning', () => {
     window.location.hash = `#/learn/${activityId}`
     vi.clearAllMocks()
     workspaceApi.getActivityLifecycle.mockResolvedValue(lifecycle())
+    workspaceApi.getLearningContext.mockResolvedValue({
+      data: {
+        view_state: 'MISSING',
+        stage_name: null,
+        stage_goal: null,
+        next_directions: [],
+      },
+    })
     bookLearningApi.getTranscript.mockResolvedValue(transcript())
   })
 
@@ -76,5 +85,17 @@ describe('UI02C canonical ActivityLearning', () => {
     render(<RouterProvider><ActivityLearning activityId={activityId} /></RouterProvider>)
     fireEvent.click(await screen.findByRole('button', { name: '进入本次学习' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('活动仍保持进行中')
+  })
+
+  it('keeps the primary composer available when the Drawer query fails', async () => {
+    const turn = { turn_id: 'learner-turn-1', turn_number: 1, turn_kind: 'learner', learner_text: '我的理解', reply_text: '继续说明', accepted_at: '2026-08-09T00:01:00Z' }
+    workspaceApi.getActivityLifecycle.mockResolvedValue(lifecycle('active', 3))
+    workspaceApi.getLearningContext.mockRejectedValue(new Error('drawer unavailable'))
+    bookLearningApi.getTranscript.mockResolvedValue(transcript([turn]))
+
+    render(<RouterProvider><ActivityLearning activityId={activityId} /></RouterProvider>)
+
+    expect(await screen.findByText(/当前阶段信息读取失败/)).toBeInTheDocument()
+    expect(screen.getByLabelText('写下你的想法')).toBeEnabled()
   })
 })

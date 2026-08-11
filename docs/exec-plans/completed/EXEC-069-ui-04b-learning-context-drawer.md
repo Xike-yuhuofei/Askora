@@ -1,6 +1,6 @@
 # EXEC-069 — UI-04B Learning Context Drawer Query and UI
 
-> Status: **FROZEN / READY**
+> Status: **DONE / ARCHIVED**
 > Priority: P1 UX Architecture  
 > Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0018, ADR-0019, `UXA-IA-004`, `UXA-SCREEN-120..124`, `UXA-DATA-220..223`, `UXA-IES-01`, `UXA-COMP-071`, UI-04 Vertical Slice
 > Depends on: `EXEC-068 DONE`

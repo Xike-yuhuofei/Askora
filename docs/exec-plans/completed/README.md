@@ -81,6 +81,7 @@
 | EXEC-043 — UI-03A Shell, Routes and Learning Domain | DONE | 2026-08-10 archived；commit SHA 见 Git 历史/交付回执 |
 | EXEC-044 — UI-03B Today Primary Hierarchy | DONE | 2026-08-11 archived；implementation/verification commit SHA 见 Git 历史/交付回执 |
 | EXEC-068 — UI-04A Workspace Context / Shell / Route Migration | DONE | 2026-08-11 archived；ADR-0019 canonical Workspace query + frontend shell closure |
+| EXEC-069 — UI-04B Learning Context Drawer Query and UI | DONE | 2026-08-11 archived；canonical SYS05/SYS06 query + accessible presentation-only disclosure |
 
 ## Release Gate
 

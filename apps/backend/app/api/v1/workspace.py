@@ -17,6 +17,7 @@ from app.contracts.workspace import (
     EvidenceProfileResponseV1,
     GoalListResponseV1,
     KnowledgeMapResponseV1,
+    LearningContextResponseV1,
     LearningPathResponseV1,
     LibraryWorkspaceResponseV1,
     TodayWorkspaceResponseV1,
@@ -66,6 +67,31 @@ async def get_workspace_context(
     """ADR-0019 query-only projection; never creates or switches Workspace."""
     result = WorkspaceContextQueryService().get_context(
         default_workspace,
+        correlation_id=getattr(request.state, "request_id", "unknown"),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@router.get(
+    "/learning-context",
+    response_model=LearningContextResponseV1,
+    summary="获取 canonical 学习上下文抽屉投影",
+)
+async def get_learning_context(
+    request: Request,
+    response: Response,
+    activity_id: UUID | None = Query(None),
+    default_workspace: Workspace = Depends(get_default_workspace),
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+) -> LearningContextResponseV1:
+    """ADR-0019 query-only SYS05/SYS06 composition."""
+    result = await WorkspaceTodayQueryService(
+        db, workspace_id=default_workspace.workspace_id
+    ).get_learning_context(
+        current_user,
+        activity_id=activity_id,
         correlation_id=getattr(request.state, "request_id", "unknown"),
     )
     response.headers["Cache-Control"] = "private, no-store"
