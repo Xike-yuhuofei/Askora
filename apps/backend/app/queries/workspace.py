@@ -89,9 +89,11 @@ class WorkspaceTodayQueryService:
         self,
         db: AsyncSession,
         *,
+        workspace_id: str,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._db = db
+        self._workspace_id = workspace_id
         self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     async def list_goals(
@@ -381,7 +383,11 @@ class WorkspaceTodayQueryService:
         records = (
             await self._db.scalars(
                 select(LearningGoalRecord)
-                .where(LearningGoalRecord.user_id == owner_id)
+                .where(
+                    LearningGoalRecord.user_id == owner_id,
+                    # EXEC067-AC-004: read only the exact Workspace, never broader.
+                    LearningGoalRecord.workspace_id == self._workspace_id,
+                )
                 .order_by(LearningGoalRecord.goal_id, LearningGoalRecord.version.desc())
             )
         ).all()
@@ -604,7 +610,11 @@ class WorkspaceTodayQueryService:
         records = (
             await self._db.scalars(
                 select(MasteryEstimateRecord)
-                .where(MasteryEstimateRecord.user_id == owner_id)
+                .where(
+                    MasteryEstimateRecord.user_id == owner_id,
+                    # EXEC067-AC-004: mastery is Workspace-specific.
+                    MasteryEstimateRecord.workspace_id == self._workspace_id,
+                )
                 .order_by(
                     MasteryEstimateRecord.knowledge_unit_id,
                     MasteryEstimateRecord.version.desc(),
@@ -651,6 +661,8 @@ class WorkspaceTodayQueryService:
             await self._db.scalars(
                 select(UserDocument).where(
                     UserDocument.pseudonym_id == current_user.pseudonym_id,
+                    # EXEC067-AC-004: labels come only from the exact Workspace.
+                    UserDocument.workspace_id == self._workspace_id,
                     UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                     UserDocument.processing_status == ProcessingStatus.COMPLETED,
                     UserDocument.moderation_status != ModerationStatus.REJECTED,
@@ -685,7 +697,11 @@ class WorkspaceTodayQueryService:
         records = (
             await self._db.scalars(
                 select(ReviewScheduleRecord)
-                .where(ReviewScheduleRecord.user_id == owner_id)
+                .where(
+                    ReviewScheduleRecord.user_id == owner_id,
+                    # EXEC067-AC-004: review schedule is Workspace-specific.
+                    ReviewScheduleRecord.workspace_id == self._workspace_id,
+                )
                 .order_by(
                     ReviewScheduleRecord.knowledge_unit_id,
                     ReviewScheduleRecord.version.desc(),
@@ -729,6 +745,8 @@ class WorkspaceTodayQueryService:
                 select(DialogSession)
                 .where(
                     DialogSession.user_id == str(current_user.id),
+                    # EXEC067-AC-004: compatibility sessions come only from the exact Workspace.
+                    DialogSession.workspace_id == self._workspace_id,
                     DialogSession.status != SessionStatus.DELETED,
                 )
                 .order_by(DialogSession.updated_at.desc(), DialogSession.id)
