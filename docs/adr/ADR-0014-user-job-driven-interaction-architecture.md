@@ -1,11 +1,38 @@
 # ADR-0014 — User-job-driven Information and Interaction Architecture
 
-Status: accepted  
+Status: **partially superseded by ADR-0018; retained principles consolidated into current Experience Design**  
 Date: 2026-08-10  
 Decision owners: user-authorized Askora product governance  
 Decision authority: explicit user approval on 2026-08-10 to adopt and execute the Interactive Elements redesign  
+Upper authority: `docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
+Product trace: primarily `CAP-04`、`CAP-07` and applicable experience-facing requirements; Feature inclusion remains owned by Product Definition  
 Affected specs: `docs/specs/ui/information-architecture.md`, `screen-contracts.md`, `visual-system.md`, `quality-and-migration.md`, UI vertical slice / EXEC  
-Canonical design input: `docs/design/Interactive-Element-System-Canonical-Design-Delta.md`
+Historical canonical design input: `docs/design/Interactive-Element-System-Canonical-Design-Delta.md`  
+Current experience representation: `docs/design/experience/EXPERIENCE-ARCHITECTURE.md` + `LEARNING-EXPERIENCE.md` + `INTERACTION-MODEL.md`
+
+## Current Supersession / Authority Interpretation
+
+本 ADR 保留 2026-08-10 的原始设计决策与 rationale，但它不再是实现方推导 current Experience truth 的唯一入口。
+
+当前解释规则：
+
+1. Product Capability、v1 Feature inclusion / exclusion、Product Rule、Product Acceptance 由 `PRODUCT-DEFINITION.md` 拥有；本 ADR 只拥有 IA / interaction architecture consequence 与历史决策理由。
+2. `ADR-0018` 已明确 partial supersede：
+   - 本 ADR §3 `Learning → 目标/路径/进展/历史` 作为 permanent L1 management facets 的 default exposure；
+   - 本 ADR §8 OCR contextually revealable 的 normal-v1 UI consequence；
+   - 本 ADR §10 对 `/learning/goals|plan|progress|history` 作为 canonical permanent facets 的 route assumption；
+   - 旧 learning workspace layout 的相应部分。
+3. 以下核心原则继续有效并已吸收到 current Experience Design：
+   - User Job → Product/Domain Meaning → IA → Interaction Semantics → Pattern → Component；
+   - Today / Learning / Library 三个 L0 Product Domains；
+   - Chat/Tutor 不是 L0；
+   - Today single primary task；
+   - 7 类 semantic interaction primitives；
+   - L0～L5 interaction hierarchy；
+   - progressive disclosure；
+   - hierarchical Settings。
+4. 具体 current Experience / IA / Learning surface 应直接读取 `docs/design/experience/**` 与 current UI Specs，不得由实现代理把本 ADR 与历史 Delta 自行拼装成第二套 current UX truth。
+5. 本 ADR 中 Account/Desktop/OCR 等历史 surface wording 若与 current Product Definition 冲突，按 current upper authority / supersession 解释，不恢复旧 Product Scope。
 
 ## Context
 
@@ -73,6 +100,8 @@ User Job
 - `进展` 是 Evidence 面向用户的 IA vocabulary，不改变 SYS03/evidence ownership；
 - History 保持只读历史与恢复语义。
 
+> Current disposition：本节“permanent L1 management facets” default exposure 已被 ADR-0018 partial supersede；current Experience 以 contextual orientation / task flow 为准，domain truth 不删除。
+
 ### 4. Chat/Tutor 不成为 L0
 
 Conversation 是 `LearningActivity Workspace` 的 interaction mode。
@@ -119,9 +148,11 @@ L5 Advanced / Overflow
 
 Library 继续是 L0 Product Domain，但批量分类、归档、重复处理、OCR、元数据高级编辑、重新安全检查和 destructive actions 应按 selection/context 暴露，不得全部常驻。
 
+> Current disposition：OCR normal-v1 exposure 已被 ADR-0018 / current Product Definition supersede。其余 progressive-disclosure principle 继续有效。
+
 ### 9. Settings 使用 Hierarchical Settings
 
-Settings landing page 只提供类别导航和 action-required state。长期目标结构：
+Settings landing page 只提供类别导航和 action-required state。历史目标结构：
 
 ```text
 通用
@@ -135,9 +166,11 @@ AI 与模型
 
 导出、删除、密码、会话、恢复套件、账号删除等进入二级 task destination。
 
+> Current disposition：hierarchical-settings principle 保留；Account/Login/AuthSession 等具体历史项服从 ADR-0015 / Product Definition no-auth supersession。
+
 ### 10. Route Migration
 
-新 canonical route family：
+历史 route decision：
 
 ```text
 /today
@@ -165,6 +198,8 @@ AI 与模型
 
 Redirect 必须无业务副作用。
 
+> Current disposition：具体 current route / task-flow 服从 ADR-0018、current Experience Design 与 current UI Specs；历史 route family 保留迁移 rationale，不拥有 Product Scope。
+
 ## Alternatives Considered
 
 ### A. 保留当前 7 项一级导航
@@ -191,7 +226,7 @@ Redirect 必须无业务副作用。
 - 一级 IA 从 7 个异质入口降为 3 个稳定产品域；
 - Goal/Plan/Evidence/History 的 canonical semantics 保持不变，只改变 presentation/IA；
 - Chat 不再形成独立产品心智模型；
-- 为 macOS/iOS 共用 semantic architecture，同时允许平台 pattern 分化；
+- 为不同本地平台共用 semantic architecture，同时允许平台 pattern 分化；
 - Library/Settings 的复杂能力通过 progressive disclosure 降噪。
 
 ### Cost / Risk
@@ -204,7 +239,7 @@ Redirect 必须无业务副作用。
 
 ## Ownership / Truth Impact
 
-本 ADR **不改变** SYS01～SYS08 canonical ownership，不建立任何第二 truth。
+本 ADR **不改变** SYS01～SYS08 canonical ownership，不建立任何第二 truth，也不拥有 Product Definition。
 
 它只改变：
 
@@ -225,7 +260,7 @@ Goal、Plan、Evidence、History、Activity、Recovery 等仍使用原 owner/que
 
 ## Migration / Rollback
 
-迁移顺序：
+历史迁移顺序保留用于解释 decision rollout：
 
 1. 更新 `docs/specs/ui/**`；
 2. 冻结新的 UI vertical slice / EXEC；
@@ -238,28 +273,30 @@ Goal、Plan、Evidence、History、Activity、Recovery 等仍使用原 owner/que
 9. 完成 responsive/keyboard/browser E2E；
 10. 在兼容周期结束后再评估旧 route redirect 的退休。
 
+当前实时执行顺序与状态属于 Linear / current EXEC index，不由本 ADR 维护。
+
 Rollback/forward-fix：若新 shell 存在阻断性问题，可暂时恢复旧 presentation route mapping，但不得恢复 chat-first product semantics 或建立双 truth；数据 schema 无需回滚。
 
 ## Validation
 
-至少验证：
+至少验证 current applicable retained semantics：
 
 - L0 navigation 只有 Today / Learning / Library product domains；
 - `/` 仍安全进入 Today / onboarding contract；
 - legacy goal/path/evidence/history routes 无副作用 redirect；
 - Today canonical activity 可用时只有一个 primary task；
 - Quick Start 不与 canonical activity 同级；
-- Learning 四个 facets keyboard/pointer/touch 可达；
+- current Experience task flows keyboard/pointer/touch 可达；
 - Settings 二级 destination 可返回且 destructive flow 不弱化；
-- Library selection 后才暴露批量动作；
+- Library contextual actions 不违反 current Product Scope；
 - 1440×900、1024×768、768×1024、360×800 和 200% zoom 可完成主任务；
 - screen reader/keyboard focus order 与 semantic role 一致；
 - frontend build、UI unit/integration、browser E2E 通过。
 
-Engineering / Policy / Learning Evidence 结论继续分离。本 ADR 是 presentation/IA change，不产生新的 Learning Evidence 声明。
+Engineering / UX / Product Acceptance / Learning Evidence 结论继续分离。本 ADR 是 presentation/IA architecture decision，不产生新的 Product Acceptance 或 Learning Evidence 声明。
 
 ## Supersedes / Superseded By
 
-本 ADR supersedes 当前 UI Spec 中将 Goals / Path / Evidence / History / Settings 作为同级 L0 Navigation Item 的设计选择；具体条款由同步更新后的 `docs/specs/ui/**` 取代。
+本 ADR superseded 当时 UI Spec 中将 Goals / Path / Evidence / History / Settings 作为同级 L0 Navigation Item 的设计选择。
 
-Superseded by: none.
+**Partially superseded by `ADR-0018`**：具体 clause 见 ADR-0018 §8。Current retained semantics 已 consolidation 到 `docs/design/experience/**`；这些 current Experience docs 是实现入口，本 ADR 保留 rationale / decision history。
