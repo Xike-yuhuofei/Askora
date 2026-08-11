@@ -1,31 +1,35 @@
 # Askora Implementation Specifications
 
 > 状态：Canonical Implementation Contract Index  
-> 上位产品基线：`docs/product/PRODUCT-POSITIONING.md`  
+> 上位产品基线：`docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
 > 当前架构基线：v0.3 Learning Core + v1 Local Web / LocalOwner / Workspace / Local-first Alignment  
-> 最近校准：2026-08-10
+> 最近校准：2026-08-11
 
 ## 1. Authority and Purpose
 
-`docs/specs/**` 将已冻结 Product Positioning、Canonical Design 与 Accepted ADR 转换为可直接约束实现、迁移、replay、测试和 release 的合同。
+`docs/specs/**` 将已冻结 Product Positioning、Product Definition、Canonical Design 与 Accepted ADR 转换为可直接约束实现、迁移、replay、测试和 release 的合同。
 
 ```text
 PRODUCT-POSITIONING.md
-        ↓
+        ↓ product boundary
+PRODUCT-DEFINITION.md
+        ↓ capabilities / requirements / product acceptance
 Canonical Design / Design Delta
         ↓
 Accepted ADR
         ↓
-Implementation Specs
+Implementation / Quality Specs
         ↓
 Vertical Slice / EXEC / Linear Issue
         ↓
 Code / Test / Release Evidence
 ```
 
-任何下位 Spec / EXEC / code 与 Product Positioning 冲突时，必须收敛下位层；不得用历史实现或历史 PASS 反向降低产品边界。
+任何下位 Spec / EXEC / code 与 Product Positioning 或 Product Definition 冲突时，必须收敛下位层；不得用历史实现或历史 PASS 反向降低产品边界、改变 Capability 或扩大 v1 Feature Scope。
 
-当前 v1 硬约束：
+当前 v1 产品要求由 `PRODUCT-DEFINITION.md` 的 `CAP-*`、`PD-RULE-*`、`PD-REQ-*` 与 Product Acceptance 管理；本目录负责 HOW，不创建第二套 Product Capability taxonomy。
+
+当前 v1 技术硬约束：
 
 - single-user / single-device；
 - Browser → loopback Local Server；
@@ -48,6 +52,8 @@ Code / Test / Release Evidence
 ### v0.3 Learning Core
 
 ```text
+PRODUCT-DEFINITION CAP-02..07 / PD-RULE-001..007
++
 Research Synthesis
 → Canonical Design
 → ADR-0001 / ADR-0002
@@ -62,6 +68,7 @@ v1 platform/runtime changes MUST NOT silently redesign the six Strategy Families
 
 ```text
 PRODUCT-POSITIONING
+→ PRODUCT-DEFINITION CAP-01 / CAP-08
 → Local Identity Delta / ADR-0015
 → ADR-0016
 → LID-* + WSP-*
@@ -74,6 +81,7 @@ PRODUCT-POSITIONING
 
 ```text
 PRODUCT-POSITIONING
+→ PRODUCT-DEFINITION CAP-08 / PD-REQ-0801..0804
 → historical ADR-0013 invariants
 → ADR-0017
 → MODEL-CONFIG-* + LSS-* + SEC-*
@@ -84,7 +92,7 @@ PRODUCT-POSITIONING
 ### Material Lifecycle
 
 ```text
-PRODUCT-POSITIONING
+PRODUCT-DEFINITION CAP-01 / PD-REQ-0104
 → LIB-045/046 + PERSIST-080..083 + DATA DOCUMENT erasure
 → MATLIFE-*
 → Trash / Restore / Permanent Delete implementation
@@ -130,6 +138,8 @@ PRODUCT-POSITIONING
 - [SYS08 AI Orchestration](systems/08-ai-orchestration.md) — execution/model/tool orchestration only.
 - [SYS08 Model Configuration](systems/08-model-configuration.md) — Local Web BYOK, route/profile semantics, LocalSecretStore binding and crash-consistent activation.
 
+SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product Capability 以 `PRODUCT-DEFINITION.md` 的 `CAP-01`～`CAP-08` 为准。
+
 ### Interfaces
 
 - [Content Ingestion & Source Locator](interfaces/content-ingestion-contract.md) — managed source copy, structure-preserving pipeline, local jobs, v1 core formats.
@@ -153,6 +163,8 @@ PRODUCT-POSITIONING
 - [Definition of Done](quality/definition-of-done.md) — Engineering / Policy Correctness / Learning Evidence gate separation.
 - [Security Standard](quality/security-standard.md) — Learning Core hard rules plus LocalOwner/Workspace/LocalSecretStore security.
 
+Quality Specs own technical/quality gates. Product Acceptance remains upstream in `PRODUCT-DEFINITION.md` or an explicit Product Feature Spec.
+
 ### UI
 
 - [UI Spec Index](ui/README.md)
@@ -164,11 +176,11 @@ PRODUCT-POSITIONING
 - [Quality and Migration](ui/quality-and-migration.md)
 - [Component State Contracts](ui/component-state-contracts.md)
 
-UI 导航/布局/控件继续由 ADR-0014/UI specs 管理，不得创建第二 domain truth。
+UI 导航/布局/控件继续由 current UI Design/ADR/UI specs 管理，不得创建第二 domain truth 或自行决定 v1 Product Scope。
 
 ## 4. Vertical Slice / Historical Supersession
 
-Current implementation slices remain useful only inside current Product/ADR/Spec authority.
+Current implementation slices remain useful only inside current Product Definition / ADR / Spec authority.
 
 Primary current/historical references include：
 
@@ -185,7 +197,7 @@ Historical/partially superseded：
 - [P1-04C OCR Review](vertical-slices/p1-04c-library-ocr-review.md) — implemented optional/historical; not v1 core/release prerequisite.
 - [P1-02 Model Settings](vertical-slices/p1-02-model-settings.md) — historical Desktop implementation; current new writes use ADR-0017/LSS/MODEL-CONFIG.
 
-EXEC real-time status belongs to `docs/exec-plans/README.md`; this index does not duplicate volatile active/completed lists.
+Vertical Slice 可以实现一个或多个 Product Capability，但不能以自身存在作为新 Product Requirement 的来源。实时工作状态属于 Linear；EXEC index 不复制 Product Backlog。
 
 ## 5. v0.3 Learning Core Invariants
 
@@ -211,35 +223,44 @@ SYS02/SYS08 may tighten but not expand TeachingAction envelope
 LLM/Agent never owns final TeachingAction or canonical learner/assessment/plan/review truth
 ```
 
-## 6. v1 Product Positioning → Spec Traceability
+## 6. Product Definition → Spec Traceability
 
-| Product Constraint | Primary Contracts |
+Specs SHOULD reference relevant `CAP-*` / `PD-REQ-*` when new or substantially refactored contracts are created. Existing stable Spec IDs do not need bulk renaming.
+
+| Product Definition / Constraint | Primary Contracts |
 |---|---|
+| `CAP-01` Material grounding | Domain, SPEC-D01, SYS01, SYS02, WSP, LIB, MATLIFE |
+| `CAP-02` Goal / success | SYS06 Goal Management, Goal Mapping, Domain |
+| `CAP-03` Readiness / diagnosis / planning | SYS06 Planner, Diagnostic Bootstrap, SYS04, SYS03 |
+| `CAP-04` Adaptive Learning Activity | SYS05, SYS08, Activity Lifecycle, rendering/UI contracts |
+| `CAP-05` Attempt / Assessment / Evidence | SYS04, SYS03, Event/Domain contracts |
+| `CAP-06` Review / retention / transfer | SYS07, SYS03/04/05, Outcome/Experiment contracts |
+| `CAP-07` Continuity / next-step | Workspace scope, query/UI contracts, Activity lifecycle |
+| `CAP-08` Local Data & AI Control | LID, WSP, Persistence, Data Control, LSS, MODEL-CONFIG, Security |
 | Local Web / loopback | System Architecture, Dependency Rules, LID-* |
 | No Account/Login | LID-*, State Ownership, Security |
 | LocalOwner | LID-*, Domain, Persistence |
-| Workspace isolation | ADR-0016, WSP-*, Domain, State Ownership |
-| LearningProject N:M Material | ADR-0016, WSP-*, LIB-* |
+| Workspace isolation / `PD-RULE-009` | ADR-0016, WSP-*, Domain, State Ownership |
 | LearningSession != DialogSession | ADR-0016, WSP-* |
 | Import = ingest + copy | SPEC-D01, WSP SourceFile, Persistence |
 | SQLite production baseline | Architecture, Persistence |
-| No external infra prerequisite | Architecture, Dependency Rules, Persistence, CI Standard |
-| LearnerState from Evidence / per Workspace | WSP-033, SYS03, State Ownership |
+| No external infra prerequisite / `PD-REQ-0804` | Architecture, Dependency Rules, Persistence, CI Standard |
+| LearnerState from Evidence / `PD-RULE-007` | WSP-033, SYS03, State Ownership |
 | Workspace-scoped Retrieval | WSP-073, SYS02 |
-| Trash → Restore/Permanent Delete | MATLIFE-*, LIB-*, Persistence, Data Control |
-| BYOK local secret | ADR-0017, LSS-*, MODEL-CONFIG, Security |
-| Source-grounded provenance | Domain, SPEC-D01, SYS02 |
+| Trash → Restore/Permanent Delete / `PD-REQ-0104` | MATLIFE-*, LIB-*, Persistence, Data Control |
+| BYOK local secret / `PD-REQ-0803` | ADR-0017, LSS-*, MODEL-CONFIG, Security |
+| Source-grounded provenance / `PD-RULE-006` | Domain, SPEC-D01, SYS02 |
 | local durable jobs | Architecture, Persistence, SPEC-D01 |
 | Backup != Export | Persistence, Data Control |
-| v1 core formats | SPEC-D01, LIB-* |
-| Full OCR not v1 core | LIB-050, ADR-0008 supersession |
-| No open-ended autonomous Agent | Architecture, SYS08, SYS05 |
+| v1 core formats / `PD-REQ-0102` | SPEC-D01, LIB-* |
+| Full OCR not v1 core | `PRODUCT-DEFINITION` scope, LIB-050, ADR-0008 supersession |
+| No open-ended autonomous Agent | Product Positioning, Architecture, SYS08, SYS05 |
 
 ## 7. Current ADR Supersession Relevant to Specs
 
 ### ADR-0008
 
-Partially superseded. OCR-as-core/global-library/archive mechanics are historical. Current Material scope/delete contracts are WSP/LIB/MATLIFE.
+Partially superseded. OCR-as-core/global-library/archive mechanics are historical. Current Material scope/delete contracts are Product Definition + WSP/LIB/MATLIFE.
 
 ### ADR-0013
 
@@ -268,8 +289,10 @@ Current LocalSecretStore authority. Production supports exact approved OS-backed
 - legacy retrieval/cache keys must migrate to Workspace scope.
 - environment/Desktop model credentials are not silently imported into production LocalSecretStore.
 - legacy deleted rows migrate per MATLIFE source-present/source-missing rules.
-- historical OCR MAY remain immutable/optional; v1 new ingest does not require OCR.
-- PostgreSQL/Redis compatibility MAY remain Optional; production-local correctness does not depend on them.
+- historical OCR MAY remain immutable/optional；v1 new ingest does not require OCR.
+- PostgreSQL/Redis compatibility MAY remain Optional；production-local correctness does not depend on them.
+
+Compatibility existence does not make a retired feature `CURRENT/COMMITTED` in Product Definition.
 
 ## 9. Spec-ID Governance
 
@@ -284,15 +307,20 @@ LSS-*      Local SecretStore / model activation
 MATLIFE-*  Material Trash / Restore / Permanent Delete
 ```
 
-Historical requirements remain traceable with supersession notes rather than silently changing their meaning.
+Product-level IDs use `CAP-*` / `PD-RULE-*` / `PD-REQ-*` / `PD-AC-*` and remain distinct from technical Spec IDs。
 
-## 10. Release Claim Boundary
+Historical requirements remain traceable with supersession notes rather than silently changing their meaning。
 
-Every release must separate：
+## 10. Acceptance / Release Claim Boundary
+
+Every delivery must separate：
 
 ```text
-Engineering Gate
-Policy / Contract Correctness Gate
+Product Acceptance
+UX Acceptance
+Engineering / Technical Gate
+Quality / Security Gate
+Policy / Contract Correctness Gate when applicable
 Learning Evidence Gate
 ```
 
@@ -304,10 +332,13 @@ Primary real-user learning outcomes remain：independent success、delayed reten
 
 Before any Codex/TraeCode task：
 
-1. read `docs/product/PRODUCT-POSITIONING.md`；
-2. read the applicable current ADR/Spec family；
-3. check supersession before using historical ADR/Vertical Slice；
-4. treat code-vs-Spec mismatch as implementation drift by default；
-5. stop with `PRODUCT_POSITIONING_GAP` if implementation would violate the frozen product boundary；
-6. stop with `BLOCKED_BY_SPEC_GAP` if a required ownership/security/data decision is still ambiguous；
-7. otherwise execute mechanically and prove Acceptance Criteria with tests/current CI。
+1. read `docs/product/PRODUCT-STRATEGY.md`；
+2. read `docs/product/PRODUCT-POSITIONING.md`；
+3. read `docs/product/PRODUCT-DEFINITION.md` and identify applicable `CAP-*` / `PD-REQ-*` / Product Acceptance；
+4. read the applicable current Canonical Design / ADR / Spec family；
+5. check supersession before using historical ADR/Vertical Slice；
+6. treat code-vs-Spec mismatch as implementation drift by default；
+7. stop with `POSITIONING GAP` if implementation would violate the frozen product boundary；
+8. stop with `PRODUCT DEFINITION GAP` if Capability / Feature Scope / Product Rule / Product Acceptance is missing or contradicted；
+9. stop with `BLOCKED_BY_SPEC_GAP` if a required ownership/security/data decision is still ambiguous；
+10. otherwise execute mechanically and prove the applicable Product / UX / Technical / Quality Acceptance with current evidence。
