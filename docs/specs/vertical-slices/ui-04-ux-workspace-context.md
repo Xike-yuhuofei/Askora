@@ -1,10 +1,20 @@
 # UI-04 — UX Workspace Context and Three-Column Learning Architecture
 
-> Status: **FROZEN / SERIAL EXECUTION ACTIVE**
-> Governing: `ADR-0018`, `ADR-0014`, `UXA-IA-*`, `UXA-SCREEN-*`, `UXA-DATA-*`, `UXA-IES-*`, `UXA-COMP-*`, `UXA-VIS-*`, `UXA-QUAL-*`
-> Dependency: `EXEC-1062 DONE` + Workspace Product Architecture issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）
-> Implementation chain: `EXEC-068 → 069 → 070 → 071 → 072 → 073`
+> Status: **FROZEN**  
+> Product Traceability: `CAP-01`、`CAP-04`、`CAP-07`；`PD-REQ-0101..0103`、`PD-REQ-0401`、`PD-REQ-0701..0702`；`PD-RULE-006/009/011`；`PD-NFR-005`  
+> Governing: `PRODUCT-DEFINITION.md`、`ADR-0018`、`ADR-0014`、`UXA-IA-*`、`UXA-SCREEN-*`、`UXA-DATA-*`、`UXA-IES-*`、`UXA-COMP-*`、`UXA-VIS-*`、`UXA-QUAL-*`  
+> Historical execution refs: `EXEC-068 → 069 → 070 → 071 → 072 → 073`；实时状态以 Linear 与 current `main` 为准  
 > Scope type: presentation / information architecture / interaction architecture / data-query boundary absorption
+
+## 0. Acceptance Ownership
+
+本 Vertical Slice 把已冻结 Product Definition 转化为 UX / UI implementation contract；它不拥有 Product Scope。
+
+- 本文件 `In Scope / Out of Scope` 只表示 UI-04 implementation-slice scope，不等同 v1 Feature inclusion / exclusion；
+- `UXA04-AC-*` 属于 **UX / Vertical Slice Acceptance**，不得自动升级为 `PD-AC-*`；
+- Product Capability / Requirement / Rule / v1 Scope 以 `docs/product/PRODUCT-DEFINITION.md` 为上游 authority；
+- 若 UI-04 需要改变 Product Scope、UserNote 的产品意义、Workspace 产品语义或 Product Acceptance，必须先报告 `PRODUCT DEFINITION GAP`；
+- UI Engineering / Contract / Accessibility PASS 不自动证明 Product Acceptance，更不证明 Learning Evidence。
 
 ## 1. Objective
 
@@ -28,24 +38,25 @@ Workspace switch  Learner answers                   Citation / source context
 - 旧 `/learning/**` route 无副作用迁移；
 - deferred candidates 不建 placeholder。
 
-本 Slice 不改变任何 SYS01～SYS08 owner、Teaching Policy、LearningPlan、LearnerState、ReviewSchedule、ADT 或 data/security truth。不实现 Workspace / Notes / Context Drawer 的 owner 或 command。ADR-0019 已冻结 current Workspace 与 Drawer 的 read-only query composition；UserNote owner/command 仍由对应 EXEC 独立执行 gap gate。
+其中 no-OCR / deferred candidate 的 **Product Scope** 来自 Product Definition；本 Slice 只冻结相应 UI 呈现与迁移行为。
+
+本 Slice 不改变任何 SYS01～SYS08 owner、Teaching Policy、LearningPlan、LearnerState、ReviewSchedule、ADT 或 data/security truth。不实现 Workspace / Notes / Context Drawer 的 owner 或 command。ADR-0019 已冻结 current Workspace 与 Drawer 的 read-only query composition；UserNote owner/command 必须由对应 current owner/spec 明确，UI 不得以前端 state 冒充 durable note truth。
 
 ## 2. Dependency Gate
 
-MUST 满足：
+执行本 Slice 的任何新工作 MUST 在开始时按 current truth 重新验证：
 
-- `ADR-0018`、`ADR-0019` accepted 并登记于 `docs/adr/README.md`；
-- `UI` Spec set（`UXA-*` 与既有 `UI-*`）FROZEN；
-- `EXEC-1062` DONE（shared frontend files non-overlap）；
-- Workspace Product Architecture dependency gate：XIK-171（Workspace/Project/Session persistence）、XIK-172（Workspace-scoped retrieval）、XIK-177（Workspace-scoped learner evidence）、XIK-175（non-core cleanup）、XIK-179、XIK-165 where applicable。UI-04 不得用前端 mock 绕过未完成的 Workspace 产品架构；
-- 当前 main 的 frontend tests/build baseline 已记录；
-- 无其他 active EXEC 同时修改本 Slice EXEC 的 Allowed Files，或已显式证明 non-overlap。
+- `ADR-0018`、`ADR-0019` 仍为 applicable accepted decisions；
+- `UI` Spec set（`UXA-*` 与既有 `UI-*`）仍为 current contract；
+- Workspace / UserNote / Material / Drawer 所需 owner/query/command contracts 已冻结；
+- current `main` 的 frontend tests/build baseline 可确定；
+- Linear 中不存在未处理的 blocking dependency 或重叠实施工作。
 
-截至 EXEC-068/069 执行起点，上述依赖的 current-main implementation 已存在，ADR-0019 已关闭本两项 read-query gap。后续 EXEC 仍逐项重新验证自己的 owner/dependency gate；未满足时返回 `BLOCKED_BY_DEPENDENCY_GATE`。
+历史 EXEC / Product Architecture issue 的完成状态只能作为历史证据引用，不在本 frozen Slice 中维护实时 dependency truth。未满足 current dependency 时返回适用 `PRODUCT DEFINITION GAP` / `SPEC GAP` / dependency block，不得用 frontend mock 绕过。
 
 ## 3. User Jobs
 
-UI-04 必须支持而不改变以下 jobs：
+UI-04 支持以下 jobs；这些 jobs 是对 Product Definition 的体验实现，不创建新的 Product Capability：
 
 1. 打开 Askora 立即进入当前 Workspace 中最值得完成的学习任务；
 2. 知道当前阶段与接下来做什么，而不被管理页淹没；
@@ -54,6 +65,8 @@ UI-04 必须支持而不改变以下 jobs：
 5. 保持个人学习数据与 Workspace 隔离。
 
 ## 4. In Scope
+
+本节只定义 UI-04 implementation scope。
 
 ### 4.1 Three-Column Shell
 
@@ -91,13 +104,13 @@ UI-04 必须支持而不改变以下 jobs：
 - 正常 UI 不暴露 OCR 入口/状态/review/confidence/bbox/hash；
 - 扫描 PDF 诚实显示 unsupported / partial。
 
-## 5. Serial EXEC Decomposition
+## 5. Historical Serial EXEC Decomposition
+
+以下序列保留为 UI-04 实施分解与历史证据索引，不承担实时工作状态：
 
 ### EXEC-068 — Workspace Context / Shell / Route Migration
 
 范围：三栏 shell、current Workspace 可见性、Workspace switch 状态、旧 `/learning/**` route 无副作用迁移、deferred candidates 不建 placeholder。
-
-依赖：ADR-0018 + UI Specs FROZEN；`EXEC-1062 DONE`；Workspace 产品架构 entry gate（若 Workspace switch command owner 未冻结则标记 `BLOCKED_BY_SPEC_GAP`）。
 
 退出条件：`UXA04-AC-001..004` + route/no-side-effect + shell responsive tests PASS。
 
@@ -105,15 +118,11 @@ UI-04 必须支持而不改变以下 jobs：
 
 范围：Drawer canonical query 消费、collapsed/expanded/missing/error 状态、presentation-only toggle。
 
-依赖：EXEC-068 DONE；Drawer canonical query contract 冻结（否则 `BLOCKED_BY_SPEC_GAP`）。
-
 退出条件：`UXA04-AC-005..006` + Drawer state/accessibility tests PASS。
 
 ### EXEC-070 — UserNote + Current Material Right Rail
 
 范围：右栏 hide/show、Notes 状态（SAVING/SAVED/FAILED/CONFLICT/RECOVERABLE）、Current Material tabs、SourceSpan、cross-Workspace fail-closed。
-
-依赖：EXEC-069 DONE；UserNote / Current Material canonical refs 与 owner 冻结（否则 `BLOCKED_BY_SPEC_GAP`）。
 
 退出条件：`UXA04-AC-007..009` + Notes/Material state tests PASS。
 
@@ -121,15 +130,11 @@ UI-04 必须支持而不改变以下 jobs：
 
 范围：去除常驻 Goal/Plan/Progress/History 管理 facet；保留 domain truth；contextual task-flow 仅在明确 user job 下进入。
 
-依赖：EXEC-070 DONE。
-
 退出条件：`UXA04-AC-010` + Learning de-management tests PASS。
 
 ### EXEC-072 — Library v1 No-OCR Exposure
 
 范围：正常 UI 移除 OCR 入口/状态/review/confidence/bbox/hash；扫描 PDF 诚实显示 unsupported/partial。
-
-依赖：EXEC-071 DONE。
 
 退出条件：`UXA04-AC-011` + Library no-OCR tests PASS。
 
@@ -137,20 +142,20 @@ UI-04 必须支持而不改变以下 jobs：
 
 范围：1440/1024/768/360、200% zoom、keyboard/touch/screen-reader、focus return、no horizontal scroll、no critical nested scroll、no silent data loss、release evidence。
 
-依赖：EXEC-072 DONE + `UXA-QUAL-*` gates。
-
 退出条件：`UXA04-AC-012..015` 全部 PASS。
 
-六个 EXEC MUST 串行，除非新的 Spec/EXEC revision 明确批准。
+如未来仍需继续实施或修复，实际顺序与 blocking dependencies 以 current Linear / frozen follow-up EXEC 为准。
 
 ## 6. Out of Scope
+
+本节只约束 UI-04 Slice，不定义 Askora v1 总体 Product Scope。
 
 - 实现 Workspace 产品架构本身（owner/command/迁移）；
 - 实现 UserNote 或 Context Drawer 的 owner command / schema；
 - 删除旧 `/learning/**` 路由或删除 Goal/Plan/Evidence/History 数据；
 - 修改 Teaching Policy / mastery / review 算法；
 - 建立第二 Tutor / Material / Note / Workspace truth；
-- 实现 deferred candidates（大纲 / Evidence / 知识图谱 / Progress / AI Summary / Flashcards / 错题本）；
+- 实现 Product Definition 当前 deferred candidates；
 - 扩展 OCR；
 - 顺带清理无关技术债。
 
@@ -162,7 +167,9 @@ UI-04 必须支持而不改变以下 jobs：
 
 实现新增/修改的核心交互必须可归入既有 7 类 primitive（Navigation / Action / Control / Selection / Disclosure / InteractiveContent / StatusFeedback），见 `UXA-IES-*`。不新增顶层 primitive。
 
-## 9. Acceptance Criteria
+## 9. UX / Vertical Slice Acceptance Criteria
+
+以下 AC 不创建新的 Product Acceptance：
 
 - `UXA04-AC-001`：三栏解析同一 canonical `current_workspace_id`；
 - `UXA04-AC-002`：Workspace switch 处理 draft/stream/note/session/material-tab 且呈现 saved/saving/failed/recoverable；
@@ -207,7 +214,7 @@ python3 .github/workflows/check_docs.py
 git diff --check
 ```
 
-若修改 backend query/API，再运行 backend targeted + full gates。本 Slice 默认不新增 owner command / schema；对应 EXEC 冻结前标记 `BLOCKED_BY_SPEC_GAP`。
+若修改 backend query/API，再运行 backend targeted + full gates。本 Slice 默认不新增 owner command / schema；所需 owner contract 缺失时按正确 gap 类型阻断。
 
 ## 11. Migration / Rollback
 
@@ -221,17 +228,18 @@ git diff --check
 6. Library no-OCR；
 7. responsive / a11y / release gate。
 
-不得产生 owner command 或数据库 migration（除非对应 EXEC 的 SPEC GAP 被显式接受并冻结）。rollback/forward-fix 为 presentation-only；不得恢复 chat-first default、Account/Login、双 Workspace truth 或永久四-facet 管理中心。
+不得产生 owner command 或数据库 migration，除非对应 Product Definition / Spec gap 被显式接受并在正确层冻结。rollback/forward-fix 为 presentation-only；不得恢复 chat-first default、Account/Login、双 Workspace truth 或永久四-facet管理中心。
 
 ## 12. Completion Claim
 
-UI-04 DONE 只允许声明：
+UI-04 completion 必须分层声明：
 
 ```text
-UI Engineering Gate: PASS
-UI Contract Correctness Gate: PASS
-Accessibility / Security Gate: PASS
+Product Acceptance: separately evaluated against applicable PD-REQ / PD-AC
+UX / UI Contract Gate: PASS | FAIL
+UI Engineering Gate: PASS | FAIL
+Accessibility / Security Gate: PASS | FAIL
 Learning Evidence Gate: unchanged
 ```
 
-禁止把文档冻结、UI 可用、点击减少或视觉改善解释为学习效果证明。
+禁止把文档冻结、UI 可用、点击减少、视觉改善或 UXA04 AC PASS 自动解释为 Product Acceptance 或学习效果证明。
