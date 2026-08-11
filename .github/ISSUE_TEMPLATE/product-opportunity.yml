@@ -1,0 +1,85 @@
+name: Product Opportunity
+description: Capture a validated user problem or product opportunity before Spec/EXEC work starts.
+title: "[Opportunity] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for product discovery and prioritization. Do not jump directly to an implementation solution or EXEC. An accepted opportunity should first establish the user problem, evidence, expected outcome, and Product Positioning fit.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What concrete difficulty, unmet need, or failure is the user experiencing?
+      placeholder: Describe what the user is trying to do, what happens today, and why that is a problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_scenario
+    attributes:
+      label: User and scenario
+      description: Who experiences this and in what concrete learning situation?
+      placeholder: Example user context, trigger, task, and environment.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: What evidence shows this problem exists? Separate observation from assumption.
+      placeholder: Interview notes, usability observation, support report, product behavior, experiment result, or explicit assumption to validate.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired user outcome
+      description: What should become meaningfully better for the user if this problem is solved?
+      placeholder: Describe the observable user outcome, not a feature implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: success_measure
+    attributes:
+      label: Success evidence
+      description: What evidence would justify saying the opportunity was successfully addressed?
+      placeholder: Product behavior metric, usability criterion, task success, learning evidence, or a defined qualitative threshold.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: Evidence confidence
+      options:
+        - Assumption only — validation required
+        - Internal/self observation
+        - Repeated qualitative user evidence
+        - Quantitative/product evidence
+        - Multiple independent evidence sources
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and known boundaries
+      description: Record relevant Product Positioning, privacy, Local Web, learning-core, compatibility, or sequencing constraints.
+      placeholder: Cite the governing Product Positioning / ADR / Spec where known.
+
+  - type: checkboxes
+    id: positioning
+    attributes:
+      label: Intake gate
+      options:
+        - label: I have described a problem rather than prescribing an implementation.
+          required: true
+        - label: I checked this opportunity against the current Product Positioning and Non-goals.
+          required: true
+        - label: I have not marked Engineering completion as proof of learning effectiveness.
+          required: true

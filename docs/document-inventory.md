@@ -16,66 +16,65 @@
 
 ## 1. Root / Application / Support
 
-| 文件 | 处置 |
-|---|---|
-| `AGENTS.md` | CANONICAL-RETAIN |
-| `README.md` | CURRENT-UPDATED |
-| `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN |
-| `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN |
-| `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN |
-| `Askora EXEC-042 剩余收口执行提示词.md` | SUPPORT-RETAIN |
-| `Askora CI v2 + Local Web Baseline 全链路自主执行提示词.md` | SUPPORT-RETAIN |
-| `apps/backend/README.md` | CURRENT-UPDATED |
-| `apps/frontend/README.md` | CURRENT-UPDATED |
-| `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN |
-| `apps/backend/.trae/documents/seed_data_plan.md` | DELETED |
-| `apps/backend/tests/fixtures/malicious_document.md` | EXCLUDED |
-| `apps/backend/data/documents/user_pseudo_001/6dcb2a02-322a-4e35-b33a-54708b8d5904_3673b0a7.md` | EXCLUDED |
-| `.design_library/Askora/README.md` | SUPPORT-RETAIN |
-| `.design_library/Askora/SKILL.md` | SUPPORT-RETAIN |
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `AGENTS.md` | CANONICAL-RETAIN | Codex 强制执行合同 |
+| `README.md` | CURRENT-UPDATED | 当前产品、实现、运行和验证入口 |
+| `.github/PULL_REQUEST_TEMPLATE.md` | SUPPORT-RETAIN | Pull Request delivery/review contract；要求 Problem、authority、risk、Required CI、review findings 与 evidence classification |
+| `Askora EXEC-042 执行提示词.md` | SUPPORT-RETAIN | EXEC-042 执行代理提示词 |
+| `Askora EXEC-1062 执行提示词.md` | SUPPORT-RETAIN | EXEC-1062 执行代理提示词 |
+| `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN | EXEC-047 执行代理提示词 |
+| `Askora EXEC-042 剩余收口执行提示词.md` | SUPPORT-RETAIN | EXEC-042 剩余收口执行提示词 |
+| `Askora CI v2 + Local Web Baseline 全链路自主执行提示词.md` | SUPPORT-RETAIN | CI v2 + Local Web Baseline 全链路自主执行提示词 |
+| `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
+| `apps/frontend/README.md` | CURRENT-UPDATED | 当前前端说明；Desktop/Electron 历史内容不得覆盖 v1 Local Web 产品定位 |
+| `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 历史后端资源目录说明；非 v1 canonical runtime |
+| `apps/backend/.trae/documents/seed_data_plan.md` | DELETED | 一次性计划已实现；旧策略分类会误导当前语义 |
+| `apps/backend/tests/fixtures/malicious_document.md` | EXCLUDED | 安全测试输入，不是说明文档 |
+| `apps/backend/data/documents/user_pseudo_001/6dcb2a02-322a-4e35-b33a-54708b8d5904_3673b0a7.md` | EXCLUDED | 测试种子数据，不是项目说明 |
+| `.design_library/Askora/README.md` | SUPPORT-RETAIN | UI 设计资产，不是 Canonical Design |
+| `.design_library/Askora/SKILL.md` | SUPPORT-RETAIN | 设计工具指令，不是项目实现合同 |
 
 ## 2. Product / ADR / Release Index
 
-| 文件 | 处置 |
-|---|---|
-| `docs/README.md` | CURRENT-UPDATED |
-| `docs/CODE_WIKI.md` | CURRENT-UPDATED |
-| `docs/document-inventory.md` | CURRENT-UPDATED |
-| `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN |
-| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED |
-| `docs/adr/README.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0003-policy-runtime-profile-source-and-activation.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0004-guided-book-learning-and-durable-transcript.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0005-policy-bound-real-model-rendering.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0009-local-first-identity-privacy-lifecycle.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0010-goal-definition-state-draft-and-replan.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0011-goal-achievement-measurement-and-evidence-gate.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0016-workspace-project-and-learning-session-scope-ownership.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN |
-| `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN |
-| `docs/releases/README.md` | CURRENT-UPDATED |
-| `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN |
-| `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN |
-| `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN |
-| `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN |
-| `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN |
-| `docs/releases/p1-03-data-control-recovery.md` | HISTORICAL-RETAIN |
-| `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN |
-| `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN |
-| `docs/releases/p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN |
-| `docs/releases/p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN |
+| 文件 | 处置 | 说明 |
+|---|---|---|
+| `docs/README.md` | CURRENT-UPDATED | Product→Design→ADR→Spec→EXEC 权威层级与 v1 Local Web 架构入口 |
+| `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
+| `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
+| `docs/product-development-process.md` | CURRENT-UPDATED | 产品发现→治理→EXEC→PR→Required→Release/Product/Learning Evidence 的端到端流程、DoR/DoD 与 PR-size rule |
+| `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN | **Askora v1 最高 Frozen Product Baseline**；Local Web、LocalOwner、Workspace、SQLite/local-first、BYOK、Non-goals 与 Hard Constraints |
+| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；历史状态不得突破 PRODUCT-POSITIONING |
+| `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理、Product Positioning 上位约束、supersession 与索引 |
+| `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
+| `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
+| `docs/adr/ADR-0003-policy-runtime-profile-source-and-activation.md` | CANONICAL-RETAIN | Accepted production profile source / activation resolution decision |
+| `docs/adr/ADR-0004-guided-book-learning-and-durable-transcript.md` | CANONICAL-RETAIN | User-delegated guided flow and SYS08 transcript decision |
+| `docs/adr/ADR-0005-policy-bound-real-model-rendering.md` | CANONICAL-RETAIN | User-delegated production real-model rendering and E2E decision |
+| `docs/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md` | CANONICAL-RETAIN | UI-02B read scope、objective missing semantics；Workspace current semantics 服从 Product Positioning |
+| `docs/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md` | CANONICAL-RETAIN | SYS06 activity lifecycle、completion 与迁移决策 |
+| `docs/adr/ADR-0008-library-management-deduplication-and-ocr.md` | CANONICAL-RETAIN | **Partially superseded**；metadata/provenance/dedup invariant 保留，OCR-as-core/global-library/archive mechanics 已退役 |
+| `docs/adr/ADR-0009-local-first-identity-privacy-lifecycle.md` | CANONICAL-RETAIN | P1-05 历史 identity/privacy 决策；Account/Auth semantics 由 ADR-0015 supersede |
+| `docs/adr/ADR-0010-goal-definition-state-draft-and-replan.md` | CANONICAL-RETAIN | P1-01A Definition/State/Draft/Replan 决策 |
+| `docs/adr/ADR-0011-goal-achievement-measurement-and-evidence-gate.md` | CANONICAL-RETAIN | P1-01B evidence-gated achievement 决策 |
+| `docs/adr/ADR-0012-unified-recovery-control-plane.md` | CANONICAL-RETAIN | P1-07 统一恢复控制面与 bootstrap diagnostics 决策 |
+| `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | **Partially superseded**；routing/secret/probe/rollback invariant 保留，Desktop/Electron mechanics 已退役 |
+| `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md` | CANONICAL-RETAIN | Accepted user-job-driven IA、3-domain navigation 与 Interactive Element System 决策 |
+| `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md` | CANONICAL-RETAIN | Accepted LocalOwner/no-auth/loopback identity decision |
+| `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
+| `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
+| `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | 历史 account deletion integration；Account semantics 由 ADR-0015 supersede，owner-safe erasure invariant 保留 |
+| `docs/releases/README.md` | CURRENT-UPDATED | 历史证据索引；历史结果不等于 current checkout verification |
+| `docs/releases/v0.2-first-vertical-learning-loop.md` | HISTORICAL-RETAIN | v0.2 release evidence snapshot |
+| `docs/releases/v0.3-governance-preconditions.md` | HISTORICAL-RETAIN | EXEC-007 durable evidence snapshot |
+| `docs/releases/v0.3-adaptive-teaching-loop.md` | HISTORICAL-RETAIN | v0.3 release evidence；指定历史快照边界 |
+| `docs/releases/ui-01-learning-shell-workspace.md` | HISTORICAL-RETAIN | UI-01 completion evidence snapshot |
+| `docs/releases/ui-02a-library-knowledge-map.md` | HISTORICAL-RETAIN | UI-02A completion evidence snapshot |
+| `docs/releases/p1-03-data-control-recovery.md` | CURRENT-UPDATED | P1-03 历史/当前本地恢复证据；Desktop-specific evidence 不定义 v1 runtime |
+| `docs/releases/ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN | UI-02B2 guided learning completion evidence snapshot |
+| `docs/releases/p1-04-library-management.md` | HISTORICAL-RETAIN | P1-04 search/organization/dedup/local OCR 历史 completion evidence；OCR 非 v1 core |
+| `docs/releases/p1-01a-goal-definition-draft-replan.md` | HISTORICAL-RETAIN | P1-01A Definition/Draft/Replan completion evidence |
+| `docs/releases/p1-01b-goal-lifecycle-achievement.md` | HISTORICAL-RETAIN | P1-01B Lifecycle/Achievement completion evidence |
 
 ## 3. Canonical Design / Research
 
@@ -305,8 +304,10 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 
 ## 7. Maintenance Rules
 
-1. `PRODUCT-POSITIONING.md` 是最高产品约束；下位文档不得反向覆盖。
-2. Active EXEC 实时状态由 `docs/exec-plans/README.md` 管理；完成后必须归档并进入 inventory。
-3. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得解释成 v1 runtime requirement。
-4. 新增 Canonical/Current 文档必须在同一治理阶段登记 inventory，并运行文档门禁。
-5. Engineering/Product conformance 与 Learning Evidence 必须分开声明。
+1. `PRODUCT-POSITIONING.md` 是最高产品约束；所有下位文档必须服从。
+2. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
+3. Canonical Spec/ADR 的语义变化不能借“文档整理”偷偷突破 Product Positioning。
+4. 历史文件保留当时语境；上级索引负责说明其 supersession/lifecycle。
+5. 只有完全重复、没有独立证据/设计/审计价值的临时说明才删除。
+6. 删除前记录替代来源；删除后运行文档链接/生命周期门禁。
+7. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得被解释为 v1 仍要求这些运行形态。
