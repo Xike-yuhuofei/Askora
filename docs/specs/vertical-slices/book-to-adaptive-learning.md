@@ -4,24 +4,38 @@
 > Spec ID：`SPEC-D06`  
 > 冻结日期：2026-08-08  
 > 范围：Book-to-Learning Bootstrap  
-> 上游：`SPEC-D01`～`SPEC-D05`、UI-02A Frozen Baseline、v0.3 Adaptive Teaching Loop Frozen Baseline  
-> 目的：冻结“上传一本 EPUB → 第一轮真实 Adaptive Teaching”端到端切片；复用现有教学内核，不创建第二 Teaching Loop。
+> Product Traceability：`CAP-01`、`CAP-02`、`CAP-03`、`CAP-04`、`CAP-05`、`CAP-07`；`PD-REQ-0101..0103`、`PD-REQ-0201..0203`、`PD-REQ-0301..0303`、`PD-REQ-0401..0402`、`PD-REQ-0501..0503`、`PD-REQ-0701`；`PD-RULE-002/005/006/007/010/011`  
+> 上游：`PRODUCT-DEFINITION.md`、`SPEC-D01`～`SPEC-D05`、UI-02A Frozen Baseline、v0.3 Adaptive Teaching Loop Frozen Baseline  
+> 目的：冻结“上传一本 EPUB → 第一轮真实 Adaptive Teaching”端到端技术切片；复用现有教学内核，不创建第二 Teaching Loop。
+
+## 0. Acceptance Ownership
+
+本 Vertical Slice 聚合多个 Product Requirement 并冻结一条可实现、可验证的端到端技术闭环，但它**不是新的 Product Scope 或 Product Acceptance 来源**。
+
+规则：
+
+- Product Capability / Product Requirement / Product Rule 以 `docs/product/PRODUCT-DEFINITION.md` 为上游 authority；
+- 本文件 `IN / OUT` 只表示 `SPEC-D06` 的 implementation-slice scope，不等同 v1 Product inclusion / exclusion；
+- 本文件 `D06-AC-*` 是 **Vertical Slice Technical Acceptance**，证明该 E2E 合同按当前 Specs 成立；
+- 若需要新增/删除 Product Capability、改变 v1 Feature inclusion、改变 Product Requirement 或 Product Acceptance，必须先报告 `PRODUCT DEFINITION GAP`；
+- Engineering / Vertical Slice PASS 不等同真人 Learning Evidence PASS。
 
 ## 1. Phase Position
 
 当前形成链：
 
 ```text
-Canonical Design / v0.3 Adaptive Teaching Loop
-→ UI-02A Canonical Library Baseline（DONE）
+PRODUCT-DEFINITION
+→ Canonical Design / v0.3 Adaptive Teaching Loop
+→ UI-02A Canonical Library Baseline
 → SPEC-D01～D05
 → 【SPEC-D06 Book-to-Adaptive-Learning Vertical Slice】
-→ future EXEC decomposition
+→ Linear Issue / EXEC decomposition
 → implementation
 → Book-to-Learning release gate
 ```
 
-本 Spec Freeze 不预占 EXEC 编号。后续 EXEC MUST 从届时 `docs/exec-plans/completed/` 最大编号 + 1 续号，禁止按旧 Gap 草案硬编码编号。
+本 Spec Freeze 不预占 EXEC 编号。实时任务编号、状态与依赖属于 Linear / current EXEC index，不在本文件维护第二套 backlog。
 
 ## 2. Preconditions
 
@@ -74,6 +88,8 @@ Upload EPUB
 该链路必须至少闭合到“第二次 TeachingAction 可由第一次真实 material evidence 触发”。
 
 ## 4. Scope
+
+本节只冻结 `SPEC-D06` 技术切片范围；不得用本节 OUT 项反向修改 Product Definition。
 
 IN：
 
@@ -235,7 +251,7 @@ Durable async content tasks 与同步 teaching round 必须分离：上传建模
 - fixed Goal + knowledge versions + mapper version 得到稳定 mapping；
 - fixed diagnostic inputs 得到稳定 DiagnosticNeed；
 - existing Teaching Policy replay 保持现有 FULL/PARTIAL/NON_REPLAYABLE 语义；
--重复 command/idempotency key 不生成第二事实。
+- 重复 command/idempotency key 不生成第二事实。
 
 ## 12. Security
 
@@ -245,7 +261,7 @@ Durable async content tasks 与同步 teaching round 必须分离：上传建模
 - prompt injection 内容不能成为 system instruction；
 - quarantined 内容不进入 modeling/retrieval/learning；
 - grader-only solution 不泄漏；
-- source scope / current-user authorization；
+- source scope / current-owner authorization；
 - LLM 不获得 owner write 权限；
 - model failure 不转换为 learner failure。
 
@@ -279,11 +295,11 @@ SPEC-D01～D05 schema/owner/forbidden rules 全部通过。
 
 ### G1 — Content Model Correct
 
-EPUB structure、anchor replay、KU evidence binding、relation publication/cycle rules通过。
+EPUB structure、anchor replay、KU evidence binding、relation publication/cycle rules 通过。
 
 ### G2 — Goal / Diagnostic Correct
 
-Goal mapping、scope、unknown prerequisite、diagnostic budget、Assessment→SYS03 boundary通过。
+Goal mapping、scope、unknown prerequisite、diagnostic budget、Assessment→SYS03 boundary 通过。
 
 ### G3 — Planning Correct
 
@@ -295,13 +311,17 @@ Goal mapping、scope、unknown prerequisite、diagnostic budget、Assessment→S
 
 ### G5 — Recovery / Security Correct
 
-outbox recovery、idempotency、quarantine、prompt injection、grader-only、scope auth通过。
+outbox recovery、idempotency、quarantine、prompt injection、grader-only、scope authorization 通过。
 
-### G6 — E2E Product Contract Correct
+### G6 — E2E Vertical Slice Contract Correct
 
 固定 EPUB fixture 从 upload 闭合到下一次 TeachingAction。
 
-## 15. Acceptance Criteria
+G0～G6 是 technical / vertical-slice gates；它们可以支撑对应 Product Requirement 的实现证据，但不自行定义新的 Product Acceptance。
+
+## 15. Vertical Slice Technical Acceptance Criteria
+
+以下 `D06-AC-*` 是 `SPEC-D06` 的技术/E2E验收，不是新的 `PD-AC-*`：
 
 - `D06-AC-001`：真实 EPUB 不经 flat-chunk shortcut 即可进入 canonical content model。
 - `D06-AC-002`：正式 LearningPlan 只消费可审计 published/eligible KnowledgeUnit 与 relation。
@@ -315,6 +335,8 @@ outbox recovery、idempotency、quarantine、prompt injection、grader-only、sc
 - `D06-AC-010`：quarantine/unauthorized/grader-only 内容无法进入 learner-visible teaching evidence。
 - `D06-AC-011`：无 blocking ownership/ADR/Spec conflict。
 - `D06-AC-012`：Learning Evidence Gate 继续为 `LEARNING_EVIDENCE_INSUFFICIENT`，直到有真实 human outcome evidence。
+
+对应 Product Acceptance 是否成立，应由适用 `PD-REQ-* / PD-AC-*` 的产品行为证据单独判定。
 
 ## 16. Spec Consistency Invariants
 
@@ -348,11 +370,12 @@ Book bootstrap != second Teaching Loop
 
 Spec Freeze Gate：**PASS**，条件为：
 
+- 上游 Product Definition trace 明确；
 - D01～D05 已 Frozen；
 - 与 Accepted ADR-0001/0002 无冲突；
 - 与 UI-02A/v0.3 frozen baseline 无冲突；
 - single-writer ownership 不变；
-- 未引入新的学习效果宣称；
-- 后续实现只能通过新的 EXEC 分解进入 Codex。
+- 未引入新的 Product Scope 或学习效果宣称；
+- 后续实现只通过 Linear Issue / frozen EXEC（需要时）进入实现。
 
-任何实现阶段发现必须违反本合同或现有 canonical Spec 的情况，必须报告 `SPEC GAP`。未获用户委托架构自治时标记 `BLOCKED_BY_SPEC_GAP`；已获委托时，Codex MUST 先以新的 Accepted ADR、Spec 与冻结 EXEC 显式补齐设计，再修改产品代码。
+任何实现阶段发现必须违反 Product Definition 时，必须报告 `PRODUCT DEFINITION GAP`；发现必须违反本合同或其他 canonical Spec 时，报告 `SPEC GAP`。不得先修改产品代码，再用 Product Definition / ADR / Spec 追认既成事实。
