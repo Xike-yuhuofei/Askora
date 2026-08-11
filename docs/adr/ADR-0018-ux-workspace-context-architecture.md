@@ -6,7 +6,7 @@ Decision owners: user-authorized Askora product governance
 Decision authority: explicit user approval on 2026-08-10 to adopt the UX Architecture three-column model, Workspace context, hideable right rail, Learning Context Drawer, Learning de-management and Library no-OCR exposure  
 Upper authority: `docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
 Product trace: primarily `CAP-01`、`CAP-04`、`CAP-07` and applicable `PD-REQ-*`; v1 Feature inclusion/exclusion remains owned by Product Definition  
-Affected specs: `docs/specs/ui/information-architecture.md`, `screen-contracts.md`, `data-contracts.md`, `interactive-element-system.md`, `component-state-contracts.md`, `quality-and-migration.md`, `visual-system.md`, UI vertical slice / EXEC  
+Affected current contracts: `docs/specs/ui/screen-and-navigation-contracts.md`, `learning-interaction-contracts.md`, `design-system.md`, `quality-and-regression.md`, `docs/specs/frontend/ui-read-model-contracts.md`, applicable UI vertical slice / EXEC  
 Historical canonical design input: `docs/design/UX-Architecture-Canonical-Design-Delta.md`  
 Current experience representation: `docs/design/experience/EXPERIENCE-ARCHITECTURE.md` + `LEARNING-EXPERIENCE.md` + `INTERACTION-MODEL.md`  
 Supersedes (partial): selected clauses of `ADR-0014` listed in Section 8
