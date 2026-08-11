@@ -5,12 +5,13 @@ Date: 2026-08-09
 Supersession date: 2026-08-10  
 Decision authority: user-delegated Codex  
 Authorized objective: 真正关闭 P1-02 模型设置体验并通过相关测试  
-Current upper authority: `docs/product/PRODUCT-POSITIONING.md`  
-Current implementation contract: `docs/specs/systems/08-model-configuration.md`
+Current upper authority: `docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
+Product trace: `CAP-08`、`PD-REQ-0803`、`PD-RULE-008/010/011`; BYOK / Local Web Feature Scope is owned by Product Definition  
+Current implementation contract: `docs/specs/systems/08-model-configuration.md` + ADR-0017 / `docs/specs/platform/local-secret-store.md`
 
 ## Current v1 Supersession
 
-本 ADR 是 2026-08-09 基于当时“私人 macOS Electron App”假设形成的历史决策记录。最新 `PRODUCT-POSITIONING.md` 已冻结 Askora v1 正式产品形态为：
+本 ADR 是 2026-08-09 基于当时“私人 macOS Electron App”假设形成的历史决策记录。当前 Product Positioning + Product Definition 已冻结 Askora v1 正式产品形态与 BYOK 产品要求为：
 
 ```text
 Browser
@@ -19,9 +20,9 @@ Browser
 → External AI Provider (BYOK)
 ```
 
-并明确 macOS / Windows 原生客户端、Electron/Desktop shell 不属于 v1 产品范围。
+并明确 macOS / Windows 原生客户端、Electron/Desktop shell 不属于 v1 产品范围；用户必须能够在本地控制外部 AI provider 配置，但该 Product Requirement 不由本 ADR 自行定义。
 
-因此以下 **Desktop-specific mechanics 已被上位产品定位 supersede，不再是当前实现要求**：
+因此以下 **Desktop-specific mechanics 已被上位产品定义 supersede，不再是当前实现要求**：
 
 - Electron main-process encrypted vault 作为必需 credential source；
 - Electron `safeStorage` 作为唯一/必需 secret adapter；
@@ -44,7 +45,7 @@ Browser
 9. 关键任务不得不可追踪地 silent failover；
 10. secret 不进入日志、默认 backup/export/diagnostic、Prompt metadata 或学习 truth。
 
-后续实现只能服从 `PRODUCT-POSITIONING.md` 与最新 `MODEL-CONFIG-*`，不得再根据本 ADR 的 Desktop mechanics 新增 Electron-specific v1 依赖。
+后续实现必须服从 `PRODUCT-POSITIONING.md`、`PRODUCT-DEFINITION.md`、ADR-0017 与最新 `MODEL-CONFIG-* / LSS-*`。本 ADR 只保留历史 architecture rationale 与仍有效 invariant，不得根据其 Desktop mechanics 新增 Electron-specific v1 依赖，也不得自行改变 BYOK Product Scope。
 
 ## Historical Context
 
@@ -94,6 +95,8 @@ Browser
 - configuration error 不得产生 learner failure、AssessmentResult、MasteryEstimate、activity completion 或 accepted transcript truth。
 - probe 不发送私人资料；真实学习请求继续遵守 workflow/data-minimization contract。
 
+这些属于 architecture/security invariants；“用户是否必须能配置外部 AI / 是否属于 v1”由 `CAP-08 / PD-REQ-0803` 决定。
+
 ## Current Migration Direction
 
 ```text
@@ -135,13 +138,15 @@ Migration MUST NOT：
 
 历史 Electron-specific unit/E2E 可作为 legacy regression 保留，但不再是 v1 release requirement。
 
+上述验证主要证明 architecture / security / technical correctness；`CAP-08 / PD-REQ-0803` 的 Product Acceptance 必须按 Product Definition 单独判断。
+
 ## Supersedes / Superseded By
 
 本 ADR 当时 additive 扩展 ADR-0005 的 configured-provider 来源与激活语义。
 
 从 2026-08-10 起：
 
-- **Desktop/Electron mechanics**：由 `PRODUCT-POSITIONING.md` 与最新 `docs/specs/systems/08-model-configuration.md` supersede；
+- **Desktop/Electron Product Scope 与 mechanics**：由 `PRODUCT-POSITIONING.md`、`PRODUCT-DEFINITION.md`、ADR-0017 与最新 `docs/specs/systems/08-model-configuration.md` / `LSS-*` supersede；
 - **routing ownership / secret separation / probe / revision / rollback / no silent failover / no leakage 原则**：继续有效。
 
-本 ADR 保留作为历史决策记录，不得用来反向覆盖当前 Product Positioning。
+本 ADR 保留作为历史决策记录，不得用来反向覆盖当前 Product Positioning / Product Definition。
