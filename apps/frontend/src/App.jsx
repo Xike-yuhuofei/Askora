@@ -17,7 +17,10 @@ import Settings from './pages/Settings'
 import RecoveryCenter from './pages/RecoveryCenter'
 import Unavailable from './pages/Unavailable'
 import Welcome from './pages/Welcome'
-import { Navigate, useLocation } from './router'
+import LearningWorkspace from './pages/LearningWorkspace'
+import { Navigate, useLocation, parseWorkspaceRoute } from './router'
+
+const DEFAULT_WORKSPACE_ID = 'default'
 
 const legacyRedirects = {
   '/': '/today',
@@ -42,6 +45,18 @@ const standardPages = {
   '/settings/recovery': RecoveryCenter,
 }
 
+const learningShellPaths = new Set([
+  '/learning/goals',
+  '/learning/plan',
+  '/learning/progress',
+  '/learning/history',
+])
+
+const workspaceShellPaths = new Set([
+  '/today',
+  '/library',
+])
+
 function decodeRouteParam(value) {
   try {
     return decodeURIComponent(value)
@@ -50,25 +65,67 @@ function decodeRouteParam(value) {
   }
 }
 
-const learningShellPaths = new Set([
-  '/learning/goals',
-  '/learning/plan',
-  '/learning/progress',
-  '/learning/history',
-])
+const workspaceSubRoutes = {
+  '/': LearningWorkspace,
+  '/today': Today,
+  '/learn': LearningWorkspace,
+  '/library': Library,
+}
 
 export function resolveRoute(pathname) {
+  const workspaceRoute = parseWorkspaceRoute(pathname)
+  if (workspaceRoute) {
+    const subPath = workspaceRoute.sub_path
+    const Page = workspaceSubRoutes[subPath] || LearningWorkspace
+    return {
+      type: 'page',
+      Page,
+      shell: 'workspace',
+      workspace_id: workspaceRoute.workspace_id,
+    }
+  }
+
   if (legacyRedirects[pathname]) return { type: 'redirect', to: legacyRedirects[pathname] }
+
+  const oldActivityMatch = pathname.match(/^\/workspaces\/([^/]+)\/learn\/([^/]+)$/)
+  if (oldActivityMatch) {
+    return {
+      type: 'activity-learning',
+      activityId: decodeRouteParam(oldActivityMatch[2]),
+      shell: 'workspace',
+      workspace_id: oldActivityMatch[1],
+    }
+  }
+
   if (standardPages[pathname]) {
-    const shell = learningShellPaths.has(pathname) ? 'learning' : 'standard'
+    const shell = learningShellPaths.has(pathname) ? 'learning' : workspaceShellPaths.has(pathname) ? 'workspace' : 'standard'
     return { type: 'page', Page: standardPages[pathname], shell }
   }
+
   const quickMatch = pathname.match(/^\/quick\/([^/]+)$/)
   if (quickMatch) {
     return {
       type: 'workspace',
       sessionId: decodeRouteParam(quickMatch[1]),
       shell: 'workspace',
+    }
+  }
+
+  const oldLearnActivityMatch = pathname.match(/^\/learn\/([^/]+)$/)
+  if (oldLearnActivityMatch) {
+    return {
+      type: 'activity-learning',
+      activityId: decodeRouteParam(oldLearnActivityMatch[1]),
+      shell: 'workspace',
+    }
+  }
+
+  const oldBookLearningMatch = pathname.match(/^\/book-learning\/([^/]+)$/)
+  if (oldBookLearningMatch) {
+    return {
+      type: 'book-learning',
+      documentId: decodeRouteParam(oldBookLearningMatch[1]),
+      shell: 'standard',
     }
   }
 
@@ -81,22 +138,6 @@ export function resolveRoute(pathname) {
   const goalDetailMatch = pathname.match(/^\/learning\/goals\/([^/]+)$/)
   if (goalDetailMatch) return { type: 'goal-detail', goalId: decodeRouteParam(goalDetailMatch[1]), shell: 'learning' }
 
-  const activityMatch = pathname.match(/^\/learn\/([^/]+)$/)
-  if (activityMatch) {
-    return {
-      type: 'activity-learning',
-      activityId: decodeRouteParam(activityMatch[1]),
-      shell: 'workspace',
-    }
-  }
-  const bookLearningMatch = pathname.match(/^\/book-learning\/([^/]+)$/)
-  if (bookLearningMatch) {
-    return {
-      type: 'book-learning',
-      documentId: decodeRouteParam(bookLearningMatch[1]),
-      shell: 'standard',
-    }
-  }
   return { type: 'not-found', shell: 'standard' }
 }
 

@@ -65,3 +65,16 @@ export const NavLink = forwardRef(function NavLink({ to, className, match = 'exa
     </a>
   )
 })
+
+export function parseWorkspaceRoute(pathname) {
+  const workspaceMatch = pathname.match(/^\/workspaces\/([^/]+)(\/.*)?$/)
+  if (!workspaceMatch) return null
+
+  const workspaceId = decodeURIComponent(workspaceMatch[1])
+  const subPath = workspaceMatch[2] || '/'
+
+  return {
+    workspace_id: workspaceId,
+    sub_path: subPath,
+  }
+}
