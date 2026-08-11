@@ -12,14 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.exceptions import BusinessError
 from app.models.workspace import Workspace
 from app.services.local_identity import (
+    LocalOwnerContext,
     LocalOwnerError,
     LocalOwnerMigrationFailedError,
     ensure_local_owner,
     get_local_owner_context,
 )
-from app.services.workspace.repository import WorkspaceRepository
+from app.services.owner.dependencies import get_current_owner
+from app.services.workspace.repository import WorkspaceRepository, WorkspaceSelectionRepository
 
 
 async def get_default_workspace(
@@ -47,3 +50,29 @@ async def get_default_workspace(
                 detail={"owner_id": ctx.canonical_owner_id},
             )
     return ws
+
+
+async def get_current_workspace(
+    db: AsyncSession = Depends(get_db),
+    owner: LocalOwnerContext = Depends(get_current_owner),
+) -> Workspace:
+    """CWSP-041 side-effect-free current selection resolution."""
+    selection = await WorkspaceSelectionRepository(db).get(owner.canonical_owner_id)
+    if selection is None:
+        raise BusinessError(
+            message="当前课程尚未选择",
+            error_code="WORKSPACE_SELECTION_MISSING",
+            status_code=404,
+            category="not_found",
+        )
+    workspace = await WorkspaceRepository(db).get_for_owner(
+        owner.canonical_owner_id, selection.current_workspace_id
+    )
+    if workspace is None or workspace.lifecycle != "active":
+        raise BusinessError(
+            message="课程选择状态不可用",
+            error_code="WORKSPACE_INTEGRITY_FAILED",
+            status_code=500,
+            category="internal",
+        )
+    return workspace

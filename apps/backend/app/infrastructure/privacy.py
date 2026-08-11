@@ -580,6 +580,19 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         json=("favorite_subjects", "mastery_summary", "metacognition", "affective"),
     ),
     "users": _entry("IDENTITY_FINALIZE", _I, "identity", subject=("id", "pseudonym_id")),
+    "workspace_command_receipts": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_command_receipt",
+        refs=("owner_id",),
+        json=("response_payload",),
+    ),
+    "workspace_selections": _entry(
+        "IDENTITY_FINALIZE",
+        _E,
+        "platform_preference",
+        refs=("owner_id", "current_workspace_id", "previous_workspace_id"),
+    ),
     "workspaces": _entry(
         "IDENTITY_FINALIZE",
         _E,

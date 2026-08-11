@@ -94,6 +94,8 @@ from app.models.workspace import (
     ProjectMaterial,
     SourceFile,
     Workspace,
+    WorkspaceCommandReceipt,
+    WorkspaceSelection,
 )
 
 __all__ = [
@@ -175,6 +177,8 @@ __all__ = [
     "OnboardingPreferenceRecord",
     "OnboardingPreferenceCommandReceiptRecord",
     "Workspace",
+    "WorkspaceSelection",
+    "WorkspaceCommandReceipt",
     "LearningProject",
     "ProjectMaterial",
     "LearningSession",

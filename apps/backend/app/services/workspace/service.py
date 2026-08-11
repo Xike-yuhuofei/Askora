@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.goal_management import GoalDefinitionRecord
-from app.models.planning import LearningGoalRecord
+from app.models.planning import LearningActivityRecord, LearningGoalRecord, LearningPlanRecord
 from app.models.workspace import LearningProject, LearningSession, ProjectMaterial
 from app.services.workspace.repository import (
     CrossWorkspaceReferenceError,
@@ -94,6 +94,7 @@ class WorkspaceService:
         self,
         *,
         workspace_id: str,
+        learning_activity_id: str | None = None,
         project_id: str | None = None,
         learning_goal_id: str | None = None,
     ) -> LearningSession:
@@ -110,8 +111,18 @@ class WorkspaceService:
             goal_workspace = await self._resolve_goal_workspace(learning_goal_id)
             if goal_workspace is not None and goal_workspace != workspace_id:
                 raise CrossWorkspaceReferenceError("session goal ref crosses a Workspace boundary")
+        if learning_activity_id is not None:
+            activity_goal_id = await self._validate_activity_scope(
+                learning_activity_id=learning_activity_id,
+                workspace_id=workspace_id,
+            )
+            if learning_goal_id is not None and learning_goal_id != activity_goal_id:
+                raise CrossWorkspaceReferenceError(
+                    "session Activity and Goal refs do not share the same SYS06 chain"
+                )
         return await self.sessions.create(
             workspace_id=workspace_id,
+            learning_activity_id=learning_activity_id,
             project_id=project_id,
             learning_goal_id=learning_goal_id,
         )
@@ -148,3 +159,32 @@ class WorkspaceService:
                 ws = getattr(rows[0], "workspace_id", None)
                 return ws if ws else None
         return None
+
+    async def _validate_activity_scope(
+        self,
+        *,
+        learning_activity_id: str,
+        workspace_id: str,
+    ) -> str:
+        """CWSP-054: prove the immutable Activity→Plan→Goal→Workspace chain."""
+        activity = await self.db.get(LearningActivityRecord, learning_activity_id)
+        if activity is None:
+            raise WorkspaceNotFoundError("learning Activity does not exist or is inaccessible")
+        plan = await self.db.scalar(
+            select(LearningPlanRecord).where(
+                LearningPlanRecord.plan_id == activity.plan_id,
+                LearningPlanRecord.version == activity.plan_version,
+            )
+        )
+        if plan is None:
+            raise CrossWorkspaceReferenceError(
+                "session Activity ref has no exact immutable Plan version"
+            )
+        goal_workspace = await self._resolve_goal_workspace(plan.learning_goal_id)
+        if goal_workspace is None:
+            raise CrossWorkspaceReferenceError(
+                "session Activity ref has no resolvable Goal Workspace"
+            )
+        if goal_workspace != workspace_id:
+            raise CrossWorkspaceReferenceError("session Activity ref crosses a Workspace boundary")
+        return plan.learning_goal_id

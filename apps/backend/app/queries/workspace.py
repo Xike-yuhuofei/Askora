@@ -49,6 +49,9 @@ from app.contracts.workspace import (
     ReviewDueCandidateViewV1,
     TodayWorkspaceDataV1,
     TodayWorkspaceResponseV1,
+    WorkspaceActivityIndexDataV1,
+    WorkspaceActivityIndexResponseV1,
+    WorkspaceActivityItemV1,
     WorkspaceContextDataV1,
     WorkspaceContextItemV1,
     WorkspaceContextResponseV1,
@@ -69,8 +72,9 @@ from app.models.planning import (
     ReviewScheduleRecord,
 )
 from app.models.user import User
-from app.models.workspace import Workspace
+from app.models.workspace import LearningSession, LearningSessionStatus, Workspace
 from app.services.owner.canonical_identity import canonical_user_id
+from app.services.workspace.repository import WorkspaceRepository
 
 _ACTIVITY_TITLES = {
     "learn_new": "学习新内容",
@@ -81,6 +85,7 @@ _ACTIVITY_TITLES = {
     "transfer_check": "迁移应用",
     "metacognitive_review": "复盘学习方法",
 }
+_ACTIVITY_TITLE_CATALOG_VERSION = "course-activity-title/1.0"
 
 _STAGE_PRESENTATION_VERSION = "ui-stage-copy/1.0"
 _STAGE_PRESENTATION = {
@@ -106,9 +111,10 @@ class WorkspaceContextQueryService:
         workspace: Workspace,
         *,
         correlation_id: str,
+        switch_capability: Literal["SINGLE_WORKSPACE", "MULTIPLE_WORKSPACE"] = "SINGLE_WORKSPACE",
     ) -> WorkspaceContextResponseV1:
         workspace_ref = f"workspace:{workspace.workspace_id}:v{workspace.version}"
-        is_current = workspace.lifecycle == "active" and workspace.is_default
+        is_current = workspace.lifecycle == "active"
         return WorkspaceContextResponseV1(
             generated_at=self._clock(),
             correlation_id=correlation_id,
@@ -122,7 +128,7 @@ class WorkspaceContextQueryService:
                     lifecycle=cast(Literal["active", "trash"], workspace.lifecycle),
                     is_default=workspace.is_default,
                 ),
-                switch_capability="SINGLE_WORKSPACE" if is_current else "UNAVAILABLE",
+                switch_capability=switch_capability if is_current else "UNAVAILABLE",
             ),
             source_status=(
                 WorkspaceSourceStatusV1(
@@ -132,10 +138,232 @@ class WorkspaceContextQueryService:
                     ),
                     source_ref=workspace_ref,
                     reason_codes=(
-                        ("CANONICAL_DEFAULT_WORKSPACE",)
+                        ("CANONICAL_CURRENT_WORKSPACE",)
                         if is_current
-                        else ("DEFAULT_WORKSPACE_NOT_CURRENT",)
+                        else ("CURRENT_WORKSPACE_NOT_ACTIVE",)
                     ),
+                ),
+            ),
+        )
+
+
+class CourseActivityIndexQueryService:
+    """CWSP-050 read-only exact SYS06 Course Activity composition."""
+
+    def __init__(self, db: AsyncSession, *, clock: Callable[[], datetime] | None = None) -> None:
+        self._db = db
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    async def get_for_owner(
+        self,
+        *,
+        owner_id: UUID,
+        workspace_id: UUID,
+        correlation_id: UUID,
+    ) -> WorkspaceActivityIndexResponseV1:
+        workspace = await WorkspaceRepository(self._db).get_for_owner(
+            str(owner_id), str(workspace_id)
+        )
+        if workspace is None or workspace.lifecycle != "active":
+            raise BusinessError(
+                message="课程不存在或不可访问",
+                error_code="WORKSPACE_NOT_FOUND_OR_INACCESSIBLE",
+                status_code=404,
+                category="not_found",
+            )
+        return await self.get(workspace=workspace, correlation_id=correlation_id)
+
+    async def get(
+        self,
+        *,
+        workspace: Workspace,
+        correlation_id: UUID,
+    ) -> WorkspaceActivityIndexResponseV1:
+        reason_codes: set[str] = set()
+        stale = False
+        goals = (
+            await self._db.scalars(
+                select(LearningGoalRecord)
+                .where(LearningGoalRecord.workspace_id == workspace.workspace_id)
+                .order_by(LearningGoalRecord.goal_id, LearningGoalRecord.version.desc())
+            )
+        ).all()
+        latest_goals: dict[str, LearningGoalRecord] = {}
+        for goal in goals:
+            latest_goals.setdefault(goal.goal_id, goal)
+        goal_ids = tuple(latest_goals)
+        plan_rows = (
+            (
+                await self._db.scalars(
+                    select(LearningPlanRecord)
+                    .where(LearningPlanRecord.learning_goal_id.in_(goal_ids))
+                    .order_by(
+                        LearningPlanRecord.learning_goal_id, LearningPlanRecord.version.desc()
+                    )
+                )
+            ).all()
+            if goal_ids
+            else []
+        )
+        plans_by_goal: dict[str, list[LearningPlanRecord]] = {}
+        for plan_record in plan_rows:
+            plans_by_goal.setdefault(plan_record.learning_goal_id, []).append(plan_record)
+        latest_plans: dict[str, LearningPlanRecord] = {}
+        for goal_id, goal_plan_records in plans_by_goal.items():
+            current = [record for record in goal_plan_records if record.status != "superseded"]
+            if len(current) > 1:
+                reason_codes.add("AMBIGUOUS_CURRENT_PLAN")
+            if current:
+                latest_plans[goal_id] = current[0]
+
+        indexed: list[tuple[int, float, int, WorkspaceActivityItemV1]] = []
+        for goal_id, plan_record in latest_plans.items():
+            try:
+                plan_contract = LearningPlan.model_validate(plan_record.payload).model_copy(
+                    update={"status": plan_record.status}
+                )
+            except ValueError:
+                stale = True
+                reason_codes.add("INVALID_PLAN_PAYLOAD")
+                continue
+            if (
+                str(plan_contract.plan_id) != plan_record.plan_id
+                or plan_contract.version != plan_record.version
+                or str(plan_contract.learning_goal_id) != goal_id
+            ):
+                stale = True
+                reason_codes.add("PLAN_REF_MISMATCH")
+                continue
+            activity_records = (
+                await self._db.scalars(
+                    select(LearningActivityRecord).where(
+                        LearningActivityRecord.plan_id == plan_record.plan_id,
+                        LearningActivityRecord.plan_version == plan_record.version,
+                    )
+                )
+            ).all()
+            by_id = {record.id: record for record in activity_records}
+            states = await ActivityLifecycleRepository(self._db).latest_for_plan(
+                plan_id=plan_record.plan_id,
+                plan_version=plan_record.version,
+            )
+            planned_ids = {str(activity_id) for activity_id in plan_contract.activity_ids}
+            if set(by_id) - planned_ids:
+                reason_codes.add("UNLISTED_ACTIVITY_RECORD")
+            for order, activity_id in enumerate(plan_contract.activity_ids):
+                record = by_id.get(str(activity_id))
+                state = states.get(activity_id)
+                if record is None:
+                    reason_codes.add("ACTIVITY_RECORD_MISSING")
+                    continue
+                if state is None:
+                    reason_codes.add("ACTIVITY_LIFECYCLE_MISSING")
+                    continue
+                try:
+                    activity = LearningActivity.model_validate(record.payload)
+                except ValueError:
+                    stale = True
+                    reason_codes.add("INVALID_ACTIVITY_PAYLOAD")
+                    continue
+                if (
+                    str(activity.activity_id) != record.id
+                    or str(activity.plan_id) != plan_record.plan_id
+                    or activity.plan_version != plan_record.version
+                    or state.activity_id != activity.activity_id
+                    or str(state.plan_id) != plan_record.plan_id
+                    or state.plan_version != plan_record.version
+                ):
+                    stale = True
+                    reason_codes.add("ACTIVITY_REF_MISMATCH")
+                    continue
+                sessions = (
+                    await self._db.scalars(
+                        select(LearningSession)
+                        .where(
+                            LearningSession.workspace_id == workspace.workspace_id,
+                            LearningSession.learning_activity_id == str(activity_id),
+                            LearningSession.status.in_(
+                                (LearningSessionStatus.ACTIVE, LearningSessionStatus.ENDED)
+                            ),
+                        )
+                        .order_by(LearningSession.started_at.desc(), LearningSession.session_id)
+                    )
+                ).all()
+                launch: Literal["RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"] = (
+                    "RESUMABLE"
+                    if state.status == "active"
+                    else "REQUIRES_START_COMMAND" if state.status == "available" else "UNAVAILABLE"
+                )
+                item = WorkspaceActivityItemV1(
+                    activity_ref=f"learning_activity:{activity_id}:v{activity.plan_version}",
+                    lifecycle_state_ref=f"learning_activity_state:{activity_id}:v{state.version}",
+                    plan_ref=f"learning_plan:{plan_contract.plan_id}:v{plan_contract.version}",
+                    goal_ref=f"learning_goal:{goal_id}:v{latest_goals[goal_id].version}",
+                    display_title=_ACTIVITY_TITLES.get(activity.type, "学习活动"),
+                    title_source_ref=(f"activity-title-catalog:{_ACTIVITY_TITLE_CATALOG_VERSION}"),
+                    activity_type=activity.type,
+                    status=state.status,
+                    launch_state=launch,
+                    latest_transition_at=state.created_at,
+                    learning_session_refs=tuple(
+                        f"learning_session:{session.session_id}" for session in sessions
+                    ),
+                )
+                group = 0 if state.status == "active" else 1 if state.status == "available" else 2
+                if state.status == "active" and state.started_at is None:
+                    reason_codes.add("ACTIVE_ACTIVITY_STARTED_AT_MISSING")
+                transition_order = (
+                    state.started_at
+                    if state.status == "active" and state.started_at
+                    else state.created_at
+                ).timestamp()
+                indexed.append((group, -transition_order, order, item))
+
+        active = [entry for entry in indexed if entry[3].status == "active"]
+        if len(active) > 1:
+            reason_codes.add("MULTIPLE_ACTIVE_ACTIVITIES")
+        reasons = tuple(sorted(reason_codes))
+        view_state: Literal["EMPTY", "READY", "PARTIAL", "STALE"]
+        if stale:
+            view_state = "STALE"
+        elif reason_codes:
+            view_state = "PARTIAL"
+        elif not indexed:
+            view_state = "EMPTY"
+        else:
+            view_state = "READY"
+        indexed.sort(
+            key=lambda entry: (
+                entry[0],
+                entry[2] if entry[0] == 1 else entry[1],
+                entry[3].activity_ref,
+            )
+        )
+        items = tuple(entry[3] for entry in indexed)
+        return WorkspaceActivityIndexResponseV1(
+            generated_at=self._clock(),
+            correlation_id=correlation_id,
+            data=WorkspaceActivityIndexDataV1(
+                view_state=view_state,
+                workspace_ref=f"workspace:{workspace.workspace_id}:v{workspace.version}",
+                resumable_activity_ref=active[0][3].activity_ref if len(active) == 1 else None,
+                activities=items,
+                reason_codes=reasons,
+            ),
+            source_status=(
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.PLATFORM_WORKSPACE,
+                    availability=AvailabilityStatus.AVAILABLE,
+                    source_ref=f"workspace:{workspace.workspace_id}:v{workspace.version}",
+                ),
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.SYS06,
+                    availability=(
+                        AvailabilityStatus.STALE
+                        if stale
+                        else AvailabilityStatus.AVAILABLE if indexed else AvailabilityStatus.MISSING
+                    ),
+                    reason_codes=reasons,
                 ),
             ),
         )

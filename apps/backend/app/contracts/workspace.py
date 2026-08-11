@@ -11,9 +11,10 @@ from __future__ import annotations
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
+from unicodedata import category
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.contracts.adaptive import AvailabilityStatus
 from app.contracts.base import ContractModel
@@ -49,7 +50,7 @@ class WorkspaceContextItemV1(ContractModel):
 class WorkspaceContextDataV1(ContractModel):
     view_state: Literal["READY", "MISSING", "PARTIAL", "STALE"]
     current_workspace: WorkspaceContextItemV1 | None = None
-    switch_capability: Literal["SINGLE_WORKSPACE", "UNAVAILABLE"]
+    switch_capability: Literal["SINGLE_WORKSPACE", "MULTIPLE_WORKSPACE", "UNAVAILABLE"]
 
 
 class WorkspaceContextResponseV1(ContractModel):
@@ -58,6 +59,130 @@ class WorkspaceContextResponseV1(ContractModel):
     data: WorkspaceContextDataV1
     source_status: tuple[WorkspaceSourceStatusV1, ...]
     correlation_id: str
+
+
+class WorkspaceItemV1(ContractModel):
+    workspace_id: UUID
+    workspace_ref: str
+    display_name: str
+    version: int = Field(ge=1)
+    lifecycle: Literal["active", "trash"]
+    is_default: bool
+    is_current: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class WorkspaceListDataV1(ContractModel):
+    view_state: Literal["EMPTY", "READY", "STALE"]
+    selection_version: int | None = Field(default=None, ge=1)
+    current_workspace_id: UUID | None = None
+    workspaces: tuple[WorkspaceItemV1, ...] = ()
+
+
+class WorkspaceListResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: WorkspaceListDataV1
+    correlation_id: UUID
+
+
+class WorkspaceGetResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: WorkspaceItemV1
+    correlation_id: UUID
+
+
+class WorkspaceTransitionGuardV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    composer_draft: Literal["CLEAR", "PRESERVED", "DISCARD_CONFIRMED", "UNRESOLVED"]
+    stream: Literal["CLEAR", "BACKGROUND_SAFE", "CANCEL_CONFIRMED", "UNRESOLVED"]
+    user_note: Literal["CLEAR", "SAVED", "PRESERVED", "DISCARD_CONFIRMED", "UNRESOLVED"]
+    material_position: Literal["PRESERVED", "DISCARD_CONFIRMED", "UNRESOLVED"]
+    source_refs: tuple[str, ...] = ()
+
+
+class CreateWorkspaceV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    display_name: str = Field(min_length=1, max_length=120)
+    expected_selection_version: int | None = Field(default=None, ge=1)
+    transition_guard: WorkspaceTransitionGuardV1
+    idempotency_key: str = Field(min_length=1, max_length=200)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or any(category(char) == "Cc" for char in normalized):
+            raise ValueError("workspace display name is invalid")
+        return normalized
+
+
+class SwitchWorkspaceV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    target_workspace_id: UUID
+    expected_selection_version: int = Field(ge=1)
+    transition_guard: WorkspaceTransitionGuardV1
+    idempotency_key: str = Field(min_length=1, max_length=200)
+
+
+class WorkspaceSwitchBlockerV1(ContractModel):
+    kind: Literal["COMPOSER_DRAFT", "STREAM", "USER_NOTE", "LEARNING_SESSION", "MATERIAL_POSITION"]
+    source_ref: str | None = None
+    owner: Literal["FRONTEND_PRESENTATION", "PLATFORM_SESSION", "SYS08", "USER_NOTE_OWNER"]
+    allowed_actions: tuple[
+        Literal["PRESERVE", "SAVE", "BACKGROUND", "CANCEL", "DISCARD", "RETURN"], ...
+    ]
+    reason_code: str
+
+
+class WorkspacePreservedRefsV1(ContractModel):
+    activity_refs: tuple[str, ...] = ()
+    learning_session_refs: tuple[str, ...] = ()
+    workflow_run_refs: tuple[str, ...] = ()
+    note_refs: tuple[str, ...] = ()
+
+
+class WorkspaceMutationResultV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    outcome: Literal["CREATED_AND_SELECTED", "SWITCHED", "ALREADY_CURRENT", "RECOVERY_REQUIRED"]
+    workspace: WorkspaceItemV1 | None = None
+    selection_ref: str | None = None
+    selection_version: int | None = Field(default=None, ge=1)
+    preserved: WorkspacePreservedRefsV1 = Field(default_factory=WorkspacePreservedRefsV1)
+    blockers: tuple[WorkspaceSwitchBlockerV1, ...] = ()
+    correlation_id: UUID
+
+
+class WorkspaceActivityItemV1(ContractModel):
+    activity_ref: str
+    lifecycle_state_ref: str
+    plan_ref: str
+    goal_ref: str
+    display_title: str
+    title_source_ref: str
+    activity_type: str
+    status: Literal["planned", "available", "active", "completed", "skipped", "superseded"]
+    launch_state: Literal["RESUMABLE", "REQUIRES_START_COMMAND", "UNAVAILABLE"]
+    latest_transition_at: datetime
+    learning_session_refs: tuple[str, ...] = ()
+
+
+class WorkspaceActivityIndexDataV1(ContractModel):
+    view_state: Literal["EMPTY", "READY", "PARTIAL", "STALE"]
+    workspace_ref: str
+    resumable_activity_ref: str | None = None
+    activities: tuple[WorkspaceActivityItemV1, ...] = ()
+    reason_codes: tuple[str, ...] = ()
+
+
+class WorkspaceActivityIndexResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: WorkspaceActivityIndexDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: UUID
 
 
 class LearningContextFieldSourceV1(ContractModel):
