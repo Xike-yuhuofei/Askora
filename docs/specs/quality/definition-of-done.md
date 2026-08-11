@@ -2,13 +2,49 @@
 
 > Spec ID：`DOD-*`  
 > 状态：Canonical Implementation Contract  
-> 版本：v0.3
+> 版本：v0.3 + Product Definition Traceability  
+> 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`
+
+## 0. Acceptance Ownership
+
+Askora 的 DONE / PASS 必须区分：
+
+```text
+Product Acceptance
+UX Acceptance
+Technical / Engineering Acceptance
+Quality Acceptance
+Learning Evidence
+```
+
+这些层级可以相互提供证据，但不能互相替代。
+
+### DOD-000 — Product Traceability
+
+任何**面向产品行为**的新建或实质重构 Design / ADR / Spec / Vertical Slice / EXEC / Linear Issue，MUST 明确引用适用的：
+
+- `CAP-*`；
+- `PD-REQ-*`；
+- `PD-RULE-*` / `PD-NFR-*`（适用时）；
+- 已存在的 `PD-AC-*`（适用时）。
+
+纯 infrastructure / internal maintenance 工作 MAY 标记 `Product Traceability: N/A — infrastructure-only`，但必须说明为什么不会改变 Product Capability、v1 Feature Scope、Product Rule 或 Product Acceptance。
+
+技术 AC、Vertical Slice AC、UI AC 不得自行升级为新的 `PD-AC-*`。若产品层定义缺失，报告 `PRODUCT DEFINITION GAP`。
 
 ## 1. Existing Completion Contracts Retained
 
 ### DOD-001 — Scope
 
-实现任务只有在对应 Spec/EXEC Acceptance Criteria 满足、修改范围合规、无未声明公共 API/Schema/DB semantic change 时 MAY 报 DONE。
+实现任务只有在以下条件满足时 MAY 报 DONE：
+
+- 对应 Spec/EXEC Acceptance Criteria 满足；
+- 修改范围合规；
+- 无未声明公共 API/Schema/DB semantic change；
+- 产品面向任务已引用适用 `CAP-* / PD-REQ-*`，且没有用技术 PASS 冒充 Product Acceptance；
+- 若 Issue 声称“该产品能力/Feature 已完成”，则适用 Product Acceptance 必须有明确证据或在上游明确标注未完成。
+
+Infrastructure-only 任务可以 Engineering DONE，但不得据此声称上游 Product Capability 已完整交付。
 
 ### DOD-002 — Architecture
 
@@ -34,15 +70,17 @@ Timeout、invalid input、dependency failure、retry exhausted 等适用失败�
 
 新关键 decision/event/model call 有 trace；新 error 使用稳定 code；logs 不泄漏 secret/不必要敏感内容。
 
-### DOD-008 — Documentation / SPEC GAP
+### DOD-008 — Product / Design / SPEC GAP
 
-若实现需要改变已冻结公共行为，执行代理 MUST 先报告 SPEC GAP。已获用户架构自治委托时，
-MUST 先创建/接受所需 ADR、更新 Spec 并冻结 EXEC，再继续修改代码；未获委托时 MUST 停止
-并等待决定。任何情况下都 MUST NOT 先改代码后补文档。
+若实现需要改变已冻结的 Product Capability、v1 Feature Scope、Product Rule、Product Requirement 或 Product Acceptance，执行代理 MUST 先报告 `PRODUCT DEFINITION GAP`，不得在 Design / Spec / code 中自行决定。
+
+若 Product Definition 已明确，但实现需要改变已冻结 Design / ADR / Spec 公共行为，则报告对应 `DESIGN GAP` / `SPEC GAP`。已获用户架构自治委托时，MUST 先在正确 authority 层完成变更并冻结，再继续修改代码；未获委托时 MUST 停止并等待决定。
+
+任何情况下都 MUST NOT 先改代码后补 Product Definition / ADR / Spec。
 
 ### DOD-020 — PARTIAL / BLOCKED
 
-若大部分工作完成但存在无法在当前 Spec 安全实现的缺口，必须标 `PARTIAL` 或 `BLOCKED_BY_SPEC_GAP`，MUST NOT 称 DONE。
+若大部分工作完成但存在无法在当前 Product Definition / Design / Spec 安全实现的缺口，必须标 `PARTIAL`、`BLOCKED_BY_PRODUCT_DEFINITION_GAP` 或 `BLOCKED_BY_SPEC_GAP`，MUST NOT 称 DONE。
 
 ### DOD-030 — Real Model E2E
 
@@ -52,9 +90,13 @@ MUST 先创建/接受所需 ADR、更新 Spec 并冻结 EXEC，再继续修改�
 
 桌面模型设置只有在 OS-protected save、synthetic probe、runtime revision verification、apply rollback、clear tombstone、renderer secret isolation 与 relaunch recovery 均通过自动化测试后才可报 Engineering DONE。若声称当前真实 provider 可用，还必须在 packaged macOS app 中重新完成 provider probe、激活、canonical learning turn 与重启恢复；历史成功记录不能替代当前证据。
 
+该条款仅保留历史/兼容工程语义；不得据此把 Desktop 重新解释为当前 v1 Product Scope。
+
 ## 2. Migration Done Baseline
 
 Database/state migration 只有在 migration 可执行、representative fixture backfill 正确、owner truth 明确、reconciliation test 通过、legacy write path 关闭或有关闭条件、rollback/forward-fix 明确时才算完成。
+
+Migration DONE 只说明迁移合同完成，不自动证明用户可观察 Product Acceptance 已成立。
 
 ## 3. v0.3 Release Gate — Engineering
 
@@ -78,7 +120,7 @@ SYS02/SYS08 tightening-only
 
 ### DOD-201
 
-Engineering Gate PASS 只意味着系统按合同可靠执行；MUST NOT 宣称 adaptive policy 已改善 learning outcomes。
+Engineering Gate PASS 只意味着系统按合同可靠执行；MUST NOT 宣称 Product Acceptance、adaptive learning outcome 或 human efficacy 已由此成立。
 
 ## 4. v0.3 Release Gate — Policy Correctness
 
@@ -157,7 +199,7 @@ OPVE PASS MAY 支持 Engineering/Policy Correctness Gate，验证 determinism、
 
 ### DOD-231
 
-OPVE、G0/G1、synthetic learner MUST NOT 单独满足 Learning Evidence Gate；不能证明 human efficacy/retention/transfer/population superiority。
+OPVE、G0/G1、synthetic learner MUST NOT 单独满足 Product Acceptance 或 Learning Evidence Gate；不能证明完整用户任务成立，也不能证明 human efficacy/retention/transfer/population superiority。
 
 ## 7. v0.3 Spec / Migration Gate
 
@@ -188,7 +230,15 @@ LEARNING_EVIDENCE_INSUFFICIENT
 RELEASE_ELIGIBLE
 ```
 
-产品 release policy MAY 细分，但 MUST 保留三层 gate 语义边界。
+Issue / release MAY 另外声明：
+
+```text
+PRODUCT_ACCEPTANCE_PARTIAL
+BLOCKED_BY_PRODUCT_DEFINITION_GAP
+BLOCKED_BY_SPEC_GAP
+```
+
+但这些状态不得混淆 Engineering / Policy / Learning Evidence 三层 gate 的既有语义。
 
 ## 10. Acceptance Criteria
 
@@ -201,25 +251,41 @@ RELEASE_ELIGIBLE
 - `DOD-AC-205`：process metrics 不可满足 primary Learning Evidence Gate。
 - `DOD-AC-206`：synthetic learner/OPVE 不被当 human learning evidence。
 - `DOD-AC-207`：release data foundation 区分 assignment probability/action propensity。
+- `DOD-AC-208`：product-facing task 未建立 `CAP-* / PD-REQ-*` trace 时不得声称对应 Product Capability 已完成。
+- `DOD-AC-209`：Vertical Slice / UI / Technical AC 不会被自动升级为 `PD-AC-*`。
 
 ## 11. Forbidden Completion / Release Claims
 
-禁止把以下称为 DONE/learning efficacy：关键 TODO/pass/NotImplemented；只有 Mock 却声称真实模型可用；测试未运行却说通过；删除失败测试；发现 Spec conflict 后未完成授权与 ADR/Spec/EXEC 治理就隐式选方案；新旧 truth 双写无 reconciliation/retirement；仅 UI 正常但事件/证据/状态链未接通；Engineering Correct → 学习有效；Policy Correct → retention/transfer 已提升；synthetic learner → 真人效果；process metrics → primary reward；ambiguous propensity → causal experiment data；隐藏 `LEARNING_EVIDENCE_INSUFFICIENT`。
+禁止：
+
+- 关键 TODO/pass/NotImplemented 却声称 DONE；
+- 只有 Mock 却声称真实模型可用；
+- 测试未运行却说通过；
+- 删除失败测试；
+- 发现 Product Definition / Spec conflict 后未完成治理就隐式选方案；
+- 新旧 truth 双写无 reconciliation/retirement；
+- 仅 UI 正常但事件/证据/状态链未接通；
+- Engineering Correct → Product Acceptance 已完成；
+- Engineering Correct → 学习有效；
+- Policy Correct → retention/transfer 已提升；
+- Vertical Slice AC PASS → 新 Product Requirement / Product AC 已成立；
+- synthetic learner → 真人效果；
+- process metrics → primary reward；
+- ambiguous propensity → causal experiment data；
+- 隐藏 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ## 12. Final v0.3 Gate
 
-当且仅当 Engineering Gate、Policy Correctness Gate 满足，release 所需学习证据状态被诚实标记、实验数据基础正确、无 blocking SPEC GAP 时，implementation MAY 进入相应 release/experimental stage。学习证据不足时 MAY 工程迭代，但 MUST 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。
+当且仅当 Engineering Gate、Policy Correctness Gate 满足，release 所需学习证据状态被诚实标记、实验数据基础正确、无 blocking Product Definition / SPEC GAP 时，implementation MAY 进入相应 release/experimental stage。
+
+如果 release 同时声称某个用户可观察 Product Feature 已完成，还必须单独核对适用 Product Acceptance。学习证据不足时 MAY 工程迭代，但 MUST 保持 `LEARNING_EVIDENCE_INSUFFICIENT`。
 
 ## 13. P1-06 Completion Gate
 
 ### DOD-300
 
-P1-06 只有在 P1-02/P1-03/P1-07 真实依赖、EXEC-1061/1062 独立 commits、全量自动门禁、真实
-provider/App restart、deep-link/recovery/accessibility 与无内部知识首次用户验收全部有当前证据后才可
-标 DONE。样例资料保持关闭不构成缺项。
+P1-06 只有在 P1-02/P1-03/P1-07 真实依赖、对应 current implementation evidence、全量自动门禁、真实 provider/App restart、deep-link/recovery/accessibility 与无内部知识首次用户验收全部有当前证据后才可标 DONE。历史 EXEC 编号只作为证据引用，不作为实时状态源。
 
 ### DOD-301
 
-Engineering、Security/Privacy、Product Usability 与 Learning Evidence 必须分开。Onboarding 完成、
-activity completion 或真实模型可用均不得把 Learning Evidence 从
-`LEARNING_EVIDENCE_INSUFFICIENT` 改为有效。
+Engineering、Security/Privacy、Product Acceptance / Product Usability 与 Learning Evidence 必须分开。Onboarding 完成、activity completion 或真实模型可用均不得把 Learning Evidence 从 `LEARNING_EVIDENCE_INSUFFICIENT` 改为有效。
