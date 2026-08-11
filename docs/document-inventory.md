@@ -2,7 +2,7 @@
 
 > 状态：Current
 > 校准日期：2026-08-11
-> 基线提交：`641397e4e150e872d79772fa1f63693a55abf117`
+> 基线提交：`db963d75adade6e8fe3c52d828ac1c4c27bc2dda`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态以 Linear 和 current `main` 为准。
 
 处置代码：
@@ -44,13 +44,14 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/README.md` | CURRENT-UPDATED | Strategy→Positioning→Design→ADR→Spec→EXEC 权威层级与文档职责边界 |
+| `docs/README.md` | CURRENT-UPDATED | Strategy→Positioning→Product Definition→Design→ADR→Spec→EXEC 权威层级与文档职责边界 |
 | `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
-| `docs/product-development-process.md` | CURRENT-UPDATED | Research→Strategy→Positioning→Design/Spec→Linear/EXEC→PR→Evidence 的端到端流程 |
-| `docs/product/README.md` | CURRENT-UPDATED | Product Strategy / Positioning 职责、authority 与 change-control 索引 |
+| `docs/product-development-process.md` | CURRENT-UPDATED | Research→Strategy→Positioning→Product Definition→Design/Spec→Linear/EXEC→PR→Evidence 的端到端流程 |
+| `docs/product/README.md` | CURRENT-UPDATED | Product Strategy / Positioning / Definition 职责、authority 与 change-control 索引 |
 | `docs/product/PRODUCT-STRATEGY.md` | CANONICAL-RETAIN | **最高产品战略意图来源**；Problem、Primary User、JTBD、Vision、Value、Principles、Assumptions、Risks、Success Definition |
 | `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN | **最高可执行产品边界**；Category、v1 Product Shape、Strategic Constraints、Non-goals、AI/Learning authority |
+| `docs/product/PRODUCT-DEFINITION.md` | CANONICAL-RETAIN | **Canonical Product WHAT**；Product Actors、Core Product Objects、CAP-*、PD-RULE-*、PD-REQ-*、Product Acceptance、v1 Scope semantics |
 | `docs/product-gap-register-p1-p2.md` | HISTORICAL-RETAIN | 历史 P1/P2 产品缺口快照；实时 backlog / status 迁移至 Linear，不得作为 current work truth |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理、Product Positioning 上位约束、supersession 与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
@@ -318,12 +319,12 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 
 ## 7. Maintenance Rules
 
-1. `PRODUCT-STRATEGY.md` 是最高产品战略意图；`PRODUCT-POSITIONING.md` 是最高可执行产品边界；所有下位文档必须服从。
+1. `PRODUCT-STRATEGY.md` 是最高产品战略意图；`PRODUCT-POSITIONING.md` 是最高可执行产品边界；`PRODUCT-DEFINITION.md` 是 Canonical Product WHAT；所有下位文档必须服从。
 2. 当前工作状态以 Linear / current `main` 为准；静态 Gap Register、EXEC inventory 和历史 audit 不得维护第二套实时状态。
 3. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
-4. Canonical Spec/ADR 的语义变化不能借“文档整理”偷偷突破 Product Strategy / Positioning。
+4. Canonical Spec/ADR 的语义变化不能借“文档整理”偷偷突破 Product Strategy / Positioning / Definition。
 5. 历史文件保留当时语境；上级索引负责说明其 supersession/lifecycle。
 6. 只有完全重复、没有独立证据/设计/审计价值的临时说明才删除。
 7. 删除前记录替代来源；删除后运行文档链接/生命周期门禁。
 8. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得被解释为 v1 仍要求这些运行形态。
-9. Product Discovery Research 支持 Strategy，但不能直接成为实现合同；未验证假设必须保留证据状态。
+9. Product Discovery Research 支持 Strategy；Research 不能直接成为 Product Definition 或实现合同；未验证假设必须保留证据状态。
