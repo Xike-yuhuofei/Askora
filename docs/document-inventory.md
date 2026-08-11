@@ -2,15 +2,15 @@
 
 > 状态：Current
 > 校准日期：2026-08-11
-> 基线提交：`adc64f1ed820974387f5d5adeabb75e2a2fd37e0`
-> 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态仍以对应索引、Linear 和 current `main` 为准。
+> 基线提交：`641397e4e150e872d79772fa1f63693a55abf117`
+> 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态以 Linear 和 current `main` 为准。
 
 处置代码：
 
-- `CURRENT-UPDATED`：当前说明/审计/索引；
+- `CURRENT-UPDATED`：当前说明/索引；
 - `CANONICAL-RETAIN`：当前冻结产品/设计/ADR/Spec 合同；
-- `HISTORICAL-RETAIN`：历史 EXEC/Release/Research/已 supersede 基线；
-- `SUPPORT-RETAIN`：提示词、工具、设计辅助说明；
+- `HISTORICAL-RETAIN`：历史 EXEC/Release/Research/已 supersede 基线或带 SHA 的审计快照；
+- `SUPPORT-RETAIN`：研究、提示词、工具、设计辅助说明；
 - `EXCLUDED`：测试夹具/数据，不是项目说明；
 - `DELETED`：历史清理记录，文件本身不应继续作为当前说明。
 
@@ -44,12 +44,14 @@
 
 | 文件 | 处置 | 说明 |
 |---|---|---|
-| `docs/README.md` | CURRENT-UPDATED | Product→Design→ADR→Spec→EXEC 权威层级与 v1 Local Web 架构入口 |
+| `docs/README.md` | CURRENT-UPDATED | Strategy→Positioning→Design→ADR→Spec→EXEC 权威层级与文档职责边界 |
 | `docs/CODE_WIKI.md` | CURRENT-UPDATED | 当前代码架构、模块职责与本地源码导航参考 |
 | `docs/document-inventory.md` | CURRENT-UPDATED | 本清单 |
-| `docs/product-development-process.md` | CURRENT-UPDATED | 产品发现→治理→EXEC→PR→Required→Release/Product/Learning Evidence 的端到端流程、DoR/DoD 与 PR-size rule |
-| `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN | **Askora v1 最高 Frozen Product Baseline**；Local Web、LocalOwner、Workspace、SQLite/local-first、BYOK、Non-goals 与 Hard Constraints |
-| `docs/product-gap-register-p1-p2.md` | CURRENT-UPDATED | 当前 P1/P2 产品缺口登记；历史状态不得突破 PRODUCT-POSITIONING |
+| `docs/product-development-process.md` | CURRENT-UPDATED | Research→Strategy→Positioning→Design/Spec→Linear/EXEC→PR→Evidence 的端到端流程 |
+| `docs/product/README.md` | CURRENT-UPDATED | Product Strategy / Positioning 职责、authority 与 change-control 索引 |
+| `docs/product/PRODUCT-STRATEGY.md` | CANONICAL-RETAIN | **最高产品战略意图来源**；Problem、Primary User、JTBD、Vision、Value、Principles、Assumptions、Risks、Success Definition |
+| `docs/product/PRODUCT-POSITIONING.md` | CANONICAL-RETAIN | **最高可执行产品边界**；Category、v1 Product Shape、Strategic Constraints、Non-goals、AI/Learning authority |
+| `docs/product-gap-register-p1-p2.md` | HISTORICAL-RETAIN | 历史 P1/P2 产品缺口快照；实时 backlog / status 迁移至 Linear，不得作为 current work truth |
 | `docs/adr/README.md` | CANONICAL-RETAIN | ADR 治理、Product Positioning 上位约束、supersession 与索引 |
 | `docs/adr/ADR-0001-teaching-strategy-ontology.md` | CANONICAL-RETAIN | Accepted decision record |
 | `docs/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md` | CANONICAL-RETAIN | Accepted decision record |
@@ -95,13 +97,16 @@
 | `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
 | `docs/design/v0.3-Canonical-Design-Delta.md` | CANONICAL-RETAIN |
-| `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | CURRENT-UPDATED |
-| `docs/design/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` | CURRENT-UPDATED |
-| `docs/design/CI-Test-Infrastructure-Gap-Analysis.md` | CURRENT-UPDATED |
+| `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | HISTORICAL-RETAIN |
+| `docs/design/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` | HISTORICAL-RETAIN |
+| `docs/design/CI-Test-Infrastructure-Gap-Analysis.md` | HISTORICAL-RETAIN |
 | `docs/design/账号与隐私生命周期设计.md` | HISTORICAL-RETAIN |
 | `docs/design/p1-03-data-control-and-recovery.md` | CANONICAL-RETAIN |
 | `docs/design/p1-02-model-settings.md` | HISTORICAL-RETAIN |
 | `docs/design/p1-06-fact-driven-first-use-journey.md` | CANONICAL-RETAIN |
+| `docs/research/README.md` | CURRENT-UPDATED |
+| `docs/research/product-strategy/USER-PROBLEM-JTBD-RESEARCH.md` | SUPPORT-RETAIN |
+| `docs/research/product-strategy/ALTERNATIVES-OPPORTUNITY-RESEARCH.md` | SUPPORT-RETAIN |
 | `docs/design/research/README.md` | CURRENT-UPDATED |
 | `docs/design/research/evidence/八类技术系统-教育科学证据.md` | HISTORICAL-RETAIN |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | HISTORICAL-RETAIN |
@@ -212,7 +217,7 @@
 
 ## 5. Execution Plans
 
-Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; listing them here is optional for the checker but retained for audit clarity.
+Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; entries below are lifecycle inventory，**不是实时工作状态源**。实时状态属于 Linear 与 EXEC index。
 
 | 文件 | 处置 |
 |---|---|
@@ -257,7 +262,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/EXEC-021-learning-goal-knowledge-mapping.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN |
-| `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-024-book-to-adaptive-learning-e2e-release-gate.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-026-ui-02b2-guided-book-learning.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-027-ui-02b3-real-model-e2e.md` | HISTORICAL-RETAIN |
@@ -312,10 +317,12 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 
 ## 7. Maintenance Rules
 
-1. `PRODUCT-POSITIONING.md` 是最高产品约束；所有下位文档必须服从。
-2. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
-3. Canonical Spec/ADR 的语义变化不能借“文档整理”偷偷突破 Product Positioning。
-4. 历史文件保留当时语境；上级索引负责说明其 supersession/lifecycle。
-5. 只有完全重复、没有独立证据/设计/审计价值的临时说明才删除。
-6. 删除前记录替代来源；删除后运行文档链接/生命周期门禁。
-7. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得被解释为 v1 仍要求这些运行形态。
+1. `PRODUCT-STRATEGY.md` 是最高产品战略意图；`PRODUCT-POSITIONING.md` 是最高可执行产品边界；所有下位文档必须服从。
+2. 当前工作状态以 Linear / current `main` 为准；静态 Gap Register、EXEC inventory 和历史 audit 不得维护第二套实时状态。
+3. 当前说明必须随稳定代码和可执行命令更新；未提交实验不得写成已交付能力。
+4. Canonical Spec/ADR 的语义变化不能借“文档整理”偷偷突破 Product Strategy / Positioning。
+5. 历史文件保留当时语境；上级索引负责说明其 supersession/lifecycle。
+6. 只有完全重复、没有独立证据/设计/审计价值的临时说明才删除。
+7. 删除前记录替代来源；删除后运行文档链接/生命周期门禁。
+8. 历史 Desktop/OCR/Account/PostgreSQL evidence 可以保留，但不得被解释为 v1 仍要求这些运行形态。
+9. Product Discovery Research 支持 Strategy，但不能直接成为实现合同；未验证假设必须保留证据状态。
