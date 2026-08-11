@@ -79,7 +79,7 @@ UI-04 实施依赖 Workspace 产品架构 issues（XIK-171 / XIK-172 / XIK-177 /
 
 | EXEC | Task | Status | Dependency |
 |---|---|---|---|
-| [EXEC-074](active/EXEC-074-postgresql-membership-constraint-reconciliation.md) | PostgreSQL Membership Constraint Reconciliation | **FROZEN / READY** | current schema baseline |
+| [EXEC-074](completed/EXEC-074-postgresql-membership-constraint-reconciliation.md) | PostgreSQL Membership Constraint Reconciliation | **DONE / ARCHIVED** | current schema baseline |
 
 ### 2.5 v1 Product Architecture
 

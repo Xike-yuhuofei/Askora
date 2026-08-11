@@ -1,8 +1,9 @@
 # EXEC-074 — PostgreSQL Membership Constraint Reconciliation
 
-> Status: **FROZEN / READY**  
-> Priority: P1 Engineering Maintenance  
-> Frozen: 2026-08-11  
+> Status: **DONE / ARCHIVED**
+> Priority: P1 Engineering Maintenance
+> Frozen: 2026-08-11
+> Completed: 2026-08-11
 > Governing: PRODUCT-POSITIONING, ADR-0016, WSP-012, WSP-013, DB schema versioning and CI quality contracts
 
 ## 1. Objective
@@ -107,3 +108,17 @@ git diff --check
 Report base/final commit, revision, exact constraints changed, SQLite and
 PostgreSQL evidence, data-preservation/duplicate-membership evidence, changed
 files, and any SPEC GAP. Archive only after all applicable ACs pass.
+
+## 9. Completion Evidence
+
+- Base: `db963d7`; implementation commit: `ea78ada`.
+- Revision: `w171r0e0a002`, single head over `x174e0e0a002`.
+- ORM and migrated schema remove only `uq_project_material` and
+  `uq_learning_session_material`; both composite primary keys remain canonical.
+- SQLite migration + Workspace regression: `38 passed, 2 skipped`.
+- Full backend suite: `566 passed, 6 skipped`.
+- Ruff: PASS; Mypy: PASS.
+- PostgreSQL 16 fresh upgrade: PASS; `alembic check`: no new operations;
+  PostgreSQL DecisionTrace regression: `1 passed`.
+- Documentation check and `git diff --check`: PASS.
+- Product/owner/public-schema delta: none. SPEC GAP: none.
