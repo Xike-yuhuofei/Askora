@@ -106,11 +106,12 @@ def _plan_and_activities(goal_id: UUID):
     return plan, first, second
 
 
-def _persist_goal(goal: LearningGoalV1) -> LearningGoalRecord:
+def _persist_goal(goal: LearningGoalV1, *, workspace_id: str) -> LearningGoalRecord:
     return LearningGoalRecord(
         id=f"{goal.goal_id}:{goal.version}",
         goal_id=str(goal.goal_id),
         user_id=str(goal.user_id),
+        workspace_id=workspace_id,
         version=goal.version,
         status=goal.status,
         idempotency_key=f"goal:{goal.goal_id}:v{goal.version}",
@@ -168,6 +169,8 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
     other = User(id="other-user", pseudonym_id="workspace-product-other")
     owner_id = canonical_user_id(user.id)
     other_owner_id = canonical_user_id(other.id)
+    workspace_id = str(uuid4())
+    other_workspace_id = str(uuid4())
     goal_id = uuid4()
     goal_v1 = _goal(goal_id=goal_id, user_id=owner_id, version=1, title="旧目标标题")
     goal_v2 = _goal(goal_id=goal_id, user_id=owner_id, version=2, title="理解函数变化")
@@ -180,9 +183,9 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
         await session.flush()
         session.add_all(
             [
-                _persist_goal(goal_v1),
-                _persist_goal(goal_v2),
-                _persist_goal(private_goal),
+                _persist_goal(goal_v1, workspace_id=workspace_id),
+                _persist_goal(goal_v2, workspace_id=workspace_id),
+                _persist_goal(private_goal, workspace_id=other_workspace_id),
                 _persist_plan(plan),
                 _persist_activity(first),
                 _persist_activity(second),
@@ -195,6 +198,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
                 MasteryEstimateRecord(
                     id=str(uuid4()),
                     user_id=str(owner_id),
+                    workspace_id=workspace_id,
                     knowledge_unit_id=str(knowledge_unit_id),
                     version=1,
                     payload={"competence_probability": 0.25, "confidence": 0.4},
@@ -202,6 +206,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
                 MasteryEstimateRecord(
                     id=str(uuid4()),
                     user_id=str(owner_id),
+                    workspace_id=workspace_id,
                     knowledge_unit_id=str(knowledge_unit_id),
                     version=2,
                     payload={
@@ -220,6 +225,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
                 MasteryEstimateRecord(
                     id=str(uuid4()),
                     user_id=str(other_owner_id),
+                    workspace_id=other_workspace_id,
                     knowledge_unit_id=str(uuid4()),
                     version=1,
                     payload={"competence_probability": 0.99},
@@ -230,6 +236,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
             UserDocument(
                 id=str(uuid4()),
                 pseudonym_id=user.pseudonym_id,
+                workspace_id=workspace_id,
                 original_filename="functions.md",
                 file_extension="md",
                 file_size_bytes=100,
@@ -257,7 +264,7 @@ async def test_ui02b_views_use_latest_owner_state_and_canonical_plan_order(tmp_p
         )
         await session.commit()
 
-        query = WorkspaceTodayQueryService(session, clock=lambda: NOW)
+        query = WorkspaceTodayQueryService(session, workspace_id=workspace_id, clock=lambda: NOW)
         goals = await query.list_goals(user, correlation_id="goals")
         path = await query.get_path(user, goal_id=None, correlation_id="path")
         evidence = await query.get_evidence(user, correlation_id="evidence")
@@ -300,6 +307,7 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
 
     user = User(id=str(uuid4()), pseudonym_id="multi-plan-user")
     owner_id = UUID(user.id)
+    workspace_id = str(uuid4())
     goals = [
         _goal(goal_id=uuid4(), user_id=owner_id, version=1, title="目标一"),
         _goal(goal_id=uuid4(), user_id=owner_id, version=1, title="目标二"),
@@ -307,7 +315,7 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
     plan_groups = [_plan_and_activities(goal.goal_id) for goal in goals]
     async with factory() as session:
         session.add(user)
-        session.add_all([_persist_goal(goal) for goal in goals])
+        session.add_all([_persist_goal(goal, workspace_id=workspace_id) for goal in goals])
         for plan, first, second in plan_groups:
             session.add_all(
                 [
@@ -320,7 +328,7 @@ async def test_ui02b_multiple_current_plans_require_explicit_goal_scope(tmp_path
             )
         await session.commit()
 
-        query = WorkspaceTodayQueryService(session, clock=lambda: NOW)
+        query = WorkspaceTodayQueryService(session, workspace_id=workspace_id, clock=lambda: NOW)
         unscoped = await query.get_path(user, goal_id=None, correlation_id="unscoped")
         scoped = await query.get_path(user, goal_id=goals[0].goal_id, correlation_id="scoped")
 

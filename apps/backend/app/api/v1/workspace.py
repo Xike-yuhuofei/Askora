@@ -116,10 +116,13 @@ async def complete_activity_lifecycle(
 async def get_goals_workspace(
     request: Request,
     response: Response,
+    default_workspace: Workspace = Depends(get_default_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> GoalListResponseV1:
-    result = await WorkspaceTodayQueryService(db).list_goals(
+    result = await WorkspaceTodayQueryService(
+        db, workspace_id=default_workspace.workspace_id
+    ).list_goals(
         current_user,
         correlation_id=getattr(request.state, "request_id", "unknown"),
     )
@@ -132,10 +135,13 @@ async def get_path_workspace(
     request: Request,
     response: Response,
     goal_id: UUID | None = Query(None),
+    default_workspace: Workspace = Depends(get_default_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> LearningPathResponseV1:
-    result = await WorkspaceTodayQueryService(db).get_path(
+    result = await WorkspaceTodayQueryService(
+        db, workspace_id=default_workspace.workspace_id
+    ).get_path(
         current_user,
         goal_id=goal_id,
         correlation_id=getattr(request.state, "request_id", "unknown"),
@@ -148,10 +154,13 @@ async def get_path_workspace(
 async def get_evidence_workspace(
     request: Request,
     response: Response,
+    default_workspace: Workspace = Depends(get_default_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> EvidenceProfileResponseV1:
-    result = await WorkspaceTodayQueryService(db).get_evidence(
+    result = await WorkspaceTodayQueryService(
+        db, workspace_id=default_workspace.workspace_id
+    ).get_evidence(
         current_user,
         correlation_id=getattr(request.state, "request_id", "unknown"),
     )
@@ -226,12 +235,15 @@ async def get_today_workspace(
     request: Request,
     response: Response,
     timezone_name: str = Query("Asia/Shanghai", alias="timezone", min_length=1, max_length=64),
+    default_workspace: Workspace = Depends(get_default_workspace),
     current_user: User = Depends(get_current_owner_projection),
     db: AsyncSession = Depends(get_db),
 ) -> TodayWorkspaceResponseV1:
     """Return a current-user-scoped, read-only UI aggregation."""
     try:
-        result = await WorkspaceTodayQueryService(db).get_today(
+        result = await WorkspaceTodayQueryService(
+            db, workspace_id=default_workspace.workspace_id
+        ).get_today(
             current_user,
             timezone_name=timezone_name,
             correlation_id=getattr(request.state, "request_id", "unknown"),

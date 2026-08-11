@@ -32,7 +32,12 @@ def _engine_and_factory(tmp_path):
 
 
 def _review_record(
-    *, user_id: str, knowledge_unit_id: str, version: int, due_at: datetime
+    *,
+    user_id: str,
+    workspace_id: str,
+    knowledge_unit_id: str,
+    version: int,
+    due_at: datetime,
 ) -> ReviewScheduleRecord:
     schedule_id = uuid4()
     schedule = ReviewSchedule(
@@ -53,6 +58,7 @@ def _review_record(
         id=f"{schedule_id}:{version}",
         schedule_id=str(schedule_id),
         user_id=user_id,
+        workspace_id=workspace_id,
         knowledge_unit_id=knowledge_unit_id,
         version=version,
         next_due_at=due_at,
@@ -69,6 +75,8 @@ async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_pat
 
     user_id = str(uuid4())
     other_id = str(uuid4())
+    workspace_id = str(uuid4())
+    other_workspace_id = str(uuid4())
     due_unit = str(uuid4())
     future_unit = str(uuid4())
     async with factory() as session:
@@ -80,6 +88,7 @@ async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_pat
                 DialogSession(
                     id=str(uuid4()),
                     user_id=user_id,
+                    workspace_id=workspace_id,
                     pseudonym_id=user.pseudonym_id,
                     subject="math",
                     knowledge_point_id="functions",
@@ -88,24 +97,28 @@ async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_pat
                 DialogSession(
                     id=str(uuid4()),
                     user_id=other_id,
+                    workspace_id=other_workspace_id,
                     pseudonym_id=other.pseudonym_id,
                     subject="private-other",
                     status=SessionStatus.ACTIVE,
                 ),
                 _review_record(
                     user_id=user_id,
+                    workspace_id=workspace_id,
                     knowledge_unit_id=due_unit,
                     version=1,
                     due_at=NOW - timedelta(hours=1),
                 ),
                 _review_record(
                     user_id=user_id,
+                    workspace_id=workspace_id,
                     knowledge_unit_id=future_unit,
                     version=1,
                     due_at=NOW + timedelta(days=1),
                 ),
                 _review_record(
                     user_id=other_id,
+                    workspace_id=other_workspace_id,
                     knowledge_unit_id=str(uuid4()),
                     version=1,
                     due_at=NOW - timedelta(days=1),
@@ -114,7 +127,9 @@ async def test_ui01_today_query_is_current_user_scoped_and_source_honest(tmp_pat
         )
         await session.commit()
 
-        result = await WorkspaceTodayQueryService(session, clock=lambda: NOW).get_today(
+        result = await WorkspaceTodayQueryService(
+            session, workspace_id=workspace_id, clock=lambda: NOW
+        ).get_today(
             user,
             timezone_name="Asia/Shanghai",
             correlation_id="request-1",
