@@ -51,6 +51,7 @@
 | `docs/adr/ADR-0019-ui-workspace-read-projections.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0019-ui-workspace-read-projections.md` |
 | `docs/adr/ADR-0020-learning-conversation-message-presentation-and-interaction-boundary.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0020-learning-conversation-message-presentation-and-interaction-boundary.md` |
 | N/A (new) | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/architecture/decisions/ADR-0022-course-centric-information-architecture.md` |
+| N/A (new) | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/architecture/decisions/ADR-0023-course-workspace-selection-and-activity-projection.md` |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0103-local-data-recovery-portability-erasure.md` |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0107-account-deletion-erasure-workflow-integration.md` |
@@ -95,6 +96,7 @@
 | `docs/specs/platform/identity-privacy-lifecycle.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/identity-privacy-lifecycle.md` |
 | `docs/specs/platform/local-secret-store.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/local-secret-store.md` |
 | `docs/specs/platform/workspace-project-session-scope.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/workspace-project-session-scope.md` |
+| N/A (new) | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/course-workspace-selection.md` |
 | `docs/specs/quality/ci-infrastructure-standard.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/ci-infrastructure-standard.md` |
 | `docs/specs/quality/definition-of-done.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/definition-of-done.md` |
 | `docs/specs/quality/observability-standard.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/observability-standard.md` |
@@ -192,6 +194,7 @@
 | `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-071-ui-04d-learning-management-exposure-removal.md` |
 | `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` |
 | `docs/exec-plans/active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` |
+| N/A (new) | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `KEEP` | `docs/planning/execs/EXEC-077-course-workspace-selection-platform.md` |
 | `docs/exec-plans/CHAIN-A-UI-03-PROMPT.md` | Execution Prompt | Supporting / Transient | 临时执行资产 | 否 | `DELETE` | 用户确认移除，不建立长期目标路径 |
 | `docs/exec-plans/CHAIN-B-CI-V2-PROMPT.md` | Execution Prompt | Supporting / Transient | 临时执行资产 | 否 | `DELETE` | 用户确认移除，不建立长期目标路径 |
 

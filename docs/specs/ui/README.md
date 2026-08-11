@@ -96,7 +96,7 @@ Settings / Recovery（Utilities）
 13. 7 semantic interaction primitives 保持：Navigation / Action / Control / Selection / Disclosure / InteractiveContent / StatusFeedback。
 14. UI 不得通过 frontend-only state 改写 Workspace、Activity、Plan、Evidence、TeachingAction、UserNote 等 canonical truth。
 
-当前已知 technical gate：ADR-0019 仍只提供 single-default Workspace read projection；Course list/create/current/switch、冲突恢复与 Course-scoped Activity Switcher 在独立 technical ADR/Spec accepted 前为 `BLOCKED_BY_SPEC_GAP`。
+ADR-0023 / `CWSP-*` 已关闭 ADR-0019 的 single-default technical gap：Course list/create/current/switch、冲突恢复与 Course-scoped Activity Switcher 的 owner/schema/version/idempotency/error/migration 已冻结。Frontend implementation 仍依赖 XIK-189 提供真实 Platform capability；不得用 frontend mock 绕过 dependency。
 
 ---
 

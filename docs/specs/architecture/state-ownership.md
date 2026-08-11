@@ -33,6 +33,7 @@ LLM、grader、retriever、experiment、用户反馈或 UI action 产生的建�
 |---|---|
 | LocalOwner | Platform Local Identity (`LID-*`) |
 | Workspace | Platform Workspace Registry |
+| WorkspaceSelection / current Workspace preference | Platform Workspace Registry (`CWSP-*`) |
 | LearningProject / ProjectMaterial membership | Platform Workspace / Product Organization boundary |
 | Application/Workspace/Project configuration | owning configuration service, subject to explicit override contract |
 | Backup manifest / data-directory compatibility metadata | Platform Data Lifecycle |
@@ -313,9 +314,19 @@ v1 alignment AC：
 
 任何 frontend cache、route、chat text、LLM output 或 read-model row MUST NOT 成为第二 Workspace/Stage/Plan truth。
 
+ADR-0023 supersedes the single-default target limitation：current Workspace now reads versioned `WorkspaceSelection` from Platform Workspace Registry；`Workspace.is_default` remains migration/fallback metadata。The additive Course Activity index only composes exact SYS06 Activity definition/latest lifecycle refs and owns no Activity state。
+
+### STATE-311 — WorkspaceSelection
+
+`WorkspaceSelection` is durable, owner-scoped, monotonic-version Platform preference。Only Platform Workspace Registry may create/update it；route、browser storage、Workspace default marker、LearningSession、Activity、query assembler and LLM are read-only consumers。Create/switch receipts are idempotency records, not a second current-state writer。
+
 ### STATE-AC-310
 
 Architecture/contract tests MUST 证明两个 projection 无 write path、无新持久化表、无 frontend inference，并保留 exact owner source refs。
+
+### STATE-AC-311
+
+Architecture/contract tests MUST prove current selection has one Platform writer；default marker/browser/route cannot mutate it；Course Activity projection is read-only and exact SYS06-derived。
 
 ### STATE-AC-300
 

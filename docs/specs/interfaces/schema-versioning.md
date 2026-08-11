@@ -20,6 +20,7 @@
 - Electron preload IPC request/response schema；
 - desktop encrypted `ModelRouteProfile` payload；
 - local desktop control adapter request/response schema。
+- Course Workspace list/create/current/switch、transition guard、receipt and Activity index schema (`CWSP-*`)。
 
 ## 2. 版本规则
 
@@ -99,3 +100,9 @@ Tool definition 的参数或副作用语义破坏性变化必须升 major，并�
 `OnboardingPreferenceV1`、`OnboardingJourneyViewV1`、`OnboardingNextActionV1` 与 preference command
 均遵循 strict v1。新增 step/action enum 必须保持旧值语义；改变完成判定、路由或 preference 字段含义
 属于破坏性变化，必须新 major 或显式 migration/upcaster。
+
+## 11. Course Workspace Schemas
+
+### SCHEMA-110
+
+`WorkspaceSelectionV1`、`WorkspaceListResponseV1`、`CreateWorkspaceV1`、`SwitchWorkspaceV1`、`WorkspaceMutationResultV1` and `WorkspaceActivityIndexResponseV1` are strict v1 under `CWSP-*`。Changing current/default semantics、transition guard obligation、idempotency scope、Activity grouping/launch meaning or owner routing is breaking and requires a new major or explicit migration/upcaster。

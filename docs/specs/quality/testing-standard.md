@@ -262,3 +262,17 @@ idempotency/restart、cross-user/cache/leakage、default/deep-link、dismiss/reo
 产品 gate 必须同时包含 deterministic browser E2E、真实 provider 的 clean-profile 主路径、App restart
 无重复副作用、360/768/1024/1440、200% zoom、keyboard/focus/live region，以及无内部知识首次用户
 体验。Mock-only、模型连接成功或单元测试均不能单独关闭 P1-06。
+
+## 19. Course Workspace Selection Gates
+
+### TEST-330
+
+ADR-0023 / `CWSP-*` requires L0 ownership/import tests、L2 strict schema/error/idempotency tests、L3 real SQLite transaction/isolation/projection tests and L5 fresh/legacy/upgraded migration/restart/forward-fix tests。PostgreSQL constraint tests run where the existing optional CI lane is available。
+
+### TEST-331
+
+Browser/E2E acceptance must separately prove Course Empty State、create-and-select、multi-Course switch、every draft/stream/note/session/material-position recovery branch、deep-link/refresh no side effect、Activity resume/start separation、360px/keyboard/focus/console。Static/component tests do not replace live browser evidence。
+
+### TEST-AC-330
+
+fresh SQLite、legacy fixture、cross-Workspace A/B、stale concurrency、same/different idempotency digest、atomic rollback、stable Activity ordering and no-write route refresh all PASS before XIK-189 can close。

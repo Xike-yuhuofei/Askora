@@ -50,6 +50,7 @@ PRODUCT-STRATEGY
 |---|---|---|---|
 | [EXEC-064](execs/EXEC-064-local-web-byok-secure-activation.md) | XIK-173 | Local Web BYOK / LocalSecretStore / Activation | Backlog |
 | [EXEC-066](execs/EXEC-066-v1-noncore-runtime-surface-cleanup.md) | XIK-175 | Non-core OCR/DOCX/Auth/service-era Cleanup | Backlog |
+| [EXEC-077](execs/EXEC-077-course-workspace-selection-platform.md) | XIK-189 | Course Workspace Selection / Activity Projection Platform | Blocked until XIK-188 merge |
 
 已完成或 superseded 的 EXEC-045、060、061、062、063、065、067 已根据 Linear/current history 移至 [`archive/exec-plans/`](../archive/exec-plans/)。Archive path 不改变当时合同内容，也不代表当前 checkout 已重新验收。
 

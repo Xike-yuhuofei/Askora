@@ -835,9 +835,23 @@ workspace:
   created_at: datetime
 ```
 
+Platform Workspace Registry MAY additionally own one owner-scoped versioned current-selection preference：
+
+```yaml
+workspace_selection:
+  owner_id: uuid
+  version: integer
+  current_workspace_id: uuid
+  reason: FIRST_CREATE|LEGACY_MIGRATION|EXPLICIT_SWITCH|RECOVERY_RECONCILIATION
+  updated_at: datetime
+```
+
+This preference is not Workspace identity/default/lifecycle truth。Its exact contract is ADR-0023 / `CWSP-*`。
+
 规则：
 
 - 一个 LocalOwner MAY 有多个 Workspace；
+- fresh LocalOwner MAY have zero Workspace until explicit Course create；legacy-data migration creates one default Workspace；
 - Material、LearningProject、LearningGoal、LearningSession、LearnerState/LearningEvidence scope、LearningHistory、UserNote、Search/Retrieval MUST 可解析到 workspace；
 - 默认不得跨 Workspace 搜索、融合 LearnerState 或共享 Material membership；
 - 跨 Workspace 能力未来必须通过新的 Product Positioning / Design / Spec 明确授权。
@@ -935,6 +949,7 @@ LearningSession 是连续学习活动，不是 Conversation 的同义词：
 learning_session:
   session_id: uuid
   workspace_id: uuid
+  learning_activity_id: uuid|null
   project_id: uuid|null
   learning_goal_id: uuid|null
   material_refs: [versioned_ref]
@@ -943,6 +958,8 @@ learning_session:
 ```
 
 Session MUST 属于 Workspace；MAY 不属于 Project。
+
+New Activity-scoped Session MUST pin exact `learning_activity_id` and validate the SYS06 Activity resolves to the same Workspace。Legacy Session MAY remain null only when exact backfill would require guessing；LearningSession does not acquire Activity lifecycle write ownership。
 
 ### DOMAIN-205 — RetrievalScope
 

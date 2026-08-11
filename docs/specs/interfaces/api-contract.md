@@ -255,3 +255,36 @@ LearningActivity；每项保留 source system/ref/version。query MUST 表达 RE
 
 两个 query current Workspace scoped、side-effect free、foreign ref fail closed、response 无 Prompt/transcript
 正文/grader-only/secret/local path，且 refresh/retry 不产生新事实。
+
+## 16. Course Workspace Selection and Activity Projection
+
+### API-320 — Canonical Course Workspace Surface
+
+ADR-0023 / `CWSP-*` defines：
+
+```text
+GET  /api/v1/workspaces
+POST /api/v1/workspaces
+GET  /api/v1/workspaces/current
+GET  /api/v1/workspaces/{workspace_id}
+POST /api/v1/workspaces/{workspace_id}/switch
+GET  /api/v1/workspaces/{workspace_id}/activities
+```
+
+API handler only validates strict v1、resolves LocalOwner、dispatches Platform command/query or read-only SYS06 composition、maps stable errors and serializes response。It MUST NOT write ORM state directly。
+
+### API-321 — Current vs Explicit Scope
+
+`/api/v1/workspace/context` becomes a compatibility adapter over canonical WorkspaceSelection and MUST NOT hard-code default Workspace。Explicit Workspace GET/deep link does not mutate selection；write commands continue to validate exact Workspace scope rather than trusting ambient/browser state。
+
+### API-322 — Create / Switch Safety
+
+Create/switch require expected selection version、idempotency key and strict transition guard。`RECOVERY_REQUIRED`/version/idempotency conflict returns no partial write。Response uses `private, no-store` and never exposes foreign Workspace metadata、draft/note/transcript content or local path。
+
+### API-323 — Activity Index
+
+Activity index is side-effect-free and preserves exact Workspace/Goal/Plan/Activity/lifecycle refs。It does not auto-start available Activity、create Session or infer from Conversation。Unknown/foreign/ambiguous chain fails closed per `CWSP-050..054`。
+
+### API-AC-320
+
+Contract/integration tests prove create-and-select atomicity、switch CAS/idempotency/recovery、GET/deep-link no write、foreign non-enumerability and read-only exact-SYS06 Activity projection。

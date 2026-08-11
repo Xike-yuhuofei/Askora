@@ -512,7 +512,7 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 
 #### UXA-DATA-200 — Workspace List / Current Query
 
-`GET /api/v1/workspace/context` 从 Platform Workspace Registry 返回 strict `WorkspaceContextResponseV1`。每个 Workspace 项至少携带：
+ADR-0023 / `CWSP-*` closes the prior multi-Course gap。`GET /api/v1/workspaces` 从 Platform Workspace Registry 返回 strict `WorkspaceListResponseV1`；`GET /api/v1/workspaces/current` 返回同一 versioned selection/current item。每个 Workspace 项至少携带：
 
 ```yaml
 workspace_ref: versioned_ref
@@ -522,19 +522,23 @@ version: integer
 status: READY|PARTIAL|STALE|ERROR
 ```
 
-current Workspace 由服务端解析 `current_workspace_id`，返回 `source_system` 与 `source_ref`。前端 MUST NOT 用 route/subject/session/localStorage 当作 Workspace truth。`MISSING` 不得转换为空 Workspace 或"默认 Workspace"。
+current Workspace 由服务端 versioned `WorkspaceSelection` 解析，返回 selection version/ref、`source_system` 与 `source_ref`。前端 MUST NOT 用 route/subject/session/localStorage/`is_default` 当作 Workspace truth。`MISSING` 不得转换为空 Workspace 或"默认 Workspace"。
 
-V1 还返回 `switch_capability=SINGLE_WORKSPACE|UNAVAILABLE`。`SINGLE_WORKSPACE` 不显示 selector，不触发 switch command；未来多 Workspace command 仍需独立冻结。
+fresh LocalOwner 可合法返回真实 `EMPTY`（0 Workspace/0 selection），且 query 不得 bootstrap。`GET /api/v1/workspace/context` 在迁移期只是 current-selection compatibility adapter；旧 `SINGLE_WORKSPACE` 不再是目标能力合同。
 
 #### UXA-DATA-201 — Workspace Switch Query / Command
 
-Workspace 切换是用户显式 Action。Spec 不在此发明 owner command；若现有上位合同未唯一确定 Workspace switch command owner，则对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`，不得由前端 PATCH Workspace 或写本地 state 冒充。
+Workspace 切换是用户显式 Action。前端调用 `SwitchWorkspaceV1`，携带 expected selection version、idempotency key 与真实 `WorkspaceTransitionGuardV1`；只有 Platform Workspace Registry `WorkspaceMutationResultV1` 可确认成功。前端不得 PATCH Workspace、切换 `is_default` 或写本地 state 冒充。
 
-切换结果的持久化状态 MUST 来自 canonical response，前端只呈现 `saved / saving / failed / recoverable`。
+切换结果的持久化状态 MUST 来自 canonical response，前端只呈现 `saving / switched / failed / recoverable`。stale version 必须 re-query并要求重新确认，不得 blind overwrite。
 
 #### UXA-DATA-202 — Workspace Switch Conflict / Recovery
 
-切换遇：未提交 draft、streaming run、未持久化 note、open Material tabs、active LearningSession 时，MUST 返回可恢复状态与显式呈现。前端不得静默丢弃。冲突恢复语义（保留/丢弃/合并）由对应 owner command 决定，UI 不得自行判定。
+切换遇：未提交 draft、streaming run、未持久化/conflict note、open Material tabs/position、active LearningSession 时，MUST 使用 `CWSP-023/026/027/032` 返回可恢复状态与显式呈现。前端不得静默丢弃、固定伪报 `CLEAR` 或将 browser memory称为 durable save。active Session/Activity 保留在 source Course；switch不自动 end/cancel/complete。
+
+#### UXA-DATA-203 — Course Activity Index
+
+`GET /api/v1/workspaces/{workspace_id}/activities` 返回 strict `WorkspaceActivityIndexResponseV1`。items保留 exact Workspace/Goal/Plan/Activity/latest lifecycle refs与稳定 title catalog source；active 可 Navigation resume，available 只能触发 SYS06 `StartLearningActivityV1`。前端不得从 Conversation title、chat recency、route或 local state推断 Activity/current/resume。
 
 ### 11.2 UserNote Durable Object
 
@@ -552,7 +556,7 @@ anchor:
 version: integer
 ```
 
-UserNote 的 owner 不由本 Spec 发明。若现有上位合同未唯一确定 UserNote owner，对应 EXEC 为 `BLOCKED_BY_SPEC_GAP`，不得由前端 create 全局 note 或写 localStorage 事实源。
+UserNote owner 已由 ADR-0021 / `UNSI-*` 冻结为 Platform Workspace Notes。Frontend只可调用 strict owner query/save/recovery command；不得 create 全局 note、写 localStorage事实源或在 Workspace switch guard 中把未接受的 autosave冒充 `SAVED`。
 
 #### UXA-DATA-211 — Autosave / Conflict / Recovery
 
@@ -640,6 +644,7 @@ locator: object|null
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Workspace list/current | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
 | Workspace switch | ✓ | — | ✓ | — | — | ✓ | ✓ | — | ✓ | ✓ | ✓ |
+| Course Activity index | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
 | Context Drawer | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
 | Notes | — | ✓ | ✓ | — | — | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 | Material tabs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
@@ -655,7 +660,9 @@ locator: object|null
 - `UXA-DATA-AC-005`：MISSING/PARTIAL/STALE 不被转成 0/READY；
 - `UXA-DATA-AC-006`：Current Material / SourceSpan 为 canonical Workspace refs，跨 Workspace fail closed；
 - `UXA-DATA-AC-007`：右栏/Drawer presentation state 与 canonical data 边界清晰；
-- `UXA-DATA-AC-008`：未冻结的 Workspace switch / UserNote owner command 不以前端 mock 绕过。
+- `UXA-DATA-AC-008`：Workspace switch 必须使用 ADR-0023 owner command；UserNote必须使用 ADR-0021 / `UNSI-*` owner receipt，不以前端 mock 绕过。
+- `UXA-DATA-AC-009`：Workspace create/current/switch 只接受 ADR-0023 Platform owner result；fresh EMPTY 不被隐式 bootstrap。
+- `UXA-DATA-AC-010`：Course Activity index exact SYS06-derived、稳定排序、side-effect free；available 不被 Navigation 自动 start。
 
 ## 12. Acceptance Criteria
 

@@ -106,6 +106,16 @@ MESSAGE_CAPABILITY_STALE
 MESSAGE_CONTEXT_SCOPE_VIOLATION
 MESSAGE_SCHEMA_UNSUPPORTED
 MESSAGE_INTERACTION_INVALID
+WORKSPACE_NOT_FOUND_OR_INACCESSIBLE
+WORKSPACE_SELECTION_MISSING
+WORKSPACE_SELECTION_VERSION_CONFLICT
+WORKSPACE_IDEMPOTENCY_CONFLICT
+WORKSPACE_SWITCH_RECOVERY_REQUIRED
+WORKSPACE_NAME_INVALID
+WORKSPACE_SCHEMA_UNSUPPORTED
+WORKSPACE_INTEGRITY_FAILED
+WORKSPACE_ACTIVITY_SCOPE_VIOLATION
+WORKSPACE_ACTIVITY_PROJECTION_UNAVAILABLE
 ```
 
 上述 recovery 错误的 category、retryability、data safety、retry budget 与允许动作由
@@ -113,6 +123,8 @@ MESSAGE_INTERACTION_INVALID
 分类，不得把 provider message 文本作为主分支。
 
 `MESSAGE_*` 是 ADR-0020 / `LCMS-*` façade boundary errors。Target owner 的 assessment/activity/policy/source error code MUST 原样保留；Message adapter 不得把它们改写成自由文本或 learner failure。重复 idempotency key 返回原 receipt/result，不产生第二 side effect。
+
+`WORKSPACE_*` semantics are frozen by ADR-0023 / `CWSP-*`。Not-found/foreign use the same non-enumerable code；selection version、idempotency、recovery-required、invalid name/schema are non-retryable until re-query/input/recovery changes。Only temporary projection/database dependency MAY be retryable；retry reuses the same idempotency key and cannot create a second Workspace/selection version。
 
 P1-03 data-control errors 的 category/retryability 由 `data-control-contract.md` 冻结：wrong key、unsafe package、future schema 与 invalid confirmation non-retryable；maintenance busy、temporary storage 与未完成 owner step MAY retryable。任何 error details 不得包含 key、内容原文或完整本地路径。
 
