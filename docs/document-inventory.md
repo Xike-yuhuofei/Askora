@@ -190,6 +190,10 @@
 | `docs/specs/systems/08-ai-orchestration.md` | CANONICAL-RETAIN |
 | `docs/specs/systems/08-model-configuration.md` | CANONICAL-RETAIN |
 | `docs/specs/ui/README.md` | CANONICAL-RETAIN |
+| `docs/specs/ui/screen-and-navigation-contracts.md` | CANONICAL-RETAIN | current UI 屏幕/导航长期合同 |
+| `docs/specs/ui/learning-interaction-contracts.md` | CANONICAL-RETAIN | current UI 学习交互长期合同 |
+| `docs/specs/ui/design-system.md` | CANONICAL-RETAIN | current UI 设计系统长期合同 |
+| `docs/specs/ui/quality-and-regression.md` | CANONICAL-RETAIN | current UI 质量/回归长期合同 |
 | `docs/specs/ui/interactive-element-system.md` | CANONICAL-RETAIN |
 | `docs/specs/ui/information-architecture.md` | CANONICAL-RETAIN |
 | `docs/specs/ui/screen-contracts.md` | CANONICAL-RETAIN |
@@ -197,6 +201,7 @@
 | `docs/specs/ui/visual-system.md` | CANONICAL-RETAIN |
 | `docs/specs/ui/quality-and-migration.md` | CANONICAL-RETAIN |
 | `docs/specs/ui/component-state-contracts.md` | CANONICAL-RETAIN |
+| `docs/specs/frontend/ui-read-model-contracts.md` | CANONICAL-RETAIN | UI read-model/query/ownership 技术合同（已迁出 Experience Design Authority） |
 | `docs/specs/vertical-slices/v0.2-learning-loop.md` | HISTORICAL-RETAIN |
 | `docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md` | CANONICAL-RETAIN |
 | `docs/specs/vertical-slices/v0.3.1-rich-response-rendering.md` | CANONICAL-RETAIN |
