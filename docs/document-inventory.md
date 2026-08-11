@@ -273,7 +273,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/EXEC-019-knowledge-verification-publication.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-020-retrieval-projection-sys02-binding.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-021-learning-goal-knowledge-mapping.md` | HISTORICAL-RETAIN |
-| `docs/exec-plans/completed/EXEC-022-prerequisite-diagnostic-bootstrap.md` | HISTORICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-022-prerequisite-diagnostic-planner-bootstrap.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-023-book-learning-orchestration-api.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-024-book-to-learning-e2e-release-gate.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-025-ui-02b1-material-learning-launch.md` | HISTORICAL-RETAIN |
