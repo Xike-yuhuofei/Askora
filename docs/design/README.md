@@ -15,28 +15,45 @@ Design 可以细化**已定义产品能力如何成立**，但不得自行改变
 
 `docs/design/` 当前主要正式设计：
 
+### Product / Learning System
+
 - [个人 AI 辅助学习平台设计方案](个人AI辅助学习平台设计方案.md)：整体产品语义、学习闭环与系统级设计基线；其中上位 Problem / Vision / Success 语义服从当前 Product Strategy，Product Capability / Requirement 语义服从 Product Definition；
 - [AI 学习系统算法与教学内核设计](AI学习系统算法与教学内核设计.md)：学习科学、八系统边界、Teaching Policy 与学习效果验证；
 - [v0.3 Canonical Design Delta](v0.3-Canonical-Design-Delta.md)：DR-03-01～04 到 Adaptive Teaching Loop 的 Canonical Decision Register、breaking change 与 change-control；
-- [UX Architecture Canonical Design Delta](UX-Architecture-Canonical-Design-Delta.md)：用户任务驱动的 UX Architecture、Workspace 学习工作台及页面职责边界；
-- [Interactive Element System Canonical Design Delta](Interactive-Element-System-Canonical-Design-Delta.md)：Interactive Element Taxonomy、Interaction Hierarchy、页面级信息与交互模型；
 - [Local Single-User Identity & Authentication Removal Canonical Design Delta](Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md)：LocalOwner、无 Account/Login/JWT/AuthSession 与 loopback identity boundary；
 - [P1-03 Data Control and Recovery](p1-03-data-control-and-recovery.md)：本地数据恢复、导出、删除与 no-resurrection 设计；
 - [P1-06 事实驱动的首次学习旅程设计](p1-06-fact-driven-first-use-journey.md)：first-use readiness、presentation preference 与首次学习闭环。
 
-历史设计：
+### Experience & Interface Design
 
+当前 Experience Design 的长期 Authority 集中在：
+
+- [Experience Architecture](experience/EXPERIENCE-ARCHITECTURE.md)：Experience Principles、user-facing IA、Workspace Experience、Navigation Model、Core Journeys 与 surface responsibility；
+- [Learning Experience](experience/LEARNING-EXPERIENCE.md)：LearningActivity、Learning Conversation、Attempt、Feedback、Remediation、Assistance、Evidence/Provenance、Notes 与长期学习连续性；
+- [Interaction Model](experience/INTERACTION-MODEL.md)：7 类 semantic interaction primitives、interaction hierarchy、progressive disclosure 与 component boundary。
+
+这三份文件保存**当前有效体验模型**。实现与 UI Spec 不应再通过历史 Delta + Supersession Matrix 自行推断 current truth。
+
+## 2. Historical / Superseded Design Records
+
+以下文件继续保留作为设计演进记录，但不再作为新的 UI/UX 实现入口：
+
+- [UX Architecture Canonical Design Delta](UX-Architecture-Canonical-Design-Delta.md)：ADR-0018 前后的 UX Architecture 增量冻结记录；其当前有效结论已吸收到 `experience/EXPERIENCE-ARCHITECTURE.md` 与 `experience/LEARNING-EXPERIENCE.md`；
+- [Interactive Element System Canonical Design Delta](Interactive-Element-System-Canonical-Design-Delta.md)：ADR-0014 交互体系增量记录；其当前有效语义已吸收到 `experience/INTERACTION-MODEL.md`；
 - [账号与隐私生命周期设计](账号与隐私生命周期设计.md)：Account/Login/AuthSession 等语义已被 Local Single-User Identity Delta + ADR-0015 supersede；
 - [P1-02 Model Settings](p1-02-model-settings.md)：Desktop/Electron 实现语义属于历史基线；当前 Local Web BYOK 服从最新 ADR / Specs。
 
-## 2. Design Boundary
+历史 Design Delta 的目的为回答“为什么发生变化”，而不是继续与 current Canonical Design 形成双重事实源。
+
+## 3. Design Boundary
 
 Canonical Design 负责：
 
 - 将 Product Capability / Requirement 转化为清晰的产品/领域/学习语义；
 - Learning Core 的教学、证据和状态模型；
 - UX Architecture / user flow / interaction semantics；
-- shared semantic decisions 在进入 ADR / Spec 前的冻结。
+- shared semantic decisions 在进入 ADR / Spec 前的冻结；
+- 在 ADR 已接受后，将增量设计 consolidation 为 current canonical model。
 
 Canonical Design 不负责：
 
@@ -51,7 +68,7 @@ Canonical Design 不负责：
 
 如果 Design 发现 Capability / Feature Scope / Product Rule / Product Acceptance 缺失，应报告 `PRODUCT DEFINITION GAP`，而不是在 Design 中永久承担该产品定义职责。
 
-## 3. Product Information Model vs Experience Information Architecture
+## 4. Product Information Model vs Experience Information Architecture
 
 Product Definition 拥有：
 
@@ -72,7 +89,9 @@ Experience Design 拥有：
 
 Askora 中 `Information Architecture` 专指后者。页面结构不能反向定义 Product Object / Capability taxonomy。
 
-## 4. Formation Chain
+具体 route / URL / deep-link compatibility 属 UI Spec；`current_workspace_id`、read projection、revision、persistence 属 Architecture / Interface Spec。
+
+## 5. Formation Chain
 
 Askora 当前形成链：
 
@@ -82,6 +101,7 @@ PRODUCT-STRATEGY
 → PRODUCT-DEFINITION
 → Canonical Design / Design Delta
 → Accepted ADR
+→ Current Canonical Design Consolidation（适用时）
 → Canonical Specs
 → Vertical Slice / EXEC / Linear Issue
 → Implementation
@@ -90,20 +110,25 @@ PRODUCT-STRATEGY
 
 下游实现不得反向覆盖 Product 文档。
 
-### UI / Interactive Elements
+### Experience / UI
 
 ```text
-PRODUCT-STRATEGY（User / Job / Success）
-→ PRODUCT-POSITIONING（Product Boundary）
-→ PRODUCT-DEFINITION（Capability / Product Requirement / Product AC）
-→ UX / Interactive Element Canonical Design
-→ ADR-0014 / current UI ADR
+PRODUCT-STRATEGY
+→ PRODUCT-POSITIONING
+→ PRODUCT-DEFINITION
+→ Learning / Domain Canonical Design
+→ Experience Canonical Design
+   ├─ experience/EXPERIENCE-ARCHITECTURE.md
+   ├─ experience/LEARNING-EXPERIENCE.md
+   └─ experience/INTERACTION-MODEL.md
+→ Accepted UI/UX ADR（已有决策继续约束 current design）
 → docs/specs/ui/**
+→ Frontend Technical Specs
 → EXEC / Linear
 → Frontend Implementation
 ```
 
-顶层导航、页面布局、页面级 IA、按钮/入口与具体 UX Flow 继续由 Design / UI Specs 冻结；但“某能力是否属于 v1”必须来自 Product Definition，而不是 UI 自己决定。
+顶层导航、页面布局、页面级 IA、Interaction semantics 与具体 UX Flow 由 Experience Design / UI Specs 冻结；但“某能力是否属于 v1”必须来自 Product Definition，而不是 UI 自己决定。
 
 ### Local Identity
 
@@ -129,7 +154,7 @@ Research Evidence / Synthesis
 → EXEC / Implementation / OPVE / Learning Evidence
 ```
 
-## 5. Research Boundary
+## 6. Research Boundary
 
 [`research/`](research/README.md) 保存：
 
@@ -145,7 +170,7 @@ Research 回答“为什么相信这个设计”，但：
 
 Product Strategy / Definition 可以引用 Research 的结论；Design 可以吸收 Research 后重新冻结；实现不得直接从历史 Research 自行创造新产品范围或新语义。
 
-## 6. Conformance / Gap Analysis Lifecycle
+## 7. Conformance / Gap Analysis Lifecycle
 
 Gap Analysis 是**带 commit/time 边界的审计快照**，不是永久 current truth。
 
@@ -166,15 +191,17 @@ Product Definition 建立后，新的 current conformance 审查还应明确区�
 
 - `DESIGN–DEFINITION GAP`；
 - `DEFINITION–SYSTEM GAP`；
-- `DEFINITION–IMPLEMENTATION GAP`。
+- `DEFINITION–IMPLEMENTATION GAP`；
+- `DESIGN–IMPLEMENTATION GAP`。
 
-## 7. Current Implementation Contract
+## 8. Current Implementation Contract
 
 Design 不是最终代码接口合同。实现时必须继续读取：
 
 - [`../product/PRODUCT-DEFINITION.md`](../product/PRODUCT-DEFINITION.md)；
 - [`../adr/README.md`](../adr/README.md)；
 - [`../specs/README.md`](../specs/README.md)；
+- 目标 Experience Canonical Design；
 - 目标系统/接口/UI 的当前 Spec；
 - 对应 Linear Issue / EXEC。
 
