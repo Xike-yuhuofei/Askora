@@ -103,6 +103,16 @@
   flex-direction: column;
 }
 
+.right-rail__honest-state {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+
 .notes-panel {
   display: flex;
   flex-direction: column;

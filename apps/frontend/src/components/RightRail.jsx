@@ -1,13 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
-import { X, BookOpen, FileText } from 'lucide-react'
+import { BookOpen, FileText } from 'lucide-react'
 
-export default function RightRail({
-  defaultOpen = true,
-  userNote = '',
-  onUserNoteChange,
-  currentMaterial = null,
-  onClearCurrentMaterial,
-}) {
+export default function RightRail({ defaultOpen = true, workspaceId }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [activeTab, setActiveTab] = useState('note')
   const toggleRef = useRef(null)
@@ -46,6 +40,7 @@ export default function RightRail({
       className="right-rail"
       aria-label="参考资料与笔记"
       aria-expanded={true}
+      data-workspace-id={workspaceId || undefined}
     >
       <header className="right-rail__header">
         <span className="right-rail__title">参考 &amp; 笔记</span>
@@ -83,79 +78,35 @@ export default function RightRail({
       </div>
       <div className="right-rail__content">
         {activeTab === 'note' ? (
-          <UserNotePanel value={userNote} onChange={onUserNoteChange} />
+          <UserNotePanel />
         ) : (
-          <CurrentMaterialPanel material={currentMaterial} onClear={onClearCurrentMaterial} />
+          <CurrentMaterialPanel />
         )}
       </div>
     </aside>
   )
 }
 
-function UserNotePanel({ value, onChange }) {
+function UserNotePanel() {
   return (
     <div className="notes-panel">
       <div className="notes-panel__header">
         <h3>学习笔记</h3>
-        <span className="notes-panel__meta">Workspace-scoped · 本地保存</span>
+        <span className="notes-panel__meta">Workspace-scoped</span>
       </div>
-      <label htmlFor="right-rail-note" className="visually-hidden">学习笔记</label>
-      <textarea
-        id="right-rail-note"
-        className="notes-panel__textarea"
-        placeholder="记录你的学习心得、疑问或想法…&#10;&#10;笔记内容仅在本地保存，不会影响 AI 教学决策。"
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        aria-label="学习笔记"
-      />
+      <p className="right-rail__honest-state" role="status">
+        笔记读取与保存尚未接入，本面板不会把浏览器内容冒充已保存笔记。
+      </p>
     </div>
   )
 }
 
-function CurrentMaterialPanel({ material, onClear }) {
-  if (!material) {
-    return (
-      <div className="current-material-panel current-material-panel--empty">
-        <BookOpen size={20} />
-        <p>没有选择当前材料。</p>
-        <span>在学习对话中引用材料时，会自动显示在此处。</span>
-      </div>
-    )
-  }
-
+function CurrentMaterialPanel() {
   return (
-    <div className="current-material-panel" aria-label="当前材料预览">
-      <div className="current-material-panel__header">
-        <span className="current-material-panel__label">当前材料</span>
-        {onClear && (
-          <button
-            type="button"
-            className="current-material-panel__close"
-            onClick={onClear}
-            aria-label="取消当前材料"
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-      <div className="current-material-panel__content">
-        <h3>{material.title}</h3>
-        <p className="current-material-panel__meta">
-          {material.type === 'reference' ? '参考文献' : '摘录'}
-          {material.source ? ` · ${material.source}` : ''}
-        </p>
-        <div className="current-material-panel__body">
-          <p>此区域为只读模式，用于对照参考。</p>
-          {material.snippet && (
-            <blockquote className="current-material-panel__snippet">
-              {material.snippet}
-            </blockquote>
-          )}
-        </div>
-      </div>
-      <div className="current-material-panel__footer">
-        <span>原材料编辑请前往库页面。</span>
-      </div>
+    <div className="current-material-panel current-material-panel--empty">
+      <BookOpen size={20} />
+      <p>当前没有可验证的资料引用。</p>
+      <span>只有 canonical Current Material query 接入后才会在这里显示资料。</span>
     </div>
   )
 }

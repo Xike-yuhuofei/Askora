@@ -12,7 +12,6 @@ import Goals from './pages/Goals'
 import GoalDetail from './pages/GoalDetail'
 import GoalEditor from './pages/GoalEditor'
 import LearningPath from './pages/LearningPath'
-import Learning from './pages/Learning'
 import Settings from './pages/Settings'
 import RecoveryCenter from './pages/RecoveryCenter'
 import Unavailable from './pages/Unavailable'
@@ -36,7 +35,7 @@ const standardPages = {
   '/welcome': Welcome,
   '/today': Today,
   '/library': Library,
-  '/learning': Learning,
+  '/learning': LearningWorkspace,
   '/learning/goals': Goals,
   '/learning/plan': LearningPath,
   '/learning/progress': Evidence,
@@ -54,6 +53,7 @@ const learningShellPaths = new Set([
 
 const workspaceShellPaths = new Set([
   '/today',
+  '/learning',
   '/library',
 ])
 

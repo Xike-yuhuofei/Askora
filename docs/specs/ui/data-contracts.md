@@ -506,22 +506,25 @@ WORKSPACE_SCHEMA_UNSUPPORTED
 
 ## 11. UX Architecture Data and Query Contracts (ADR-0018)
 
-本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的数据/查询边界。前端不得推断 domain truth；所有字段保留 `source_system`、version/ref、availability/freshness。
+本节冻结 `UX-Architecture-Canonical-Design-Delta.md` 经 `ADR-0018` 吸收后的数据/查询边界。前端不得推断 domain truth；所有字段保留 `source_system`、version/ref、availability/freshness。ADR-0019 已关闭 current Workspace 与 Drawer query 的 owner/API gap；对应 strict v1 read projection 不新增 state writer。
 
 ### 11.1 Workspace Query Boundaries
 
 #### UXA-DATA-200 — Workspace List / Current Query
 
-Workspace list 与 current Workspace 都来自 canonical Workspace query（`ADR-0016` / `WSP-*`）。每个 Workspace 项至少携带：
+`GET /api/v1/workspace/context` 从 Platform Workspace Registry 返回 strict `WorkspaceContextResponseV1`。每个 Workspace 项至少携带：
 
 ```yaml
 workspace_ref: versioned_ref
 workspace_id: uuid
 name: string
+version: integer
 status: READY|PARTIAL|STALE|ERROR
 ```
 
 current Workspace 由服务端解析 `current_workspace_id`，返回 `source_system` 与 `source_ref`。前端 MUST NOT 用 route/subject/session/localStorage 当作 Workspace truth。`MISSING` 不得转换为空 Workspace 或"默认 Workspace"。
+
+V1 还返回 `switch_capability=SINGLE_WORKSPACE|UNAVAILABLE`。`SINGLE_WORKSPACE` 不显示 selector，不触发 switch command；未来多 Workspace command 仍需独立冻结。
 
 #### UXA-DATA-201 — Workspace Switch Query / Command
 
@@ -573,9 +576,16 @@ next_directions:   # 1..3
     label: string|null
 ```
 
+Transport contract 为 `GET /api/v1/workspace/learning-context?activity_id=<optional UUID>`，response 使用 strict `schema_version=1.0`、`generated_at`、`correlation_id`、`data.view_state` 与 `source_status` envelope。
+
 #### UXA-DATA-221 — Provenance / Version
 
 stage / stage goal / next direction 必须有 `source_system` 与 `source_ref`。前端 MUST NOT 从 chat 文本、heading 顺序或 probability threshold 推断 next knowledge point；LLM 输出不得作为 canonical next knowledge point。
+
+- stage：exact SYS05 `TeachingAction` ref；
+- stage goal：同一 TeachingAction ref + versioned server presentation catalog；
+- next direction：exact ordered SYS06 `LearningActivity` ref；
+- query assembler 只组合，不取得 SYS05/SYS06 writer ownership。
 
 #### UXA-DATA-222 — MISSING / PARTIAL / STALE
 
@@ -588,6 +598,16 @@ STALE
 ```
 
 `MISSING` 不得转换为假 stage / "无内容"；`PARTIAL`/`STALE` 不得显示为 READY。
+
+#### UXA-DATA-223 — Query Freshness and Failure
+
+- 无 current activity/direction → `MISSING`；
+- 有 SYS06 direction、尚无 exact SYS05 TeachingAction → `PARTIAL`；
+- action/activity version 非 current 或 activity 已 completed/superseded → `STALE`；
+- exact SYS05 stage + 至少一项 exact SYS06 direction → `READY`；
+- transport/dependency failure → frontend `ERROR`，不得白屏或阻断 composer。
+
+Query MUST side-effect free、current Workspace scoped、no LLM call、no transcript parsing、no database write。
 
 ### 11.4 Current Material / SourceSpan
 

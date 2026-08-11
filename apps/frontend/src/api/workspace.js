@@ -1,5 +1,8 @@
 import api from './client'
 
+export const getWorkspaceContext = () =>
+  api.get('/workspace/context').then((response) => response.data)
+
 export const getTodayWorkspace = (timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) =>
   api.get('/workspace/today', { params: { timezone: timezone || 'Asia/Shanghai' } })
     .then((response) => response.data)

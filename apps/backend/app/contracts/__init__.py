@@ -142,6 +142,9 @@ from app.contracts.workspace import (
     SourceSpanViewV1,
     TodayWorkspaceDataV1,
     TodayWorkspaceResponseV1,
+    WorkspaceContextDataV1,
+    WorkspaceContextItemV1,
+    WorkspaceContextResponseV1,
     WorkspaceSourceStatusV1,
     WorkspaceSourceSystem,
 )
@@ -268,6 +271,9 @@ __all__ = [
     "SourceSpanViewV1",
     "TodayWorkspaceDataV1",
     "TodayWorkspaceResponseV1",
+    "WorkspaceContextDataV1",
+    "WorkspaceContextItemV1",
+    "WorkspaceContextResponseV1",
     "WorkspaceSourceStatusV1",
     "WorkspaceSourceSystem",
 ]

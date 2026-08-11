@@ -100,6 +100,7 @@ Codex 的架构自治权限只作用于下位设计，**不得自行突破 Froze
 | `ADR-0016` | Workspace, LearningProject and LearningSession Scope Ownership | **accepted** | 2026-08-10 |
 | `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | **accepted** | 2026-08-10 |
 | `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | **accepted** | 2026-08-10 |
+| `ADR-0019` | UI Workspace Context and Learning Context Read Projections | **accepted** | 2026-08-11 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/Product Positioning | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
@@ -161,6 +162,19 @@ ADR-0018 absorbs the frozen `UX-Architecture-Canonical-Design-Delta.md` and part
 - Library v1 normal UI does not expose OCR.
 
 Direct contracts：`docs/specs/ui/**` (`UXA-*` clauses) + UI vertical slice / EXEC. The clause-level supersession matrix is in `ADR-0018` Section 8.
+
+### ADR-0019 — UI Workspace Read Projections
+
+ADR-0019 closes the read-query gaps intentionally left open by ADR-0018:
+
+- canonical current Workspace comes from Platform Workspace Registry, never route/frontend state;
+- Drawer stage comes from exact SYS05 TeachingAction;
+- next 1..3 directions come from exact ordered SYS06 LearningActivity refs;
+- stage-goal copy is a versioned server-side presentation catalog, not a second Goal/Policy truth;
+- query assembly is read-only, current-Workspace scoped, side-effect free and uses honest MISSING/PARTIAL/STALE semantics;
+- no database schema or migration change.
+
+Direct contracts：`state-ownership.md` + `api-contract.md` + `ui/data-contracts.md` (`UXA-DATA-200/220..223`)。
 
 ## 7. Historical Supersession Notes
 

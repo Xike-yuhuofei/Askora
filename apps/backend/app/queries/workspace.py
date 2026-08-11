@@ -5,7 +5,7 @@ state. Missing objective metadata and ambiguous current-plan scope stay
 explicit instead of being inferred from legacy sessions or presentation data.
 
 Spec coverage: UI-DATA-001..004/020..042/070..083,
-UI02B-VSLICE-AC-001..007, ADR-0006.
+UI02B-VSLICE-AC-001..007, UXA-DATA-200, ADR-0006, ADR-0019.
 """
 
 from __future__ import annotations
@@ -44,6 +44,9 @@ from app.contracts.workspace import (
     ReviewDueCandidateViewV1,
     TodayWorkspaceDataV1,
     TodayWorkspaceResponseV1,
+    WorkspaceContextDataV1,
+    WorkspaceContextItemV1,
+    WorkspaceContextResponseV1,
     WorkspaceSourceStatusV1,
     WorkspaceSourceSystem,
 )
@@ -60,6 +63,7 @@ from app.models.planning import (
     ReviewScheduleRecord,
 )
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.services.owner.canonical_identity import canonical_user_id
 
 _ACTIVITY_TITLES = {
@@ -71,6 +75,54 @@ _ACTIVITY_TITLES = {
     "transfer_check": "迁移应用",
     "metacognitive_review": "复盘学习方法",
 }
+
+
+class WorkspaceContextQueryService:
+    """ADR-0019 read-only projection over the Platform Workspace Registry."""
+
+    def __init__(self, *, clock: Callable[[], datetime] | None = None) -> None:
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    def get_context(
+        self,
+        workspace: Workspace,
+        *,
+        correlation_id: str,
+    ) -> WorkspaceContextResponseV1:
+        workspace_ref = f"workspace:{workspace.workspace_id}:v{workspace.version}"
+        is_current = workspace.lifecycle == "active" and workspace.is_default
+        return WorkspaceContextResponseV1(
+            generated_at=self._clock(),
+            correlation_id=correlation_id,
+            data=WorkspaceContextDataV1(
+                view_state="READY" if is_current else "STALE",
+                current_workspace=WorkspaceContextItemV1(
+                    workspace_id=workspace.workspace_id,
+                    workspace_ref=workspace_ref,
+                    display_name=workspace.display_name,
+                    version=workspace.version,
+                    lifecycle=workspace.lifecycle,
+                    is_default=workspace.is_default,
+                ),
+                switch_capability="SINGLE_WORKSPACE" if is_current else "UNAVAILABLE",
+            ),
+            source_status=(
+                WorkspaceSourceStatusV1(
+                    source_system=WorkspaceSourceSystem.PLATFORM_WORKSPACE,
+                    availability=(
+                        AvailabilityStatus.AVAILABLE
+                        if is_current
+                        else AvailabilityStatus.STALE
+                    ),
+                    source_ref=workspace_ref,
+                    reason_codes=(
+                        ("CANONICAL_DEFAULT_WORKSPACE",)
+                        if is_current
+                        else ("DEFAULT_WORKSPACE_NOT_CURRENT",)
+                    ),
+                ),
+            ),
+        )
 
 
 @dataclass(frozen=True)

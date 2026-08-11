@@ -1,72 +1,43 @@
-import { createContext, useContext, useState, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import RightRail from './RightRail'
 import RecoveryIndicator from './RecoveryIndicator'
-import { WorkspaceProvider } from './WorkspaceContext'
+import { useWorkspace, WorkspaceProvider } from './WorkspaceContext'
 import './AppShell.css'
 
-const WorkspaceScopedContext = createContext(null)
-
-export function useWorkspaceScoped() {
-  const ctx = useContext(WorkspaceScopedContext)
-  if (!ctx) return null
-  return ctx
-}
-
-function WorkspaceScopedProvider({ children }) {
-  const [userNote, setUserNote] = useState('')
-  const [currentMaterial, setCurrentMaterial] = useState(null)
-
-  const value = {
-    userNote,
-    onUserNoteChange: setUserNote,
-    currentMaterial,
-    onSetCurrentMaterial: setCurrentMaterial,
-    onClearCurrentMaterial: useCallback(() => setCurrentMaterial(null), []),
-  }
-
-  return (
-    <WorkspaceScopedContext.Provider value={value}>
-      {children}
-    </WorkspaceScopedContext.Provider>
-  )
-}
-
 export default function AppShell({ children, variant = 'standard' }) {
-  const isWorkspaceVariant = variant === 'workspace'
-
   return (
     <WorkspaceProvider>
-      <div className={`app-shell app-shell--${variant}`}>
-        <Sidebar />
-        <main className={`app-main app-main--${variant}`} id="main-content">
-          <RecoveryIndicator />
-          {isWorkspaceVariant ? (
-            <WorkspaceScopedProvider>
-              <div className="app-main--workspace-content">
-                <section className="app-main--center" aria-label="学习画布">
-                  {children}
-                </section>
-                <WorkspaceScopedRightRail />
-              </div>
-            </WorkspaceScopedProvider>
-          ) : (
-            children
-          )}
-        </main>
-      </div>
+      <AppShellContent variant={variant}>{children}</AppShellContent>
     </WorkspaceProvider>
   )
 }
 
-function WorkspaceScopedRightRail() {
-  const { userNote, onUserNoteChange, currentMaterial, onClearCurrentMaterial } = useWorkspaceScoped()
+function AppShellContent({ children, variant }) {
+  const isWorkspaceVariant = variant === 'workspace'
+  const workspace = useWorkspace()
+  const workspaceId = workspace?.current_workspace?.workspace_id
+
   return (
-    <RightRail
-      userNote={userNote}
-      onUserNoteChange={onUserNoteChange}
-      currentMaterial={currentMaterial}
-      onClearCurrentMaterial={onClearCurrentMaterial}
-    />
+    <div
+      className={`app-shell app-shell--${variant}`}
+      data-workspace-id={workspaceId || undefined}
+    >
+      <Sidebar />
+      <main className={`app-main app-main--${variant}`} id="main-content">
+        <RecoveryIndicator />
+        {isWorkspaceVariant ? (
+          <div className="app-main--workspace-content" data-workspace-id={workspaceId || undefined}>
+            <section
+              className="app-main--center"
+              aria-label="学习画布"
+              data-workspace-id={workspaceId || undefined}
+            >
+              {children}
+            </section>
+            <RightRail workspaceId={workspaceId} />
+          </div>
+        ) : children}
+      </main>
+    </div>
   )
 }

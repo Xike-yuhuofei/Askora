@@ -21,6 +21,7 @@ from app.contracts.library_management import LibraryCollectionViewV1, LibraryTag
 
 
 class WorkspaceSourceSystem(StrEnum):
+    PLATFORM_WORKSPACE = "PLATFORM_WORKSPACE"
     SYS01 = "SYS01"
     SYS03 = "SYS03"
     SYS06 = "SYS06"
@@ -33,6 +34,29 @@ class WorkspaceSourceStatusV1(ContractModel):
     availability: AvailabilityStatus
     source_ref: str | None = None
     reason_codes: tuple[str, ...] = ()
+
+
+class WorkspaceContextItemV1(ContractModel):
+    workspace_id: UUID
+    workspace_ref: str
+    display_name: str
+    version: int = Field(ge=1)
+    lifecycle: Literal["active", "trash"]
+    is_default: bool
+
+
+class WorkspaceContextDataV1(ContractModel):
+    view_state: Literal["READY", "MISSING", "PARTIAL", "STALE"]
+    current_workspace: WorkspaceContextItemV1 | None = None
+    switch_capability: Literal["SINGLE_WORKSPACE", "UNAVAILABLE"]
+
+
+class WorkspaceContextResponseV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    generated_at: datetime
+    data: WorkspaceContextDataV1
+    source_status: tuple[WorkspaceSourceStatusV1, ...]
+    correlation_id: str
 
 
 class ActiveGoalSummaryV1(ContractModel):

@@ -44,6 +44,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/library').type).toBe('page')
     expect(resolveRoute('/settings').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
+    expect(resolveRoute('/learning')).toMatchObject({ type: 'page', shell: 'workspace' })
   })
 
   it('routes goal creation, draft, detail and edit under /learning/goals without exposing ids as labels', () => {

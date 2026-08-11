@@ -20,13 +20,14 @@ from app.contracts.workspace import (
     LearningPathResponseV1,
     LibraryWorkspaceResponseV1,
     TodayWorkspaceResponseV1,
+    WorkspaceContextResponseV1,
 )
 from app.core.database import get_db
 from app.core.exceptions import BusinessError, ValidationInputError
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.queries.library import WorkspaceLibraryQueryService
-from app.queries.workspace import WorkspaceTodayQueryService
+from app.queries.workspace import WorkspaceContextQueryService, WorkspaceTodayQueryService
 from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.owner.dependencies import get_current_owner_projection
 from app.services.workspace.dependencies import get_default_workspace
@@ -49,6 +50,26 @@ def _require_activity_match(path_id: UUID, body_id: UUID) -> None:
             error_code="ACTIVITY_STALE_OR_SUPERSEDED",
             status_code=409,
         )
+
+
+@router.get(
+    "/context",
+    response_model=WorkspaceContextResponseV1,
+    summary="获取 canonical 当前工作区上下文",
+)
+async def get_workspace_context(
+    request: Request,
+    response: Response,
+    default_workspace: Workspace = Depends(get_default_workspace),
+    _current_user: User = Depends(get_current_owner_projection),
+) -> WorkspaceContextResponseV1:
+    """ADR-0019 query-only projection; never creates or switches Workspace."""
+    result = WorkspaceContextQueryService().get_context(
+        default_workspace,
+        correlation_id=getattr(request.state, "request_id", "unknown"),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return result
 
 
 @router.get(

@@ -1,6 +1,6 @@
 # UI-04 — UX Workspace Context and Three-Column Learning Architecture
 
-> Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**
+> Status: **FROZEN / SERIAL EXECUTION ACTIVE**
 > Governing: `ADR-0018`, `ADR-0014`, `UXA-IA-*`, `UXA-SCREEN-*`, `UXA-DATA-*`, `UXA-IES-*`, `UXA-COMP-*`, `UXA-VIS-*`, `UXA-QUAL-*`
 > Dependency: `EXEC-1062 DONE` + Workspace Product Architecture issues（XIK-171 / XIK-172 / XIK-177 / XIK-175 / XIK-179 / XIK-165 where applicable）
 > Implementation chain: `EXEC-068 → 069 → 070 → 071 → 072 → 073`
@@ -28,20 +28,20 @@ Workspace switch  Learner answers                   Citation / source context
 - 旧 `/learning/**` route 无副作用迁移；
 - deferred candidates 不建 placeholder。
 
-本 Slice 不改变任何 SYS01～SYS08 owner、Teaching Policy、LearningPlan、LearnerState、ReviewSchedule、ADT 或 data/security truth。不实现 Workspace / Notes / Context Drawer 的 owner 或 command；这些在对应 owner/query contract 冻结前由 EXEC 标记 `BLOCKED_BY_SPEC_GAP`。
+本 Slice 不改变任何 SYS01～SYS08 owner、Teaching Policy、LearningPlan、LearnerState、ReviewSchedule、ADT 或 data/security truth。不实现 Workspace / Notes / Context Drawer 的 owner 或 command。ADR-0019 已冻结 current Workspace 与 Drawer 的 read-only query composition；UserNote owner/command 仍由对应 EXEC 独立执行 gap gate。
 
 ## 2. Dependency Gate
 
 MUST 满足：
 
-- `ADR-0018` accepted 并登记于 `docs/adr/README.md`；
+- `ADR-0018`、`ADR-0019` accepted 并登记于 `docs/adr/README.md`；
 - `UI` Spec set（`UXA-*` 与既有 `UI-*`）FROZEN；
 - `EXEC-1062` DONE（shared frontend files non-overlap）；
 - Workspace Product Architecture dependency gate：XIK-171（Workspace/Project/Session persistence）、XIK-172（Workspace-scoped retrieval）、XIK-177（Workspace-scoped learner evidence）、XIK-175（non-core cleanup）、XIK-179、XIK-165 where applicable。UI-04 不得用前端 mock 绕过未完成的 Workspace 产品架构；
 - 当前 main 的 frontend tests/build baseline 已记录；
 - 无其他 active EXEC 同时修改本 Slice EXEC 的 Allowed Files，或已显式证明 non-overlap。
 
-未满足时 UI-04 与对应 EXEC 状态：`BLOCKED_BY_DEPENDENCY_GATE`。
+截至 EXEC-068/069 执行起点，上述依赖的 current-main implementation 已存在，ADR-0019 已关闭本两项 read-query gap。后续 EXEC 仍逐项重新验证自己的 owner/dependency gate；未满足时返回 `BLOCKED_BY_DEPENDENCY_GATE`。
 
 ## 3. User Jobs
 
