@@ -1,6 +1,6 @@
 # ADR-0018 — UX Workspace Context and Three-Column Learning Architecture
 
-Status: accepted  
+Status: partially superseded by ADR-0022
 Date: 2026-08-10  
 Decision owners: user-authorized Askora product governance  
 Decision authority: explicit user approval on 2026-08-10 to adopt the UX Architecture three-column model, Workspace context, hideable right rail, Learning Context Drawer, Learning de-management and Library no-OCR exposure  
@@ -22,6 +22,7 @@ Supersedes (partial): selected clauses of `ADR-0014` listed in Section 8
 - UI Specs 拥有 route / screen / interaction state / responsive / accessibility implementation contract；
 - Platform / Domain / Interface Specs 拥有 `current_workspace_id`、owner/query/command、persistence、revision 与 fail-closed mechanics；
 - current Experience Design 是新的实现读取入口，历史 UX Delta 只保存演进证据，不与其形成第二套 current truth。
+- ADR-0022 已 supersede 本 ADR 中 `Today / Learning / Library` left-navigation list 与 `Learning Domain → Workspace` 解释；三栏职责、shared canonical Workspace、Drawer、Right Rail、de-management 与 no-OCR consequence 继续有效。
 
 因此，本 ADR 中“Library v1 no OCR”“deferred candidates 不暴露”等内容不得被解释为 ADR 自行拥有 Product Scope；其 Product inclusion/exclusion 来自 current Product Definition，本 ADR 只冻结对应 UX 处理。
 
@@ -58,7 +59,7 @@ Workspace switch               Learner answers                   Citation / sour
                                Composer
 ```
 
-- Left = Where: stable product navigation (Today / Learning / Library), current canonical Workspace visibility, and Workspace switching.
+- Left = Where: current Course list/context、Create Course Action、Library、Utilities 与 canonical Workspace switching。原 Today / Learning / Library list 已被 ADR-0022 supersede。
 - Center = Learn: the sole Primary Learning Canvas. It presents teaching content, the current question/task, learner answers, feedback, next teaching round, streaming / complete / failed / recoverable state, and necessary citation / assistance / validation obligation. It MUST NOT become a Dashboard.
 - Right = Reference / Notes: hideable. V1 supports only Learning Notes and Current Material tabs. Citation / "view source" opens in the right rail contextually; the center does not leave the current learning task.
 
@@ -121,7 +122,7 @@ The following ADR-0014 clauses and their downstream UI Spec clauses are explicit
 | `IES-CD-008` (Goal/Path/Progress/History as Learning L1 facets) | **SUPERSEDED** for default exposure | current Experience Architecture |
 | ADR-0014 §8 / `IES-CD-013` + `UI-SCREEN-091` (OCR contextually revealable) | **SUPERSEDED FOR V1 UI** | Product Definition + current Experience/UI Specs |
 | ADR-0014 §9 Settings hierarchical categories | **KEEP** (unchanged principle) | current Interaction / UI Specs |
-| ADR-0014 §5 Today single primary task | **KEEP** (unchanged) | current Experience Architecture |
+| ADR-0014 §5 Today single primary task | **SUPERSEDED AS DESTINATION by ADR-0022**；single-primary-intent principle retained | ADR-0022 / current Experience Architecture |
 | ADR-0014 §6 7 semantic primitives | **KEEP** (unchanged) | current Interaction Model |
 | ADR-0014 L0..L5 hierarchy | **KEEP** (unchanged) | current Interaction Model |
 
@@ -211,4 +212,4 @@ UX / Engineering / Product Acceptance / Learning Evidence conclusions remain sep
 
 This ADR partially supersedes `ADR-0014` per the matrix in Section 8. It specializes UX/IA consequences of the current Product Definition and Workspace architecture. It does not supersede v0.3 Teaching Policy, SYS01..SYS08 ownership, ADR-0015 LocalOwner/no-auth, or ADR-0017 LocalSecretStore.
 
-Superseded by: none. Current semantics are **consolidated**, not superseded, by `docs/design/experience/**`.
+Partially superseded by ADR-0022 for the Today/Learning/Library left-navigation list and `Learning Domain → Workspace` experience interpretation. Three-column responsibilities、shared canonical Workspace、Drawer、Right Rail、Learning de-management 与 Library no-OCR consequence continue to apply and are consolidated in `docs/design/experience/**`.

@@ -4,6 +4,7 @@
 > Date: 2026-08-09
 > Decision authority: user-delegated Codex
 > Authorized objective: 真正关闭 P1-06 首次使用引导并通过相关测试
+> IA amendment: ADR-0022 supersedes `/today` as a default entry；onboarding completion now returns through Course-centric startup resolution
 
 ## Context
 
@@ -25,8 +26,9 @@ P1-06 还依赖正在独立交付的 P1-02 模型配置、P1-03 数据控制和 
    accepted transcript source ref；不从消息、时间、模型结果或 UI action 推断。
 5. 一个 response 只返回一个 server-selected `next_action`。存在多个合理业务对象时返回选择页面，
    不按时间或数组顺序隐式选择。
-6. `/welcome` 受保护；只有默认 `/`/`/today` 入口可在 active+incomplete 时重定向。所有明确 deep
-   link 保持原目标。
+6. `/welcome` 受保护；只有默认 `/` 入口可在 active+incomplete 时重定向。`/today`、`/learning`
+   作为 legacy aliases 先按 ADR-0022 做无副作用兼容解析，再应用同一 onboarding guard；所有明确
+   Course / Activity deep link 保持原目标。
 7. dismiss 只改变展示偏好；reopen 从 Settings 发起；finish 必须在同一 command 内重查 current
    completion 后才能 dismiss。
 8. 迁移时现有用户 backfill 为 dismissed，不猜测历史完成；迁移后新用户默认 active。
@@ -98,4 +100,6 @@ P1-06 还依赖正在独立交付的 P1-02 模型配置、P1-03 数据控制和 
 ## Supersedes / Superseded By
 
 本 ADR additive 建立 P1-06 presentation/read-model 边界，不改变 P1-02、P1-03、P1-07 或 SYS01～SYS08
-的 owner、command、错误和生命周期语义。
+的 owner、command、错误和生命周期语义。ADR-0022 仅 supersede 本 ADR 中 `/today` 作为默认入口的
+route mental model；事实驱动 readiness、presentation preference、deep-link preservation 与 owner
+边界继续有效。

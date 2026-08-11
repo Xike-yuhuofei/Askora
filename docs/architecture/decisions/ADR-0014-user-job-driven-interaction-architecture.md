@@ -1,6 +1,6 @@
 # ADR-0014 — User-job-driven Information and Interaction Architecture
 
-Status: **partially superseded by ADR-0018; retained principles consolidated into current Experience Design**  
+Status: **partially superseded by ADR-0018 and ADR-0022; retained principles consolidated into current Experience Design**
 Date: 2026-08-10  
 Decision owners: user-authorized Askora product governance  
 Decision authority: explicit user approval on 2026-08-10 to adopt and execute the Interactive Elements redesign  
@@ -22,11 +22,10 @@ Current experience representation: `docs/design/experience/EXPERIENCE-ARCHITECTU
    - 本 ADR §8 OCR contextually revealable 的 normal-v1 UI consequence；
    - 本 ADR §10 对 `/learning/goals|plan|progress|history` 作为 canonical permanent facets 的 route assumption；
    - 旧 learning workspace layout 的相应部分。
-3. 以下核心原则继续有效并已吸收到 current Experience Design：
+3. `ADR-0022` 进一步 supersede 本 ADR 的 `Today / Learning / Library` 三 L0 与 Today stable destination；以下核心原则继续有效并已吸收到 current Experience Design：
    - User Job → Product/Domain Meaning → IA → Interaction Semantics → Pattern → Component；
-   - Today / Learning / Library 三个 L0 Product Domains；
    - Chat/Tutor 不是 L0；
-   - Today single primary task；
+   - 一个局部主任务只保留一个 primary intent；
    - 7 类 semantic interaction primitives；
    - L0～L5 interaction hierarchy；
    - progressive disclosure；
@@ -81,6 +80,8 @@ User Job
 资料库
 ```
 
+> Current disposition：本节三 L0 已被 ADR-0022 supersede。Current IA 为 `＋ 新课程` Action + Course navigation + Library + Utilities。
+
 `设置` 保留为 App-level destination/command，不属于 Product Domain Navigation。
 
 ### 3. Learning 聚合长期学习 Facets
@@ -116,6 +117,8 @@ Compatibility Quick Start 仅允许：
 
 - 无 canonical Goal/Plan 时作为 fallback；或
 - overflow / secondary utility。
+
+> Current disposition：Today stable destination 已被 ADR-0022 supersede；“一个局部任务只有一个 primary intent”原则继续有效并适用于 Course Empty State、Course creation 与 current Activity。
 
 ### 6. Semantic Interaction Primitives 固定为 7 类
 
@@ -279,12 +282,12 @@ Rollback/forward-fix：若新 shell 存在阻断性问题，可暂时恢复旧 p
 
 ## Validation
 
-至少验证 current applicable retained semantics：
+以下为历史 rollout validation；其中 L0/Today 项已被 ADR-0022 supersede，current validation 读取 ADR-0022 + current Experience/UI Specs：
 
-- L0 navigation 只有 Today / Learning / Library product domains；
-- `/` 仍安全进入 Today / onboarding contract；
+- Course-centric L0 与 ADR-0022 一致；
+- `/` 按 ADR-0022 安全进入 Course-centric startup / onboarding contract；
 - legacy goal/path/evidence/history routes 无副作用 redirect；
-- Today canonical activity 可用时只有一个 primary task；
+- 当前 Course/Activity 局部任务只有一个 primary intent；
 - Quick Start 不与 canonical activity 同级；
 - current Experience task flows keyboard/pointer/touch 可达；
 - Settings 二级 destination 可返回且 destructive flow 不弱化；
@@ -299,4 +302,4 @@ Engineering / UX / Product Acceptance / Learning Evidence 结论继续分离。�
 
 本 ADR superseded 当时 UI Spec 中将 Goals / Path / Evidence / History / Settings 作为同级 L0 Navigation Item 的设计选择。
 
-**Partially superseded by `ADR-0018`**：具体 clause 见 ADR-0018 §8。Current retained semantics 已 consolidation 到 `docs/design/experience/**`；这些 current Experience docs 是实现入口，本 ADR 保留 rationale / decision history。
+**Partially superseded by `ADR-0018` and `ADR-0022`**：ADR-0018 处置旧 Learning management/layout；ADR-0022 处置 Today/Learning/Library 三 L0、Today stable destination 与 Course-centric route mental model。Current retained semantics 已 consolidation 到 `docs/design/experience/**`；这些 current Experience docs 是实现入口，本 ADR 保留 rationale / decision history。

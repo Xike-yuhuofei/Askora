@@ -312,9 +312,9 @@ Current Workspace/Project/Session ownership and migration authority. `user_docum
 
 Current LocalSecretStore authority. Production supports exact approved OS-backed keyring adapters with fail-closed backend selection and non-secret activation journal。
 
-### ADR-0018 / ADR-0019
+### ADR-0018 / ADR-0019 / ADR-0022
 
-Current Experience/UI Workspace authority. Historical UXA clauses remain traceable, but new UI implementation reads consolidated Experience/UI contracts plus the frontend technical read-model contract。
+Current Experience/UI Workspace authority. ADR-0022 freezes Course-centric IA while retaining canonical Workspace identity. Historical UXA clauses remain traceable, but new UI implementation reads consolidated Experience/UI contracts plus the frontend technical read-model contract。Course list/create/current/switch and Activity Switcher require an additional accepted technical query/command delta before frontend implementation。
 
 ## 8. Migration and Compatibility Rules
 

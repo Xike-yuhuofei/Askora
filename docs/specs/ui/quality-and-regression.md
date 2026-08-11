@@ -61,11 +61,13 @@ UI/UX PASS 不能自动满足 Product Acceptance，更不能证明真实 retenti
 
 必须验证：
 
-- L0 仍只有 Today / Learning / Library；
+- Today / Learning 不再是 L0 或 stable Product Domain；
+- `＋ 新课程` 是 Action，Course rows 是 Navigation / InteractiveContent；
+- 用户界面使用“课程”，canonical Workspace identity 不变；
 - Settings/Recovery 是 Utility；
 - Chat/Tutor 不成为 Product Domain；
-- Learning 不恢复 Goal/Plan/Progress/History 常驻管理中心；
-- Today canonical activity 存在时仍只有一个 Primary Learning Task；
+- Course 不恢复 Goal/Plan/Progress/History 常驻管理中心；
+- 不新增 Today replacement Dashboard；
 - route/navigation 不产生隐藏 business write；
 - domain object 不因新增 backend projection 自动变成 page/nav/card；
 - frontend 不产生第二 canonical truth。
@@ -94,9 +96,10 @@ UI/UX PASS 不能自动满足 Product Acceptance，更不能证明真实 retenti
 必须验证：
 
 - Left/Center/Right/Drawer 使用同一 current Workspace；
+- Course list/create/current/switch 来自 Platform Workspace Registry owner contract；
 - Workspace switch 处理 draft / stream / note / active session / material position；
 - cross-Workspace Material/Source/Note access fail closed；
-- 单一 Workspace 不显示虚假 selector；
+- Activity Switcher 只显示当前 Course exact refs，不使用 Chat thread title/count；
 - Workspace switch 不通过清空 frontend state 假装成功；
 - browser memory 不被描述为 durable recovery。
 
@@ -210,7 +213,8 @@ streaming 不得对每个 token delta 产生 screen-reader spam。
 
 至少验证：
 
-- stable product destinations；
+- `/`、`/courses/new`、`/courses/:workspaceId`、course-scoped Activity destination；
+- `/today`、`/learning` compatibility resolution；
 - Workspace-scoped routes（存在时）；
 - activity/session deep links；
 - compatibility goal/plan/progress/history routes；
@@ -322,7 +326,8 @@ pre-existing failure
 仅自动化通过仍不足以证明复杂学习体验质量。M5 / release acceptance 应至少人工检查：
 
 - 首次进入是否理解该做什么；
-- Today → Learning 是否自然；
+- 无 Course → 新课程 → 首个 Activity 是否自然；
+- Course / Activity 恢复与切换是否可理解；
 - 长解释与 Question boundary 是否清晰；
 - Attempt / Feedback 是否容易对应；
 - citation / source 查看是否不打断学习；
@@ -367,9 +372,10 @@ Learning Evidence Gate PASS
 
 - Product / Design / Spec authority conflict 未解决；
 - frontend mock 冒充 canonical owner truth；
-- Learning 恢复常驻管理 dashboard；
-- Today primary hierarchy 回归；
+- Course 恢复常驻管理 dashboard；
+- Today / Learning L0 或 replacement Dashboard 回归；
 - Workspace scope 不一致；
+- Course create/switch 或 Activity Switcher 使用 frontend mock/placeholder；
 - Note/source 有静默数据丢失或 leakage；
 - Library normal UI 暴露已排除 OCR/deferred candidate；
 - 360 / 200% zoom / keyboard / error path 未验证；
@@ -389,3 +395,4 @@ Learning Evidence Gate PASS
 - `UI-QR-AC-006`：long-session / streaming / source / notes failure paths 有验证；
 - `UI-QR-AC-007`：一次性 migration status 不进入本长期合同；
 - `UI-QR-AC-008`：UI/UX Acceptance、Product Acceptance、Learning Evidence 分开报告。
+- `UI-QR-AC-009`：Course-centric navigation、empty/create/switch、Activity Switcher 与 legacy route migration 有自动化和人工证据。

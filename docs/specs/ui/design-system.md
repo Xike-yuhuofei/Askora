@@ -352,6 +352,10 @@ Product Domain 与 Utility 必须视觉分组；Settings / Recovery 不得因同
 
 Navigation activation 不产生隐藏 business write。
 
+### UI-DS-COMP-013 — Create Course Action
+
+`＋ 新课程` 使用既有 primary Action / Button foundation，不创建 Course-specific token 或独立 button family。其层级在 Left / Where 中突出，但仍必须具备 focus、pending、error 与 accessible name；打开 flow 不等于创建成功。
+
 ---
 
 ## 10. Rows / Lists / Interactive Content
@@ -367,6 +371,19 @@ Row 主点击区只表达一个可预测 intent。Trailing contextual action 是
 ### UI-DS-COMP-022
 
 Contextual action 不得只在 hover 出现；keyboard focus、touch、More Menu 或 Context Menu 必须存在等价发现路径。
+
+### UI-DS-COMP-023 — Course Row
+
+Course row 复用 Navigation / InteractiveContent row：
+
+- primary label 使用课程名称；
+- selected/current、focus 与 pending switch 状态可同时被识别；
+- trailing state/action 是独立 target；
+- 不使用统计 Card、彩色学科 token 或 mastery decoration 让课程列表变成 Dashboard。
+
+### UI-DS-COMP-024 — Activity Switcher
+
+Activity Switcher 复用 Row/List + Disclosure/Navigation pattern。Activity title 使用学习语义；current/resumable/available 状态有文本或结构表达。Start/Resume Action 与仅查看/导航的 intent 不得混成不可预测的一次 click。
 
 ---
 
@@ -569,6 +586,7 @@ Design System Spec
 禁止：
 
 - token 名称直接等于页面/feature；
+- Course-specific color/token/component fork；
 - component variant 定义业务状态 ownership；
 - Card/Button/Badge 成为 interaction ontology；
 - hover-only core action；
@@ -592,3 +610,4 @@ Design System Spec
 - `UI-DS-AC-007`：360px / 200% zoom / long content 下 reusable components 不导致页面级横向滚动；
 - `UI-DS-AC-008`：`.design_library` / code / screenshot 不形成第二 Design System Authority；
 - `UI-DS-AC-009`：Design System pass 不被描述为 Product Acceptance 或 Learning Evidence pass。
+- `UI-DS-AC-010`：Create Course、Course Row 与 Activity Switcher 复用既有 Action/Nav/Row/Disclosure foundation，无 feature-specific token fork。
