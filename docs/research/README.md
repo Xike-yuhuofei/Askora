@@ -15,7 +15,8 @@ docs/research/
 └── product-strategy/
     ├── USER-PROBLEM-JTBD-RESEARCH.md
     ├── ALTERNATIVES-OPPORTUNITY-RESEARCH.md
-    └── DISCOVERY-EVIDENCE-SYNTHESIS.md
+    ├── DISCOVERY-EVIDENCE-SYNTHESIS.md
+    └── PRIMARY-DISCOVERY-PROTOCOL.md
 ```
 
 ### Product Strategy Research
@@ -23,6 +24,7 @@ docs/research/
 - [`USER-PROBLEM-JTBD-RESEARCH.md`](product-strategy/USER-PROBLEM-JTBD-RESEARCH.md)：建立 Problem / Primary User / JTBD 假设与 Primary Discovery protocol。
 - [`ALTERNATIVES-OPPORTUNITY-RESEARCH.md`](product-strategy/ALTERNATIVES-OPPORTUNITY-RESEARCH.md)：记录替代产品能力与 Askora 的机会假设。
 - [`DISCOVERY-EVIDENCE-SYNTHESIS.md`](product-strategy/DISCOVERY-EVIDENCE-SYNTHESIS.md)：XIK-181 外部经验研究、替代产品、Assessment 边界与 assumption status synthesis；明确哪些结论仍需 Primary Discovery。
+- [`PRIMARY-DISCOVERY-PROTOCOL.md`](product-strategy/PRIMARY-DISCOVERY-PROTOCOL.md)：XIK-182 真人 JTBD / behavior / friction / first-value / assessment calibration 执行协议；protocol 本身不算 Primary Evidence。
 
 ## 2. Research 职责
 
@@ -88,7 +90,8 @@ competitor does not advertise feature X
 
 - 外部论文、官方产品文档和公开行为信号属于 **Secondary Evidence**；
 - 真人 retrospective interview、真实 workflow reconstruction、prototype behavior test、longitudinal use 属于 **Primary Discovery Evidence**；
-- Secondary Evidence 可以降低假设不确定性，但不能单独把 Primary User / JTBD / willingness assumption 升级为 `Validated`。
+- Secondary Evidence 可以降低假设不确定性，但不能单独把 Primary User / JTBD / willingness assumption 升级为 `Validated`；
+- Research Protocol 定义如何收集证据，但 **protocol completion != Primary Evidence**。
 
 ## 4. Lifecycle
 
