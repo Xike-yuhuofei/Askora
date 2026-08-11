@@ -478,6 +478,14 @@ SUBJECT_REGISTRY: dict[str, SubjectRegistryEntry] = {
         propagate=("trajectory_id",),
         within_order=30,
     ),
+    "material_lifecycle_receipts": _entry(
+        "SYS01",
+        _E,
+        "material_lifecycle_receipt",
+        subject=("pseudonym_id",),
+        refs=("material_id",),
+        json=("result_payload",),
+    ),
     "outbox_tasks": _entry(
         "SYS08_TASKS",
         _E,

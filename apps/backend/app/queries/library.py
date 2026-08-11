@@ -37,6 +37,7 @@ from app.models.document import (
     DocumentCollectionAssignment,
     DocumentTagAssignment,
     LibrarySearchProjection,
+    MaterialLifecycle,
     ModerationStatus,
     ProcessingStatus,
     UserDocument,
@@ -116,7 +117,8 @@ class WorkspaceLibraryQueryService:
                 UserDocument.pseudonym_id == current_user.pseudonym_id,
                 # EXEC063-AC-002: exact Workspace filter, never broader.
                 UserDocument.workspace_id == workspace_id,
-                UserDocument.is_deleted.is_(archived),
+                UserDocument.lifecycle
+                == (MaterialLifecycle.TRASH if archived else MaterialLifecycle.ACTIVE),
             )
         )
         if status:
@@ -255,7 +257,7 @@ class WorkspaceLibraryQueryService:
                 UserDocument.pseudonym_id == current_user.pseudonym_id,
                 # EXEC063-AC-002: an exact Workspace is required to read a Material.
                 UserDocument.workspace_id == workspace_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:

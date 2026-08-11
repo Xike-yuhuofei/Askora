@@ -16,7 +16,7 @@ from app.contracts.recovery import (
 )
 from app.domains.content_knowledge import SAFETY_REINSPECTION_KEY, SAFETY_SCANNER_VERSION
 from app.infrastructure.recovery import RecoveryLedgerRepository
-from app.models.document import DocumentOcrRun, ProcessingStatus, UserDocument
+from app.models.document import DocumentOcrRun, MaterialLifecycle, ProcessingStatus, UserDocument
 from app.models.ledger import OutboxTaskRecord, RecoveryEventRecord
 from app.models.user import User
 from app.services.documents.document_service import (
@@ -104,7 +104,7 @@ class RecoveryQueryService:
                 await self._session.scalars(
                     select(UserDocument).where(
                         UserDocument.pseudonym_id == user.pseudonym_id,
-                        UserDocument.is_deleted.is_(False),
+                        UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                     )
                 )
             ).all()
@@ -247,7 +247,7 @@ class RecoveryQueryService:
                     DocumentOcrRun.pseudonym_id == user.pseudonym_id,
                     DocumentOcrRun.status == "review_required",
                     UserDocument.pseudonym_id == user.pseudonym_id,
-                    UserDocument.is_deleted.is_(False),
+                    UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                 )
             )
         ).all()
@@ -304,7 +304,7 @@ class RecoveryQueryService:
                         select(UserDocument.id).where(
                             UserDocument.id == document_id,
                             UserDocument.pseudonym_id == user.pseudonym_id,
-                            UserDocument.is_deleted.is_(False),
+                            UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
                         )
                     )
                 )

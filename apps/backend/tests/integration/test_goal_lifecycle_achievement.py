@@ -26,7 +26,7 @@ from app.contracts.goal_management import (
 from app.core.database import Base
 from app.core.exceptions import BusinessError
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
-from app.models.document import UserDocument
+from app.models.document import MaterialLifecycle, UserDocument
 from app.models.user import User
 from app.services.activity_lifecycle import ActivityLifecycleService
 from app.services.documents.document_service import DocumentService
@@ -299,7 +299,7 @@ async def test_resume_with_expired_source_stays_paused_and_requires_replan(tmp_p
         )
         definition = (await service.get_goal_detail(user=user, goal_id=goal_id)).definition
         document = await session.get(UserDocument, str(definition.source_document_ids[0]))
-        document.is_deleted = True
+        document.lifecycle = MaterialLifecycle.TRASH
         await session.flush()
         with pytest.raises(BusinessError) as blocked:
             await service.resume_goal(

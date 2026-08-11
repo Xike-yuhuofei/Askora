@@ -51,6 +51,33 @@ class ModerationStatus:
     REQUIRES_REVIEW = "requires_review"  # 需人工复核
 
 
+class MaterialLifecycle:
+    """Canonical Material lifecycle (MATLIFE-010/011/013).
+
+    ``active`` MAY participate in ordinary search/retrieval/learning.
+    ``trash`` is durable and recoverable; excluded from ordinary visibility.
+    ``deleted`` is a terminal legacy tombstone only (MATLIFE-083): the managed
+    SourceFile was already removed under the old contract, so the row is a
+    historical-loss record and is never restorable. Normal Permanent Delete
+    removes the Material row entirely through the canonical Data Control
+    ``DOCUMENT`` erasure workflow and therefore does not persist ``deleted``.
+    """
+
+    ACTIVE = "active"
+    TRASH = "trash"
+    DELETED = "deleted"
+
+
+class TrashReason:
+    """Origin/cause of a Material entering Trash (MATLIFE-020)."""
+
+    USER_DELETE = "USER_DELETE"
+    BATCH_DELETE = "BATCH_DELETE"
+    LEGACY_DELETE_SOURCE_PRESENT = "LEGACY_DELETE_SOURCE_PRESENT"
+    LEGACY_SOURCE_ALREADY_REMOVED = "LEGACY_SOURCE_ALREADY_REMOVED"
+    OTHER = "OTHER"
+
+
 class UserDocument(Base):
     """
     用户文档表
@@ -122,9 +149,18 @@ class UserDocument(Base):
     )
     access_count: Mapped[int] = mapped_column(Integer, default=0)
 
-    # 软删除
+    # 软删除（生命周期兼容镜像，仅限有界窗口，非真相：MATLIFE-085）
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # 规范 Material lifecycle（MATLIFE-010/011/013/020）
+    # lifecycle_version 单调递增，Trash/Restore 乐观并发（MATLIFE-021）
+    lifecycle: Mapped[str] = mapped_column(
+        String(20), default=MaterialLifecycle.ACTIVE, index=True, server_default="active"
+    )
+    lifecycle_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    trash_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -151,12 +187,17 @@ class UserDocument(Base):
 
     @property
     def is_available(self) -> bool:
-        """文档是否可用于检索（已处理 + 审核通过 + 未删除）"""
+        """文档是否可用于检索（已处理 + 审核通过 + active）"""
         return (
             self.processing_status == ProcessingStatus.COMPLETED
             and self.moderation_status == ModerationStatus.APPROVED
-            and not self.is_deleted
+            and self.lifecycle == MaterialLifecycle.ACTIVE
         )
+
+    @property
+    def is_active(self) -> bool:
+        """Canonical active-lifecycle check (MATLIFE-010)."""
+        return self.lifecycle == MaterialLifecycle.ACTIVE
 
 
 class DocumentChunk(Base):
@@ -303,6 +344,40 @@ class LibrarySearchProjection(Base):
     __table_args__ = (
         Index("ix_library_search_owner_title", "pseudonym_id", "normalized_title"),
         Index("ix_library_search_owner_freshness", "pseudonym_id", "freshness"),
+    )
+
+
+class MaterialLifecycleReceipt(Base):
+    """Durable idempotency receipt for Material Trash/Restore commands (MATLIFE-022/032).
+
+    A repeat of the same command with the same idempotency key returns the stored
+    original result; the same key with a different payload/target is a conflict.
+    """
+
+    __tablename__ = "material_lifecycle_receipts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    pseudonym_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.pseudonym_id"))
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, index=True, server_default=null()
+    )
+    material_id: Mapped[str] = mapped_column(String(36), index=True)
+    command_type: Mapped[str] = mapped_column(String(30))
+    idempotency_key: Mapped[str] = mapped_column(String(200))
+    payload_digest: Mapped[str] = mapped_column(String(64))
+    result_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "pseudonym_id",
+            "command_type",
+            "idempotency_key",
+            name="uq_material_lifecycle_receipt_owner_command_key",
+        ),
     )
 
 

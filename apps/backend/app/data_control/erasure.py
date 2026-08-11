@@ -62,7 +62,15 @@ from app.models.data_control import (
     DataErasureWorkflowRecord,
 )
 from app.models.dialog import DialogMessage, DialogSession
-from app.models.document import DocumentChunk, UserDocument
+from app.models.document import (
+    DocumentChunk,
+    DocumentCollectionAssignment,
+    DocumentOcrRun,
+    DocumentTagAssignment,
+    DuplicateSuggestion,
+    LibrarySearchProjection,
+    UserDocument,
+)
 from app.models.ledger import (
     DecisionTraceInputRecord,
     DecisionTraceRecord,
@@ -81,6 +89,7 @@ from app.models.planning import (
     ReviewScheduleRecord,
 )
 from app.models.user import User
+from app.models.workspace import ProjectMaterial, SourceFile
 
 PREVIEW_TTL = timedelta(minutes=10)
 
@@ -1247,6 +1256,75 @@ class ErasureCoordinator:
                 DocumentChunk,
                 DocumentChunk.id,
                 chunk_ids,
+            ),
+            await self._op(
+                "SYS01",
+                SourceFile,
+                SourceFile.source_file_id,
+                await self._ids(
+                    select(SourceFile.source_file_id).where(SourceFile.material_id == document_id)
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                ProjectMaterial,
+                ProjectMaterial.material_id,
+                await self._ids(
+                    select(ProjectMaterial.material_id).where(
+                        ProjectMaterial.material_id == document_id
+                    )
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                LibrarySearchProjection,
+                LibrarySearchProjection.document_id,
+                await self._ids(
+                    select(LibrarySearchProjection.document_id).where(
+                        LibrarySearchProjection.document_id == document_id
+                    )
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                DocumentTagAssignment,
+                DocumentTagAssignment.document_id,
+                await self._ids(
+                    select(DocumentTagAssignment.document_id).where(
+                        DocumentTagAssignment.document_id == document_id
+                    )
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                DocumentCollectionAssignment,
+                DocumentCollectionAssignment.document_id,
+                await self._ids(
+                    select(DocumentCollectionAssignment.document_id).where(
+                        DocumentCollectionAssignment.document_id == document_id
+                    )
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                DocumentOcrRun,
+                DocumentOcrRun.id,
+                await self._ids(
+                    select(DocumentOcrRun.id).where(DocumentOcrRun.document_id == document_id)
+                ),
+            ),
+            await self._op(
+                "SYS01",
+                DuplicateSuggestion,
+                DuplicateSuggestion.id,
+                await self._ids(
+                    select(DuplicateSuggestion.id).where(
+                        or_(
+                            DuplicateSuggestion.primary_document_id == document_id,
+                            DuplicateSuggestion.candidate_document_id == document_id,
+                        )
+                    )
+                ),
             ),
             await self._op(
                 "SYS01",

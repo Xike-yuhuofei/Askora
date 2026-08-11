@@ -36,7 +36,12 @@ from app.domains.content_knowledge import (
     build_multi_granularity_projections,
 )
 from app.infrastructure.outbox import OutboxProducer
-from app.models.document import DocumentOcrCandidate, DocumentOcrRun, UserDocument
+from app.models.document import (
+    DocumentOcrCandidate,
+    DocumentOcrRun,
+    MaterialLifecycle,
+    UserDocument,
+)
 from app.services.documents.document_service import DocumentService
 from app.services.documents.library_management import LibraryManagementService
 from app.services.storage.local_storage import LocalFileStorage, get_local_storage
@@ -531,7 +536,7 @@ class OcrService:
             select(UserDocument).where(
                 UserDocument.id == document_id,
                 UserDocument.pseudonym_id == pseudonym_id,
-                UserDocument.is_deleted.is_(False),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
             )
         )
         if document is None:

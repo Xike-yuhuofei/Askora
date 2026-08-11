@@ -1686,7 +1686,7 @@ class GoalManagementService:
             revision_id = record.get("current_revision_id")
             reason_codes: tuple[str, ...]
             status: Literal["executable", "waiting", "blocked"]
-            if document.is_deleted:
+            if not document.is_active:
                 status = "blocked"
                 reason_codes = ("GOAL_SOURCE_ARCHIVED",)
             elif document.moderation_status in {

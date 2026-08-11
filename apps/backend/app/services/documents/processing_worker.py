@@ -19,7 +19,7 @@ from app.infrastructure.outbox import (
     PermanentTaskError,
     utc_now,
 )
-from app.models.document import ProcessingStatus, UserDocument
+from app.models.document import MaterialLifecycle, ProcessingStatus, UserDocument
 from app.services.documents.document_service import (
     DOCUMENT_PROCESS_TASK_SCHEMA_VERSION,
     DOCUMENT_PROCESS_TASK_TYPE,
@@ -64,7 +64,9 @@ class DocumentProcessingWorker:
                 )
                 documents = (
                     await session.scalars(
-                        select(UserDocument).where(UserDocument.is_deleted.is_(False))
+                        select(UserDocument).where(
+                            UserDocument.lifecycle == MaterialLifecycle.ACTIVE
+                        )
                     )
                 ).all()
                 enqueued = 0

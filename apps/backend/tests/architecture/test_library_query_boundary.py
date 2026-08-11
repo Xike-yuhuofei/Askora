@@ -30,6 +30,7 @@ def test_ui02a_library_query_is_read_only_and_has_no_cross_owner_write() -> None
         "DocumentCollectionAssignment",
         "DocumentTagAssignment",
         "LibrarySearchProjection",
+        "MaterialLifecycle",
         "ModerationStatus",
         "ProcessingStatus",
         "User",
