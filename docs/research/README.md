@@ -14,8 +14,15 @@ docs/research/
 ├── README.md
 └── product-strategy/
     ├── USER-PROBLEM-JTBD-RESEARCH.md
-    └── ALTERNATIVES-OPPORTUNITY-RESEARCH.md
+    ├── ALTERNATIVES-OPPORTUNITY-RESEARCH.md
+    └── DISCOVERY-EVIDENCE-SYNTHESIS.md
 ```
+
+### Product Strategy Research
+
+- [`USER-PROBLEM-JTBD-RESEARCH.md`](product-strategy/USER-PROBLEM-JTBD-RESEARCH.md)：建立 Problem / Primary User / JTBD 假设与 Primary Discovery protocol。
+- [`ALTERNATIVES-OPPORTUNITY-RESEARCH.md`](product-strategy/ALTERNATIVES-OPPORTUNITY-RESEARCH.md)：记录替代产品能力与 Askora 的机会假设。
+- [`DISCOVERY-EVIDENCE-SYNTHESIS.md`](product-strategy/DISCOVERY-EVIDENCE-SYNTHESIS.md)：XIK-181 外部经验研究、替代产品、Assessment 边界与 assumption status synthesis；明确哪些结论仍需 Primary Discovery。
 
 ## 2. Research 职责
 
@@ -64,11 +71,24 @@ implemented
 也禁止：
 
 ```text
+secondary research supports a problem
+→ therefore target users will adopt the product
+```
+
+还禁止：
+
+```text
 competitor does not advertise feature X
 → therefore competitor definitely cannot do X
 ```
 
 竞争/替代研究只根据可验证公开事实描述能力，再单独写 Askora 的战略推论。
+
+### Primary vs Secondary Discovery
+
+- 外部论文、官方产品文档和公开行为信号属于 **Secondary Evidence**；
+- 真人 retrospective interview、真实 workflow reconstruction、prototype behavior test、longitudinal use 属于 **Primary Discovery Evidence**；
+- Secondary Evidence 可以降低假设不确定性，但不能单独把 Primary User / JTBD / willingness assumption 升级为 `Validated`。
 
 ## 4. Lifecycle
 
