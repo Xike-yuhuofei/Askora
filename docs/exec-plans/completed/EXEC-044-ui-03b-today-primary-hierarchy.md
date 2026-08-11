@@ -1,6 +1,6 @@
 # EXEC-044 — UI-03B Today Primary Hierarchy
 
-> Status: **FROZEN / BLOCKED_BY_DEPENDENCY_GATE**  
+> Status: **DONE**
 > Priority: P0 Interaction Architecture  
 > Governing: `docs/product/PRODUCT-POSITIONING.md`, ADR-0014, `UI-IES-*`, `UI-IA-050..051`, `UI-SCREEN-010..017`, UI-03 Vertical Slice  
 > Depends on: `EXEC-043 DONE`

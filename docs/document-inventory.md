@@ -1,8 +1,8 @@
 # Askora 文档处置清单
 
 > 状态：Current
-> 校准日期：2026-08-10
-> 基线提交：`80436354a9a7ef9043113f8b4356b8b2818c2301`
+> 校准日期：2026-08-11
+> 基线提交：`adc64f1ed820974387f5d5adeabb75e2a2fd37e0`
 > 目的：为当前受跟踪 Markdown/RST 文档声明 lifecycle/disposition；实时执行状态仍以对应索引、Linear 和 current `main` 为准。
 
 处置代码：
@@ -26,6 +26,11 @@
 | `Askora EXEC-047 执行提示词.md` | SUPPORT-RETAIN | EXEC-047 执行代理提示词 |
 | `Askora EXEC-042 剩余收口执行提示词.md` | SUPPORT-RETAIN | EXEC-042 剩余收口执行提示词 |
 | `Askora CI v2 + Local Web Baseline 全链路自主执行提示词.md` | SUPPORT-RETAIN | CI v2 + Local Web Baseline 全链路自主执行提示词 |
+| `Professional App Development Framework.md` | SUPPORT-RETAIN | 本地产品开发方法工作稿；不构成 Askora Product/ADR/Spec 权威合同 |
+| `askora-learning-conversation-message-system-canonical-design.md` | SUPPORT-RETAIN | 本地消息系统设计工作稿；未进入治理链，不构成 Canonical Design |
+| `design-recommendations.md` | SUPPORT-RETAIN | 本地 UI 设计建议工作稿；不覆盖已冻结 UI Specs |
+| `exec-report-XIK-174-EXEC-065.md` | HISTORICAL-RETAIN | XIK-174 / EXEC-065 历史执行证据快照 |
+| `exec-report-XIK-176-v1-product-positioning-conformance.md` | HISTORICAL-RETAIN | XIK-176 v1 Product Positioning 验收证据快照 |
 | `apps/backend/README.md` | CURRENT-UPDATED | 后端模块与命令已对齐 v0.3/CI |
 | `apps/frontend/README.md` | CURRENT-UPDATED | 当前前端说明；Desktop/Electron 历史内容不得覆盖 v1 Local Web 产品定位 |
 | `apps/frontend/resources/backend/README.md` | SUPPORT-RETAIN | Electron 历史后端资源目录说明；非 v1 canonical runtime |
@@ -61,6 +66,9 @@
 | `docs/adr/ADR-0013-desktop-model-credential-and-activation.md` | CANONICAL-RETAIN | **Partially superseded**；routing/secret/probe/rollback invariant 保留，Desktop/Electron mechanics 已退役 |
 | `docs/adr/ADR-0014-user-job-driven-interaction-architecture.md` | CANONICAL-RETAIN | Accepted user-job-driven IA、3-domain navigation 与 Interactive Element System 决策 |
 | `docs/adr/ADR-0015-local-single-user-identity-without-authentication.md` | CANONICAL-RETAIN | Accepted LocalOwner/no-auth/loopback identity decision |
+| `docs/adr/ADR-0016-workspace-project-and-learning-session-scope-ownership.md` | CANONICAL-RETAIN | Accepted Workspace/Project/Session scope、ownership 与 migration decision |
+| `docs/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md` | CANONICAL-RETAIN | Accepted OS-backed LocalSecretStore 与 crash-consistent activation decision |
+| `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | CANONICAL-RETAIN | Accepted Workspace Context UX architecture decision；保留 Today single-primary invariant |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | CANONICAL-RETAIN | P1-03 local recovery、portability 与 owner erasure decision |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | CANONICAL-RETAIN | P1-06 presentation preference、owner-fact readiness 与首次完成/路由决策 |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | CANONICAL-RETAIN | 历史 account deletion integration；Account semantics 由 ADR-0015 supersede，owner-safe erasure invariant 保留 |
@@ -212,7 +220,6 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/README.md` | CURRENT-UPDATED |
 | `docs/exec-plans/CHAIN-A-UI-03-PROMPT.md` | SUPPORT-RETAIN |
 | `docs/exec-plans/CHAIN-B-CI-V2-PROMPT.md` | SUPPORT-RETAIN |
-| `docs/exec-plans/active/EXEC-044-ui-03b-today-primary-hierarchy.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-045-ui-03c-library-progressive-disclosure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-046-ui-03d-settings-legacy-release-closure.md` | CANONICAL-RETAIN |
 | `docs/exec-plans/active/EXEC-054-required-core-test-realignment.md` | CANONICAL-RETAIN |
@@ -271,6 +278,7 @@ Active EXEC contracts are additionally governed by `docs/exec-plans/README.md`; 
 | `docs/exec-plans/completed/EXEC-041-p1-02b-model-settings-product-closure.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-042-v0.3-production-sequential-teaching-policy-closure.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-043-ui-03a-shell-routes-learning-domain.md` | HISTORICAL-RETAIN |
+| `docs/exec-plans/completed/EXEC-044-ui-03b-today-primary-hierarchy.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-047-local-owner-foundation-migration.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-048-backend-no-auth-loopback-cutover.md` | HISTORICAL-RETAIN |
 | `docs/exec-plans/completed/EXEC-049-frontend-settings-onboarding-deaccounting.md` | HISTORICAL-RETAIN |

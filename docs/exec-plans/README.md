@@ -1,7 +1,7 @@
 # Askora Execution Plans
 
 > 当前状态：Local Single-User / no-auth 与 CI v2 基线已进入 `main`；UI-03、UI-04、Quality 与 v1 Product Architecture 为四个独立执行域。
-> UI-03 chain：`EXEC-043 DONE → 044 → 045 → 046 → 059`
+> UI-03 chain：`EXEC-043 DONE → EXEC-044 DONE → 045 → 046 → 059`
 > UI-04 chain：`EXEC-068 → 069 → 070 → 071 → 072 → 073`（依赖 Workspace Product Architecture issues）
 > Quality chain：`EXEC-053 DONE → 054 → 055 → {056 after 046, 057} → 058`
 > v1 Product Architecture：`060 → 061 → {062,063,065}`，且 `060 → 064`；之后 `066 → 067`
@@ -47,8 +47,8 @@ Read current main
 | EXEC | Task | Status | Dependency |
 |---|---|---|---|
 | [EXEC-043](completed/EXEC-043-ui-03a-shell-routes-learning-domain.md) | UI-03A Shell / Routes / Learning Domain | **DONE / ARCHIVED** | baseline |
-| [EXEC-044](active/EXEC-044-ui-03b-today-primary-hierarchy.md) | UI-03B Today Primary Hierarchy | FROZEN / READY | 043 DONE |
-| [EXEC-045](active/EXEC-045-ui-03c-library-progressive-disclosure.md) | UI-03C Library Progressive Disclosure | FROZEN / BLOCKED | 044 DONE |
+| [EXEC-044](completed/EXEC-044-ui-03b-today-primary-hierarchy.md) | UI-03B Today Primary Hierarchy | **DONE / ARCHIVED** | 043 DONE |
+| [EXEC-045](active/EXEC-045-ui-03c-library-progressive-disclosure.md) | UI-03C Library Progressive Disclosure | FROZEN / READY | 044 DONE |
 | [EXEC-046](active/EXEC-046-ui-03d-settings-legacy-release-closure.md) | UI-03D Settings / Legacy / Release Closure | FROZEN / BLOCKED | 045 DONE |
 | [EXEC-059](active/EXEC-059-ui-design-system-component-foundation.md) | UI Design System & Component Foundation | FROZEN / BLOCKED | 046 DONE |
 
@@ -148,6 +148,7 @@ OCR/DOCX/Auth/service-era cleanup is proof-driven. Delete/isolate only after the
 | Local Single-User Authentication Removal | EXEC-048～051 | DONE |
 | CI v2 Governance + historical Production Runtime baseline | EXEC-052～053 | DONE；EXEC-060 closes remaining Product Positioning drift found by later audit |
 | UI-03A Shell / Routes / Learning Domain | EXEC-043 | DONE |
+| UI-03B Today Primary Hierarchy | EXEC-044 | DONE |
 
 Completed EXEC 保持历史证据，不回写成“当时已经满足后来冻结的 v1 约束”。
 
