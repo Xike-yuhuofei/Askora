@@ -79,6 +79,16 @@ Assistant completion 的 accepted `RenderPayload` MUST 与该消息一起持久�
 
 同一 assistant message MUST 只有一个 accepted RenderPayload。HTTP normal、SSE final 与历史消息读取 MUST 返回语义等价的 payload，不得产生三套独立渲染协议。
 
+### RENDER-023 — Learning Message System Boundary
+
+ADR-0020 / `LCMS-*` 新增的 `LearningMessageV1` 是 LearningActivity-scoped SYS08 message/transcript contract，不改变 `RenderPayloadV1 schema_version=1.0`：
+
+- RenderPayloadV1 card 继续 non-interactive；不得添加 arbitrary command/tool/mastery/next-action 字段；
+- LCMS interactive capability 只能存在于 strict LearningMessage contract，并由 server/owner revalidate；
+- existing RenderPayloadV1 MAY 通过 deterministic read adapter 映射为无业务交互的 LCMS block；
+- 缺 exact owner refs 时不得补造 capability、AssessmentResult、TeachingAction 或 ReviewSchedule；
+- fallback/history/no-online-LLM-backfill 规则对两者同时适用。
+
 ## 4. Generation and Validation
 
 ### RENDER-030 — Candidate Is Untrusted

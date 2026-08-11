@@ -43,6 +43,24 @@ from app.contracts.events import (
     LearningEventEnvelopeV03,
 )
 from app.contracts.learning import LearningActivity, LearningPlan, MasteryEstimate
+from app.contracts.learning_messages import (
+    ExplanationBlockPayloadV1,
+    ExplanationBlockV1,
+    InteractiveElementV1,
+    LearningConversationViewV1,
+    LearningInteractionInvocationV1,
+    LearningInteractionResultV1,
+    LearningMessageCompatibilityV1,
+    LearningMessageContextV1,
+    LearningMessageV1,
+    MessageBlockMetadataV1,
+    NextTransitionV1,
+    ProvenanceV1,
+    SourceSystem,
+    TraceReferencesV1,
+    VersionedOwnerRefV1,
+    adapt_plain_text_message,
+)
 from app.contracts.model_execution import ModelExecutionV1
 from app.contracts.planning import LearningGoalV1
 from app.infrastructure.activity_lifecycle import ActivityLifecycleRepository
@@ -63,6 +81,7 @@ from app.models.book_learning import BookLearningAdvanceRecord, BookLearningTran
 from app.models.document import UserDocument
 from app.models.planning import LearningActivityRecord, LearningPlanRecord
 from app.models.user import User
+from app.models.workspace import Workspace
 from app.orchestration.learning_facade import CanonicalTurnRequest, LearningOrchestrationFacade
 from app.orchestration.model_rendering import ModelRenderingError
 from app.queries.book_learning import BookLearningReadinessQuery
@@ -353,9 +372,18 @@ class BookLearningApplication:
         activity_id: UUID,
         correlation_id: UUID,
     ) -> BookLearningTranscriptV1:
-        _goal, _plan, activity = await self._require_activity_for_user(
+        goal, _plan, activity = await self._require_activity_for_user(
             user=user, activity_id=activity_id
         )
+        workspace_id = UUID(
+            await self._resolve_material_workspace(
+                user=user,
+                source_document_ids=goal.source_document_ids,
+            )
+        )
+        workspace = await self._db.get(Workspace, str(workspace_id))
+        if workspace is None:
+            raise BookLearningApplicationError("MESSAGE_CONTEXT_SCOPE_VIOLATION")
         user_id = str(canonical_user_id(user.id))
         records = await self._transcript_repo.list_for_activity(
             user_id=user_id, activity_id=str(activity.activity_id)
@@ -365,7 +393,22 @@ class BookLearningApplication:
             session_ids = {record.session_id for record in records}
             if len(session_ids) != 1 or session_ids != {str(session_id)}:
                 raise BookLearningApplicationError("BOOK_TRANSCRIPT_SESSION_CONFLICT")
-        turns = tuple(self._transcript_turn(record) for record in records)
+        turns = tuple(
+            self._transcript_turn(
+                record,
+                workspace_id=workspace_id,
+                workspace_version=workspace.version,
+            )
+            for record in records
+        )
+        conversation = self._conversation_view(
+            activity=activity,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            workspace_version=workspace.version,
+            turns=turns,
+            correlation_id=str(correlation_id),
+        )
         return BookLearningTranscriptV1(
             session_id=session_id,
             activity_ref=VersionedRef(
@@ -376,6 +419,7 @@ class BookLearningApplication:
             turns=turns,
             next_turn_number=(turns[-1].turn_number + 1 if turns else 1),
             correlation_id=str(correlation_id),
+            conversation=conversation,
         )
 
     async def create_goal_candidate(
@@ -725,11 +769,17 @@ class BookLearningApplication:
             previous_action=previous_action,
             previous_trace=previous_trace,
         )
-        inputs = await self._retrieval.load_adaptive_input(
-            workspace_id=await self._resolve_material_workspace(
+        workspace_id = UUID(
+            await self._resolve_material_workspace(
                 user=user,
                 source_document_ids=goal.source_document_ids,
-            ),
+            )
+        )
+        workspace = await self._db.get(Workspace, str(workspace_id))
+        if workspace is None:
+            raise BookLearningApplicationError("MESSAGE_CONTEXT_SCOPE_VIOLATION")
+        inputs = await self._retrieval.load_adaptive_input(
+            workspace_id=str(workspace_id),
             pseudonym_id=user.pseudonym_id,
             source_scope={"document_ids": [str(item) for item in goal.source_document_ids]},
         )
@@ -885,6 +935,28 @@ class BookLearningApplication:
                     "completed",
                 )
             )
+        turn_record_id = uuid5(
+            NAMESPACE_URL,
+            f"askora:book-transcript-turn:{transcript_session_id}:{turn_number}",
+        )
+        message_envelope = self._canonical_learning_message(
+            workspace_id=workspace_id,
+            workspace_version=workspace.version,
+            activity=activity,
+            turn_record_id=turn_record_id,
+            transcript_session_id=transcript_session_id,
+            turn_number=turn_number,
+            accepted_at=accepted_at,
+            reply_text=result.reply_text,
+            teaching_action=result.teaching_action_v03,
+            evidence_bundle_id=result.evidence_bundle_v03.bundle_id,
+            evidence_bundle_version=result.evidence_bundle_v03.bundle_schema_version,
+            decision_trace=result.decision_trace_v03,
+            assistance_event=assistance_event,
+            model_event=model_event,
+            model_execution=model_execution,
+            correlation_id=str(correlation_id),
+        )
         response = BookLearningTeachingResponseV1(
             reply_text=result.reply_text,
             teaching_action=result.teaching_action_v03,
@@ -898,15 +970,11 @@ class BookLearningApplication:
             accepted_at=accepted_at,
             correlation_id=str(correlation_id),
             model_execution=model_execution,
+            message_envelope=message_envelope,
         )
         await self._transcript_repo.append(
             BookLearningTranscriptTurnRecord(
-                turn_record_id=str(
-                    uuid5(
-                        NAMESPACE_URL,
-                        f"askora:book-transcript-turn:{transcript_session_id}:{turn_number}",
-                    )
-                ),
+                turn_record_id=str(turn_record_id),
                 schema_version="1.0",
                 user_id=user_id,
                 goal_id=str(goal.goal_id),
@@ -924,6 +992,131 @@ class BookLearningApplication:
             )
         )
         return response
+
+    async def invoke_message_interaction(
+        self,
+        *,
+        user: User,
+        activity_id: UUID,
+        invocation: LearningInteractionInvocationV1,
+        correlation_id: UUID,
+        now: datetime | None = None,
+    ) -> LearningInteractionResultV1:
+        """Dispatch one strict LCMS capability to the existing canonical owner path."""
+
+        goal, plan, activity = await self._require_activity_for_user(
+            user=user,
+            activity_id=activity_id,
+        )
+        user_id = str(canonical_user_id(user.id))
+        records = await self._transcript_repo.list_for_activity(
+            user_id=user_id,
+            activity_id=str(activity.activity_id),
+        )
+        selected_message: LearningMessageV1 | None = None
+        selected_capability: InteractiveElementV1 | None = None
+        selected_record_index: int | None = None
+        for index, record in enumerate(records):
+            response = BookLearningTeachingResponseV1.model_validate(record.response_payload)
+            message = response.message_envelope
+            if message is None or message.id != invocation.message_id:
+                continue
+            selected_record_index = index
+            selected_message = message
+            for block in message.blocks:
+                if block.id != invocation.block_id:
+                    continue
+                selected_capability = next(
+                    (
+                        item
+                        for item in block.interactions
+                        if item.capability_id == invocation.capability_id
+                    ),
+                    None,
+                )
+                break
+            break
+        if selected_message is None:
+            raise BookLearningApplicationError("MESSAGE_NOT_FOUND", category="not_found")
+        existing_invocation_turn = await self._transcript_repo.get_by_idempotency(
+            user_id=user_id,
+            idempotency_key=invocation.idempotency_key,
+        )
+        if selected_record_index != len(records) - 1 and existing_invocation_turn is None:
+            raise BookLearningApplicationError(
+                "MESSAGE_CAPABILITY_STALE",
+                category="conflict",
+            )
+        if selected_message.revision != invocation.message_revision:
+            raise BookLearningApplicationError(
+                "MESSAGE_REVISION_CONFLICT",
+                category="conflict",
+            )
+        if selected_message.conversation_id != invocation.conversation_id:
+            raise BookLearningApplicationError("MESSAGE_CONTEXT_SCOPE_VIOLATION")
+        if selected_capability is None:
+            raise BookLearningApplicationError("MESSAGE_CAPABILITY_NOT_FOUND", category="not_found")
+        if selected_capability.action_type != invocation.action_type:
+            raise BookLearningApplicationError("MESSAGE_INTERACTION_INVALID")
+        if selected_capability.availability != "AVAILABLE":
+            raise BookLearningApplicationError("MESSAGE_CAPABILITY_UNAVAILABLE")
+        if invocation.expected_owner_versions != selected_capability.input_refs:
+            raise BookLearningApplicationError(
+                "MESSAGE_CAPABILITY_STALE",
+                category="conflict",
+            )
+        if invocation.action_type != "ASK_FOLLOW_UP":
+            raise BookLearningApplicationError("MESSAGE_CAPABILITY_UNAVAILABLE")
+        payload = invocation.user_response.payload
+        if payload is None or set(payload) != {"text"}:
+            raise BookLearningApplicationError("MESSAGE_INTERACTION_INVALID")
+        learner_text = payload.get("text")
+        if not isinstance(learner_text, str) or not learner_text.strip() or len(learner_text) > 20_000:
+            raise BookLearningApplicationError("MESSAGE_INTERACTION_INVALID")
+        try:
+            session_id = UUID(selected_message.conversation_id)
+        except ValueError as exc:
+            raise BookLearningApplicationError("MESSAGE_CONTEXT_SCOPE_VIOLATION") from exc
+        teaching = await self.start_teaching_round(
+            user=user,
+            goal_id=goal.goal_id,
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+            activity_id=activity.activity_id,
+            session_id=session_id,
+            turn_id=f"interaction-{uuid5(NAMESPACE_URL, invocation.idempotency_key)}",
+            turn_kind="learner",
+            learner_text=learner_text.strip(),
+            idempotency_key=invocation.idempotency_key,
+            correlation_id=correlation_id,
+            now=now,
+        )
+        if teaching.message_envelope is None:
+            raise BookLearningApplicationError(
+                "CANONICAL_MESSAGE_HANDOFF_INCOMPLETE",
+                category="internal",
+            )
+        receipt_ref = teaching.message_envelope.context.transcript_turn_ref
+        message_ref = self._lcms_ref(
+            "SYS08",
+            "LearningMessage",
+            teaching.message_envelope.id,
+            teaching.message_envelope.revision,
+            receipt_ref.workspace_id,
+            freshness_at=teaching.accepted_at,
+        )
+        return LearningInteractionResultV1(
+            interaction_id=invocation.interaction_id,
+            status="SUCCEEDED",
+            owner_receipt_ref=receipt_ref,
+            result_refs=(receipt_ref, message_ref),
+            next_transition=NextTransitionV1(
+                kind="REQUERY_OWNER",
+                target_system="SYS08",
+                expected_ref_types=("BookLearningTranscript", "LearningMessage"),
+            ),
+            correlation_id=str(correlation_id),
+        )
 
     @staticmethod
     def _model_inference_event(
@@ -1080,9 +1273,12 @@ class BookLearningApplication:
             f"askora:book-transcript:{canonical_user_id(user.id)}:{activity.activity_id}",
         )
 
-    @staticmethod
     def _transcript_turn(
+        self,
         record: BookLearningTranscriptTurnRecord,
+        *,
+        workspace_id: UUID,
+        workspace_version: int,
     ) -> BookLearningTranscriptTurnV1:
         response = BookLearningTeachingResponseV1.model_validate(record.response_payload)
         if any(item.allowed_use != "learner_visible" for item in response.evidence_bundle.items):
@@ -1096,6 +1292,12 @@ class BookLearningApplication:
             )
             for item in response.evidence_bundle.items
             if item.content.strip()
+        )
+        message_envelope = response.message_envelope or self._plain_message_for_record(
+            record=record,
+            response=response,
+            workspace_id=workspace_id,
+            workspace_version=workspace_version,
         )
         return BookLearningTranscriptTurnV1(
             turn_id=response.turn_id,
@@ -1116,6 +1318,349 @@ class BookLearningApplication:
             evidence=evidence,
             accepted_at=response.accepted_at,
             model_execution=response.model_execution,
+            message_envelope=message_envelope,
+        )
+
+    @classmethod
+    def _plain_message_for_record(
+        cls,
+        *,
+        record: BookLearningTranscriptTurnRecord,
+        response: BookLearningTeachingResponseV1,
+        workspace_id: UUID,
+        workspace_version: int,
+    ) -> LearningMessageV1:
+        activity_ref = cls._lcms_ref(
+            "SYS06",
+            "LearningActivity",
+            record.activity_id,
+            record.plan_version,
+            workspace_id,
+            freshness_at=response.accepted_at,
+        )
+        transcript_turn_ref = cls._lcms_ref(
+            "SYS08",
+            "BookLearningTranscriptTurn",
+            record.turn_record_id,
+            record.turn_number,
+            workspace_id,
+            freshness_at=response.accepted_at,
+        )
+        teaching_action_ref = cls._lcms_ref(
+            "SYS05",
+            "TeachingAction",
+            response.teaching_action.action_id,
+            response.teaching_action.action_schema_version,
+            workspace_id,
+            freshness_at=response.accepted_at,
+        )
+        evidence_bundle_ref = cls._lcms_ref(
+            "SYS02",
+            "EvidenceBundle",
+            response.evidence_bundle.bundle_id,
+            response.evidence_bundle.bundle_schema_version,
+            workspace_id,
+            freshness_at=response.accepted_at,
+        )
+        return adapt_plain_text_message(
+            message_id=str(
+                uuid5(NAMESPACE_URL, f"askora:learning-message:{record.turn_record_id}:assistant")
+            ),
+            conversation_id=record.session_id,
+            sequence=record.turn_number,
+            role="ASSISTANT",
+            timestamp=response.accepted_at,
+            content=response.reply_text,
+            context=LearningMessageContextV1(
+                workspace_ref=cls._lcms_ref(
+                    "PLATFORM",
+                    "Workspace",
+                    workspace_id,
+                    workspace_version,
+                    workspace_id,
+                    freshness_at=response.accepted_at,
+                ),
+                learning_activity_ref=activity_ref,
+                transcript_turn_ref=transcript_turn_ref,
+                teaching_action_ref=teaching_action_ref,
+                evidence_bundle_ref=evidence_bundle_ref,
+            ),
+            trace_references=cls._trace_references(
+                response=response,
+                workspace_id=workspace_id,
+            ),
+        )
+
+    @classmethod
+    def _conversation_view(
+        cls,
+        *,
+        activity: LearningActivity,
+        session_id: UUID,
+        workspace_id: UUID,
+        workspace_version: int,
+        turns: tuple[BookLearningTranscriptTurnV1, ...],
+        correlation_id: str,
+    ) -> LearningConversationViewV1:
+        generated_at = (
+            turns[-1].accepted_at if turns else datetime.now(timezone.utc)
+        )
+        messages = tuple(
+            turn.message_envelope for turn in turns if turn.message_envelope is not None
+        )
+        return LearningConversationViewV1(
+            conversation_id=str(session_id),
+            conversation_kind="LEARNING_ACTIVITY_TRANSCRIPT",
+            workspace_ref=cls._lcms_ref(
+                "PLATFORM",
+                "Workspace",
+                workspace_id,
+                workspace_version,
+                workspace_id,
+                freshness_at=generated_at,
+            ),
+            learning_activity_ref=cls._lcms_ref(
+                "SYS06",
+                "LearningActivity",
+                activity.activity_id,
+                activity.plan_version,
+                workspace_id,
+                freshness_at=generated_at,
+            ),
+            transcript_ref=cls._lcms_ref(
+                "SYS08",
+                "BookLearningTranscript",
+                session_id,
+                len(turns),
+                workspace_id,
+                freshness_at=generated_at,
+            ),
+            messages=messages,
+            view_state="READY" if messages else "EMPTY",
+            generated_at=generated_at,
+            correlation_id=correlation_id,
+        )
+
+    @classmethod
+    def _canonical_learning_message(
+        cls,
+        *,
+        workspace_id: UUID,
+        workspace_version: int,
+        activity: LearningActivity,
+        turn_record_id: UUID,
+        transcript_session_id: UUID,
+        turn_number: int,
+        accepted_at: datetime,
+        reply_text: str,
+        teaching_action: TeachingActionV03,
+        evidence_bundle_id: UUID,
+        evidence_bundle_version: str,
+        decision_trace: DecisionTraceV03,
+        assistance_event: LearningEventEnvelopeV03,
+        model_event: LearningEventEnvelopeV03 | None,
+        model_execution: ModelExecutionV1 | None,
+        correlation_id: str,
+    ) -> LearningMessageV1:
+        message_id = str(
+            uuid5(NAMESPACE_URL, f"askora:learning-message:{turn_record_id}:assistant")
+        )
+        workspace_ref = cls._lcms_ref(
+            "PLATFORM",
+            "Workspace",
+            workspace_id,
+            workspace_version,
+            workspace_id,
+            freshness_at=accepted_at,
+        )
+        activity_ref = cls._lcms_ref(
+            "SYS06",
+            "LearningActivity",
+            activity.activity_id,
+            activity.plan_version,
+            workspace_id,
+            freshness_at=accepted_at,
+        )
+        transcript_turn_ref = cls._lcms_ref(
+            "SYS08",
+            "BookLearningTranscriptTurn",
+            turn_record_id,
+            turn_number,
+            workspace_id,
+            freshness_at=accepted_at,
+        )
+        teaching_action_ref = cls._lcms_ref(
+            "SYS05",
+            "TeachingAction",
+            teaching_action.action_id,
+            teaching_action.action_schema_version,
+            workspace_id,
+            freshness_at=accepted_at,
+        )
+        evidence_bundle_ref = cls._lcms_ref(
+            "SYS02",
+            "EvidenceBundle",
+            evidence_bundle_id,
+            evidence_bundle_version,
+            workspace_id,
+            freshness_at=accepted_at,
+        )
+        model_inference_ref = (
+            cls._lcms_ref(
+                "SYS08",
+                "ModelInference",
+                model_execution.inference_id,
+                model_execution.schema_version,
+                workspace_id,
+                freshness_at=accepted_at,
+            )
+            if model_execution is not None
+            else None
+        )
+        provenance_mode: Literal["MIXED", "NOT_APPLICABLE"] = (
+            "MIXED" if model_inference_ref is not None else "NOT_APPLICABLE"
+        )
+        explanation = ExplanationBlockV1(
+            id="explanation",
+            payload=ExplanationBlockPayloadV1(body_markdown=reply_text),
+            metadata=MessageBlockMetadataV1(
+                semantic_role="teaching_explanation",
+                provenance=ProvenanceV1(
+                    mode=provenance_mode,
+                    evidence_bundle_ref=evidence_bundle_ref,
+                    generated_by_ref=model_inference_ref,
+                ),
+                owner_refs=(activity_ref, teaching_action_ref, evidence_bundle_ref),
+                availability="READY",
+                accessibility_label="Askora 教学回复",
+            ),
+            interactions=(
+                InteractiveElementV1(
+                    id="ask-follow-up",
+                    capability_id=f"ask-follow-up:{message_id}",
+                    semantic_primitive="ACTION",
+                    action_type="ASK_FOLLOW_UP",
+                    label="继续提问",
+                    command_contract_ref="SYS08.BookLearningAskFollowUpV1",
+                    input_refs=(activity_ref, teaching_action_ref, transcript_turn_ref),
+                    input_schema_ref="LearningInteractionInvocationV1.user_response.text/1.0",
+                    expected_result_ref_types=(
+                        "BookLearningTranscriptTurn",
+                        "LearningMessage",
+                    ),
+                    availability="AVAILABLE",
+                    requires_idempotency_key=True,
+                    risk="LOW_RISK_WRITE",
+                ),
+            ),
+        )
+        learning_events = [
+            cls._lcms_ref(
+                "SYS08",
+                assistance_event.event_type,
+                assistance_event.event_id,
+                assistance_event.schema_version,
+                workspace_id,
+                freshness_at=accepted_at,
+            )
+        ]
+        if model_event is not None:
+            learning_events.append(
+                cls._lcms_ref(
+                    "SYS08",
+                    model_event.event_type,
+                    model_event.event_id,
+                    model_event.schema_version,
+                    workspace_id,
+                    freshness_at=accepted_at,
+                )
+            )
+        return LearningMessageV1(
+            id=message_id,
+            revision=1,
+            conversation_id=str(transcript_session_id),
+            sequence=turn_number,
+            role="ASSISTANT",
+            timestamp=accepted_at,
+            content=reply_text,
+            blocks=(explanation,),
+            context=LearningMessageContextV1(
+                workspace_ref=workspace_ref,
+                learning_activity_ref=activity_ref,
+                transcript_turn_ref=transcript_turn_ref,
+                teaching_action_ref=teaching_action_ref,
+                evidence_bundle_ref=evidence_bundle_ref,
+            ),
+            trace_references=TraceReferencesV1(
+                correlation_id=correlation_id,
+                decision_trace_ref=cls._lcms_ref(
+                    "SYS05",
+                    "DecisionTrace",
+                    decision_trace.decision_id,
+                    decision_trace.decision_schema_version,
+                    workspace_id,
+                    freshness_at=accepted_at,
+                ),
+                model_inference_ref=model_inference_ref,
+                learning_event_refs=tuple(learning_events),
+            ),
+            compatibility=LearningMessageCompatibilityV1(
+                source="CANONICAL",
+                fidelity="FULL",
+            ),
+        )
+
+    @classmethod
+    def _trace_references(
+        cls,
+        *,
+        response: BookLearningTeachingResponseV1,
+        workspace_id: UUID,
+    ) -> TraceReferencesV1:
+        decision_ref = None
+        if response.decision_trace_v03 is not None:
+            decision_ref = cls._lcms_ref(
+                "SYS05",
+                "DecisionTrace",
+                response.decision_trace_v03.decision_id,
+                response.decision_trace_v03.decision_schema_version,
+                workspace_id,
+                freshness_at=response.accepted_at,
+            )
+        model_ref = None
+        if response.model_execution is not None:
+            model_ref = cls._lcms_ref(
+                "SYS08",
+                "ModelInference",
+                response.model_execution.inference_id,
+                response.model_execution.schema_version,
+                workspace_id,
+                freshness_at=response.accepted_at,
+            )
+        return TraceReferencesV1(
+            correlation_id=response.correlation_id,
+            decision_trace_ref=decision_ref,
+            model_inference_ref=model_ref,
+        )
+
+    @staticmethod
+    def _lcms_ref(
+        source_system: SourceSystem,
+        entity_type: str,
+        entity_id: UUID | str,
+        version: str | int,
+        workspace_id: UUID,
+        *,
+        freshness_at: datetime | None = None,
+    ) -> VersionedOwnerRefV1:
+        return VersionedOwnerRefV1(
+            source_system=source_system,
+            entity_type=entity_type,
+            entity_id=str(entity_id),
+            version=version,
+            workspace_id=workspace_id,
+            availability="READY",
+            freshness_at=freshness_at,
         )
 
     async def _require_activity_for_user(

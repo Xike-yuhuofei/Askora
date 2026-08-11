@@ -150,6 +150,18 @@ SYS08 拥有版本化 `ModelRouteProfileV1` 语义、路由与运行时 revision
 候选配置必须先经 local-only、synthetic、no-fallback probe，成功后才能激活；激活失败必须恢复上一
 encrypted revision。renderer、普通 API、日志、Prompt 与 telemetry 均不得获得明文 credential。
 
+### SYS08-084 — Learning Message Artifact
+
+ADR-0020 / `LCMS-*` 冻结 `LearningMessageV1` 为 LearningActivity-scoped accepted presentation/transcript artifact。SYS08 MAY own its validation、acceptance、ordering、fallback、history/replay and execution trace；MUST NOT 因此取得 SYS01～SYS07 truth ownership。
+
+Canonical Message MUST preserve exact activity/action/bundle/attempt/result refs when present、mandatory readable fallback and six strict block types. Historical plain/RenderPayloadV1 adapter MUST deterministic、no-online-LLM and MUST NOT invent capability/owner refs。
+
+### SYS08-085 — Capability Dispatch
+
+SYS08 MAY host the message capability application façade and invocation ledger, but every capability MUST map to an allowlisted versioned query/command port and be revalidated for scope/version/availability/idempotency. SYS08 MUST NOT expose generic `SetMastery/SetReviewSchedule/SetTeachingAction/CreateActivity` through Message blocks。
+
+ASK/REQUEST user intent MAY enter a new SYS05 decision；SUBMIT_ATTEMPT must enter SYS04；START_ACTIVITY must enter SYS06；INSPECT_SOURCE is scoped read. Owner receipt/result is canonical，frontend/local invocation state is not。
+
 ## 3. v0.3 TeachingAction Execution Envelope
 
 ### SYS08-200 — Tightening-only Rule

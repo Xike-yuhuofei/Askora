@@ -46,6 +46,7 @@ Technical Spec     = HOW DATA / SOFTWARE INTERFACES WORK
 UI read-model / query / ownership contract 已移到技术层：
 
 - [`../frontend/ui-read-model-contracts.md`](../frontend/ui-read-model-contracts.md)
+- [`../interfaces/learning-conversation-message-system-spec-delta.md`](../interfaces/learning-conversation-message-system-spec-delta.md)：LearningMessage / Block / capability 的 owner-safe 技术合同。
 
 它继续保留原 `UI-DATA-* / UXA-DATA-*` 精确技术条款，但不再属于 Experience Design Authority。
 

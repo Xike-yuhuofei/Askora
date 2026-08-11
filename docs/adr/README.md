@@ -129,6 +129,7 @@ Codex 的架构自治权限只作用于下位设计/架构，**不得自行突�
 | `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | accepted | 2026-08-10 |
 | `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | accepted; current experience representation consolidated under `docs/design/experience/**` | 2026-08-10 |
 | `ADR-0019` | UI Workspace Context and Learning Context Read Projections | accepted | 2026-08-11 |
+| `ADR-0020` | Learning Conversation Message Presentation and Interaction Boundary | accepted | 2026-08-11 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/current Product Definition | 2026-08-09 |
 | `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
@@ -211,6 +212,20 @@ ADR-0019 closes the read-query gaps intentionally left open by ADR-0018:
 - no database schema or migration change。
 
 Direct contracts：`state-ownership.md` + `api-contract.md` + `ui/data-contracts.md` (`UXA-DATA-200/220..223`)。
+
+### ADR-0020 — Learning Conversation Message Boundary
+
+ADR-0020 closes the Message System Prototype governance gap：
+
+- canonical target = LearningActivity-scoped、SYS08-owned presentation/transcript artifact；
+- Conversation/Message/Block do not become LearningEvidence or a ninth learning owner；
+- new `LearningMessageV1` is separate from unchanged, non-interactive `RenderPayloadV1`；
+- six typed blocks use exact owner/provenance/trace refs；
+- frontend only renders server-issued capabilities and dispatches narrow owner commands；
+- assessment/mastery/teaching/activity/review states remain split across SYS03～SYS07；
+- legacy Dialog/RenderPayload paths are bounded adapters with explicit retirement conditions。
+
+Direct contracts：`docs/specs/interfaces/learning-conversation-message-system-spec-delta.md` (`LCMS-*`) + LCMS Vertical Slice / EXEC-075。
 
 ## 7. Historical Supersession Notes
 

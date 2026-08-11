@@ -5,6 +5,7 @@
 > `EXEC-045`：**SUPERSEDED / DO NOT EXECUTE**，Library current work 由 `EXEC-072 / XIK-165` 承担。  
 > Quality chain：`EXEC-053 DONE → 054 → 055 → {056 after 046, 057} → 058`  
 > v1 Product Architecture：`060 → 061 → {062,063,065}`，且 `060 → 064`；之后 `066 → 067`
+> Learning Conversation Message System：`ADR-0020 + LCMS-* → EXEC-075 DONE`
 
 本目录保存可直接交给 TraeCode / Codex 执行的工程任务合同，以及完成后的不可变归档。
 
@@ -110,7 +111,15 @@ Current UI implementation 必须从：
 
 ---
 
-### 2.4 v1 Product Architecture
+### 2.4 Learning Conversation Message System
+
+| EXEC | Task | Status | Dependency |
+|---|---|---|---|
+| [EXEC-075](completed/EXEC-075-learning-conversation-message-system-vertical-slice.md) | Learning Conversation Message System Vertical Slice | **DONE / ARCHIVED** | ADR-0020 + LCMS Spec/Vertical Slice |
+
+---
+
+### 2.5 v1 Product Architecture
 
 | EXEC | Linear | Task | Status | Dependency |
 |---|---|---|---|---|

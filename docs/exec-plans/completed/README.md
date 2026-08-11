@@ -84,6 +84,7 @@
 | EXEC-068 — UI-04A Workspace Context / Shell / Route Migration | DONE | 2026-08-11 archived；ADR-0019 canonical Workspace query + frontend shell closure |
 | EXEC-069 — UI-04B Learning Context Drawer Query and UI | DONE | 2026-08-11 archived；canonical SYS05/SYS06 query + accessible presentation-only disclosure |
 | EXEC-074 — PostgreSQL Membership Constraint Reconciliation | DONE | `ea78ada`；revision `w171r0e0a002`；SQLite/PostgreSQL migration checks PASS |
+| EXEC-075 — Learning Conversation Message System Vertical Slice | DONE | 2026-08-11 archived；candidate based on `origin/main@3799ac7`；implementation commit recorded in Git history |
 
 ## Release Gate
 

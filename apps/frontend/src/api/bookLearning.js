@@ -56,3 +56,9 @@ export const startTeachingRound = (activityId, body) =>
 export const getTranscript = (activityId) =>
   api.get(`/book-learning/activities/${encodeURIComponent(activityId)}/transcript`)
     .then((response) => response.data)
+
+export const invokeMessageInteraction = (activityId, messageId, body) =>
+  api.post(
+    `/book-learning/activities/${encodeURIComponent(activityId)}/messages/${encodeURIComponent(messageId)}/interactions`,
+    body,
+  ).then((response) => response.data)

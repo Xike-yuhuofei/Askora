@@ -91,6 +91,16 @@ run_failed
 
 Assistant message MAY additive 返回 `render_payload`，其 canonical contract 见 `render-content-contract.md`。`message.content` MUST 继续存在作为可读 fallback。普通响应、历史 query 与 streaming final/replay MUST 返回同一 accepted payload；结构化 block 只能在完整验证后提交，不得流式执行半截 JSON。
 
+### API-033 — Learning Message and Capability Boundary
+
+Canonical LearningActivity response/transcript MAY additive 返回 `LearningMessageV1`，其唯一合同为 `learning-conversation-message-system-spec-delta.md` (`LCMS-*`)：
+
+- `reply_text/message.content` 继续 REQUIRED fallback；
+- normal/history/stream final/reconnect MUST return the same accepted message id/revision/blocks/refs；
+- capability invocation MUST carry exact message/block/capability/version/idempotency identity and route to the target owner application port；
+- API MUST preserve target owner stable errors and MUST NOT become a generic cross-owner state writer；
+- RenderPayloadV1 remains non-interactive compatibility；partial structured message MUST NOT execute/render。
+
 ## 6. Error
 
 遵循 `error-contract.md`。HTTP/WS/streaming 必须保留稳定 domain error code。

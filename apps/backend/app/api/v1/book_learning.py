@@ -28,6 +28,10 @@ from app.contracts.book_learning import (
     StartBookTeachingRequestV1,
     SubmitBookDiagnosticResponseV1,
 )
+from app.contracts.learning_messages import (
+    LearningInteractionInvocationV1,
+    LearningInteractionResultV1,
+)
 from app.contracts.recovery import RecoveryIssueViewV1
 from app.core.database import get_db
 from app.core.exceptions import BusinessError
@@ -74,15 +78,20 @@ def _raise_application_error(
     recovery_issue: RecoveryIssueViewV1 | None = None,
 ) -> NoReturn:
     code = exc.code
-    status_code = (
-        status.HTTP_429_TOO_MANY_REQUESTS
-        if code == "AI_PROVIDER_RATE_LIMITED"
-        else (
-            status.HTTP_503_SERVICE_UNAVAILABLE
-            if code.startswith(("POLICY_RUNTIME_", "AI_"))
-            else status.HTTP_409_CONFLICT
-        )
-    )
+    status_code = {
+        "validation": status.HTTP_422_UNPROCESSABLE_ENTITY,
+        "not_found": status.HTTP_404_NOT_FOUND,
+        "authorization": status.HTTP_403_FORBIDDEN,
+        "security": status.HTTP_403_FORBIDDEN,
+        "conflict": status.HTTP_409_CONFLICT,
+        "dependency": status.HTTP_503_SERVICE_UNAVAILABLE,
+        "transient": status.HTTP_503_SERVICE_UNAVAILABLE,
+        "internal": status.HTTP_500_INTERNAL_SERVER_ERROR,
+    }.get(exc.category, status.HTTP_409_CONFLICT)
+    if code == "AI_PROVIDER_RATE_LIMITED":
+        status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    elif code.startswith(("POLICY_RUNTIME_", "AI_")):
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     raise BusinessError(
         message=code,
         error_code=code,
@@ -510,5 +519,43 @@ async def start_teaching_round(
         activity_id=str(activity_id),
         correlation_id=str(correlation_id),
     )
+    await db.commit()
+    return result
+
+
+@router.post(
+    "/activities/{activity_id}/messages/{message_id}/interactions",
+    response_model=LearningInteractionResultV1,
+    summary="执行一个 owner-safe Learning Message capability",
+)
+async def invoke_message_interaction(
+    activity_id: UUID,
+    message_id: str,
+    body: LearningInteractionInvocationV1,
+    request: Request,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+    application: BookLearningApplication = Depends(get_book_learning_application),
+) -> LearningInteractionResultV1:
+    if message_id != body.message_id:
+        raise BusinessError(
+            message="MESSAGE_INTERACTION_INVALID",
+            error_code="MESSAGE_INTERACTION_INVALID",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            category="validation",
+            retryable=False,
+            correlation_id=str(_correlation_id(request)),
+        )
+    correlation_id = _correlation_id(request)
+    try:
+        result = await application.invoke_message_interaction(
+            user=current_user,
+            activity_id=activity_id,
+            invocation=body,
+            correlation_id=correlation_id,
+        )
+    except BookLearningApplicationError as exc:
+        await db.rollback()
+        _raise_application_error(exc, correlation_id=str(correlation_id))
     await db.commit()
     return result
