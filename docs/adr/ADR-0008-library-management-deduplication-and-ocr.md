@@ -5,12 +5,13 @@
 > Supersession date: 2026-08-10  
 > Decision authority: user-delegated Codex  
 > Authorized objective: 真正关闭 P1-04 资料管理并通过相关测试  
-> Current upper authority: `docs/product/PRODUCT-POSITIONING.md`  
-> Current implementation contracts: `docs/specs/systems/01-library-management.md`, `docs/specs/interfaces/content-ingestion-contract.md`
+> Current upper authority: `docs/product/PRODUCT-POSITIONING.md` + `docs/product/PRODUCT-DEFINITION.md`  
+> Product trace: primarily `CAP-01`、`PD-REQ-0101..0104`、`PD-RULE-006/009/011`; OCR core/deferred status is owned by Product Definition  
+> Current implementation contracts: `docs/specs/systems/01-library-management.md`, `docs/specs/interfaces/content-ingestion-contract.md`, `docs/specs/interfaces/material-lifecycle-contract.md`
 
 ## Current v1 Supersession
 
-本 ADR 是在较早“Library + full local OCR”范围下形成的历史决策。最新 `PRODUCT-POSITIONING.md` 已冻结：
+本 ADR 是在较早“Library + full local OCR”范围下形成的历史决策。当前 Product Positioning + Product Definition 已冻结：
 
 - Material 必须属于 Workspace；
 - v1 不存在独立 Global Material Library；
@@ -22,7 +23,7 @@
 - v1 **不建设完整 OCR Pipeline**，扫描 PDF 可以识别为无法可靠提取文本并提示；
 - Redis/PostgreSQL/外部 OCR 服务不得成为 v1 最终用户运行前提。
 
-因此以下历史决策已被上位产品定位 supersede 或降级：
+因此以下历史决策已被上位产品定义 supersede 或降级：
 
 1. **完整 OCR 是 P1-04/v1 必需 release capability** → superseded。OCR 仅可作为 legacy/experimental/optional local capability，不阻塞 v1 core release。
 2. **current-user scoped global library** → superseded。所有 Material/Search/Dedup/Batch 必须先有 Workspace scope；默认无 cross-workspace global search/library。
@@ -30,7 +31,7 @@
 4. **document IDs 是最高资料对象** → 当前产品语义以 Workspace-scoped Material + managed SourceFile 为上位对象；`SourceDocument` MAY 作为 SYS01 内部/compatibility content record 保留。
 5. **SQLite/PostgreSQL migration 都是 release runtime baseline** → PostgreSQL 仅为 CI/兼容测试；v1 production baseline 是 SQLite。
 
-以下原则继续有效：
+以下架构/治理原则继续有效：
 
 - SYS01 独占 Material/content metadata 与 content-side duplicate decision；
 - raw SourceFile/checksum 与历史 MaterialRevision 不静默覆盖；
@@ -40,6 +41,8 @@
 - learner-visible SourceSpan 必须有 provenance；
 - optional OCR 若保留，其 candidate 在明确接纳前不得进入普通学习/retrieval；
 - 外部云 OCR 不得无新的产品/隐私授权自动发送私人资料。
+
+本 ADR 不再拥有“某能力是否属于 v1”的决定权；该判断必须回到 Product Definition。
 
 ## Historical Context
 
@@ -98,13 +101,13 @@ Trash 不删除 managed SourceFile；Permanent Delete 继续服从 Data Control 
 
 ## Historical OCR Decision — No Longer v1 Core
 
-历史实现选择了 local-only `TesseractOcrAdapterV1`、durable OCRRun/OCRCandidate、人工接纳后形成新 MaterialRevision。这套设计 MAY 继续作为可选/实验/legacy能力存在，但：
+历史实现选择了 local-only `TesseractOcrAdapterV1`、durable OCRRun/OCRCandidate、人工接纳后形成新 MaterialRevision。这套设计 MAY 继续作为可选/实验/legacy 能力存在，但：
 
 - 不再是 v1 core capability；
 - 不再是 v1 release gate；
 - OCR engine unavailable 不应阻塞 EPUB/文本 PDF/Markdown/TXT；
 - 扫描 PDF 可以安全返回 unsupported/partial extraction；
-- 不应继续扩展为完整 layout/table/formula/vision pipeline，除非未来 Product Positioning 重新冻结。
+- 不应继续扩展为完整 layout/table/formula/vision pipeline，除非未来 Product Definition 重新纳入并冻结相应 Product Scope。
 
 若 optional OCR 仍启用：candidate 默认不得进入 learner-visible retrieval、KnowledgeUnit publish 或普通正文搜索；失败不得记为学习者错误；日志不保存整页图像或完整 OCR 文本。
 
@@ -156,13 +159,13 @@ legacy SourceDocument/current-user library
 
 历史 OCR 自动化可以继续作为 optional regression，但不得用其存在扩大 v1 产品范围。
 
-完成仅证明 Engineering、Policy/Ownership、Security 和资料管理正确性；Learning Evidence 不因此自动提升。
+完成仅证明 Engineering、Policy/Ownership、Security 和资料管理技术正确性；对应 Product Acceptance 与 Learning Evidence 必须分别判断。
 
 ## Supersedes / Superseded By
 
 从 2026-08-10 起：
 
-- OCR-as-v1-core、global/current-user library scope、archive-as-primary-delete 等 mechanics 被 `PRODUCT-POSITIONING.md` 与最新 SYS01/D01 Spec supersede；
+- OCR-as-v1-core、global/current-user library scope、archive-as-primary-delete 等 Product Scope / mechanics 被 `PRODUCT-POSITIONING.md`、`PRODUCT-DEFINITION.md` 与最新 SYS01/D01 Spec supersede；
 - metadata ownership、provenance、duplicate-as-suggestion、rebuildable search projection 等原则继续有效。
 
-本 ADR 保留为历史决策记录，不得反向覆盖当前 Product Positioning。
+本 ADR 保留为历史决策记录，不得反向覆盖当前 Product Positioning / Product Definition。
