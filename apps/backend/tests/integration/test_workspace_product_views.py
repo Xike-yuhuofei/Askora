@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.contracts.learning import LearningActivity, LearningPlan
 from app.contracts.planning import LearningGoalV1
+from app.contracts.workspace import CreateWorkspaceV1, WorkspaceTransitionGuardV1
 from app.core.database import Base
 from app.core.exceptions import ResourceNotFoundError
 from app.models.assessment import MasteryEstimateRecord
@@ -23,7 +24,9 @@ from app.models.planning import (
 )
 from app.models.user import User
 from app.queries.workspace import WorkspaceTodayQueryService
+from app.services.local_identity import ensure_local_owner
 from app.services.owner.canonical_identity import canonical_user_id
+from app.services.workspace.selection import WorkspaceSelectionService
 
 NOW = datetime(2026, 8, 9, 2, 0, tzinfo=timezone.utc)
 
@@ -357,6 +360,22 @@ async def test_ui02b_http_queries_are_private_versioned_and_current_user_scoped(
     user_id = str(uuid4())
     async with factory() as session:
         session.add(User(id=user_id, pseudonym_id="workspace-http-product"))
+        await session.commit()
+        owner = await ensure_local_owner(session)
+        await WorkspaceSelectionService(session).create(
+            owner_id=owner.owner_id,
+            command=CreateWorkspaceV1(
+                display_name="测试课程",
+                transition_guard=WorkspaceTransitionGuardV1(
+                    composer_draft="CLEAR",
+                    stream="CLEAR",
+                    user_note="CLEAR",
+                    material_position="PRESERVED",
+                ),
+                idempotency_key="workspace-product-http-course",
+            ),
+            correlation_id=uuid4(),
+        )
         await session.commit()
 
     async def override_get_db():

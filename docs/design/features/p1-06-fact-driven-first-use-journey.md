@@ -3,7 +3,7 @@
 > 状态：Canonical Design / Accepted for P1-06
 > 日期：2026-08-09
 > 授权：用户明确采纳推荐方案，并要求最终真正关闭 P1-06、通过相关测试
-> 关联决策：ADR-0106
+> 关联决策：ADR-0106；Course-centric route / completion destination 由 ADR-0022 修订
 
 ## 1. 目标
 
@@ -16,7 +16,7 @@
 → 说出并确认学习目标
 → 完成必要的起点检查
 → 开始、恢复并完成第一项 LearningActivity
-→ 返回“今天”看见下一步
+→ 返回当前课程，看见可恢复的下一项 LearningActivity
 ```
 
 页面只呈现“模型、资料、目标、第一节”四个主步骤。diagnostic、mapping、plan、activity
@@ -94,7 +94,8 @@ SYS06 投影按最早完成时间、activity id 稳定 tie-break 返回首个合
 ## 4. 路由与恢复
 
 - 新增 `/welcome` protected route；
-- 只有默认入口 `/` 或 `/today` 在 `visibility=ACTIVE` 且 journey 未完成时进入 `/welcome`；
+- 只有默认入口 `/` 在 `visibility=ACTIVE` 且 journey 未完成时进入 `/welcome`；`/today`、`/learning`
+  先按 ADR-0022 做无副作用 legacy compatibility resolution，再应用同一 onboarding guard；
 - `/library`、`/book-learning/:documentId`、`/learn/:activityId` 等直接 deep link 永远不被
   onboarding guard 改写；
 - readiness 请求失败时保留用户 intended route，不把失败当作完成；页面提供可恢复提示与

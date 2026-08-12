@@ -1,6 +1,6 @@
 # ADR-0019 — UI Workspace Context and Learning Context Read Projections
 
-Status: accepted
+Status: accepted; experience assumption amended by ADR-0022；single-default target limitation superseded by ADR-0023
 Date: 2026-08-11
 Decision owners: user-authorized Askora product governance
 Decision authority: user-delegated Codex；用户于 2026-08-11 明确采纳 EXEC-068/069 SPEC GAP 收敛建议并授权执行
@@ -32,12 +32,14 @@ Both endpoints are query-only transport adapters, return `Cache-Control: private
 
 ### 2. Workspace Context projection
 
+> Current amendment：本节记录 ADR-0019 当时的 single-default compatibility decision。ADR-0023 / `CWSP-*` 已冻结 multi-Course selection；XIK-189 cutover 后该 endpoint 必须读取 WorkspaceSelection，不再把 default 当 current。
+
 `WorkspaceContextResponseV1` reads the exact active default Workspace resolved by Platform Workspace Registry and returns its stable id, version, display name, lifecycle and `is_default` value.
 
 - Platform Workspace Registry remains the only Workspace owner/writer.
 - V1 currently exposes one canonical default Workspace and therefore returns `switch_capability=SINGLE_WORKSPACE`; the UI MUST NOT render a fake selector.
 - Route ids, subject, session, localStorage and React state MUST NOT supply or override `current_workspace_id`.
-- A future multi-Workspace switch command requires a separate accepted command contract; this query does not authorize switching.
+- The formerly future multi-Workspace switch command is now frozen by ADR-0023；this legacy query still does not authorize switching and becomes a read-only compatibility adapter over current selection.
 
 ### 3. Learning Context projection
 
@@ -116,3 +118,5 @@ Engineering / Policy-Ownership / Learning Evidence conclusions remain separate. 
 ## Supersedes / Superseded By
 
 This ADR closes the read-query gaps explicitly left open by ADR-0018. It does not supersede ADR-0016, ADR-0018, SYS05, SYS06 or Product Positioning.
+
+ADR-0022 amends the target Experience beyond this ADR's `SINGLE_WORKSPACE` presentation assumption。ADR-0023 / `CWSP-*` now supersedes that target limitation and freezes Course list/create/current/switch、conflict recovery and Activity projection。The current query remains only a compatibility adapter and MUST read canonical WorkspaceSelection after XIK-189；it may not continue hard-coding default Workspace。

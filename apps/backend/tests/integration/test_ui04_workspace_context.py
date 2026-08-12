@@ -47,13 +47,17 @@ def test_exec068_workspace_context_uses_exact_platform_owner_record() -> None:
 
 
 @pytest.mark.asyncio
-async def test_exec068_workspace_context_http_is_private_and_side_effect_free() -> None:
+async def test_exec068_workspace_context_http_is_private_and_side_effect_free(
+    sqlite_factory,
+) -> None:
     """API-310/STATE-AC-310: strict query endpoint performs no command."""
     from httpx import ASGITransport, AsyncClient
 
+    from app.core.database import get_db
     from app.main import app as fastapi_app
+    from app.models.local_owner import LOCAL_OWNER_SCHEMA_VERSION, LocalOwnerRecord
     from app.services.owner.dependencies import get_current_owner_projection
-    from app.services.workspace.dependencies import get_default_workspace
+    from app.services.workspace.dependencies import get_current_workspace
 
     workspace = _workspace()
     current_user = User(id=str(uuid4()), pseudonym_id="ui04-workspace-user")
@@ -64,18 +68,36 @@ async def test_exec068_workspace_context_http_is_private_and_side_effect_free() 
     async def override_owner() -> User:
         return current_user
 
-    fastapi_app.dependency_overrides[get_default_workspace] = override_workspace
-    fastapi_app.dependency_overrides[get_current_owner_projection] = override_owner
-    try:
-        transport = ASGITransport(app=fastapi_app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            first = await client.get("/api/v1/workspace/context")
-            second = await client.get("/api/v1/workspace/context")
+    async with sqlite_factory() as session:
+        session.add(
+            LocalOwnerRecord(
+                singleton_key=1,
+                owner_id=workspace.owner_id,
+                schema_version=LOCAL_OWNER_SCHEMA_VERSION,
+                provenance="fresh",
+            )
+        )
+        session.add(workspace)
+        await session.commit()
 
-        assert first.status_code == 200, first.text
-        assert first.headers["cache-control"] == "private, no-store"
-        assert first.json()["data"] == second.json()["data"]
-        assert first.json()["data"]["current_workspace"]["workspace_id"] == (workspace.workspace_id)
-        assert first.json()["data"]["switch_capability"] == "SINGLE_WORKSPACE"
-    finally:
-        fastapi_app.dependency_overrides.clear()
+        async def override_db():
+            yield session
+
+        fastapi_app.dependency_overrides[get_current_workspace] = override_workspace
+        fastapi_app.dependency_overrides[get_current_owner_projection] = override_owner
+        fastapi_app.dependency_overrides[get_db] = override_db
+        try:
+            transport = ASGITransport(app=fastapi_app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                first = await client.get("/api/v1/workspace/context")
+                second = await client.get("/api/v1/workspace/context")
+
+            assert first.status_code == 200, first.text
+            assert first.headers["cache-control"] == "private, no-store"
+            assert first.json()["data"] == second.json()["data"]
+            assert first.json()["data"]["current_workspace"]["workspace_id"] == (
+                workspace.workspace_id
+            )
+            assert first.json()["data"]["switch_capability"] == "SINGLE_WORKSPACE"
+        finally:
+            fastapi_app.dependency_overrides.clear()

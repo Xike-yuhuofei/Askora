@@ -19,6 +19,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -78,6 +79,54 @@ class Workspace(Base):
             unique=True,
             sqlite_where=sa_text("is_default = 1 AND lifecycle = 'active'"),
             postgresql_where=sa_text("is_default = true AND lifecycle = 'active'"),
+        ),
+    )
+
+
+class WorkspaceSelection(Base):
+    """CWSP-010 durable current-Workspace preference owned by Platform Registry."""
+
+    __tablename__ = "workspace_selections"
+
+    owner_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("local_owners.owner_id"), primary_key=True
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    current_workspace_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("workspaces.workspace_id"), nullable=False, index=True
+    )
+    previous_workspace_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    reason: Mapped[str] = mapped_column(String(40), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (CheckConstraint("version >= 1", name="ck_workspace_selections_version"),)
+
+
+class WorkspaceCommandReceipt(Base):
+    """CWSP-012 immutable create/switch idempotency receipt."""
+
+    __tablename__ = "workspace_command_receipts"
+
+    receipt_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("local_owners.owner_id"), nullable=False, index=True
+    )
+    command_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    command_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    response_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index(
+            "uq_workspace_command_owner_type_key",
+            "owner_id",
+            "command_type",
+            "idempotency_key",
+            unique=True,
         ),
     )
 
@@ -160,6 +209,7 @@ class LearningSession(Base):
     workspace_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("workspaces.workspace_id"), index=True
     )
+    learning_activity_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     project_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("learning_projects.project_id"), nullable=True, index=True
     )

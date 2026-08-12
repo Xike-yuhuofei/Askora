@@ -16,9 +16,10 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.workspace import (
@@ -30,7 +31,9 @@ from app.models.workspace import (
     ProjectStatus,
     SourceFile,
     Workspace,
+    WorkspaceCommandReceipt,
     WorkspaceLifecycle,
+    WorkspaceSelection,
 )
 
 DEFAULT_WORKSPACE_NAME = "默认工作区"
@@ -41,6 +44,14 @@ class WorkspaceError(RuntimeError):
 
 
 class WorkspaceNotFoundError(WorkspaceError):
+    pass
+
+
+class WorkspaceSelectionVersionConflictError(WorkspaceError):
+    pass
+
+
+class WorkspaceIdempotencyConflictError(WorkspaceError):
     pass
 
 
@@ -101,9 +112,50 @@ class WorkspaceRepository:
         )
         return list(result.scalars().all())
 
+    async def list_active_for_owner(self, owner_id: str) -> list[Workspace]:
+        result = await self.db.execute(
+            select(Workspace)
+            .where(
+                Workspace.owner_id == owner_id,
+                Workspace.lifecycle == WorkspaceLifecycle.ACTIVE,
+            )
+            .order_by(Workspace.created_at, Workspace.workspace_id)
+        )
+        return list(result.scalars().all())
+
+    async def get_for_owner(self, owner_id: str, workspace_id: str) -> Workspace | None:
+        return await self.db.scalar(
+            select(Workspace).where(
+                Workspace.owner_id == owner_id,
+                Workspace.workspace_id == workspace_id,
+            )
+        )
+
+    async def create(self, *, owner_id: str, display_name: str, is_default: bool) -> Workspace:
+        workspace = Workspace(
+            workspace_id=str(uuid4()),
+            owner_id=owner_id,
+            version=1,
+            display_name=display_name,
+            is_default=is_default,
+            lifecycle=WorkspaceLifecycle.ACTIVE,
+        )
+        self.db.add(workspace)
+        await self.db.flush()
+        return workspace
+
     async def count_for_owner(self, owner_id: str) -> int:
         result = await self.db.execute(
             select(func.count(Workspace.workspace_id)).where(Workspace.owner_id == owner_id)
+        )
+        return int(result.scalar_one())
+
+    async def count_active_for_owner(self, owner_id: str) -> int:
+        result = await self.db.execute(
+            select(func.count(Workspace.workspace_id)).where(
+                Workspace.owner_id == owner_id,
+                Workspace.lifecycle == WorkspaceLifecycle.ACTIVE,
+            )
         )
         return int(result.scalar_one())
 
@@ -137,6 +189,108 @@ class WorkspaceRepository:
         if resolved is None:
             raise WorkspaceError("failed to resolve a default Workspace after bootstrap")
         return resolved
+
+
+class WorkspaceSelectionRepository:
+    """CWSP-010/012 persistence for current selection and command receipts."""
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def get(self, owner_id: str, *, for_update: bool = False) -> WorkspaceSelection | None:
+        statement = select(WorkspaceSelection).where(WorkspaceSelection.owner_id == owner_id)
+        if for_update:
+            statement = statement.with_for_update()
+        return await self.db.scalar(statement)
+
+    async def set(
+        self,
+        *,
+        owner_id: str,
+        current_workspace_id: str,
+        reason: str,
+        correlation_id: str,
+        expected_version: int | None,
+    ) -> WorkspaceSelection:
+        values = {
+            "owner_id": owner_id,
+            "version": 1,
+            "current_workspace_id": current_workspace_id,
+            "previous_workspace_id": None,
+            "reason": reason,
+            "correlation_id": correlation_id,
+        }
+        if expected_version is None:
+            dialect = self.db.get_bind().dialect.name
+            statement = _insert_on_conflict_nothing(WorkspaceSelection, values, dialect)
+            result = await self.db.execute(statement)
+        else:
+            result = await self.db.execute(
+                update(WorkspaceSelection)
+                .where(
+                    WorkspaceSelection.owner_id == owner_id,
+                    WorkspaceSelection.version == expected_version,
+                )
+                .values(
+                    version=expected_version + 1,
+                    previous_workspace_id=WorkspaceSelection.current_workspace_id,
+                    current_workspace_id=current_workspace_id,
+                    reason=reason,
+                    correlation_id=correlation_id,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+        if not isinstance(result, CursorResult) or result.rowcount != 1:
+            raise WorkspaceSelectionVersionConflictError("workspace selection version conflict")
+        await self.db.flush()
+        selection = await self.get(owner_id)
+        if selection is None:
+            raise WorkspaceError("workspace selection disappeared after successful CAS")
+        return selection
+
+    async def get_receipt(
+        self, *, owner_id: str, command_type: str, idempotency_key: str
+    ) -> WorkspaceCommandReceipt | None:
+        return await self.db.scalar(
+            select(WorkspaceCommandReceipt).where(
+                WorkspaceCommandReceipt.owner_id == owner_id,
+                WorkspaceCommandReceipt.command_type == command_type,
+                WorkspaceCommandReceipt.idempotency_key == idempotency_key,
+            )
+        )
+
+    async def append_receipt(
+        self,
+        *,
+        owner_id: str,
+        command_type: str,
+        idempotency_key: str,
+        command_digest: str,
+        response_payload: dict,
+    ) -> WorkspaceCommandReceipt:
+        values = {
+            "receipt_id": str(uuid4()),
+            "owner_id": owner_id,
+            "command_type": command_type,
+            "idempotency_key": idempotency_key,
+            "command_digest": command_digest,
+            "response_payload": response_payload,
+        }
+        dialect = self.db.get_bind().dialect.name
+        await self.db.execute(_insert_on_conflict_nothing(WorkspaceCommandReceipt, values, dialect))
+        await self.db.flush()
+        receipt = await self.get_receipt(
+            owner_id=owner_id,
+            command_type=command_type,
+            idempotency_key=idempotency_key,
+        )
+        if receipt is None:
+            raise WorkspaceError("workspace command receipt disappeared after append")
+        if receipt.command_digest != command_digest:
+            raise WorkspaceIdempotencyConflictError(
+                "workspace idempotency key was reused with another command digest"
+            )
+        return receipt
 
 
 class ProjectRepository:
@@ -246,6 +400,7 @@ class SessionRepository:
         self,
         *,
         workspace_id: str,
+        learning_activity_id: str | None = None,
         project_id: str | None = None,
         learning_goal_id: str | None = None,
         status: str = LearningSessionStatus.ACTIVE,
@@ -253,6 +408,7 @@ class SessionRepository:
         session = LearningSession(
             session_id=str(uuid4()),
             workspace_id=workspace_id,
+            learning_activity_id=learning_activity_id,
             project_id=project_id,
             learning_goal_id=learning_goal_id,
             status=status,

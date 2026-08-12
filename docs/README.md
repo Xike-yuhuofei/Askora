@@ -15,6 +15,7 @@
 | Askora 必须具备哪些能力、规则与产品验收 | [Product Definition](product/PRODUCT-DEFINITION.md) |
 | 当前 Product 文档各自负责什么 | [Product Index](product/README.md) |
 | 用户如何理解、导航和操作 Askora | [Experience Architecture](design/experience/EXPERIENCE-ARCHITECTURE.md) |
+| Course-centric IA 为什么改变、冻结了什么 | [Course-centric IA Design Delta](design/features/course-centric-information-architecture-canonical-design-delta.md) 与 [ADR-0022](architecture/decisions/ADR-0022-course-centric-information-architecture.md) |
 | 学习交互、Conversation、Attempt、Feedback 如何成立 | [Learning Experience](design/experience/LEARNING-EXPERIENCE.md) |
 | 交互原语、层级与 progressive disclosure | [Interaction Model](design/experience/INTERACTION-MODEL.md) |
 | Teaching / Learner Model / Assessment / Planner 的冻结设计 | [Learning Design Index](design/README.md) |

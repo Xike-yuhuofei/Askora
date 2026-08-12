@@ -115,6 +115,12 @@ API MUST NOT 直接调用 repository；LocalOwner/Workspace resolver 是 transpo
 
 Browser/localStorage/sessionStorage MAY 保存短期 UI preference/cache，但 MUST NOT 成为 LocalOwner、Workspace、Material membership、LearningGoal、LearnerState、TeachingAction、ModelRouteProfile、API Key 或 background job truth。
 
+Current Workspace selection is specifically a Platform Workspace Registry preference governed by `CWSP-*`。Browser MAY preserve per-Workspace draft/tab position for recovery, but MUST NOT claim switch success before the owner command receipt。
+
+### DEP-025 — Workspace Selection Before Scoped Command
+
+Application startup MAY read canonical WorkspaceSelection；explicit deep links MAY supply a validated Workspace scope without mutating selection。Every workspace-scoped write still carries/resolves exact route/body scope and MUST NOT depend only on ambient current selection。Course Activity query may read SYS06 exact refs；it MUST NOT import/write SYS06 private persistence as a second owner。
+
 ### DEP-030 — Single-owner Transaction
 
 一个 domain transaction SHOULD 只修改该 owner 的业务状态，并写同一事务的 outbox/event record。

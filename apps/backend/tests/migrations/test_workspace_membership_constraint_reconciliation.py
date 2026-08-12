@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 PREVIOUS_HEAD = "x174e0e0a002"
-CURRENT_HEAD = "w171r0e0a002"
+CURRENT_HEAD = "c189s0e0a001"
 
 MEMBERSHIPS = (
     (

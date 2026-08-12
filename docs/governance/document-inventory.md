@@ -13,7 +13,7 @@
 
 | Action | Count |
 |---|---:|
-| `KEEP` | 103 |
+| `KEEP` | 112 |
 | `MOVE` | 78 |
 | `RENAME` | 1 |
 | `MERGE` | 0 |
@@ -50,6 +50,8 @@
 | `docs/adr/ADR-0018-ux-workspace-context-architecture.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0018-ux-workspace-context-architecture.md` |
 | `docs/adr/ADR-0019-ui-workspace-read-projections.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0019-ui-workspace-read-projections.md` |
 | `docs/adr/ADR-0020-learning-conversation-message-presentation-and-interaction-boundary.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0020-learning-conversation-message-presentation-and-interaction-boundary.md` |
+| N/A (new) | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/architecture/decisions/ADR-0022-course-centric-information-architecture.md` |
+| N/A (new) | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/architecture/decisions/ADR-0023-course-workspace-selection-and-activity-projection.md` |
 | `docs/adr/ADR-0103-local-data-recovery-portability-erasure.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0103-local-data-recovery-portability-erasure.md` |
 | `docs/adr/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0106-fact-driven-onboarding-readiness-and-preferences.md` |
 | `docs/adr/ADR-0107-account-deletion-erasure-workflow-integration.md` | Architecture Decision Record | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/architecture/decisions/ADR-0107-account-deletion-erasure-workflow-integration.md` |
@@ -58,6 +60,7 @@
 | `docs/design/experience/INTERACTION-MODEL.md` | Experience 与 Interaction Design | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/design/experience/INTERACTION-MODEL.md` |
 | `docs/design/experience/LEARNING-EXPERIENCE.md` | Experience 与 Interaction Design | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/design/experience/LEARNING-EXPERIENCE.md` |
 | `docs/design/Learning-Conversation-Message-System-Canonical-Design-Delta.md` | Feature Canonical Design | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/design/features/Learning-Conversation-Message-System-Canonical-Design-Delta.md` |
+| N/A (new) | Feature Canonical Design | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/design/features/course-centric-information-architecture-canonical-design-delta.md` |
 | `docs/design/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` | Feature Canonical Design | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/design/features/Local-Single-User-Identity-Authentication-Removal-Canonical-Design-Delta.md` |
 | `docs/design/p1-03-data-control-and-recovery.md` | Feature Canonical Design | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/design/features/p1-03-data-control-and-recovery.md` |
 | `docs/design/p1-06-fact-driven-first-use-journey.md` | Feature Canonical Design | Canonical / Current | 长期维护 | 否 | `MOVE` | `docs/design/features/p1-06-fact-driven-first-use-journey.md` |
@@ -93,6 +96,7 @@
 | `docs/specs/platform/identity-privacy-lifecycle.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/identity-privacy-lifecycle.md` |
 | `docs/specs/platform/local-secret-store.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/local-secret-store.md` |
 | `docs/specs/platform/workspace-project-session-scope.md` | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/workspace-project-session-scope.md` |
+| N/A (new) | Platform Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/platform/course-workspace-selection.md` |
 | `docs/specs/quality/ci-infrastructure-standard.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/ci-infrastructure-standard.md` |
 | `docs/specs/quality/definition-of-done.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/definition-of-done.md` |
 | `docs/specs/quality/observability-standard.md` | Quality 与 Risk Contract | Canonical / Current | 长期维护 | 否 | `KEEP` | `docs/specs/quality/observability-standard.md` |
@@ -157,6 +161,7 @@
 | `docs/ui-reverse-engineering/17-chat-composer-component.md` | External Official Chat Composer Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/17-chat-composer-component.md` |
 | `docs/ui-reverse-engineering/18-table-table-panel-components.md` | External Official Table and Table Panel Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/18-table-table-panel-components.md` |
 | `docs/ui-reverse-engineering/19-button-components.md` | External Official Button Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/19-button-components.md` |
+| `docs/ui-reverse-engineering/20-official-atoms.md` | External Official Atoms Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/20-official-atoms.md` |
 | `docs/design/research/README.md` | Learning Research Index | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/README.md` |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | Learning Research Evidence | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/evidence/八类技术系统-ITS与学习者建模证据.md` |
 | `docs/design/research/evidence/八类技术系统-LLM-Agent与可信治理证据.md` | Learning Research Evidence | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/evidence/八类技术系统-LLM-Agent与可信治理证据.md` |
@@ -210,6 +215,7 @@
 | `docs/exec-plans/active/EXEC-071-ui-04d-learning-management-exposure-removal.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-071-ui-04d-learning-management-exposure-removal.md` |
 | `docs/exec-plans/active/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-072-ui-04e-library-v1-no-ocr-exposure.md` |
 | `docs/exec-plans/active/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `MOVE` | `docs/planning/execs/EXEC-073-ui-04f-responsive-accessibility-release-acceptance.md` |
+| N/A (new) | Active EXEC Contract | Active Planning Snapshot | 临时执行资产 | 否 | `KEEP` | `docs/planning/execs/EXEC-077-course-workspace-selection-platform.md` |
 | `docs/exec-plans/CHAIN-A-UI-03-PROMPT.md` | Execution Prompt | Supporting / Transient | 临时执行资产 | 否 | `DELETE` | 用户确认移除，不建立长期目标路径 |
 | `docs/exec-plans/CHAIN-B-CI-V2-PROMPT.md` | Execution Prompt | Supporting / Transient | 临时执行资产 | 否 | `DELETE` | 用户确认移除，不建立长期目标路径 |
 
@@ -223,6 +229,7 @@
 | `docs/specs/quality/test-oracle-classification.md` | Historical Audit 或 Gap Analysis | Historical / Superseded | 长期历史证据 | 否 | `ARCHIVE` | `docs/archive/audits/quality/test-oracle-classification.md` |
 | `docs/design/v0.3-Current-Main-Conformance-Gap-Analysis.md` | Historical Audit 或 Gap Analysis | Historical / Superseded | 长期历史证据 | 否 | `ARCHIVE` | `docs/archive/audits/v0.3-Current-Main-Conformance-Gap-Analysis.md` |
 | `docs/design/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` | Historical Audit 或 Gap Analysis | Historical / Superseded | 长期历史证据 | 否 | `ARCHIVE` | `docs/archive/audits/v1-Product-Positioning-Current-Main-Conformance-Gap-Analysis.md` |
+| N/A (new) | Historical Audit 或 Gap Analysis | Historical Snapshot | 长期历史证据 | 否 | `KEEP` | `docs/archive/audits/course-centric-ia-current-state-gap-analysis.md` |
 | `docs/design/Interactive-Element-System-Canonical-Design-Delta.md` | Superseded Design Record | Historical / Superseded | 长期历史证据 | 否（保留独立演进证据） | `ARCHIVE` | `docs/archive/design/Interactive-Element-System-Canonical-Design-Delta.md` |
 | `docs/design/UX-Architecture-Canonical-Design-Delta.md` | Superseded Design Record | Historical / Superseded | 长期历史证据 | 否（保留独立演进证据） | `ARCHIVE` | `docs/archive/design/UX-Architecture-Canonical-Design-Delta.md` |
 | `docs/design/p1-02-model-settings.md` | Superseded Design Record | Historical / Superseded | 长期历史证据 | 否（保留独立演进证据） | `ARCHIVE` | `docs/archive/design/p1-02-model-settings.md` |

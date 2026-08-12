@@ -123,16 +123,18 @@ Codex 的架构自治权限只作用于下位设计/架构，**不得自行突�
 | `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
 | `ADR-0012` | Unified Recovery Control Plane and Bootstrap Diagnostics | accepted | 2026-08-09 |
 | `ADR-0013` | Desktop Model Credential and Activation | **partially superseded** — Desktop mechanics retired; current CAP-08/BYOK semantics = Product Definition + ADR-0017 + LSS | 2026-08-09 |
-| `ADR-0014` | User-job-driven Information and Interaction Architecture | **partially superseded by ADR-0018**; retained semantics consolidated into current Experience Design | 2026-08-10 |
+| `ADR-0014` | User-job-driven Information and Interaction Architecture | **partially superseded by ADR-0018 and ADR-0022**; retained semantics consolidated into current Experience Design | 2026-08-10 |
 | `ADR-0015` | Local Single-User Identity Without Authentication | accepted | 2026-08-10 |
 | `ADR-0016` | Workspace, LearningProject and LearningSession Scope Ownership | accepted | 2026-08-10 |
 | `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | accepted | 2026-08-10 |
-| `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | accepted; current experience representation consolidated under `docs/design/experience/**` | 2026-08-10 |
-| `ADR-0019` | UI Workspace Context and Learning Context Read Projections | accepted | 2026-08-11 |
+| `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | **partially superseded by ADR-0022**; retained three-column semantics consolidated under `docs/design/experience/**` | 2026-08-10 |
+| `ADR-0019` | UI Workspace Context and Learning Context Read Projections | accepted; target experience amended by ADR-0022；single-default target superseded by ADR-0023 | 2026-08-11 |
 | `ADR-0020` | Learning Conversation Message Presentation and Interaction Boundary | accepted | 2026-08-11 |
 | `ADR-0021` | UserNote Ownership and Source Inspection Boundary | accepted | 2026-08-11 |
+| `ADR-0022` | Course-centric Information Architecture | accepted | 2026-08-11 |
+| `ADR-0023` | Course Workspace Selection and Activity Projection | accepted | 2026-08-11 |
 | `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/current Product Definition | 2026-08-09 |
-| `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted | 2026-08-09 |
+| `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted; default-entry assumption partially superseded by ADR-0022 | 2026-08-09 |
 | `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
 
 ## 6. Current v1 Architecture Decisions
@@ -213,6 +215,39 @@ ADR-0019 closes the read-query gaps intentionally left open by ADR-0018:
 - no database schema or migration change。
 
 Direct contracts：`state-ownership.md` + `api-contract.md` + `frontend/ui-read-model-contracts.md` (`UXA-DATA-200/220..223`)。
+
+ADR-0022 已将目标 Experience 扩展为 multi-Course；ADR-0019 当前 single-default query 继续作为 compatibility projection，但不授权前端自行实现 Course create/switch。
+
+### ADR-0022 — Course-centric Information Architecture
+
+ADR-0022 partially supersedes ADR-0014/0018 的旧 L0：
+
+- Today / Learning 不再是 stable Product Domain；
+- 用户侧 Workspace vocabulary 统一为“课程”，canonical Workspace identity 不变；
+- `＋ 新课程` 是 Primary Action；课程列表是长期 context navigation；
+- Course → LearningActivity → LearningSession → Conversation/Attempt/Events；
+- Library 保持稳定 navigation，Settings/Recovery 保持 Utility；
+- Three-column Learning Workspace、Drawer、Right Rail 与 Learning de-management 继续有效；
+- `/today`、`/learning`、`/` 与旧 deep links 必须无业务副作用迁移。
+
+Course list/create/current/switch、conflict recovery 与 Activity Switcher 的 technical query/command gap is closed by ADR-0023 / `CWSP-*`。Frontend implementation still depends on the real XIK-189 Platform implementation；frontend-only mock remains forbidden。
+
+Direct contracts：current Experience Design + `docs/specs/ui/**` + ADR-0023 / `docs/specs/platform/course-workspace-selection.md`。
+
+### ADR-0023 — Course Workspace Selection / Activity Projection
+
+ADR-0023 closes ADR-0022's technical gate：
+
+- Platform Workspace Registry owns durable versioned `WorkspaceSelection`；
+- current selection is distinct from `Workspace.is_default`；
+- fresh owner may have zero Workspace；legacy-data migration still creates one default + selection；
+- `＋ 新课程` maps to atomic create-and-select；
+- switch uses expected version、idempotency and typed draft/stream/note/session/material recovery guard；
+- deep links/GET/redirect are side-effect free；
+- Course Activity index is read-only exact SYS06 composition；
+- new Activity-scoped LearningSession pins exact Activity without taking SYS06 ownership。
+
+Direct contract：`docs/specs/platform/course-workspace-selection.md` (`CWSP-*`)；implementation EXEC：`EXEC-077` / XIK-189。
 
 ### ADR-0020 — Learning Conversation Message Boundary
 
