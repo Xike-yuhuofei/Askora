@@ -26,6 +26,7 @@
 | 当前代码在哪里、模块负责什么 | [Engineering Guide](engineering/README.md) |
 | 现在仍可执行哪些 EXEC | [Planning Index](planning/README.md)，实时状态再核对 Linear |
 | 产品或 Learning Core 的研究依据 | [Research Index](research/README.md) |
+| 外部 Desktop UI 的截图逆向、布局测量与 Figma 研究输入 | [TraeCode UI Reverse Engineering](ui-reverse-engineering/00-overview.md) |
 | 测试、安全、可观测性与 Definition of Done | [`specs/quality/`](specs/quality/) |
 | 历史 Gap、旧设计、完成 EXEC、Release Evidence | [Archive](archive/README.md) |
 | 新文档应该放在哪里、冲突如何处理 | [Documentation Governance](governance/README.md) |
@@ -90,6 +91,7 @@ docs/
 ├── research/
 │   ├── product-discovery/
 │   └── learning-core/
+├── ui-reverse-engineering/
 ├── engineering/
 ├── planning/
 │   └── execs/
@@ -115,6 +117,7 @@ docs/
 | `architecture/decisions/` | 具有长期影响的 Accepted ADR | 普通实现记录、实时任务 |
 | `specs/` | 有规范性语言、稳定合同、可验证 acceptance 的 current implementation/quality spec | Research、Gap、EXEC、Release Report |
 | `research/` | Research Question、evidence、literature、finding、synthesis、protocol | 未经接受的 canonical decision |
+| `ui-reverse-engineering/` | 外部 UI 截图证据、测量、结构假设与 Figma handoff | Askora Canonical Experience、UI Spec 或生产 Design Token |
 | `engineering/` | Code Wiki、开发/构建/维护指南 | 第二套产品与架构事实 |
 | `planning/` | 尚可执行的 EXEC 与执行提示 | DONE evidence、Canonical Design |
 | `governance/` | 文档规则、流程、Inventory | 产品与技术内容本身 |
@@ -171,7 +174,7 @@ Askora 的 Teaching / AI 资产按职责分布：
 |---|---|---|
 | Canonical / Current | 当前唯一正式事实源 | Product / Design / Architecture / Specs |
 | Active Planning | 已冻结且仍可执行，状态需核对 Linear | `planning/` |
-| Research / Supporting | 决策输入，允许保留不确定与冲突 | `research/` |
+| Research / Supporting | 决策输入，允许保留不确定与冲突 | `research/`；外部 UI 逆向证据在 `ui-reverse-engineering/` |
 | Historical / Superseded | 保留演进或迁移证据，不再 current | `archive/` |
 | REVIEW | 重要但归属/authority 无法安全判断 | 原地保留并进入 Inventory，不猜测 |
 

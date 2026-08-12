@@ -47,3 +47,8 @@ apps/backend/data/
 *.swp
 *.swo
 *~
+
+# Raw design material (uncommitted source archives, screenshots, working dirs)
+TraeWork/
+reverse-engineering/
+*.zip
