@@ -13,7 +13,7 @@
 
 | Action | Count |
 |---|---:|
-| `KEEP` | 83 |
+| `KEEP` | 103 |
 | `MOVE` | 78 |
 | `RENAME` | 1 |
 | `MERGE` | 0 |
@@ -137,6 +137,26 @@
 | Current Path | 文档性质 | 生命周期归属 | 长期/临时 | 是否重复 | 建议动作 | Target Path |
 |---|---|---|---|---|---|---|
 | `docs/research/README.md` | Research Index | Supporting Research | 长期研究资产 | 否 | `KEEP` | `docs/research/README.md` |
+| `docs/ui-reverse-engineering/00-overview.md` | External UI Reverse Engineering Index | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/00-overview.md` |
+| `docs/ui-reverse-engineering/01-screenshot-inventory.md` | Screenshot Evidence Inventory | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/01-screenshot-inventory.md` |
+| `docs/ui-reverse-engineering/02-information-architecture.md` | External UI Information Architecture Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/02-information-architecture.md` |
+| `docs/ui-reverse-engineering/03-application-shell.md` | External UI Shell and Panel Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/03-application-shell.md` |
+| `docs/ui-reverse-engineering/04-layout-system.md` | External UI Layout Measurement Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/04-layout-system.md` |
+| `docs/ui-reverse-engineering/05-design-tokens.md` | External UI Design Token Hypotheses | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/05-design-tokens.md` |
+| `docs/ui-reverse-engineering/06-component-system.md` | External UI Component Taxonomy Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/06-component-system.md` |
+| `docs/ui-reverse-engineering/07-interaction-model.md` | External UI Interaction Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/07-interaction-model.md` |
+| `docs/ui-reverse-engineering/08-state-model.md` | External UI State Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/08-state-model.md` |
+| `docs/ui-reverse-engineering/09-responsive-resize-rules.md` | External UI Resize Research | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/09-responsive-resize-rules.md` |
+| `docs/ui-reverse-engineering/10-open-questions.md` | External UI Research Questions | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/10-open-questions.md` |
+| `docs/ui-reverse-engineering/11-implementation-handoff.md` | External UI Implementation Handoff | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/11-implementation-handoff.md` |
+| `docs/ui-reverse-engineering/12-official-design-system-consumption.md` | External Official Design System Consumption | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/12-official-design-system-consumption.md` |
+| `docs/ui-reverse-engineering/13-screen-reconstruction.md` | External UI Screen Reconstruction Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/13-screen-reconstruction.md` |
+| `docs/ui-reverse-engineering/14-prototype-validation.md` | External UI Prototype Validation Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/14-prototype-validation.md` |
+| `docs/ui-reverse-engineering/15-resize-stress-test.md` | External UI Resize Stress-test Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/15-resize-stress-test.md` |
+| `docs/ui-reverse-engineering/16-official-component-coverage.md` | External Official Component Coverage Matrix | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/16-official-component-coverage.md` |
+| `docs/ui-reverse-engineering/17-chat-composer-component.md` | External Official Chat Composer Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/17-chat-composer-component.md` |
+| `docs/ui-reverse-engineering/18-table-table-panel-components.md` | External Official Table and Table Panel Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/18-table-table-panel-components.md` |
+| `docs/ui-reverse-engineering/19-button-components.md` | External Official Button Figma Evidence | Research / Supporting | 长期研究资产 | 否 | `KEEP` | `docs/ui-reverse-engineering/19-button-components.md` |
 | `docs/design/research/README.md` | Learning Research Index | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/README.md` |
 | `docs/design/research/evidence/八类技术系统-ITS与学习者建模证据.md` | Learning Research Evidence | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/evidence/八类技术系统-ITS与学习者建模证据.md` |
 | `docs/design/research/evidence/八类技术系统-LLM-Agent与可信治理证据.md` | Learning Research Evidence | Supporting Research | 长期研究资产 | 否 | `MOVE` | `docs/research/learning-core/evidence/八类技术系统-LLM-Agent与可信治理证据.md` |
@@ -329,6 +349,8 @@
 | `.design_library/Askora/SKILL.md` | 设计辅助资产 | Supporting Asset | 长期维护 | 否 | `KEEP` | `.design_library/Askora/SKILL.md` |
 | `.github/PULL_REQUEST_TEMPLATE.md` | Delivery 与 Review 合同 | Current / Supporting | 长期维护 | 否 | `KEEP` | `.github/PULL_REQUEST_TEMPLATE.md` |
 | `AGENTS.md` | Agent 执行合同 | Current / Supporting | 长期维护 | 否 | `KEEP` | `AGENTS.md` |
+| `TraeCode Copy/README.md` | 外部官方 Design System 消费说明 | Supporting Asset | 长期研究资产 | 否 | `KEEP` | `TraeCode Copy/README.md` |
+| `TraeCode Copy/SKILL.md` | 外部官方 Design System 使用合同 | Supporting Asset | 长期研究资产 | 否 | `KEEP` | `TraeCode Copy/SKILL.md` |
 | `Professional App Development Framework.md` | 仓库外工作稿或执行快照 | REVIEW / 未纳入治理链 | 临时或待确认 | 否 | `REVIEW` | `Professional App Development Framework.md` |
 | `README.md` | Repository 入口 | Current / Supporting | 长期维护 | 否 | `KEEP` | `README.md` |
 | `apps/backend/README.md` | 模块工程指南 | Current / Supporting | 长期维护 | 否 | `KEEP` | `apps/backend/README.md` |
