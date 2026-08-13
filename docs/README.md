@@ -15,7 +15,7 @@
 | Askora 必须具备哪些能力、规则与产品验收 | [Product Definition](product/PRODUCT-DEFINITION.md) |
 | 当前 Product 文档各自负责什么 | [Product Index](product/README.md) |
 | 用户如何理解、导航和操作 Askora | [Experience Architecture](design/experience/EXPERIENCE-ARCHITECTURE.md) |
-| Course-centric IA 为什么改变、冻结了什么 | [Course-centric IA Design Delta](design/features/course-centric-information-architecture-canonical-design-delta.md) 与 [ADR-0022](architecture/decisions/ADR-0022-course-centric-information-architecture.md) |
+| Course-centric IA 为什么改变、冻结了什么 | [ADR-0022](architecture/decisions/ADR-0022-course-centric-information-architecture.md) |
 | 学习交互、Conversation、Attempt、Feedback 如何成立 | [Learning Experience](design/experience/LEARNING-EXPERIENCE.md) |
 | 交互原语、层级与 progressive disclosure | [Interaction Model](design/experience/INTERACTION-MODEL.md) |
 | Teaching / Learner Model / Assessment / Planner 的冻结设计 | [Learning Design Index](design/README.md) |
@@ -28,10 +28,6 @@
 | 产品或 Learning Core 的研究依据 | [Research Index](research/README.md) |
 | 外部 Desktop UI 的截图逆向、布局测量与 Figma 研究输入 | [TraeCode UI Reverse Engineering](ui-reverse-engineering/00-overview.md) |
 | 测试、安全、可观测性与 Definition of Done | [`specs/quality/`](specs/quality/) |
-| 历史 Gap、旧设计、完成 EXEC、Release Evidence | [Archive](archive/README.md) |
-| 新文档应该放在哪里、冲突如何处理 | [Documentation Governance](governance/README.md) |
-| 每份文档从哪里迁到哪里、为何这样处置 | [Document Inventory](governance/document-inventory.md) |
-| 产品到交付的端到端流程 | [Product Development Process](governance/product-development-process.md) |
 
 ## 2. Authority Chain
 
@@ -216,5 +212,4 @@ Security、Privacy、Performance、Accessibility、Reliability、Observability �
 3. current canonical truth 不复制到 Archive、Linear 或 EXEC；
 4. 已被 consolidated 的旧文件归档，不要求 Agent 通过 supersession matrix 拼出 current truth；
 5. 不因文件旧而删除；只有完全重复且无独立证据价值的文件才可删除，并记录替代来源；
-6. 每次文档架构变更同步 [Inventory](governance/document-inventory.md)；
-7. 至少运行 `python3 .github/workflows/check_docs.py` 与 `git diff --check`。
+6. 至少运行 `python3 .github/workflows/check_docs.py` 与 `git diff --check`。

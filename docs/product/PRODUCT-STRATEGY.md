@@ -550,8 +550,7 @@ Askora 当前不强行冻结单一 scalar North Star Metric。
 - [`../design/learning/个人AI辅助学习平台设计方案.md`](../design/learning/个人AI辅助学习平台设计方案.md)；
 - [`../design/learning/AI学习系统算法与教学内核设计.md`](../design/learning/AI学习系统算法与教学内核设计.md)；
 - [`../research/learning-core/synthesis/DR-03-01-教学策略与支架转换研究.md`](../research/learning-core/synthesis/DR-03-01-教学策略与支架转换研究.md)；
-- [`../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md`](../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md)；
-- [`../governance/product-development-process.md`](../governance/product-development-process.md)。
+- [`../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md`](../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md)。
 
 研究材料用于支持或挑战 Strategy，不自动拥有本文件的产品决策权。
 

@@ -8,5 +8,3 @@ Deliver pause/resume/archive/copy, criterion-specific assessment activity, deter
 scoring, accepted evidence evaluation and user-confirmed achievement. DONE requires four cognitive criterion types,
 provider/prompt-injection/reviewer failure, owner isolation, restart/replay, real configured-model open-response E2E,
 responsive/accessibility, independent release evidence and local commit.
-
-Completion evidence: [P1-01B Goal Lifecycle and Evidence-gated Achievement](../../archive/releases/p1-01b-goal-lifecycle-achievement.md).

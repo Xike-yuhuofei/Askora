@@ -126,28 +126,7 @@ PRODUCT-STRATEGY
 
 ---
 
-## 6. Historical UI Contract Set
-
-以下文件已迁至 `docs/archive/specs/ui/`，继续作为**历史/迁移参考**，不再作为新实现 current Authority：
-
-- [interactive-element-system.md](../../archive/specs/ui/interactive-element-system.md)
-- [information-architecture.md](../../archive/specs/ui/information-architecture.md)
-- [screen-contracts.md](../../archive/specs/ui/screen-contracts.md)
-- [visual-system.md](../../archive/specs/ui/visual-system.md)
-- [component-state-contracts.md](../../archive/specs/ui/component-state-contracts.md)
-- [quality-and-migration.md](../../archive/specs/ui/quality-and-migration.md)
-
-原 `data-contracts.md` 与 `docs/specs/frontend/ui-read-model-contracts.md` 字节级完全重复，已删除重复副本；技术 read-model 合同只保留后者作为唯一 current source。
-
-这些文件记录 ADR-0014 → ADR-0018 / UI-03 → UI-04 的演进，并包含 supersession matrices、旧 route/facet、一次性 migration 与历史 EXEC 语境。
-
-新的 implementation task **不得**要求 Agent 通过这些文件中的旧条款 + Supersession Matrix 自行推导 current truth。
-
-如需追踪历史 clause ID（`UI-*` / `UXA-*`），可以读取历史文件或 Vertical Slice；当前行为必须最终回到本 README 所列 current contracts。
-
----
-
-## 7. Technical UI Read Model Boundary
+## 6. Technical UI Read Model Boundary
 
 `docs/specs/frontend/ui-read-model-contracts.md` 管理：
 
@@ -162,7 +141,7 @@ Experience/UI Spec 只决定“哪些事实必须被用户理解、如何呈现�
 
 ---
 
-## 8. Design System Boundary
+## 7. Design System Boundary
 
 Design System 管理：
 
@@ -191,7 +170,7 @@ Domain State
 
 ---
 
-## 9. Quality / Acceptance Boundary
+## 8. Quality / Acceptance Boundary
 
 必须分开报告：
 
@@ -207,6 +186,6 @@ UI/UX PASS 不得自动升级为 Product Acceptance，也不得声称 retention 
 
 ---
 
-## 10. Working Rule
+## 9. Working Rule
 
 > **新实现只读取 current Product / Experience / UI Contracts；历史 Delta、旧 UI Spec 和 Migration Matrix 用来解释过去，不再要求 Codex 从历史冲突中推断现在。**

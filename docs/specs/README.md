@@ -188,8 +188,6 @@ SYS01～SYS08 是技术/教学 ownership，不是 Product Capability。Product C
 
 Quality Specs own technical/quality gates. Product Acceptance remains upstream in `PRODUCT-DEFINITION.md` or an explicit Product Feature Spec。
 
-EXEC-052 的单次 Test Oracle 分类与后续完成记录属于历史审计证据，已迁至 [archive/audits/quality/test-oracle-classification.md](../archive/audits/quality/test-oracle-classification.md)，不再作为 current Quality Spec 索引成员。
-
 ### UI / UX — Current Only
 
 - [UI Spec Index](ui/README.md)
@@ -197,15 +195,6 @@ EXEC-052 的单次 Test Oracle 分类与后续完成记录属于历史审计证�
 - [Learning Interaction Contracts](ui/learning-interaction-contracts.md)
 - [Design System](ui/design-system.md)
 - [UI/UX Quality & Regression](ui/quality-and-regression.md)
-
-以下旧 UI contract files 已归档，仅作 historical/migration reference，不再作为新实现 current Authority：
-
-- [interactive-element-system.md](../archive/specs/ui/interactive-element-system.md)
-- [information-architecture.md](../archive/specs/ui/information-architecture.md)
-- [screen-contracts.md](../archive/specs/ui/screen-contracts.md)
-- [visual-system.md](../archive/specs/ui/visual-system.md)
-- [component-state-contracts.md](../archive/specs/ui/component-state-contracts.md)
-- [quality-and-migration.md](../archive/specs/ui/quality-and-migration.md)
 
 `frontend/ui-read-model-contracts.md` 是 current technical contract，不属于历史列表；原 `ui/data-contracts.md` 完全重复副本已删除。
 
@@ -222,15 +211,8 @@ Primary current/historical references include：
 - [Book-to-Adaptive-Learning](vertical-slices/book-to-adaptive-learning.md) — book-learning E2E, with current v1 material/scope/runtime rules applied.
 - [Local Single-User Authentication Removal](vertical-slices/local-single-user-authentication-removal.md) — identity migration.
 - [UI-04 Workspace Context](vertical-slices/ui-04-ux-workspace-context.md) — current Workspace Experience implementation slice，已改用 consolidated Experience/UI contracts。
-- [UI-03 Interactive Element System](../archive/specs/vertical-slices/ui-03-interactive-element-system-refactor.md) — historical UI architecture migration reference；current behavior 服从 consolidated contracts。
 - [P1-03 Data Control](vertical-slices/p1-03-data-control-recovery.md) — local backup/export/erasure reference.
 - [P1-06 First-use Onboarding](vertical-slices/p1-06-first-use-onboarding.md) — no-auth LocalOwner semantics.
-
-Historical/partially superseded：
-
-- [P1-05 Account Lifecycle](../archive/specs/vertical-slices/p1-05-account-lifecycle.md) — historical only; no Account/Auth resurrection.
-- [P1-04C OCR Review](../archive/specs/vertical-slices/p1-04c-library-ocr-review.md) — implemented optional/historical; not v1 core/release prerequisite.
-- [P1-02 Model Settings](../archive/specs/vertical-slices/p1-02-model-settings.md) — historical Desktop implementation; current new writes use ADR-0017/LSS/MODEL-CONFIG.
 
 Vertical Slice 可以实现一个或多个 Product Capability，但不能以自身存在作为新 Product Requirement 的来源。实时工作状态属于 Linear；EXEC index 不复制 Product Backlog。
 
