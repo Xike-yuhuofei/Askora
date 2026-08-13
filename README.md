@@ -20,7 +20,7 @@ Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 
 这表示工程链路和教学策略约束通过验收，不表示已经证明真人学习效果。
 
-所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md) 的产品边界，并从 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md) 获得 Capability / Product Rule / Requirement / Product Acceptance 上游输入；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
+所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md) 的产品边界，并从 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md) 获得 Capability / Product Rule / Requirement / Product Acceptance 上游输入；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者见 [System Architecture / State Ownership](docs/specs/architecture.md)。
 
 ## 当前实现边界
 

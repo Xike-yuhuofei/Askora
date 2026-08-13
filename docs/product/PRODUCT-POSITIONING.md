@@ -408,35 +408,35 @@ Discovery / Evidence
 
 ### Product / Overall Design
 
-- [`../design/learning/个人AI辅助学习平台设计方案.md`](../design/learning/个人AI辅助学习平台设计方案.md)
-- [`../design/learning/AI学习系统算法与教学内核设计.md`](../design/learning/AI学习系统算法与教学内核设计.md)
+- [`../archive/design/个人AI辅助学习平台设计方案.md`](../archive/design/个人AI辅助学习平台设计方案.md)
+- [`../archive/design/AI学习系统算法与教学内核设计.md`](../archive/design/AI学习系统算法与教学内核设计.md)
 
 ### UX / Interaction
 
-- [`../specs/ui/README.md`](../specs/ui/README.md)
+- [`../specs/ui.md`](../specs/ui.md)
 
 ### Architecture / Domain / Platform
 
-- [`../specs/architecture/system-architecture.md`](../specs/architecture/system-architecture.md)
-- [`../specs/architecture/state-ownership.md`](../specs/architecture/state-ownership.md)
-- [`../specs/domain/domain-model.md`](../specs/domain/domain-model.md)
-- [`../specs/platform/identity-privacy-lifecycle.md`](../specs/platform/identity-privacy-lifecycle.md)
-- [`../specs/platform/workspace-project-session-scope.md`](../specs/platform/workspace-project-session-scope.md)
-- [`../specs/platform/local-secret-store.md`](../specs/platform/local-secret-store.md)
+- [`../specs/architecture.md`](../specs/architecture.md)
+- [`../specs/architecture.md`](../specs/architecture.md)
+- [`../specs/domain.md`](../specs/domain.md)
+- [`../specs/platform.md`](../specs/platform.md)
+- [`../specs/platform.md`](../specs/platform.md)
+- [`../specs/platform.md`](../specs/platform.md)
 
 ### Interfaces / Technical Mechanics
 
-- [`../specs/interfaces/persistence-contract.md`](../specs/interfaces/persistence-contract.md)
-- [`../specs/interfaces/content-ingestion-contract.md`](../specs/interfaces/content-ingestion-contract.md)
-- [`../specs/interfaces/material-lifecycle-contract.md`](../specs/interfaces/material-lifecycle-contract.md)
-- [`../specs/interfaces/schema-versioning.md`](../specs/interfaces/schema-versioning.md)
+- [`../specs/interfaces/persistence-and-data-control.md`](../specs/interfaces/persistence-and-data-control.md)
+- [`../specs/interfaces/content.md`](../specs/interfaces/content.md)
+- [`../specs/interfaces/persistence-and-data-control.md`](../specs/interfaces/persistence-and-data-control.md)
+- [`../specs/interfaces/api.md`](../specs/interfaces/api.md)
 
 ### Quality / Security / Replay
 
-- [`../specs/quality/testing-standard.md`](../specs/quality/testing-standard.md)
-- [`../specs/quality/security-standard.md`](../specs/quality/security-standard.md)
-- [`../specs/quality/observability-standard.md`](../specs/quality/observability-standard.md)
-- [`../specs/quality/definition-of-done.md`](../specs/quality/definition-of-done.md)
+- [`../specs/quality.md`](../specs/quality.md)
+- [`../specs/quality.md`](../specs/quality.md)
+- [`../specs/quality.md`](../specs/quality.md)
+- [`../specs/quality.md`](../specs/quality.md)
 
 如果这些下游文档与 Product Positioning 冲突，应收敛下游；不得把 retry、schema、job state、logging fields 等重新复制回本文件。
 

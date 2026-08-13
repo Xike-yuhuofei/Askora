@@ -21,13 +21,13 @@
 ### ADR-0001 — Teaching Strategy Ontology
 - Status: `accepted`（2026-08-07）
 - 结论：v0.3 顶层 Strategy Family 收敛为 6 族（EXPLICIT_INSTRUCTION / GUIDED_PRACTICE / FADING_PRACTICE 等），`TeachingAction` 采用 immutable strategy family + action/move/modifier/envelope 语义；scaffold/hint/exposure/assistance 正交化。
-- 规范：[`specs/systems/05-teaching-policy.md`](../specs/systems/05-teaching-policy.md) + [`specs/domain/domain.md`](../specs/domain/domain.md)
+- 规范：[`specs/systems/05-teaching-policy.md`](../specs/systems/05-teaching-policy.md) + [`specs/domain/domain.md`](../specs/domain.md)
 - 原文：[`ADR-0001`](../archive/adr/ADR-0001-teaching-strategy-ontology.md)
 
 ### ADR-0002 — Constrained Deterministic Teaching Policy Architecture
 - Status: `accepted`（2026-08-07）
 - 结论：SYS05 canonical 决策路径固定为 `TeachingContext Snapshot → Typed Hard Constraints → Derived TeachingStage → Candidate Generation → Feature Builder → Normalized Weighted Scoring`；`DecisionTrace` 固定 replayability、assignment probability 与 action propensity 分离、deterministic propensity=null。
-- 规范：[`specs/systems/05-teaching-policy.md`](../specs/systems/05-teaching-policy.md) + [`specs/domain/domain.md`](../specs/domain/domain.md)
+- 规范：[`specs/systems/05-teaching-policy.md`](../specs/systems/05-teaching-policy.md) + [`specs/domain/domain.md`](../specs/domain.md)
 - 原文：[`ADR-0002`](../archive/adr/ADR-0002-constrained-deterministic-teaching-policy-architecture.md)
 
 ### ADR-0003 — Policy Runtime Profile Source and Activation Resolution
@@ -51,7 +51,7 @@
 ### ADR-0007 — SYS06 Activity Lifecycle and Completion
 - Status: `accepted`（2026-08-09）
 - 结论：SYS06-owned append-only versioned `LearningActivityStateV1` 是活动状态唯一 canonical source；`SelectNextLearningActivity` 只做 planned→available；`Start/CompleteLearningActivityV1` 校验 owner/版本/幂等/type-specific 前置；完成活动 ≠ objective satisfied / goal achieved / mastery changed。
-- 规范：[`specs/systems/06-learning-planner.md`](../specs/systems/06-learning-planner.md) + [`specs/domain/domain.md`](../specs/domain/domain.md)
+- 规范：[`specs/systems/06-learning-planner.md`](../specs/systems/06-learning-planner.md) + [`specs/domain/domain.md`](../specs/domain.md)
 - 原文：[`ADR-0007`](../archive/adr/ADR-0007-sys06-activity-lifecycle-and-completion.md)
 
 ### ADR-0010 — Goal Definition, State, Draft and Safe Replan
@@ -71,19 +71,19 @@
 ### ADR-0015 — Local Single-User Identity Without Authentication
 - Status: `accepted`（2026-08-10）
 - 结论：**Askora 不再提供 Account/Login/Register/Logout/Password/Recovery/AuthSession**；唯一长期身份为 `LocalOwnerContext (owner_id: UUID)`；`LocalOwner` 是本地数据归属主体，不是 credential principal；所有业务入口解析唯一 LocalOwnerContext。
-- 规范：[`specs/platform/platform.md`](../specs/platform/platform.md)（Identity & Privacy Lifecycle）
+- 规范：[`specs/platform/platform.md`](../specs/platform.md)（Identity & Privacy Lifecycle）
 - 原文：[`ADR-0015`](../archive/adr/ADR-0015-local-single-user-identity-without-authentication.md)
 
 ### ADR-0016 — Workspace, LearningProject and LearningSession Scope Ownership
 - Status: `accepted`（2026-08-10）
 - 结论：Workspace → Platform Workspace Registry；LearningProject/ProjectMaterial → Platform Workspace/Product Organization；LearningSession → Platform Learning Session Registry（非 DialogSession，不拥有 transcript/TeachingAction/Assessment/Mastery truth）；existing `user_documents.id` 保持稳定 Material identity；LearnerEvidence/Mastery/LearnerState/Review 变 Workspace-specific；cross-workspace refs fail closed。
-- 规范：[`specs/platform/platform.md`](../specs/platform/platform.md)（Workspace/Project/Session Scope）
+- 规范：[`specs/platform/platform.md`](../specs/platform.md)（Workspace/Project/Session Scope）
 - 原文：[`ADR-0016`](../archive/adr/ADR-0016-workspace-project-and-learning-session-scope-ownership.md)
 
 ### ADR-0006 — Workspace Read-model Scope and Missing Objective Metadata
 - Status: `accepted`（2026-08-09）
 - 结论：UI read 层是 additive read-only composition：`/workspace/goals|path|evidence` 按 current identity/workspace 读最新 immutable version；无 `goal_id` 时仅一个 eligible plan 可自动返回，多个返回 scoped-selection 而非任意 winner；缺失 owner 元数据返回 null + `OBJECTIVE_METADATA_UNAVAILABLE`；mastery label 在 SYS03 发布前保持 null。
-- 规范：[`specs/frontend/`（UI Read Model Contracts）](../specs/ui/ui.md)
+- 规范：[`specs/frontend/`（UI Read Model Contracts）](../specs/ui.md)
 - 原文：[`ADR-0006`](../archive/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md)
 
 ### ADR-0103 — Local Data Recovery, Portability and Erasure
@@ -101,7 +101,7 @@
 ### ADR-0009 — Local-first Identity and Privacy Lifecycle
 - Status: `partially superseded by ADR-0015`（Account/AuthSession/Recovery 产品语义退休）。
 - 当前有效：Platform Identity & Privacy 是横切边界，不拥有学习 truth；Argon2id、offline 恢复套件、删除 `ACTIVE → DELETION_PENDING → PURGING → DELETED` 状态机、subject manifest 零残留等有独立数据治理价值的**原则**继续承接于 LID 契约。
-- 规范：[`specs/platform/platform.md`](../specs/platform/platform.md)
+- 规范：[`specs/platform/platform.md`](../specs/platform.md)
 - 原文：[`ADR-0009`](../archive/adr/ADR-0009-local-first-identity-privacy-lifecycle.md)
 
 ## 主题 3：Experience / UI / 交互边界
@@ -109,25 +109,25 @@
 ### ADR-0022 — Course-centric Information Architecture
 - Status: `accepted`（2026-08-11）
 - 结论：用户侧 Workspace vocabulary 统一为「课程」，canonical Workspace identity 不变；`＋ 新课程` 是 Primary Action；Course → LearningActivity → LearningSession → Conversation/Attempt/Events；Library 稳定、Settings/Recovery 保持 Utility；`/today`、`/learning`、`/` 与旧 deep links 无业务副作用迁移。
-- 规范：[`specs/ui/ui.md`](../specs/ui/ui.md) + [`specs/platform/platform.md`](../specs/platform/platform.md)（Course Workspace Selection）
+- 规范：[`specs/ui.mdui.md`](../specs/ui.md) + [`specs/platform/platform.md`](../specs/platform.md)（Course Workspace Selection）
 - 原文：[`ADR-0022`](../archive/adr/ADR-0022-course-centric-information-architecture.md)
 
 ### ADR-0023 — Course Workspace Selection and Activity Projection
 - Status: `accepted`（2026-08-11）
 - 结论：Platform Workspace Registry 拥有 durable versioned `WorkspaceSelection`（与 `Workspace.is_default` 区分）；fresh owner 可零 Workspace；`＋ 新课程` = atomic create-and-select；switch 使用 expected version + idempotency + typed recovery guard；deep links/GET 无副作用；Course Activity index 是只读 exact SYS06 composition；Activity-scoped LearningSession 不取 SYS06 ownership。
-- 规范：[`specs/platform/platform.md`](../specs/platform/platform.md)（CWSP）
+- 规范：[`specs/platform/platform.md`](../specs/platform.md)（CWSP）
 - 原文：[`ADR-0023`](../archive/adr/ADR-0023-course-workspace-selection-and-activity-projection.md)
 
 ### ADR-0018 — UX Workspace Context and Three-Column Learning Architecture
 - Status: `partially superseded by ADR-0022`（旧 L0 变更）；retained 语义已 consolidation 进 Experience Design。
 - 当前有效：left rail = Where（产品导航 + canonical Workspace），center = Learn（唯一 Primary Canvas），right rail = hideable Reference/Notes；Learning Context Drawer 默认折叠；Library v1 UI 不暴露 OCR。
-- 规范：[`design/experience/EXPERIENCE-ARCHITECTURE.md`](../design/experience/EXPERIENCE-ARCHITECTURE.md) + [`specs/ui/ui.md`](../specs/ui/ui.md)
+- 规范：[`design/experience/EXPERIENCE-ARCHITECTURE.md`](../design/experience/EXPERIENCE-ARCHITECTURE.md) + [`specs/ui.mdui.md`](../specs/ui.md)
 - 原文：[`ADR-0018`](../archive/adr/ADR-0018-ux-workspace-context-architecture.md)
 
 ### ADR-0019 — UI Workspace Context and Learning Context Read Projections
 - Status: `accepted`；single-default query 限制被 ADR-0023 superseded。
 - 结论：canonical current Workspace 来自 Platform Workspace Registry（非 route/frontend state）；Drawer stage 来自 exact SYS05 TeachingAction；next 1..3 directions 来自 exact SYS06 LearningActivity refs；stage-goal copy 是 versioned server-side presentation catalog；query assembly 只读、current-Workspace scoped、无副作用、诚实 MISSING/PARTIAL/STALE。
-- 规范：[`specs/ui/ui.md`](../specs/ui/ui.md)（UI Read Model）
+- 规范：[`specs/ui.mdui.md`](../specs/ui.md)（UI Read Model）
 - 原文：[`ADR-0019`](../archive/adr/ADR-0019-ui-workspace-read-projections.md)
 
 ### ADR-0020 — Learning Conversation Message Presentation and Interaction Boundary
@@ -153,13 +153,13 @@
 ### ADR-0017 — OS-backed LocalSecretStore and Crash-consistent Model Activation
 - Status: `accepted`（2026-08-10）
 - 结论：生产后端 allowlist（macOS keyring / Windows WinVault），无 third-party/Null/file fallback；opaque random secret refs；SQLite 只存非密 profile/ref/activation journal；durable phase journal 协调 SQLite + OS credential-store 崩溃一致性；restore 缺失 secret → degraded/re-enter，绝不 `.env` resurrection。
-- 规范：[`specs/platform/platform.md`](../specs/platform/platform.md)（LSS）+ [`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/quality/quality.md`](../specs/quality/quality.md)
+- 规范：[`specs/platform/platform.md`](../specs/platform.md)（LSS）+ [`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/quality/quality.md`](../specs/quality.md)
 - 原文：[`ADR-0017`](../archive/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md)
 
 ### ADR-0013 — Desktop Model Credential and Atomic Activation
 - Status: `partially superseded`（Desktop/Electron mechanics 退休）；current 语义 = ADR-0017 + Local Web BYOK。
 - 当前有效：SYS08 拥有 `ModelRouteProfileV1` semantic owner；secret 不进入 Prompt metadata/日志/API response/browser/导出/backup/diagnostic；config error 不得产生 learner failure / AssessmentResult / Mastery / completion / transcript truth；probe 不发送私人资料。
-- 规范：[`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/platform/platform.md`](../specs/platform/platform.md)
+- 规范：[`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/platform/platform.md`](../specs/platform.md)
 - 原文：[`ADR-0013`](../archive/adr/ADR-0013-desktop-model-credential-and-activation.md)
 
 ## 主题 5：内容 / 恢复 / 引导

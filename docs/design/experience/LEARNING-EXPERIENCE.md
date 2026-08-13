@@ -3,7 +3,7 @@
 > 状态：**Canonical Learning Experience Baseline**  
 > 冻结日期：2026-08-11  
 > 适用范围：Askora v1 Learning Workspace、Learning Conversation、Attempt / Feedback / Evidence / Provenance Experience  
-> 上游：[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)、[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`../learning/v0.3-Canonical-Design-Delta.md`](../learning/v0.3-Canonical-Design-Delta.md)、[`../learning/AI学习系统算法与教学内核设计.md`](../learning/AI学习系统算法与教学内核设计.md)
+> 上游：[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)、[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`v0.3 Canonical Design Delta（已归档）`](../../archive/design/v0.3-Canonical-Design-Delta.md)、[`AI 学习系统算法与教学内核设计（已归档）`](../../archive/design/AI学习系统算法与教学内核设计.md)
 > 交互语义：[`INTERACTION-MODEL.md`](INTERACTION-MODEL.md)  
 > 下游：Learning Interaction / Screen / Render / UI Data Specs
 

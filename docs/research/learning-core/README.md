@@ -1,6 +1,6 @@
 # Askora Learning Core 研究资产索引
 
-> 本目录保存“为什么这样设计”的研究依据与综合推导，不作为第二套正式规范。Askora 的 Canonical Design 由按职责边界划分的正式设计文档共同组成：产品与整体学习系统以 [`../../design/learning/个人AI辅助学习平台设计方案.md`](../../design/learning/个人AI辅助学习平台设计方案.md) 为基线；学习科学、教学算法与八类技术系统以 [`../../design/learning/AI学习系统算法与教学内核设计.md`](../../design/learning/AI学习系统算法与教学内核设计.md) 为基线。
+> 本目录保存“为什么这样设计”的研究依据与综合推导，不作为第二套正式规范。Askora 的 Canonical Design 由按职责边界划分的正式设计文档共同组成：产品与整体学习系统以 [`../../archive/design/个人AI辅助学习平台设计方案.md`](../../archive/design/个人AI辅助学习平台设计方案.md) 为基线；学习科学、教学算法与八类技术系统以 [`../../archive/design/AI学习系统算法与教学内核设计.md`](../../archive/design/AI学习系统算法与教学内核设计.md) 为基线。
 >
 > 生命周期说明：v0.3 Research Delta 已完成并被 Canonical Design、ADR 和 Specs 吸收。候选范围、研究议程和早期现状诊断均为历史研究输入，不代表当前实现状态。
 
@@ -70,8 +70,8 @@ Implementation Validation
 
 1. `evidence/` 可以保留与其他文档重复的事实和论证，因为其价值是证据可追溯；
 2. `synthesis/` 可以完整保留有独立研究价值的 Deep Research 设计稿，但不得成为与正式设计并列的第二套规范；
-3. 产品目标、整体模块与工程架构以 `docs/design/learning/个人AI辅助学习平台设计方案.md` 为正式设计基线；
-4. 学习科学、教学算法以及第 4 章八类技术系统的设计结论，以 `docs/design/learning/AI学习系统算法与教学内核设计.md` 为正式设计基线；
+3. 产品目标、整体模块与工程架构以 `docs/archive/design/个人AI辅助学习平台设计方案.md` 为正式设计基线；
+4. 学习科学、教学算法以及第 4 章八类技术系统的设计结论，以 `docs/archive/design/AI学习系统算法与教学内核设计.md` 为正式设计基线；
 5. 若研究稿与对应正式设计冲突，以对应 Canonical Design 为准；研究稿用于解释设计依据、历史推导和重新评审；
 6. 实现代码不得直接以历史研究稿作为接口契约，除非正式设计明确引用；
 7. 判断“当前已经实现了什么”时，以代码、配置、数据库迁移和可执行测试为准。

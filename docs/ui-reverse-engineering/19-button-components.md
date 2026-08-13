@@ -87,7 +87,7 @@ Figma 组件直接消费 `TraeCode Official / Color Core`、`Spacing`、`Radius`
 - `[U]` 组件是否在当前唯一截图的每个按钮位置使用同一官方 intent；
 - Figma 的 `INSTANCE_SWAP` 不提供 runtime accessible name；真实 Icon Button 仍必须有可感知名称。
 
-Askora 正式 Button 必须继续遵守 [Askora Design System](../specs/ui/design-system.md) 的 Action / Control、single-flight loading、accessible name 与状态语义；不得把 TraeCode 四态矩阵直接覆盖为 Askora 的长期状态合同。
+Askora 正式 Button 必须继续遵守 [Askora Design System](../specs/ui.md) 的 Action / Control、single-flight loading、accessible name 与状态语义；不得把 TraeCode 四态矩阵直接覆盖为 Askora 的长期状态合同。
 
 ## 4. Documentation Board
 
