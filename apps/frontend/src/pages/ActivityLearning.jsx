@@ -1,9 +1,10 @@
 import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUp, Check, CheckCircle2, Copy, Info, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, Info, RefreshCw } from 'lucide-react'
 import * as bookLearningApi from '../api/bookLearning'
 import * as workspaceApi from '../api/workspace'
 import LearningContextDrawer from '../components/LearningContextDrawer'
 import ConversationView from '../components/messages/ConversationView'
+import Composer from '../components/ui/Composer'
 import { useNavigate } from '../router'
 import './ActivityLearning.css'
 
@@ -347,18 +348,17 @@ export default function ActivityLearning({ activityId }) {
             <>
               <LearningContextDrawer activityId={activityId} />
               <form className="activity-learning__composer" onSubmit={(event) => { event.preventDefault(); send() }}>
-                <label htmlFor="activity-answer" className="visually-hidden">写下你的想法</label>
-                <textarea
+                <Composer
                   id="activity-answer"
+                  label="写下你的想法"
                   ref={composerRef}
-                  rows={1}
                   value={text}
                   onChange={(event) => setText(event.target.value)}
                   onKeyDown={handleComposerKeyDown}
                   placeholder="写下你的理解…"
                   disabled={busy}
+                  sendDisabled={busy || !text.trim()}
                 />
-                <button type="submit" className="activity-learning__send" disabled={busy || !text.trim()} aria-label="发送"><ArrowUp size={18} /></button>
               </form>
             </>
           )}

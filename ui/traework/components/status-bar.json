@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 2,
+  "slug": "status-bar",
+  "name": "Status Bar",
+  "category": "feedback",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "Bottom Status Bar",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screens 1, 6, 7): fixed bottom bar displaying user avatar, name, credits balance, and right-side action icons (layout toggle, view toggle)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "configuration",
+      "values": [
+        ".ds-status-bar",
+        ".ds-status-bar__left",
+        ".ds-status-bar__user",
+        ".ds-status-bar__avatar",
+        ".ds-status-bar__info",
+        ".ds-status-bar__name",
+        ".ds-status-bar__badge",
+        ".ds-status-bar__credits",
+        ".ds-status-bar__right",
+        ".ds-status-bar__action",
+        ".ds-status-bar__divider"
+      ],
+      "evidence": "Inferred from screenshots: bottom-fixed bar with left user section and right action section."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screens 1, 6, 7)",
+    "representativeSelectors": [
+      ".ds-status-bar",
+      ".ds-status-bar__left",
+      ".ds-status-bar__user",
+      ".ds-status-bar__avatar",
+      ".ds-status-bar__info",
+      ".ds-status-bar__name",
+      ".ds-status-bar__badge",
+      ".ds-status-bar__credits",
+      ".ds-status-bar__right",
+      ".ds-status-bar__action",
+      ".ds-status-bar__divider"
+    ],
+    "cssRuleCount": 22
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "height",
+      "value": "32px",
+      "evidence": "Consistent with nav item and button height."
+    },
+    {
+      "dimension": "avatar-size",
+      "value": "24px",
+      "evidence": "Small avatar for compact status bar."
+    },
+    {
+      "dimension": "badge-height",
+      "value": "16px",
+      "evidence": "Compact badge for Pro tier indicator."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover",
+      "active"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-status-bar",
+      "whySelected": "Root container: fixed bottom bar spanning full width.",
+      "traits": [
+        "position: fixed",
+        "bottom: 0",
+        "left: 0",
+        "right: 0",
+        "height: 32px",
+        "display: flex",
+        "align-items: center",
+        "justify-content: space-between",
+        "padding: 0 12px",
+        "background: var(--bg-base-secondary)",
+        "border-top: 1px solid var(--border-neutral-l1)"
+      ],
+      "childrenDigest": [
+        ".ds-status-bar__left",
+        ".ds-status-bar__right"
+      ]
+    },
+    {
+      "selector": ".ds-status-bar__user",
+      "whySelected": "User info group: avatar + name + badge + credits.",
+      "traits": [
+        "display: flex",
+        "align-items: center",
+        "gap: 8px"
+      ],
+      "childrenDigest": [
+        ".ds-status-bar__avatar",
+        ".ds-status-bar__name",
+        ".ds-status-bar__badge",
+        ".ds-status-bar__credits"
+      ]
+    },
+    {
+      "selector": ".ds-status-bar__action",
+      "whySelected": "Right-side action icon button.",
+      "traits": [
+        "width: 28px",
+        "height: 28px",
+        "border-radius: 6px",
+        "display: inline-grid",
+        "place-items: center",
+        "hover: background: var(--bg-overlay-l1)",
+        "transition: background-color 120ms ease"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-status-bar",
+      ".ds-status-bar__left",
+      ".ds-status-bar__user",
+      ".ds-status-bar__avatar",
+      ".ds-status-bar__info",
+      ".ds-status-bar__name",
+      ".ds-status-bar__badge",
+      ".ds-status-bar__credits",
+      ".ds-status-bar__right",
+      ".ds-status-bar__action",
+      ".ds-status-bar__divider"
+    ]
+  },
+  "structurePatterns": [
+    "Fixed-positioned bottom bar spanning entire viewport width.",
+    "Left section: user avatar (24px) + display name + tier badge (Pro) + credits balance.",
+    "Right section: icon actions (layout toggle, view toggle).",
+    "Divider: 1px border-top separates from main content.",
+    "Background: matches sidebar/panel background color.",
+    "Compact height (32px) for maximum workspace."
+  ],
+  "usageHints": [
+    "Use as persistent bottom bar in IDE/workspace shells.",
+    "Always show user identity (avatar + name) for multi-user or tiered products.",
+    "Credits display supports usage-based pricing models.",
+    "Right-side actions provide quick access to layout/view toggles.",
+    "Do not overload with too many actions — keep to 2-3 max."
+  ],
+  "doNotInvent": [
+    "Do not make the status bar taller than 32px — it steals workspace height.",
+    "Do not add more than 3 right-side actions.",
+    "Do not use status bar for primary navigation — that's the sidebar's role.",
+    "Do not hide the user identity section."
+  ],
+  "unknowns": [
+    "Exact credits format (currency symbol, number formatting) not confirmed.",
+    "Status bar visibility in fullscreen mode not confirmed.",
+    "Additional action buttons (beyond layout/view) not visible.",
+    "Error/warning states in status bar not visible."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--border-neutral-l1",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--radius-4",
+    "--radius-6",
+    "--radius-full",
+    "--spacer-4",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--body-sm-font-size",
+    "--body-xs-font-size",
+    "--font-weight-medium",
+    "--icon-size-14",
+    "--icon-size-16",
+    "--icon-size-24",
+    "--status-warning-default",
+    "--brand-grey-700"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-status-bar",
+        "ds-status-bar__left",
+        "ds-status-bar__user",
+        "ds-status-bar__avatar",
+        "ds-status-bar__info",
+        "ds-status-bar__name",
+        "ds-status-bar__badge",
+        "ds-status-bar__credits",
+        "ds-status-bar__right",
+        "ds-status-bar__action",
+        "ds-status-bar__divider"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screens 1, 6, 7: Main IDE, Askora Work View screenshots",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "status-bar"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshots showing a bottom status bar with user information and action icons. This pattern is not present in any UIKit prototype."
+  },
+  "assetsConsumed": [
+    "assets/icons/Layout.svg",
+    "assets/icons/View.svg",
+    "assets/icons/Grid.svg",
+    "assets/icons/Split.svg",
+    "assets/icons/Avatar.svg",
+    "assets/icons/Pro.svg",
+    "assets/icons/Credit.svg",
+    "assets/icons/Wallet.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--status-bar-height",
+      "value": "32px",
+      "purpose": "Fixed height of status bar"
+    },
+    {
+      "token": "--status-bar-avatar-size",
+      "value": "24px",
+      "purpose": "Compact avatar for status bar"
+    },
+    {
+      "token": "--status-bar-badge-height",
+      "value": "16px",
+      "purpose": "Compact tier badge"
+    },
+    {
+      "token": "--status-bar-divider",
+      "value": "1px solid var(--border-neutral-l1)",
+      "purpose": "Top border separator"
+    }
+  ]
+}

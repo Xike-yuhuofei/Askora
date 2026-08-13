@@ -42,6 +42,8 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     expect(resolveRoute('/learning/progress').type).toBe('page')
     expect(resolveRoute('/learning/history').type).toBe('page')
     expect(resolveRoute('/library').type).toBe('page')
+    expect(resolveRoute('/courses/new').type).toBe('page')
+    expect(resolveRoute('/courses/ws-1')).toMatchObject({ type: 'page', shell: 'workspace', workspace_id: 'ws-1' })
     expect(resolveRoute('/settings').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
     expect(resolveRoute('/learning')).toMatchObject({ type: 'page', shell: 'workspace' })

@@ -20,6 +20,7 @@ EXCLUDED_DIRECTORIES = {
     "dist",
     "node_modules",
     "release",
+    "ui",
 }
 
 STALE_PATTERNS = {
@@ -27,22 +28,7 @@ STALE_PATTERNS = {
         "docs/architecture/当前项目架构.md",
         "本仓库当前尚无正式提交",
     ),
-    "docs/planning/README.md": (
-        "execs/EXEC-007-v0.3-governance-preconditions.md",
-        "当前 active contracts",
-    ),
     "docs/specs/README.md": ("下一阶段：正式生成 `EXEC-007`",),
-    "docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md": (
-        "下一阶段为生成 `EXEC-007`",
-    ),
-    "docs/design/learning/个人AI辅助学习平台设计方案.md": (
-        "进入实现前依次完成",
-        "本阶段不修改 `docs/specs/**`",
-    ),
-    "docs/design/learning/AI学习系统算法与教学内核设计.md": (
-        "当前阶段完成的是 Canonical Design，不是 Spec 或实现",
-        "后续流程必须先进入 ADR Resolution",
-    ),
     "docs/research/learning-core/README.md": (
         "研究完成前不得直接生成 v0.3 EXEC",
     ),
@@ -57,6 +43,9 @@ def documentation_files() -> list[Path]:
             part in EXCLUDED_DIRECTORIES or part.endswith(".egg-info")
             for part in relative.parts
         ):
+            continue
+        # docs/archive 是历史快照，不参与 current 链接校验
+        if relative.parts[:2] == ("docs", "archive"):
             continue
         if path.is_file() and path.suffix.lower() in {".md", ".mdx", ".rst"}:
             files.append(path)
@@ -134,16 +123,75 @@ def check_stale_claims() -> list[str]:
     return errors
 
 
+INVENTORY_PATH_RE = re.compile(r"`((?:product|design|decisions|specs)/[^`]+)`")
+CURRENT_CONTRACT_ROOTS = ("product", "design", "decisions", "specs")
+
+
+def extract_heading_section(content: str, heading_needle: str) -> str:
+    lines = content.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.startswith("## ") and heading_needle in line:
+            start = index
+            break
+    if start is None:
+        return ""
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    return "\n".join(lines[start:end])
+
+
+def check_current_inventory() -> list[str]:
+    readme = ROOT / "docs/README.md"
+    if not readme.is_file():
+        return ["docs/README.md: missing current documentation index"]
+
+    content = readme.read_text(encoding="utf-8")
+    section = extract_heading_section(content, "当前文档清单")
+    if not section:
+        return ["docs/README.md: missing '当前文档清单' section"]
+
+    listed = {match.group(1) for match in INVENTORY_PATH_RE.finditer(section)}
+    if not listed:
+        return ["docs/README.md: current document inventory is empty"]
+
+    errors: list[str] = []
+    docs_root = ROOT / "docs"
+    for relative in sorted(listed):
+        if not (docs_root / relative).is_file():
+            errors.append(f"docs/README.md: inventory lists missing file: {relative}")
+
+    for folder in CURRENT_CONTRACT_ROOTS:
+        root = docs_root / folder
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*.md"):
+            relative = path.relative_to(docs_root).as_posix()
+            if path.name == "README.md":
+                continue
+            if relative not in listed:
+                errors.append(
+                    f"{path.relative_to(ROOT)}: current markdown file is not listed in docs/README.md inventory"
+                )
+    return errors
+
+
 def main() -> int:
     files = documentation_files()
-    errors = [*check_links(files), *check_stale_claims()]
+    errors = [*check_links(files), *check_stale_claims(), *check_current_inventory()]
     if errors:
         print("Documentation check failed:")
         for error in errors:
             print(f"- {error}")
         return 1
-    print(f"Documentation check passed: {len(files)} files, 0 broken local links.")
+    print(
+        f"Documentation check passed: {len(files)} files, 0 broken local links, inventory matches disk."
+    )
     return 0
+
 
 
 if __name__ == "__main__":

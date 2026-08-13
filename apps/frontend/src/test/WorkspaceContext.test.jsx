@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as workspaceApi from '../api/workspace'
@@ -46,12 +46,25 @@ describe('EXEC068 canonical Workspace context', () => {
       </RouterProvider>,
     )
 
-    expect(screen.getByRole('status', { name: '加载工作区中' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '加载课程中' })).toBeInTheDocument()
     await screen.findByText('高等数学')
 
     const scopedRegions = container.querySelectorAll('[data-workspace-id="5c9d33f4-e565-4bf9-8a62-d235a1cb4168"]')
     expect(scopedRegions.length).toBeGreaterThanOrEqual(4)
-    expect(screen.getByLabelText('当前工作区：高等数学（单一工作区）')).toBeInTheDocument()
+    expect(screen.getByLabelText('当前课程：高等数学')).toBeInTheDocument()
+    expect(container.querySelector('.ds-shell-three-panel')).not.toBeNull()
+    expect(container.querySelector('.ds-shell-three-panel__center')).not.toBeNull()
+    const notes = screen.getByLabelText('参考资料与笔记')
+    expect(notes.className).toContain('right-rail')
+    expect(notes.className).toContain('ds-shell-three-panel__right')
+    expect(notes.closest('#main-content')).toBeNull()
+    expect(container.querySelector('.app-shell > .right-rail')).toBe(notes)
+    expect(screen.getByRole('button', { name: '收起左侧栏' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '收起右侧栏' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '收起左侧栏' }))
+    fireEvent.click(screen.getByRole('button', { name: '收起右侧栏' }))
+    expect(container.querySelector('.app-shell')).toHaveClass('app-shell--nav-collapsed')
+    expect(container.querySelector('.app-shell')).toHaveClass('app-shell--rail-collapsed')
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByText('点击切换')).not.toBeInTheDocument()
     expect(workspaceApi.getWorkspaceContext).toHaveBeenCalledTimes(1)

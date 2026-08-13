@@ -2,7 +2,7 @@
 
 > 文档状态：Canonical Product Strategy Baseline  
 > 冻结日期：2026-08-11  
-> 适用范围：Askora 产品战略与后续 Product Positioning / Canonical Design / ADR / Spec  
+> 适用范围：Askora 产品战略与后续 Product Positioning / Product Definition / Experience Design / Spec  
 > 文档职责：回答 Why / Who / Problem / Value / Success  
 > 不包含：功能规格、页面 UX、领域 schema、架构 mechanics、实现细节
 
@@ -547,8 +547,8 @@ Askora 当前不强行冻结单一 scalar North Star Metric。
 当前 Strategy 的主要内部依据：
 
 - [`PRODUCT-POSITIONING.md`](PRODUCT-POSITIONING.md)；
-- [`../design/learning/个人AI辅助学习平台设计方案.md`](../design/learning/个人AI辅助学习平台设计方案.md)；
-- [`../design/learning/AI学习系统算法与教学内核设计.md`](../design/learning/AI学习系统算法与教学内核设计.md)；
+- [`../archive/design/个人AI辅助学习平台设计方案.md`](../archive/design/个人AI辅助学习平台设计方案.md)；
+- [`../archive/design/AI学习系统算法与教学内核设计.md`](../archive/design/AI学习系统算法与教学内核设计.md)；
 - [`../research/learning-core/synthesis/DR-03-01-教学策略与支架转换研究.md`](../research/learning-core/synthesis/DR-03-01-教学策略与支架转换研究.md)；
 - [`../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md`](../research/learning-core/synthesis/DR-03-04-学习效果验证与产品实验研究.md)。
 
@@ -573,7 +573,7 @@ New Evidence / Strategic Constraint
 → 用户明确接受
 → 更新并重新冻结 PRODUCT-STRATEGY
 → 必要时更新 PRODUCT-POSITIONING
-→ 再同步 Design / ADR / Specs / Linear / Implementation
+→ 再同步 Experience Design / Specs / Decision Log / Linear / Implementation
 ```
 
 禁止由下游实现便利性反向改写 Strategy。

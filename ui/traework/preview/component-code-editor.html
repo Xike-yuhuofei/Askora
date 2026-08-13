@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component: Code Editor — TraeWork</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <style>
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+    }
+
+    /* Code Editor */
+    .ds-code-editor {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base-default);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-8);
+      overflow: hidden;
+      min-height: 300px;
+    }
+
+    /* Tab Bar */
+    .ds-code-editor__tab-bar {
+      display: flex;
+      align-items: stretch;
+      height: 36px;
+      background: var(--bg-base-secondary);
+      border-bottom: 1px solid var(--border-neutral-l1);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .ds-code-editor__tab {
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      gap: 6px;
+      background: transparent;
+      border-right: 1px solid var(--border-neutral-l1);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background-color 120ms ease;
+      white-space: nowrap;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .ds-code-editor__tab:hover {
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+    }
+
+    .ds-code-editor__tab--active {
+      background: var(--bg-base-default);
+      border-bottom: 2px solid var(--bg-brand);
+      color: var(--text-default);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .ds-code-editor__tab--dirty::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 28px;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--status-warning-default);
+    }
+
+    .ds-code-editor__tab-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+
+    .ds-code-editor__tab-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 160px;
+    }
+
+    .ds-code-editor__tab-close {
+      width: 16px;
+      height: 16px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: var(--radius-4);
+      opacity: 0;
+      transition: opacity 120ms ease, background-color 120ms ease;
+      margin-left: 4px;
+      flex-shrink: 0;
+    }
+    .ds-code-editor__tab:hover .ds-code-editor__tab-close,
+    .ds-code-editor__tab--active .ds-code-editor__tab-close {
+      opacity: 1;
+    }
+    .ds-code-editor__tab-close:hover {
+      background: var(--bg-overlay-l2);
+    }
+
+    .ds-code-editor__tab-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding-right: 4px;
+    }
+
+    .ds-code-editor__tab-action-btn {
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: var(--radius-4);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+    .ds-code-editor__tab-action-btn:hover {
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+    }
+
+    /* Content Area */
+    .ds-code-editor__content {
+      flex: 1;
+      overflow: auto;
+      background: var(--bg-base-default);
+      display: flex;
+      position: relative;
+      min-height: 240px;
+    }
+
+    .ds-code-editor__gutter {
+      width: 40px;
+      background: var(--bg-base-secondary);
+      border-right: 1px solid var(--border-neutral-l1);
+      padding: 12px 0;
+      flex-shrink: 0;
+      user-select: none;
+      text-align: right;
+      padding-right: 8px;
+    }
+
+    .ds-code-editor__gutter-line {
+      height: 20px;
+      font-size: var(--body-xs-font-size);
+      font-family: var(--font-family-metric);
+      color: var(--text-tertiary);
+      line-height: 20px;
+    }
+
+    .ds-code-editor__body {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: var(--font-family-metric), 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-default);
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .ds-code-editor__body--document {
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      white-space: normal;
+      color: var(--text-default);
+    }
+
+    .ds-code-editor__body--document h1 {
+      font-size: var(--heading-lg-font-size);
+      font-weight: var(--heading-lg-font-weight);
+      margin: 0 0 16px;
+    }
+    .ds-code-editor__body--document h2 {
+      font-size: var(--heading-md-font-size);
+      font-weight: var(--heading-md-font-weight);
+      margin: 24px 0 12px;
+    }
+    .ds-code-editor__body--document h3 {
+      font-size: var(--heading-sm-font-size);
+      font-weight: var(--heading-sm-font-weight);
+      margin: 20px 0 8px;
+    }
+    .ds-code-editor__body--document p {
+      margin: 0 0 12px;
+      color: var(--text-secondary);
+      line-height: var(--body-lg-line-height);
+    }
+    .ds-code-editor__body--document ul {
+      padding-left: 20px;
+      margin: 0 0 12px;
+      color: var(--text-secondary);
+    }
+    .ds-code-editor__body--document li {
+      margin-bottom: 4px;
+    }
+    .ds-code-editor__body--document code {
+      background: var(--bg-overlay-l1);
+      padding: 1px 6px;
+      border-radius: var(--radius-4);
+      font-family: var(--font-family-metric);
+      font-size: 12px;
+    }
+
+    .ds-code-editor__minimap {
+      width: 60px;
+      background: var(--bg-base-secondary);
+      border-left: 1px solid var(--border-neutral-l1);
+      flex-shrink: 0;
+      padding: 8px 4px;
+      overflow: hidden;
+    }
+
+    .ds-code-editor__minimap-line {
+      height: 2px;
+      margin-bottom: 1px;
+      border-radius: var(--radius-1);
+      background: var(--border-neutral-l1);
+    }
+
+    .ds-code-editor__minimap-line--active {
+      background: var(--bg-brand);
+    }
+
+    /* Status Bar */
+    .ds-code-editor__status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 24px;
+      padding: 0 12px;
+      background: var(--bg-base-secondary);
+      border-top: 1px solid var(--border-neutral-l1);
+      font-size: var(--body-xs-font-size);
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .ds-code-editor__status-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-family-metric);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ds-code-editor__status-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-family-metric);
+    }
+
+    .ds-code-editor__status-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ds-code-editor__status-item--git {
+      color: var(--text-secondary);
+    }
+
+    .ds-code-editor__status-item--error {
+      color: var(--status-error-default);
+    }
+
+    .ds-code-editor__status-item--warning {
+      color: var(--status-warning-default);
+    }
+
+    /* Search Overlay */
+    .ds-code-editor__search {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 320px;
+      background: var(--bg-menu);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .ds-code-editor__search-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ds-code-editor__search-input {
+      flex: 1;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-4);
+      background: var(--bg-base-default);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-default);
+      font-family: var(--font-family-metric);
+      outline: none;
+    }
+    .ds-code-editor__search-input:focus {
+      border-color: var(--bg-brand);
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+    }
+
+    .ds-code-editor__search-label {
+      width: 52px;
+      font-size: var(--body-xs-font-size);
+      color: var(--text-tertiary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .ds-code-editor__search-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ds-code-editor__search-btn {
+      width: 28px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: var(--radius-4);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: background-color 120ms ease, color 120ms ease;
+      font-size: 14px;
+    }
+    .ds-code-editor__search-btn:hover {
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+    }
+    .ds-code-editor__search-btn--close {
+      color: var(--text-tertiary);
+    }
+
+    .ds-code-editor__search-count {
+      font-size: var(--body-xs-font-size);
+      color: var(--text-tertiary);
+      font-family: var(--font-family-metric);
+      margin-left: auto;
+    }
+
+    /* Split View */
+    .ds-code-editor--split .ds-code-editor__content {
+      flex-direction: row;
+    }
+
+    .ds-code-editor__split-pane {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-neutral-l1);
+    }
+    .ds-code-editor__split-pane:last-child {
+      border-right: 0;
+    }
+    .ds-code-editor__split-pane .ds-code-editor__gutter {
+      height: 100%;
+    }
+
+    /* Syntax Highlighting (Light Mode) */
+    .kw { color: #c678dd; }
+    .str { color: #98c379; }
+    .num { color: #d19a66; }
+    .com { color: #7f848e; font-style: italic; }
+    .fn { color: #61afef; }
+    .type { color: #e5c07b; }
+    .prop { color: #e06c75; }
+    .tag { color: #e06c75; }
+    .attr { color: #d19a66; }
+    .op { color: #56b6c2; }
+    .var { color: #e06c75; }
+
+    /* Demo */
+    .demo-section { margin-bottom: 32px; }
+    .demo-section h3 {
+      font-size: var(--heading-md-font-size);
+      margin-bottom: 12px;
+    }
+    .demo-annotation {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- @component-css-start -->
+  <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+    <h1 style="font-size: var(--heading-xl-font-size); margin-bottom: 8px;">Code Editor</h1>
+    <p style="color: var(--text-tertiary); margin-bottom: 32px;">
+      Tabbed code/document editor with status bar, search overlay, and split view.
+      <span style="color: var(--status-warning-default); font-weight: 500;">confidence: low</span>
+    </p>
+
+    <!-- Single File: Code -->
+    <div class="demo-section">
+      <h3>Single File — Code (TypeScript)</h3>
+      <p class="demo-annotation">Tab bar · Gutter · Syntax highlighting · Status bar</p>
+      <div class="ds-code-editor">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">learning-message-system.ts</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+          <div class="ds-code-editor__tab">
+            <span class="ds-code-editor__tab-icon">📝</span>
+            <span class="ds-code-editor__tab-name">design-recommendations.md</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+          <div class="ds-code-editor__tab ds-code-editor__tab--dirty">
+            <span class="ds-code-editor__tab-icon">🎨</span>
+            <span class="ds-code-editor__tab-name">colors_and_type.css</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+          <div class="ds-code-editor__tab-actions">
+            <span class="ds-code-editor__tab-action-btn" title="Split">⊟</span>
+            <span class="ds-code-editor__tab-action-btn" title="New">+</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content">
+          <div class="ds-code-editor__gutter">
+            <div class="ds-code-editor__gutter-line">1</div>
+            <div class="ds-code-editor__gutter-line">2</div>
+            <div class="ds-code-editor__gutter-line">3</div>
+            <div class="ds-code-editor__gutter-line">4</div>
+            <div class="ds-code-editor__gutter-line">5</div>
+            <div class="ds-code-editor__gutter-line">6</div>
+            <div class="ds-code-editor__gutter-line">7</div>
+            <div class="ds-code-editor__gutter-line">8</div>
+            <div class="ds-code-editor__gutter-line">9</div>
+            <div class="ds-code-editor__gutter-line">10</div>
+            <div class="ds-code-editor__gutter-line">11</div>
+            <div class="ds-code-editor__gutter-line">12</div>
+            <div class="ds-code-editor__gutter-line">13</div>
+            <div class="ds-code-editor__gutter-line">14</div>
+            <div class="ds-code-editor__gutter-line">15</div>
+          </div>
+          <div class="ds-code-editor__body">
+<span class="com">// Learning Message System — AI-powered tutoring notification</span>
+<span class="kw">import</span> { <span class="type">LearnerState</span>, <span class="type">MasteryEstimate</span> } <span class="kw">from</span> <span class="str">'../core/learner'</span>;
+<span class="kw">import</span> { <span class="type">TeachingAction</span> } <span class="kw">from</span> <span class="str">'../policy/teaching'</span>;
+
+<span class="kw">export interface</span> <span class="type">LearningMessage</span> {
+  <span class="prop">id</span>: <span class="type">string</span>;
+  <span class="prop">learnerId</span>: <span class="type">string</span>;
+  <span class="prop">content</span>: <span class="type">string</span>;
+  <span class="prop">messageType</span>: <span class="str">'hint'</span> | <span class="str">'explanation'</span> | <span class="str">'encouragement'</span>;
+  <span class="prop">timestamp</span>: <span class="type">Date</span>;
+}
+
+<span class="kw">export class</span> <span class="type">LearningMessageSystem</span> {
+  <span class="kw">constructor</span>(<span class="kw">private</span> <span class="prop">learner</span>: <span class="type">LearnerState</span>) {}
+
+  <span class="kw">generateNextMessage</span>(<span class="prop">action</span>: <span class="type">TeachingAction</span>): <span class="type">LearningMessage</span> {
+    <span class="kw">const</span> mastery = <span class="kw">this</span>.learner.<span class="fn">getMastery</span>();
+    <span class="kw">const</span> messageType = <span class="kw">this</span>.<span class="fn">selectMessageType</span>(mastery);
+    <span class="kw">return</span> <span class="kw">this</span>.<span class="fn">buildMessage</span>(messageType, action);
+  }
+}</div>
+        </div>
+        <div class="ds-code-editor__status-bar">
+          <div class="ds-code-editor__status-left">
+            <span class="ds-code-editor__status-item">
+              <span>12</span>:<span>8</span>
+            </span>
+            <span class="ds-code-editor__status-item">TypeScript</span>
+            <span class="ds-code-editor__status-item">UTF-8</span>
+            <span class="ds-code-editor__status-item">LF</span>
+          </div>
+          <div class="ds-code-editor__status-right">
+            <span class="ds-code-editor__status-item ds-code-editor__status-item--git">⎇ main</span>
+            <span class="ds-code-editor__status-item">Ln 15, Col 12 · Spaces: 2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Mode -->
+    <div class="demo-section">
+      <h3>Document Mode — Markdown</h3>
+      <p class="demo-annotation">Same editor shell, different body style for design specs and documentation</p>
+      <div class="ds-code-editor">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">learning-message-system.ts</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📝</span>
+            <span class="ds-code-editor__tab-name">design-recommendations.md</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content">
+          <div class="ds-code-editor__body ds-code-editor__body--document" style="padding: 20px 24px;">
+            <h1>设计排序 → 实现方式</h1>
+            <p>基于 Askora 学习消息系统的设计推荐与具体实现映射关系。</p>
+
+            <h2>核心策略</h2>
+            <ul>
+              <li><code>inline-Right-Slot</code> 右侧内联 Right-Slot 定位</li>
+              <li><code>calc()</code> 绝对定位与动态计算</li>
+              <li><code>createElement + insertBefore</code> 动态 DOM 插入</li>
+              <li><code>le-anchor</code> 元素定位到气泡位置</li>
+              <li><code>bubble-content</code> 运行时动态构造气泡</li>
+            </ul>
+
+            <h2>交互增强</h2>
+            <ul>
+              <li>多维 <code>Badge</code> 溢出截断</li>
+              <li><code>source-badge</code> 自定义 CSS</li>
+              <li><code>showFeedback()</code> 根据 type 参数切换不同文本</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ds-code-editor__status-bar">
+          <div class="ds-code-editor__status-left">
+            <span class="ds-code-editor__status-item">Markdown</span>
+            <span class="ds-code-editor__status-item">UTF-8</span>
+          </div>
+          <div class="ds-code-editor__status-right">
+            <span class="ds-code-editor__status-item">Ln 18, Col 1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="demo-section">
+      <h3>Search & Replace Overlay</h3>
+      <p class="demo-annotation">Floating search/replace panel within editor content area</p>
+      <div class="ds-code-editor" style="position: relative;">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">learning-message-system.ts</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content">
+          <div class="ds-code-editor__gutter">
+            <div class="ds-code-editor__gutter-line">1</div>
+            <div class="ds-code-editor__gutter-line">2</div>
+            <div class="ds-code-editor__gutter-line">3</div>
+            <div class="ds-code-editor__gutter-line">4</div>
+            <div class="ds-code-editor__gutter-line">5</div>
+            <div class="ds-code-editor__gutter-line">6</div>
+            <div class="ds-code-editor__gutter-line">7</div>
+          </div>
+          <div class="ds-code-editor__body">
+<span class="kw">export</span> <span class="kw">function</span> <span class="fn">generateLearningMessage</span>(<span class="prop">learner</span>: <span class="type">LearnerState</span>) {
+  <span class="kw">const</span> context = learner.<span class="fn">getContext</span>();
+  <span class="kw">const</span> mastery = learner.<span class="fn">getMasteryLevel</span>();
+  <span class="kw">if</span> (mastery < <span class="num">0.3</span>) {
+    <span class="kw">return</span> <span class="fn">buildHintMessage</span>(context);
+  }
+  <span class="kw">return</span> <span class="fn">buildExplanation</span>(context);
+}</div>
+
+          <!-- Search Overlay -->
+          <div class="ds-code-editor__search">
+            <div class="ds-code-editor__search-row">
+              <span class="ds-code-editor__search-label">查找</span>
+              <input class="ds-code-editor__search-input" placeholder="输入搜索内容" value="learner">
+              <span class="ds-code-editor__search-btn">▲</span>
+              <span class="ds-code-editor__search-btn">▼</span>
+              <span class="ds-code-editor__search-count">3/12</span>
+              <span class="ds-code-editor__search-btn ds-code-editor__search-btn--close">×</span>
+            </div>
+            <div class="ds-code-editor__search-row">
+              <span class="ds-code-editor__search-label">替换</span>
+              <input class="ds-code-editor__search-input" placeholder="替换为...">
+              <span class="ds-code-editor__search-btn" title="Regular Expression">.*</span>
+              <span class="ds-code-editor__search-btn">替换</span>
+              <span class="ds-code-editor__search-btn">全部</span>
+            </div>
+          </div>
+        </div>
+        <div class="ds-code-editor__status-bar">
+          <div class="ds-code-editor__status-left">
+            <span class="ds-code-editor__status-item">5</span>:<span>8</span>
+            <span class="ds-code-editor__status-item">TypeScript</span>
+          </div>
+          <div class="ds-code-editor__status-right">
+            <span class="ds-code-editor__status-item ds-code-editor__status-item--warning">3 处匹配</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Split View -->
+    <div class="demo-section">
+      <h3>Split View (Horizontal)</h3>
+      <p class="demo-annotation">Two-pane split for side-by-side comparison</p>
+      <div class="ds-code-editor ds-code-editor--split">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">learning-message-system.ts</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+          <div class="ds-code-editor__tab">
+            <span class="ds-code-editor__tab-icon">🎨</span>
+            <span class="ds-code-editor__tab-name">colors_and_type.css</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content" style="flex-direction: row;">
+          <!-- Left Pane -->
+          <div class="ds-code-editor__split-pane">
+            <div style="display:flex; flex:1; overflow:hidden;">
+              <div class="ds-code-editor__gutter">
+                <div class="ds-code-editor__gutter-line">1</div>
+                <div class="ds-code-editor__gutter-line">2</div>
+                <div class="ds-code-editor__gutter-line">3</div>
+                <div class="ds-code-editor__gutter-line">4</div>
+                <div class="ds-code-editor__gutter-line">5</div>
+              </div>
+              <div class="ds-code-editor__body" style="flex:1;">
+<span class="kw">export function</span> <span class="fn">getMessage</span>() {
+  <span class="kw">return</span> <span class="str">'Hello'</span>;
+}</div>
+            </div>
+            <div class="ds-code-editor__status-bar">
+              <div class="ds-code-editor__status-left">
+                <span class="ds-code-editor__status-item">TypeScript</span>
+              </div>
+              <div class="ds-code-editor__status-right">
+                <span class="ds-code-editor__status-item">1:24</span>
+              </div>
+            </div>
+          </div>
+          <!-- Right Pane -->
+          <div class="ds-code-editor__split-pane">
+            <div style="display:flex; flex:1; overflow:hidden;">
+              <div class="ds-code-editor__gutter">
+                <div class="ds-code-editor__gutter-line">1</div>
+                <div class="ds-code-editor__gutter-line">2</div>
+                <div class="ds-code-editor__gutter-line">3</div>
+                <div class="ds-code-editor__gutter-line">4</div>
+                <div class="ds-code-editor__gutter-line">5</div>
+              </div>
+              <div class="ds-code-editor__body" style="flex:1;">
+<span class="tag">.ds-button</span> {
+  <span class="attr">background</span>: <span class="var">var</span>(<span class="str">--bg-brand</span>);
+  <span class="attr">color</span>: <span class="str">#fff</span>;
+  <span class="attr">border-radius</span>: <span class="num">8px</span>;
+}</div>
+            </div>
+            <div class="ds-code-editor__status-bar">
+              <div class="ds-code-editor__status-left">
+                <span class="ds-code-editor__status-item">CSS</span>
+              </div>
+              <div class="ds-code-editor__status-right">
+                <span class="ds-code-editor__status-item">3:15</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Minimap Variant -->
+    <div class="demo-section">
+      <h3>With Minimap</h3>
+      <p class="demo-annotation">Minimap provides code overview navigation on right edge</p>
+      <div class="ds-code-editor">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">components.tsx</span>
+            <span class="ds-code-editor__tab-close">×</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content">
+          <div class="ds-code-editor__gutter">
+            <div class="ds-code-editor__gutter-line">1</div>
+            <div class="ds-code-editor__gutter-line">2</div>
+            <div class="ds-code-editor__gutter-line">3</div>
+            <div class="ds-code-editor__gutter-line">4</div>
+            <div class="ds-code-editor__gutter-line">5</div>
+            <div class="ds-code-editor__gutter-line">6</div>
+            <div class="ds-code-editor__gutter-line">7</div>
+            <div class="ds-code-editor__gutter-line">8</div>
+          </div>
+          <div class="ds-code-editor__body">
+<span class="kw">import</span> <span class="punct">{</span> <span class="type">React</span>, <span class="punct">{</span> <span class="type">Component</span> <span class="punct">}</span> <span class="punct">}</span> <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">export class</span> <span class="type">Button</span> <span class="kw">extends</span> <span class="type">Component</span> {
+  <span class="kw">render</span>() {
+    <span class="kw">return</span> <span class="punct">(</span>
+      <span class="tag">{'\n      '}</span><span class="punct"><</span><span class="tag">button</span> <span class="attr">className</span>=<span class="punct">{</span><span class="str">'ds-btn'</span><span class="punct">}</span><span class="punct">></span>
+        <span class="punct">{</span><span class="kw">this</span>.props.children<span class="punct">}</span>
+      <span class="punct"></</span><span class="tag">button</span><span class="punct">></span>
+    <span class="punct">)</span>;
+  }
+}</div>
+          <div class="ds-code-editor__minimap">
+            <div class="ds-code-editor__minimap-line" style="width: 30%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 40%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 60%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 80%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 50%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 70%;"></div>
+            <div class="ds-code-editor__minimap-line ds-code-editor__minimap-line--active" style="width: 45%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 35%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 55%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 40%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 20%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 30%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 65%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 50%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 75%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 25%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 90%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 60%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 45%;"></div>
+            <div class="ds-code-editor__minimap-line" style="width: 80%;"></div>
+          </div>
+        </div>
+        <div class="ds-code-editor__status-bar">
+          <div class="ds-code-editor__status-left">
+            <span class="ds-code-editor__status-item">8</span>:<span>5</span>
+            <span class="ds-code-editor__status-item">TypeScript</span>
+          </div>
+          <div class="ds-code-editor__status-right">
+            <span class="ds-code-editor__status-item">3 errors, 1 warning</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar Variants -->
+    <div class="demo-section">
+      <h3>Status Bar Variants</h3>
+      <p class="demo-annotation">Git branch, errors/warnings, cursor position</p>
+      <div class="ds-code-editor" style="border-radius: var(--radius-8);">
+        <div class="ds-code-editor__tab-bar">
+          <div class="ds-code-editor__tab ds-code-editor__tab--active">
+            <span class="ds-code-editor__tab-icon">📄</span>
+            <span class="ds-code-editor__tab-name">main.py</span>
+          </div>
+        </div>
+        <div class="ds-code-editor__content" style="min-height: 60px;">
+          <div class="ds-code-editor__gutter">
+            <div class="ds-code-editor__gutter-line">1</div>
+            <div class="ds-code-editor__gutter-line">2</div>
+          </div>
+          <div class="ds-code-editor__body">
+<span class="kw">def</span> <span class="fn">hello</span>():
+    <span class="kw">pass</span></div>
+        </div>
+        <div class="ds-code-editor__status-bar">
+          <div class="ds-code-editor__status-left">
+            <span class="ds-code-editor__status-item">Python</span>
+            <span class="ds-code-editor__status-item">UTF-8</span>
+            <span class="ds-code-editor__status-item">LF</span>
+            <span class="ds-code-editor__status-item">Spaces: 4</span>
+          </div>
+          <div class="ds-code-editor__status-right">
+            <span class="ds-code-editor__status-item ds-code-editor__status-item--git">⎇ main ↑2 ↓0</span>
+            <span class="ds-code-editor__status-item ds-code-editor__status-item--error">✕ 2</span>
+            <span class="ds-code-editor__status-item ds-code-editor__status-item--warning">⚠ 1</span>
+            <span class="ds-code-editor__status-item">Ln 2, Col 5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <!-- @component-css-end -->
+</body>
+</html>

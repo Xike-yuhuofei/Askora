@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 2,
+  "slug": "card-template",
+  "name": "Rich Template Card",
+  "category": "layout",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "Rich Media Card",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screen 5: Template Library): card with large image thumbnail (4:3 aspect ratio), title, optional badge (PRO/免费), and favorite star icon. Used in 4-column grid layouts."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-size-density",
+      "values": [
+        ".ds-card-template",
+        ".ds-card-template__thumb",
+        ".ds-card-template__thumb-img",
+        ".ds-card-template__body",
+        ".ds-card-template__title",
+        ".ds-card-template__badge",
+        ".ds-card-template__favorite",
+        ".ds-card-template--with-thumb",
+        ".ds-card-template--no-thumb",
+        ".ds-card-template--wide",
+        ".ds-card-template--compact"
+      ],
+      "evidence": "Inferred from screenshots: rich media cards with image thumbnail, title, badge, and star action."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screen 5)",
+    "representativeSelectors": [
+      ".ds-card-template",
+      ".ds-card-template__thumb",
+      ".ds-card-template__thumb-img",
+      ".ds-card-template__body",
+      ".ds-card-template__title",
+      ".ds-card-template__badge",
+      ".ds-card-template__favorite",
+      ".ds-card-template--with-thumb",
+      ".ds-card-template--no-thumb",
+      ".ds-card-template--wide",
+      ".ds-card-template--compact"
+    ],
+    "cssRuleCount": 32
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "thumb-aspect-ratio",
+      "value": "4:3",
+      "evidence": "Image preview aspect ratio."
+    },
+    {
+      "dimension": "thumb-min-height",
+      "value": "160px",
+      "evidence": "Minimum thumbnail height for visual impact."
+    },
+    {
+      "dimension": "body-padding",
+      "value": "12px",
+      "evidence": "Compact internal padding."
+    },
+    {
+      "dimension": "grid-columns",
+      "value": "4 columns",
+      "evidence": "Template library uses 4-column responsive grid."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover",
+      "favorite-active"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-card-template",
+      "whySelected": "Root card container with thumbnail + body sections.",
+      "traits": [
+        "border-radius: 8px",
+        "border: 1px solid var(--border-neutral-l1)",
+        "background: var(--bg-base-default)",
+        "overflow: hidden",
+        "transition: box-shadow 120ms, transform 120ms",
+        "hover: box-shadow: 0 2px 8px rgba(0,0,0,0.08)"
+      ],
+      "childrenDigest": [
+        ".ds-card-template__thumb",
+        ".ds-card-template__body"
+      ]
+    },
+    {
+      "selector": ".ds-card-template__thumb",
+      "whySelected": "Thumbnail container with 4:3 aspect ratio.",
+      "traits": [
+        "position: relative",
+        "aspect-ratio: 4/3",
+        "background: var(--bg-base-tertiary)",
+        "overflow: hidden"
+      ],
+      "childrenDigest": [
+        ".ds-card-template__thumb-img",
+        ".ds-card-template__favorite"
+      ]
+    },
+    {
+      "selector": ".ds-card-template__badge",
+      "whySelected": "PRO or 免费 badge positioned at bottom-left of thumbnail.",
+      "traits": [
+        "position: absolute",
+        "bottom: 8px",
+        "left: 8px",
+        "height: 18px",
+        "padding: 0 6px",
+        "border-radius: 4px",
+        "font-size: 11px",
+        "font-weight: 500"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-card-template__favorite",
+      "whySelected": "Star icon at top-right corner for favorites.",
+      "traits": [
+        "position: absolute",
+        "top: 8px",
+        "right: 8px",
+        "width: 24px",
+        "height: 24px",
+        "border-radius: 6px",
+        "background: rgba(255,255,255,0.9)",
+        "display: grid",
+        "place-items: center"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-card-template",
+      ".ds-card-template__thumb",
+      ".ds-card-template__thumb-img",
+      ".ds-card-template__body",
+      ".ds-card-template__title",
+      ".ds-card-template__badge",
+      ".ds-card-template__favorite",
+      ".ds-card-template--with-thumb",
+      ".ds-card-template--no-thumb",
+      ".ds-card-template--wide",
+      ".ds-card-template--compact"
+    ]
+  },
+  "structurePatterns": [
+    "Two sections: thumbnail (top, 4:3 aspect) + body (bottom, title + metadata).",
+    "Thumbnail fills width, uses object-fit: cover for images.",
+    "Favorites star at top-right corner, overlaid on thumbnail.",
+    "Badge (PRO/免费) at bottom-left corner of thumbnail.",
+    "Body contains: title (bold, single-line truncation), optional secondary metadata.",
+    "Card hover: subtle shadow elevation (2px Y offset + 8px blur).",
+    "Grid layout: 4 columns at desktop, responsive to 3/2/1 at smaller breakpoints."
+  ],
+  "usageHints": [
+    "Use for template libraries, asset galleries, and content discovery.",
+    "Always include a thumbnail — this variant is for visual content browsing.",
+    "Support PRO/free badges for monetization tiers.",
+    "Favorite star provides quick access to saved items.",
+    "Grid should be responsive: 4→3→2→1 columns across breakpoints."
+  ],
+  "doNotInvent": [
+    "Do not use for non-visual content (use basic card instead).",
+    "Do not add more than one badge per card.",
+    "Do not allow thumbnail aspect ratio to vary — stick to 4:3.",
+    "Do not make cards more than 4-across at desktop."
+  ],
+  "unknowns": [
+    "Exact grid breakpoints (when to switch from 4→3→2→1 columns) not confirmed.",
+    "Card click behavior (open template, preview) not confirmed.",
+    "Multi-select or batch operations not visible.",
+    "Loading state/skeleton for card not visible."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-base-tertiary",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--radius-4",
+    "--radius-6",
+    "--radius-8",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--status-warning-default",
+    "--status-success-default",
+    "--body-base-font-size",
+    "--body-sm-font-size",
+    "--body-xs-font-size",
+    "--font-weight-medium",
+    "--font-weight-semibold"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-card-template",
+        "ds-card-template__thumb",
+        "ds-card-template__thumb-img",
+        "ds-card-template__body",
+        "ds-card-template__title",
+        "ds-card-template__badge",
+        "ds-card-template__favorite",
+        "ds-card-template--with-thumb",
+        "ds-card-template--no-thumb",
+        "ds-card-template--wide",
+        "ds-card-template--compact"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screen 5: Template Library screenshot",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "card-template"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshot showing a template library grid with rich media cards. This variant extends the basic card component with thumbnail and badge support."
+  },
+  "assetsConsumed": [
+    "assets/icons/Star.svg",
+    "assets/icons/StarFilled.svg",
+    "assets/icons/Thumbnail.svg",
+    "assets/icons/PRO.svg",
+    "assets/icons/Free.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--card-template-thumb-ratio",
+      "value": "4/3",
+      "purpose": "Thumbnail aspect ratio"
+    },
+    {
+      "token": "--card-template-grid-columns",
+      "value": "4",
+      "purpose": "Default grid column count"
+    },
+    {
+      "token": "--card-template-grid-gap",
+      "value": "16px",
+      "purpose": "Gap between grid items"
+    },
+    {
+      "token": "--card-template-badge-height",
+      "value": "18px",
+      "purpose": "Compact badge height"
+    }
+  ]
+}

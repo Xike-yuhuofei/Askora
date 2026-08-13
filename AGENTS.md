@@ -6,24 +6,26 @@
 
 ## 1. 开始任务前的读取顺序
 
-执行任何非纯机械修改前，必须按以下顺序读取与任务相关的事实源：
+执行任何非纯机械修改前，必须按任务相关性读取：
 
 1. `AGENTS.md`
-2. `docs/product/PRODUCT-STRATEGY.md`
-3. `docs/product/PRODUCT-POSITIONING.md`
-4. `docs/product/PRODUCT-DEFINITION.md`
-5. `docs/specs/README.md`
-6. 与任务相关的 current Canonical Design / Accepted ADR
-7. `docs/specs/architecture/`、`domain/`、`systems/`、`interfaces/`、`quality/`、`ui/` 中相关合同
-8. 对应 Linear Issue / Project 状态
-9. 当前 `docs/planning/execs/` 中明确指定的 EXEC（如有）
-10. 仅在需要理解证据或形成上位 Delta 时读取 `docs/research/` / `docs/research/learning-core/`
+2. `docs/product/PRODUCT-STRATEGY.md`（Why / Who / Problem / Value / Success）
+3. `docs/product/PRODUCT-POSITIONING.md`（Category / Shape / Hard Boundary / Non-goal）
+4. `docs/product/PRODUCT-DEFINITION.md`（Capability / Rule / Requirement / Acceptance / v1 Scope）
+5. 仅当任务改变用户如何理解、导航或操作时：`docs/design/experience/` 中相关文件
+6. `docs/specs/` 中与任务相关的现行合同（`architecture.md` / `domain.md` / `systems/` / `interfaces/` / `platform.md` / `quality.md` / `ui.md`）
+7. 对应 Linear Issue / Project 状态；Linear 中明确指定的 EXEC（如有）
+8. 仅当需要“为什么这样决定”时：`docs/decisions/DECISIONS.md` 与 `docs/archive/adr/`
+9. 仅当需要理解证据或形成上位 Delta 时：`docs/research/`
+
+人的文档导航入口是 `docs/README.md`。本文件不复制其清单。
 
 职责解释：
 
-- `PRODUCT-STRATEGY.md`：最高产品战略意图，回答 Why / Who / Problem / Value / Success；
-- `PRODUCT-POSITIONING.md`：最高可执行产品边界，回答 Category / Product Shape / Constraints / Non-goals；
-- `PRODUCT-DEFINITION.md`：Canonical Product WHAT，回答 Product Objects / Capabilities / Rules / Requirements / Product Acceptance / v1 Scope；
+- Product 三份：产品意图、边界与 WHAT；
+- Experience Design：用户如何看到、找到、操作；
+- Specs：现行实现合同；
+- Decision Log / ADR：决策索引与溯源，不是现行合同；
 - Research：支持证据，不是实现接口合同；
 - Linear：当前工作状态，不是长期设计事实。
 
@@ -33,12 +35,13 @@
 PRODUCT-STRATEGY
 → PRODUCT-POSITIONING
 → PRODUCT-DEFINITION
-→ Canonical Design / Design Delta
-→ Accepted ADR
-→ Canonical Specs
-→ EXEC / Linear Issue
-→ Code / Migration / Tests
-→ Agent inference
+  → Experience Design（仅体验）
+  → Specs（systems / domain / architecture / platform / interfaces / ui / quality）
+  → Code / Tests
+
+Decision Log / ADR = 决策索引与溯源，不是现行合同
+Research = 证据
+Linear / EXEC = 工作状态
 ```
 
 注意：Product 文档不直接规定 API、schema 或实现 mechanics；但执行代理不得绕过 Product Definition 从页面、历史代码或技术系统反向推导产品范围。
@@ -47,10 +50,11 @@ PRODUCT-STRATEGY
 
 - Strategy 与 Positioning 冲突：停止下游扩张，报告 `STRATEGY GAP` / Product Delta；
 - Positioning 与 Product Definition 冲突：停止下游扩张，报告 `POSITIONING GAP`；
-- Product Definition 与 Design / ADR / Spec 冲突：下位必须收敛，或先报告 `PRODUCT DEFINITION GAP`；
-- Design / ADR 与 Spec 冲突：先修正治理链，再实现；
+- Product Definition 与 Experience Design / Spec 冲突：下位必须收敛，或先报告 `PRODUCT DEFINITION GAP`；
+- Experience Design 与 `specs/ui.md` 冲突：可观察体验听 Design，实现合同听 Spec；先对齐这两处再改代码；
+- Decision Log / ADR 与 Spec 冲突：以 Spec 为现行行为；若决策结论已变，写新 ADR 并更新 Spec，不得用日志覆盖条款；
 - Spec 与代码冲突：默认 implementation drift，不得修改 Spec 迁就现有代码；
-- 历史 Research / Release / Gap Analysis 与 current truth 冲突：历史文件保留，但不覆盖 current Canonical docs / current `main`。
+- 历史 Research / archive / Release / Gap Analysis 与 current truth 冲突：历史文件保留，但不覆盖 current Canonical docs / current `main`。
 
 ## 3. 执行代理职责
 
@@ -59,7 +63,7 @@ PRODUCT-STRATEGY
 - 首先确认任务服务 `PRODUCT-STRATEGY.md` 中的 Problem / User / Outcome；
 - 确认不突破 `PRODUCT-POSITIONING.md`；
 - 确认任务对应 `PRODUCT-DEFINITION.md` 中的 Capability / Product Rule / Requirement / Product Acceptance；
-- 严格按照 current Design / ADR / Spec / EXEC 实现；
+- 严格按照 current Experience Design（若涉及体验）与 Specs 实现；ADR 只解释为什么；
 - 只修改任务允许的 Scope；
 - 为关键行为补充可追踪测试；
 - 对公共 Schema、迁移、状态所有权和跨模块依赖保持最小必要变更；
@@ -78,7 +82,7 @@ PRODUCT-STRATEGY
 
 ## 4. 用户授权下的设计 / 架构自治
 
-当用户明确授权某个已限定产品/工程目标时，执行代理 MAY 为完成该目标提出并接受必要的 Canonical Design / ADR / Spec / EXEC 变化，再进行代码实现。
+当用户明确授权某个已限定产品/工程目标时，执行代理 MAY 为完成该目标提出并接受必要的 Experience Design / Spec / ADR 记录 / EXEC 变化，再进行代码实现。ADR 记录选择理由，不能单独成为现行合同。
 
 该授权仅限于目标范围，不是永久架构自由裁量权。
 
@@ -182,17 +186,17 @@ New evidence / conflict
 - Product Rule / Product Requirement / Product Acceptance 缺失或冲突；
 - UX / Architecture / Specs 正在自行决定 Product Scope。
 
-处理：停止下游实现，回到 `PRODUCT-DEFINITION.md` 或明确 Product Feature Spec 完成定义、影响分析与用户接受，再进入 Design / Specs / Linear。
+处理：停止下游实现，回到 `PRODUCT-DEFINITION.md` 或明确 Product Feature Spec 完成定义、影响分析与用户接受，再进入 Experience Design / Specs / Linear。
 
 ### `DESIGN GAP`
 
 包括：
 
-- 已冻结 Product Definition 需要转化为具体用户交互或学习语义，但尚未冻结；
-- 多种方案会形成不同用户行为或领域语义；
-- 现有 Design 与 Product docs 存在未处理冲突。
+- 已冻结 Product Definition 需要转化为具体用户交互，但尚未冻结；
+- 多种方案会形成不同用户可观察行为；
+- 现有 Experience Design 与 Product docs 存在未处理冲突。
 
-处理：停止让 Codex自行做产品/交互决定，回到上游 Canonical Design。
+处理：停止自行做产品/交互决定，回到 `docs/design/experience/`。学习语义、算法或状态所有权缺口属于 `SPEC GAP`，回到 `docs/specs/systems/` 或相关 Spec。
 
 ### `SPEC GAP`
 
@@ -204,7 +208,7 @@ New evidence / conflict
 - 多种实现会造成不同业务结果而 Spec 未冻结；
 - 必须违反任一 `MUST NOT` 才能实现。
 
-已获用户明确架构自治授权时，执行代理可以通过 ADR / Spec / EXEC 闭环处理 `SPEC GAP`；未授权则返回上游。
+已获用户明确架构自治授权时，执行代理可以通过 Spec + ADR 记录 + EXEC 闭环处理 `SPEC GAP`；ADR 不能单独作为现行合同。未授权则返回上游。
 
 ## 7. 八类 Learning Core 不可越权规则
 

@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 2,
+  "slug": "task-tree",
+  "name": "Task Hierarchy Tree",
+  "category": "navigation",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "Three-Level Task Hierarchy Navigation",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screens 1, 6, 7): nested tree structure with three levels (workspace → project → task), status indicators, count badges, and expand/collapse controls."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "level-density",
+      "values": [
+        ".ds-task-tree",
+        ".ds-task-tree__group",
+        ".ds-task-tree__group-header",
+        ".ds-task-tree__group-title",
+        ".ds-task-tree__group-count",
+        ".ds-task-tree__item",
+        ".ds-task-tree__item-icon",
+        ".ds-task-tree__item-label",
+        ".ds-task-tree__item-status",
+        ".ds-task-tree__item--completed",
+        ".ds-task-tree__item--current",
+        ".ds-task-tree__item--pending",
+        ".ds-task-tree__item--selected",
+        ".ds-task-tree__chevron",
+        ".ds-task-tree__level-1",
+        ".ds-task-tree__level-2",
+        ".ds-task-tree__level-3"
+      ],
+      "evidence": "Inferred from screenshots: three-level nesting with icons, chevrons, status indicators, and count badges."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screens 1, 6, 7)",
+    "representativeSelectors": [
+      ".ds-task-tree",
+      ".ds-task-tree__group",
+      ".ds-task-tree__group-header",
+      ".ds-task-tree__group-title",
+      ".ds-task-tree__group-count",
+      ".ds-task-tree__item",
+      ".ds-task-tree__item-icon",
+      ".ds-task-tree__item-label",
+      ".ds-task-tree__item-status",
+      ".ds-task-tree__item--completed",
+      ".ds-task-tree__item--current",
+      ".ds-task-tree__item--pending",
+      ".ds-task-tree__item--selected",
+      ".ds-task-tree__chevron",
+      ".ds-task-tree__level-1",
+      ".ds-task-tree__level-2",
+      ".ds-task-tree__level-3"
+    ],
+    "cssRuleCount": 42
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "level-indent",
+      "value": "16px per level",
+      "evidence": "Consistent indentation per nesting level."
+    },
+    {
+      "dimension": "item-height",
+      "value": "28px",
+      "evidence": "Compact item height for dense navigation."
+    },
+    {
+      "dimension": "group-title-height",
+      "value": "24px",
+      "evidence": "Smaller than items, uses uppercase style."
+    },
+    {
+      "dimension": "status-dot-size",
+      "value": "12px",
+      "evidence": "Circular status indicator diameter."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "selected",
+      "completed",
+      "current",
+      "pending",
+      "expanded",
+      "collapsed"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-task-tree__group",
+      "whySelected": "Collapsible group container with title, count badge, and chevron.",
+      "traits": [
+        "padding: 0 4px",
+        "gap: 2px",
+        "cursor: pointer"
+      ],
+      "childrenDigest": [
+        ".ds-task-tree__group-header",
+        ".ds-task-tree__group-title",
+        ".ds-task-tree__group-count",
+        ".ds-task-tree__chevron"
+      ]
+    },
+    {
+      "selector": ".ds-task-tree__item",
+      "whySelected": "Selectable task item with icon, label, and optional status dot.",
+      "traits": [
+        "height: 28px",
+        "padding: 0 8px",
+        "border-radius: 6px",
+        "gap: 8px",
+        "transition: background-color 120ms ease"
+      ],
+      "childrenDigest": [
+        ".ds-task-tree__item-icon",
+        ".ds-task-tree__item-label",
+        ".ds-task-tree__item-status"
+      ]
+    },
+    {
+      "selector": ".ds-task-tree__item--completed",
+      "whySelected": "Completed task with green checkmark or filled status dot.",
+      "traits": [
+        "status-dot: var(--status-success-default)",
+        "label-text-decoration: line-through (optional)",
+        "label-opacity: 0.7"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-task-tree__item--current",
+      "whySelected": "Currently active task with highlighted background.",
+      "traits": [
+        "background: var(--bg-overlay-l2)",
+        "status-dot: var(--brand-color) (pulsing?)",
+        "font-weight: var(--font-weight-medium)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-task-tree__item--selected",
+      "whySelected": "Selected (clicked) task with active state styling.",
+      "traits": [
+        "background: var(--bg-overlay-l2)",
+        "color: var(--text-default)",
+        "border-left: 2px solid var(--border-brand)"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-task-tree",
+      ".ds-task-tree__group",
+      ".ds-task-tree__group-header",
+      ".ds-task-tree__group-title",
+      ".ds-task-tree__group-count",
+      ".ds-task-tree__item",
+      ".ds-task-tree__item-icon",
+      ".ds-task-tree__item-label",
+      ".ds-task-tree__item-status",
+      ".ds-task-tree__item--completed",
+      ".ds-task-tree__item--current",
+      ".ds-task-tree__item--pending",
+      ".ds-task-tree__item--selected",
+      ".ds-task-tree__chevron",
+      ".ds-task-tree__level-1",
+      ".ds-task-tree__level-2",
+      ".ds-task-tree__level-3",
+      ".ds-task-tree__status-dot"
+    ]
+  },
+  "structurePatterns": [
+    "Three-level hierarchy: Workspace → Project/Task Group → Individual Task.",
+    "Level 1: Group header with title, count badge (right-aligned), chevron for expand/collapse.",
+    "Level 2: Project/Task Group with icon, label, status indicators.",
+    "Level 3: Individual task with status dot (pending/completed/current).",
+    "Status indicators: 12px circular dots using status color tokens.",
+    "Expand/collapse: Chevron rotates 90° when expanded.",
+    "Count badges: Right-aligned within group header, uses --bg-overlay-l2 background.",
+    "Current task: highlighted with medium overlay background.",
+    "Completed tasks: subtle opacity reduction + green status dot."
+  ],
+  "usageHints": [
+    "Use for primary navigation in IDE/workspace product surfaces.",
+    "Limit to maximum 3 levels of nesting — deeper hierarchies should be flattened.",
+    "Always show status indicators for actionable items.",
+    "Support drag-and-drop reordering (implied by tree structure).",
+    "Keep item height compact (28px) to maximize visible items."
+  ],
+  "doNotInvent": [
+    "Do not add more than 3 nesting levels.",
+    "Do not use non-status color dots (use only success/warning/error/neutral).",
+    "Do not allow group headers to be drag targets (only items).",
+    "Do not mix status dots with avatars in the same level."
+  ],
+  "unknowns": [
+    "Exact drag-and-drop behavior not confirmed from static screenshots.",
+    "Keyboard navigation (arrow keys, keyboard expand/collapse) not documented.",
+    "Multi-select behavior not visible.",
+    "Filtering/search within tree not visible.",
+    "Right-click context menu behavior not visible."
+  ],
+  "tokensConsumed": [
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--bg-overlay-l3",
+    "--bg-base-secondary",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--status-success-default",
+    "--status-warning-default",
+    "--status-error-default",
+    "--border-brand",
+    "--radius-4",
+    "--radius-6",
+    "--radius-full",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-8",
+    "--spacer-16",
+    "--body-base-font-size",
+    "--body-sm-font-size",
+    "--body-xs-font-size",
+    "--font-weight-medium",
+    "--font-weight-regular",
+    "--icon-size-12",
+    "--icon-size-16"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-task-tree",
+        "ds-task-tree__group",
+        "ds-task-tree__group-header",
+        "ds-task-tree__group-title",
+        "ds-task-tree__group-count",
+        "ds-task-tree__item",
+        "ds-task-tree__item-icon",
+        "ds-task-tree__item-label",
+        "ds-task-tree__item-status",
+        "ds-task-tree__item--completed",
+        "ds-task-tree__item--current",
+        "ds-task-tree__item--pending",
+        "ds-task-tree__item--selected",
+        "ds-task-tree__chevron",
+        "ds-task-tree__level-1",
+        "ds-task-tree__level-2",
+        "ds-task-tree__level-3",
+        "ds-task-tree__status-dot"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screens 1, 6, 7: Main IDE, Askora Work View screenshots",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "task-tree"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshots showing hierarchical task navigation in the left panel. The tree structure is the primary navigation pattern for the product."
+  },
+  "assetsConsumed": [
+    "assets/icons/ChevronDown.svg",
+    "assets/icons/ChevronRight.svg",
+    "assets/icons/Task.svg",
+    "assets/icons/Project.svg",
+    "assets/icons/Folder.svg",
+    "assets/icons/Check.svg",
+    "assets/icons/Circle.svg",
+    "assets/icons/Dot.svg",
+    "assets/icons/Askora.svg",
+    "assets/icons/Agent.svg",
+    "assets/icons/Code.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--task-tree-level-indent",
+      "value": "16px",
+      "purpose": "Indentation per nesting level"
+    },
+    {
+      "token": "--task-tree-item-height",
+      "value": "28px",
+      "purpose": "Compact item height"
+    },
+    {
+      "token": "--task-tree-status-dot-size",
+      "value": "12px",
+      "purpose": "Status indicator diameter"
+    },
+    {
+      "token": "--task-tree-group-title-height",
+      "value": "24px",
+      "purpose": "Group header compact height"
+    }
+  ]
+}

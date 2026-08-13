@@ -51,7 +51,7 @@ docs/product/
 - Deferred Strategic Decisions；
 - Product-boundary Change Control。
 
-它必须服从 `PRODUCT-STRATEGY.md`，并继续作为 Product Definition / Canonical Design / ADR / Spec / EXEC / Code 的**最高可执行产品边界**。
+它必须服从 `PRODUCT-STRATEGY.md`，并继续作为 Product Definition / Experience Design / Spec / Code 的**最高可执行产品边界**。
 
 ### `PRODUCT-DEFINITION.md`
 
@@ -76,35 +76,17 @@ docs/product/
 
 复杂且长期独立演进的 Feature MAY 以后拆入 `docs/product/features/`；在第一份真实 Feature Spec 出现前不预建空目录或占位文件。
 
-## 2. Authority Chain
+## 2. Authority
 
-```text
-PRODUCT-STRATEGY.md
-        ↓ strategic intent
-PRODUCT-POSITIONING.md
-        ↓ enforceable product boundary
-PRODUCT-DEFINITION.md
-        ↓ capabilities / observable product behavior / product acceptance
-Canonical Design / Design Delta
-        ↓
-Accepted ADR
-        ↓
-Implementation / Quality Specs
-        ↓
-Vertical Slice / EXEC / Linear Issue
-        ↓
-Code / Tests / Release Evidence
-```
-
-解释：
+完整权威顺序见 [`../README.md`](../README.md) 与仓库根 `AGENTS.md`。本目录只拥有 Product 三份正文，不重画整条链。
 
 - `PRODUCT-STRATEGY` 决定为什么、为谁、什么结果值得优化；
 - `PRODUCT-POSITIONING` 把战略转化为产品类别、Scope、Non-goals 与 Hard Boundaries；
 - `PRODUCT-DEFINITION` 冻结产品必须具备的能力、对象、规则、要求与 Product Acceptance；
-- 下游 Design / ADR / Spec 决定这些产品能力如何在人机体验、教学系统和软件系统中具体成立；
+- 下游 Experience Design 与 Specs 决定这些能力如何在人机体验和软件系统中成立；
 - Linear 负责当前工作状态，不成为长期产品 truth。
 
-如果 Strategy 与 Positioning 冲突，先解决 Strategy/Positioning；如果 Definition 突破 Positioning，必须回到 Product 层重新冻结；如果 Definition 与下游 Design / ADR / Spec 冲突，下游必须收敛，不能反向用实现覆盖产品定义。
+如果 Strategy 与 Positioning 冲突，先解决 Strategy/Positioning；如果 Definition 突破 Positioning，必须回到 Product 层重新冻结；如果 Definition 与下游 Experience Design / Spec 冲突，下游必须收敛，不能反向用实现覆盖产品定义。
 
 ## 3. Product Definition Boundary
 
@@ -162,7 +144,7 @@ Product Definition 可以要求：
 
 > 系统应根据新的学习证据调整下一步学习活动。
 
-但具体 TeachingStage、StrategyFamily、PolicyBundle、anti-oscillation、mastery estimation 等由 Teaching Canonical Design / Specs 定义。
+但具体 TeachingStage、StrategyFamily、PolicyBundle、anti-oscillation、mastery estimation 等由 `docs/specs/systems/` 定义。
 
 ### Architecture / Technical Design
 
@@ -170,7 +152,7 @@ Product Definition 可以要求：
 
 > 普通 Material 删除后必须可恢复。
 
-但 tombstone、SQLite transaction、command、file deletion order、migration 与 API 属于 ADR / Specs。
+但 tombstone、SQLite transaction、command、file deletion order、migration 与 API 属于 Specs。选择理由见 Decision Log / ADR。
 
 ### Quality
 
@@ -178,7 +160,7 @@ Product Definition 可以冻结用户可感知的 durability / privacy / failure
 
 ## 6. Research Boundary
 
-Research 回答“为什么相信这个结论”，可以保存证据、反例、竞争分析和实验结果，但不能形成第二套产品规范。当前 Product Discovery 研究位于 [`../research/product-discovery/`](../research/product-discovery/)，Learning Core 研究位于 [`../research/learning-core/`](../research/learning-core/README.md)。Research 只有被 Strategy / Positioning / Product Definition / Canonical Design 正式吸收后，才成为下游约束。
+Research 回答“为什么相信这个结论”，可以保存证据、反例、竞争分析和实验结果，但不能形成第二套产品规范。当前 Product Discovery 研究位于 [`../research/product-discovery/`](../research/product-discovery/)，Learning Core 研究位于 [`../research/learning-core/`](../research/learning-core/README.md)。Research 只有被 Strategy / Positioning / Product Definition / Experience Design / Specs 正式吸收后，才成为下游约束。
 
 ## 7. Current Work Status
 

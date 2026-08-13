@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component: Task Hierarchy Tree — TraeWork</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <style>
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+    }
+
+    /* Task Tree */
+    .ds-task-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px;
+    }
+
+    .ds-task-tree__group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ds-task-tree__group-header {
+      display: flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      gap: 4px;
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .ds-task-tree__chevron {
+      width: 12px;
+      height: 12px;
+      display: inline-grid;
+      place-items: center;
+      transition: transform 120ms ease;
+      cursor: pointer;
+    }
+    .ds-task-tree__chevron--expanded {
+      transform: rotate(90deg);
+    }
+
+    .ds-task-tree__group-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ds-task-tree__group-count {
+      font-size: var(--body-xs-font-size);
+      font-weight: var(--font-weight-regular);
+      color: var(--text-tertiary);
+      background: var(--bg-overlay-l2);
+      border-radius: var(--radius-full);
+      padding: 0 6px;
+      height: 16px;
+      display: inline-grid;
+      place-items: center;
+      font-family: var(--font-family-metric);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ds-task-tree__items {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ds-task-tree__item {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: var(--radius-6);
+      gap: 8px;
+      cursor: pointer;
+      font-size: var(--body-base-font-size);
+      color: var(--text-default);
+      transition: background-color 120ms ease;
+    }
+    .ds-task-tree__item:hover {
+      background: var(--bg-overlay-l1);
+    }
+
+    .ds-task-tree__item--selected,
+    .ds-task-tree__item--selected:hover {
+      background: var(--bg-overlay-l2);
+    }
+
+    .ds-task-tree__item--completed {
+      color: var(--text-tertiary);
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+    .ds-task-tree__item--completed .ds-task-tree__status-dot {
+      background: var(--status-success-default);
+    }
+
+    .ds-task-tree__item--current {
+      background: var(--bg-overlay-l2);
+      font-weight: var(--font-weight-medium);
+    }
+    .ds-task-tree__item--current .ds-task-tree__status-dot {
+      background: var(--bg-brand);
+    }
+
+    .ds-task-tree__level-1 { padding-left: 4px; }
+    .ds-task-tree__level-2 { padding-left: 20px; }
+    .ds-task-tree__level-3 { padding-left: 36px; }
+
+    .ds-task-tree__item-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-grid;
+      place-items: center;
+      flex-shrink: 0;
+      color: var(--icon-tertiary);
+    }
+
+    .ds-task-tree__item-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ds-task-tree__item-status {
+      flex-shrink: 0;
+    }
+
+    .ds-task-tree__status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: var(--radius-full);
+      background: var(--border-neutral-l2);
+    }
+    .ds-task-tree__status-dot--pending {
+      background: var(--border-neutral-l2);
+    }
+    .ds-task-tree__status-dot--completed {
+      background: var(--status-success-default);
+    }
+    .ds-task-tree__status-dot--warning {
+      background: var(--status-warning-default);
+    }
+    .ds-task-tree__status-dot--error {
+      background: var(--status-error-default);
+    }
+    .ds-task-tree__status-dot--current {
+      background: var(--bg-brand);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+
+    /* Demo */
+    .demo-section { margin-bottom: 32px; }
+    .demo-section h3 {
+      font-size: var(--heading-md-font-size);
+      margin-bottom: 12px;
+    }
+    .demo-annotation {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+    .demo-shell {
+      background: var(--bg-menu);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-8);
+      padding: 8px;
+      max-width: 240px;
+    }
+  </style>
+</head>
+<body>
+  <!-- @component-css-start -->
+  <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+    <h1 style="font-size: var(--heading-xl-font-size); margin-bottom: 8px;">Task Hierarchy Tree</h1>
+    <p style="color: var(--text-tertiary); margin-bottom: 32px;">
+      Three-level nested navigation with status indicators, expand/collapse, and count badges.
+      <span style="color: var(--status-warning-default); font-weight: 500;">confidence: low</span>
+    </p>
+
+    <!-- Full Tree Demo -->
+    <div class="demo-section">
+      <h3>Default Tree (3 Levels)</h3>
+      <p class="demo-annotation">Workspace → Project → Individual Task</p>
+      <div class="demo-shell">
+        <div class="ds-task-tree">
+          <!-- Level 1: Workspace -->
+          <div class="ds-task-tree__group">
+            <div class="ds-task-tree__group-header">
+              <span class="ds-task-tree__chevron ds-task-tree__chevron--expanded">▶</span>
+              <span class="ds-task-tree__group-title">首页</span>
+            </div>
+            <div class="ds-task-tree__items">
+              <!-- Level 2: Project -->
+              <div class="ds-task-tree__group">
+                <div class="ds-task-tree__group-header">
+                  <span class="ds-task-tree__chevron ds-task-tree__chevron--expanded">▶</span>
+                  <span class="ds-task-tree__group-title">生成 Askora 学习消息系统 HTML 预...</span>
+                  <span class="ds-task-tree__group-count">5</span>
+                </div>
+                <div class="ds-task-tree__items">
+                  <!-- Level 3: Tasks -->
+                  <div class="ds-task-tree__item ds-task-tree__level-3">
+                    <span class="ds-task-tree__item-icon">🤖</span>
+                    <span class="ds-task-tree__item-label">实现 Workspace-scoped Learning ...</span>
+                    <span class="ds-task-tree__status-dot ds-task-tree__status-dot--completed"></span>
+                  </div>
+                  <div class="ds-task-tree__item ds-task-tree__level-3">
+                    <span class="ds-task-tree__item-icon">🔍</span>
+                    <span class="ds-task-tree__item-label">对比 Askora 完善项目</span>
+                    <span class="ds-task-tree__status-dot ds-task-tree__status-dot--completed"></span>
+                  </div>
+                  <div class="ds-task-tree__item ds-task-tree__level-3 ds-task-tree__item--current">
+                    <span class="ds-task-tree__item-icon">⚡</span>
+                    <span class="ds-task-tree__item-label">提交、推送并创建 Pull PR</span>
+                    <span class="ds-task-tree__status-dot ds-task-tree__status-dot--current"></span>
+                  </div>
+                  <div class="ds-task-tree__item ds-task-tree__level-3">
+                    <span class="ds-task-tree__item-icon">🔧</span>
+                    <span class="ds-task-tree__item-label">在 TraeWork 中安装 Linear MCP</span>
+                    <span class="ds-task-tree__status-dot ds-task-tree__status-dot--pending"></span>
+                  </div>
+                  <div class="ds-task-tree__item ds-task-tree__level-3">
+                    <span class="ds-task-tree__item-icon">🧪</span>
+                    <span class="ds-task-tree__item-label">动态教学策略选择算法</span>
+                    <span class="ds-task-tree__status-dot ds-task-tree__status-dot--warning"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Level 2: Another Project -->
+              <div class="ds-task-tree__group">
+                <div class="ds-task-tree__group-header">
+                  <span class="ds-task-tree__chevron">▶</span>
+                  <span class="ds-task-tree__group-title">Nexus</span>
+                  <span class="ds-task-tree__group-count">2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Level 1: Another Group -->
+          <div class="ds-task-tree__group">
+            <div class="ds-task-tree__group-header">
+              <span class="ds-task-tree__chevron">▶</span>
+              <span class="ds-task-tree__group-title">插件市场</span>
+            </div>
+          </div>
+          <div class="ds-task-tree__group">
+            <div class="ds-task-tree__group-header">
+              <span class="ds-task-tree__chevron">▶</span>
+              <span class="ds-task-tree__group-title">自动化</span>
+            </div>
+          </div>
+          <div class="ds-task-tree__group">
+            <div class="ds-task-tree__group-header">
+              <span class="ds-task-tree__chevron">▶</span>
+              <span class="ds-task-tree__group-title">办公助理</span>
+            </div>
+          </div>
+          <div class="ds-task-tree__group">
+            <div class="ds-task-tree__group-header">
+              <span class="ds-task-tree__chevron">▶</span>
+              <span class="ds-task-tree__group-title">模板库</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State Variants -->
+    <div class="demo-section">
+      <h3>State Variants</h3>
+      <p class="demo-annotation">Completed, Current, Pending, Selected, Hover</p>
+      <div class="demo-shell" style="max-width: 320px;">
+        <div class="ds-task-tree">
+          <div class="ds-task-tree__item">
+            <span class="ds-task-tree__item-icon">✅</span>
+            <span class="ds-task-tree__item-label">Pending task (default)</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--pending"></span>
+          </div>
+          <div class="ds-task-tree__item ds-task-tree__item--completed">
+            <span class="ds-task-tree__item-icon">✅</span>
+            <span class="ds-task-tree__item-label">Completed task</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--completed"></span>
+          </div>
+          <div class="ds-task-tree__item ds-task-tree__item--current">
+            <span class="ds-task-tree__item-icon">⚡</span>
+            <span class="ds-task-tree__item-label">Current (active) task</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--current"></span>
+          </div>
+          <div class="ds-task-tree__item ds-task-tree__item--selected">
+            <span class="ds-task-tree__item-icon">📋</span>
+            <span class="ds-task-tree__item-label">Selected task</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--warning"></span>
+          </div>
+          <div class="ds-task-tree__item">
+            <span class="ds-task-tree__item-icon">⚠️</span>
+            <span class="ds-task-tree__item-label">Warning status</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--warning"></span>
+          </div>
+          <div class="ds-task-tree__item">
+            <span class="ds-task-tree__item-icon">❌</span>
+            <span class="ds-task-tree__item-label">Error status</span>
+            <span class="ds-task-tree__status-dot ds-task-tree__status-dot--error"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- @component-css-end -->
+</body>
+</html>

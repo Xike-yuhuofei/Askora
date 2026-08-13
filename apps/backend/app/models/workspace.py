@@ -1,7 +1,7 @@
 """Durable Platform Workspace / Project / Session / SourceFile persistence.
 
-Governing contracts: ADR-0016, ``docs/specs/platform/workspace-project-session-scope.md``
-(WSP-010..WSP-013, WSP-022), ``docs/specs/architecture/state-ownership.md`` (STATE-005).
+Governing contracts: ADR-0016, ``docs/specs/platform.md``
+(WSP-010..WSP-013, WSP-022), ``docs/specs/architecture.md`` (STATE-005).
 
 Ownership:
 - ``Workspace``                -> Platform Workspace Registry (WSP-001)

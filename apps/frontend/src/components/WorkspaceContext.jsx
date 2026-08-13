@@ -55,8 +55,8 @@ export function WorkspaceContextDisplay() {
 
   if (status === 'loading') {
     return (
-      <div className="workspace-context workspace-context--loading" role="status" aria-label="加载工作区中">
-        <span className="workspace-context__label">工作区</span>
+      <div className="workspace-context workspace-context--loading ds-nav-row" role="status" aria-label="加载课程中">
+        <span className="workspace-context__label">课程</span>
         <span className="workspace-context__name skeleton">加载中…</span>
       </div>
     )
@@ -64,8 +64,8 @@ export function WorkspaceContextDisplay() {
 
   if (status === 'error') {
     return (
-      <div className="workspace-context workspace-context--error" role="alert">
-        <span className="workspace-context__label">工作区</span>
+      <div className="workspace-context workspace-context--error ds-nav-row" role="alert">
+        <span className="workspace-context__label">课程</span>
         <span className="workspace-context__name">暂时不可用</span>
       </div>
     )
@@ -73,21 +73,22 @@ export function WorkspaceContextDisplay() {
 
   if (!current_workspace || status === 'missing') {
     return (
-      <div className="workspace-context workspace-context--missing" role="status">
-        <span className="workspace-context__label">当前工作区</span>
-        <span className="workspace-context__name">尚无可用工作区</span>
+      <div className="workspace-context workspace-context--missing ds-nav-row" role="status">
+        <span className="workspace-context__label">当前课程</span>
+        <span className="workspace-context__name">尚无可用课程</span>
       </div>
     )
   }
 
   return (
-    <div
-      className="workspace-context"
-      aria-label={`当前工作区：${current_workspace.display_name}（单一工作区）`}
+    <a
+      href={`#/courses/${encodeURIComponent(current_workspace.workspace_id)}`}
+      className="workspace-context ds-nav-row"
+      aria-label={`当前课程：${current_workspace.display_name}`}
       data-workspace-id={current_workspace.workspace_id}
       data-workspace-state={status}
     >
-      <span className="workspace-context__label">当前工作区</span>
+      <span className="workspace-context__label">当前课程</span>
       <span className="workspace-context__name" title={current_workspace.display_name}>
         {current_workspace.display_name}
       </span>
@@ -96,6 +97,6 @@ export function WorkspaceContextDisplay() {
           {status === 'partial' ? '部分信息可用' : '信息可能已过期'}
         </span>
       )}
-    </div>
+    </a>
   )
 }

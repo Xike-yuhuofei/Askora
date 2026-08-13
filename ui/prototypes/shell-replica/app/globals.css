@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/*
+  TraeWork macOS AI IDE home — dark theme tokens.
+  All values measured pixel-by-pixel from the reference PNG
+  (1326×1299 screenshot). See src/Design Spec.md.
+*/
+
+:root {
+  /* Surfaces */
+  --frame: #222222; /* window frame + sidebar bg */
+  --main: #171717; /* main workspace card */
+  --edge-top: #595959; /* 1px window top highlight */
+  --ctxbar: #222222; /* composer context bar */
+
+  /* Lines */
+  --border-card: #2c2c2c; /* window card border / sidebar divider */
+  --border-composer: #383738; /* composer + chip borders */
+  --border-pill: #3f3f3f; /* mode active pill border / chip border */
+
+  /* Interaction surfaces */
+  --hover: #2c2c2c; /* row hover/highlight, mode track */
+  --pill-active: #171717; /* mode active pill fill */
+  --iconwell: #252525; /* composer icon group well */
+  --iconwell-border: #383838;
+
+  /* Text */
+  --text-1: #dedede; /* nav / task / primary text */
+  --text-2: #6f6f6f; /* folder names */
+  --text-3: #5c5c5c; /* section labels */
+  --text-4: #4a4a4a; /* shortcut glyphs */
+  --placeholder: #5b5e66;
+  --hero: #e1e1e1;
+  --model: #9a9a9a; /* model selector text */
+  --chip-text: #d9d9d9;
+  --account: #c0c2ca;
+
+  /* Accent */
+  --send: #3e36db; /* send button */
+  --icon-violet: #8a63f6; /* composer video icon */
+  --icon-orchid: #a55ede; /* composer image icon */
+  --badge-bg: #2c2d47; /* Pro badge */
+  --badge-text: #8f89f0;
+
+  /* Traffic lights (unfocused style: plain black dots) */
+  --tl: #000000;
+
+  /* Chat view (TraeWork-chat.png) */
+  --tool-green: #59b589; /* tool call complete icon */
+  --user-bubble: #222222; /* user message bubble bg */
+  --btn-border: #29292b; /* titlebar "open in" button border */
+  --chat-ctxbar: #2c2c2c; /* chat composer context bar */
+  --chat-placeholder: #5b5f69; /* composer placeholder text */
+}
+
+@theme inline {
+  --color-frame: var(--frame);
+  --color-main: var(--main);
+  --color-edge-top: var(--edge-top);
+  --color-ctxbar: var(--ctxbar);
+  --color-border-card: var(--border-card);
+  --color-border-composer: var(--border-composer);
+  --color-border-pill: var(--border-pill);
+  --color-hover: var(--hover);
+  --color-pill-active: var(--pill-active);
+  --color-iconwell: var(--iconwell);
+  --color-iconwell-border: var(--iconwell-border);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-4: var(--text-4);
+  --color-placeholder: var(--placeholder);
+  --color-hero: var(--hero);
+  --color-model: var(--model);
+  --color-chip-text: var(--chip-text);
+  --color-account: var(--account);
+  --color-send: var(--send);
+  --color-icon-violet: var(--icon-violet);
+  --color-icon-orchid: var(--icon-orchid);
+  --color-badge-bg: var(--badge-bg);
+  --color-badge-text: var(--badge-text);
+  --color-tl: var(--tl);
+  --color-tool-green: var(--tool-green);
+  --color-user-bubble: var(--user-bubble);
+  --color-btn-border: var(--btn-border);
+  --color-chat-ctxbar: var(--chat-ctxbar);
+  --color-chat-placeholder: var(--chat-placeholder);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+    "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--frame);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* thin scrollbars, invisible until needed */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-composer) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--border-composer);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}

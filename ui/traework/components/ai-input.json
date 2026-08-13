@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 2,
+  "slug": "ai-input",
+  "name": "AI Input Box",
+  "category": "input",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "AI Multi-Modal Input",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screens 1, 6, 7): large multi-line textarea with model selector, attachment support, and send button. This is the primary interaction component for AI-powered workflows."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "size-state-density",
+      "values": [
+        ".ds-ai-input",
+        ".ds-ai-input__textarea",
+        ".ds-ai-input__control-row",
+        ".ds-ai-input__model-selector",
+        ".ds-ai-input__send-btn",
+        ".ds-ai-input__attachment-btn",
+        ".ds-ai-input--expanded",
+        ".ds-ai-input--focused",
+        ".ds-ai-input--disabled"
+      ],
+      "evidence": "Inferred from screenshots: multi-line textarea (~72px default, expands with content), control row with attachment + model selector + send button."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screens 1, 6, 7)",
+    "representativeSelectors": [
+      ".ds-ai-input",
+      ".ds-ai-input__textarea",
+      ".ds-ai-input__control-row",
+      ".ds-ai-input__model-selector",
+      ".ds-ai-input__send-btn",
+      ".ds-ai-input__attachment-btn",
+      ".ds-ai-input--expanded",
+      ".ds-ai-input--focused",
+      ".ds-ai-input--disabled",
+      ".ds-ai-input__textarea:focus",
+      ".ds-ai-input__send-btn:hover"
+    ],
+    "cssRuleCount": 35
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "default-height",
+      "value": "~100px (72px textarea + 28px control row)",
+      "evidence": "Measured from screenshots."
+    },
+    {
+      "dimension": "expanded-height",
+      "value": "Up to 300px (content-driven)",
+      "evidence": "Textarea grows with multi-line input."
+    },
+    {
+      "dimension": "textarea-min-height",
+      "value": "72px (4 visible lines)",
+      "evidence": "Minimum 4-line input area."
+    },
+    {
+      "dimension": "control-row-height",
+      "value": "28px",
+      "evidence": "Fixed-height bottom control row."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "idle",
+      "focused",
+      "typing",
+      "expanded",
+      "disabled",
+      "loading"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-ai-input",
+      "whySelected": "Root container for AI multi-modal input. Contains textarea + control row.",
+      "traits": [
+        "border-radius: 12px",
+        "border: 1px solid var(--border-neutral-l1)",
+        "background: var(--bg-base-default)",
+        "box-shadow: 0 1px 2px rgba(0,0,0,0.05)",
+        "transition: border-color 120ms, box-shadow 120ms"
+      ],
+      "childrenDigest": [
+        ".ds-ai-input__textarea",
+        ".ds-ai-input__control-row"
+      ]
+    },
+    {
+      "selector": ".ds-ai-input--focused",
+      "whySelected": "Focus state with brand-colored border and subtle elevation.",
+      "traits": [
+        "border-color: var(--border-brand)",
+        "box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1)",
+        "transition: border-color 120ms, box-shadow 120ms"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-ai-input__send-btn",
+      "whySelected": "Circular brand-colored send button at end of control row.",
+      "traits": [
+        "width: 28px",
+        "height: 28px",
+        "border-radius: var(--radius-full)",
+        "background: var(--bg-brand)",
+        "color: var(--text-onbrand)",
+        "hover: background-color: var(--bg-brand-hover)"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-ai-input",
+      ".ds-ai-input__textarea",
+      ".ds-ai-input__control-row",
+      ".ds-ai-input__model-selector",
+      ".ds-ai-input__send-btn",
+      ".ds-ai-input__attachment-btn",
+      ".ds-ai-input--expanded",
+      ".ds-ai-input--focused",
+      ".ds-ai-input--disabled",
+      ".ds-ai-input__placeholder"
+    ]
+  },
+  "structurePatterns": [
+    "Two vertically stacked regions: textarea (top) + control row (bottom).",
+    "Textarea: full-width, multi-line, auto-growing, with AI-optimized placeholder text.",
+    "Control row: left-aligned attachment icon + model selector dropdown; right-aligned send button.",
+    "Model selector shows current model name (e.g., 'Seed-Code') with dropdown arrow.",
+    "Send button: circular, brand-colored, with paper-plane icon.",
+    "Attachment button: icon-only, 28px, subtle hover background.",
+    "Placeholder text: instructional AI-focused copy (not generic 'Type here').",
+    "Keyboard: Enter to send (single line), Shift+Enter for newline."
+  ],
+  "usageHints": [
+    "Use as the primary user input in AI-powered IDE and workspace surfaces.",
+    "Always include model selector — model choice is a core user decision point.",
+    "Support file attachments via the attachment button.",
+    "Placeholder text should guide users toward AI-optimized prompting.",
+    "Textarea should auto-grow up to 300px, then scroll internally."
+  ],
+  "doNotInvent": [
+    "Do not replace with a standard textarea — the AI context (model selector, attachment) is essential.",
+    "Do not remove the model selector — it differentiates AI input from standard input.",
+    "Do not make the send button non-circular — circular shape is a visual affordance for 'send'.",
+    "Do not use generic placeholder text — AI-focused guidance is part of the UX."
+  ],
+  "unknowns": [
+    "Exact list of models available in selector not confirmed.",
+    "Streaming response behavior (typing indicator, cancellation) not shown.",
+    "Voice input integration not visible in screenshots.",
+    "Multi-file attachment behavior not visible.",
+    "Rate limiting / error states not visible."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--bg-brand",
+    "--bg-brand-hover",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--border-brand",
+    "--text-default",
+    "--text-secondary",
+    "--text-onbrand",
+    "--text-tertiary",
+    "--radius-8",
+    "--radius-12",
+    "--radius-full",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-24",
+    "--icon-size-14",
+    "--icon-size-16",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-sm-font-size"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-ai-input",
+        "ds-ai-input__textarea",
+        "ds-ai-input__control-row",
+        "ds-ai-input__model-selector",
+        "ds-ai-input__send-btn",
+        "ds-ai-input__attachment-btn",
+        "ds-ai-input--expanded",
+        "ds-ai-input--focused",
+        "ds-ai-input--disabled",
+        "ds-ai-input__placeholder"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screens 1, 6, 7: Main IDE, Askora Work View screenshots",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "ai-input"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshots showing AI multi-modal input at the bottom of the workspace. This is the core interaction component of the product."
+  },
+  "assetsConsumed": [
+    "assets/icons/attachment.svg",
+    "assets/icons/Down.svg",
+    "assets/icons/Send.svg",
+    "assets/icons/Plus.svg",
+    "assets/icons/PaperPlane.svg",
+    "assets/icons/Seed.svg",
+    "assets/icons/Code.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--ai-input-min-height",
+      "value": "100px",
+      "purpose": "Minimum collapsed height including control row"
+    },
+    {
+      "token": "--ai-input-max-height",
+      "value": "300px",
+      "purpose": "Maximum expanded height before internal scroll"
+    },
+    {
+      "token": "--ai-input-radius",
+      "value": "12px",
+      "purpose": "Larger radius than standard input for visual distinction"
+    },
+    {
+      "token": "--ai-input-shadow-focus",
+      "value": "0 0 0 2px rgba(124, 58, 237, 0.1)",
+      "purpose": "Focus ring beyond border change"
+    }
+  ]
+}

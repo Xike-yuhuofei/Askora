@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ShieldAlert, ServerCrash, X } from 'lucide-react'
+import Button from './ui/Button'
 import './NoticeModal.css'
 
-// 错误码 → 弹窗标题/图标映射
 const codeMeta = {
   'SYS-0001': { title: '系统繁忙', icon: ServerCrash, tone: 'danger' },
 }
@@ -16,36 +16,42 @@ export default function NoticeModal() {
     return () => window.removeEventListener('app:api-error', handler)
   }, [])
 
+  useEffect(() => {
+    if (!notice) return undefined
+    const onKey = (event) => {
+      if (event.key === 'Escape') setNotice(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [notice])
+
   if (!notice) return null
 
   const meta = codeMeta[notice.code] || { title: '服务提示', icon: ShieldAlert, tone: 'info' }
   const Icon = meta.icon
 
   return (
-    <div className="notice-overlay" onClick={() => setNotice(null)}>
+    <div className="ds-dialog-backdrop" onClick={() => setNotice(null)}>
       <div
-        className={`notice-modal notice-${meta.tone}`}
+        className={`ds-dialog notice-${meta.tone}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="notice-title"
       >
-        <button className="notice-close" onClick={() => setNotice(null)} aria-label="关闭">
-          <X size={18} />
-        </button>
-
-        <div className="notice-icon">
-          <Icon size={30} />
+        <div className="ds-dialog__head">
+          <h3 id="notice-title" className="ds-dialog__title">{meta.title}</h3>
+          <button className="ds-dialog__close" onClick={() => setNotice(null)} aria-label="关闭">
+            <X size={16} />
+          </button>
         </div>
-
-        <h3 className="notice-title">{meta.title}</h3>
-
-        <p className="notice-message">{notice.message}</p>
-
-        {notice.request_id && <p className="notice-detail">请求编号：{notice.request_id}</p>}
-
-        <button className="btn btn-primary notice-btn" onClick={() => setNotice(null)}>
-          我知道了
-        </button>
+        <div className="ds-dialog__body">
+          <p className="notice-message"><Icon size={16} aria-hidden="true" /> {notice.message}</p>
+          {notice.request_id ? <p className="notice-detail">请求编号：{notice.request_id}</p> : null}
+        </div>
+        <div className="ds-dialog__foot">
+          <Button variant="brand" onClick={() => setNotice(null)}>我知道了</Button>
+        </div>
       </div>
     </div>
   )

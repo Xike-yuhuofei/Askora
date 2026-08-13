@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest'
+import '../styles/global.css'
+import '../styles/ds.css'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach } from 'vitest'
 

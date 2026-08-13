@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component: Status Bar — TraeWork</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <style>
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+    }
+
+    /* Status Bar */
+    .ds-status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 32px;
+      padding: 0 12px;
+      background: var(--bg-base-secondary);
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+
+    .ds-status-bar__left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ds-status-bar__user {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ds-status-bar__avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      background: var(--bg-overlay-l3);
+      color: var(--text-default);
+      display: grid;
+      place-items: center;
+      font-size: var(--body-xs-font-size);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .ds-status-bar__name {
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+    }
+
+    .ds-status-bar__badge {
+      display: inline-flex;
+      align-items: center;
+      height: 16px;
+      padding: 0 6px;
+      border-radius: var(--radius-full);
+      background: var(--status-warning-surface-l1);
+      color: var(--status-warning-default);
+      font-size: var(--body-xs-font-size);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .ds-status-bar__credits {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--body-sm-font-size);
+      color: var(--text-secondary);
+      font-family: var(--font-family-metric);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ds-status-bar__right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ds-status-bar__action {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: var(--radius-6);
+      background: transparent;
+      color: var(--text-tertiary);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    .ds-status-bar__action:hover {
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+    }
+
+    /* Demo */
+    .demo-section { margin-bottom: 32px; }
+    .demo-section h3 {
+      font-size: var(--heading-md-font-size);
+      margin-bottom: 12px;
+    }
+    .demo-annotation {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- @component-css-start -->
+  <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+    <h1 style="font-size: var(--heading-xl-font-size); margin-bottom: 8px;">Status Bar</h1>
+    <p style="color: var(--text-tertiary); margin-bottom: 32px;">
+      Bottom bar for user identity and quick actions. Fixed at bottom of IDE shell.
+      <span style="color: var(--status-warning-default); font-weight: 500;">confidence: low</span>
+    </p>
+
+    <!-- Default -->
+    <div class="demo-section">
+      <h3>Default State</h3>
+      <p class="demo-annotation">Avatar + Name + Tier Badge + Credits + Actions</p>
+      <div style="border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-8); overflow: hidden;">
+        <div style="height: 120px; background: var(--bg-base-default);"></div>
+        <div class="ds-status-bar">
+          <div class="ds-status-bar__left">
+            <div class="ds-status-bar__user">
+              <div class="ds-status-bar__avatar">楠</div>
+              <span class="ds-status-bar__name">楠客</span>
+              <span class="ds-status-bar__badge">Pro</span>
+            </div>
+            <span class="ds-status-bar__credits">
+              <span style="color: var(--text-tertiary);">$</span>
+              4,256
+            </span>
+          </div>
+          <div class="ds-status-bar__right">
+            <button class="ds-status-bar__action" title="Layout">
+              <span class="icon icon--16">▦</span>
+            </button>
+            <button class="ds-status-bar__action" title="View">
+              <span class="icon icon--16">⊞</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hover States -->
+    <div class="demo-section">
+      <h3>Hover States</h3>
+      <p class="demo-annotation">Actions and user area have subtle hover backgrounds</p>
+      <div style="border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-8); overflow: hidden;">
+        <div style="height: 60px; background: var(--bg-base-default);"></div>
+        <div class="ds-status-bar">
+          <div class="ds-status-bar__left">
+            <div class="ds-status-bar__user" style="background: var(--bg-overlay-l1); padding: 2px 8px; border-radius: var(--radius-6);">
+              <div class="ds-status-bar__avatar">楠</div>
+              <span class="ds-status-bar__name">楠客</span>
+              <span class="ds-status-bar__badge">Pro</span>
+            </div>
+            <span class="ds-status-bar__credits">$ 4,256</span>
+          </div>
+          <div class="ds-status-bar__right">
+            <button class="ds-status-bar__action" style="background: var(--bg-overlay-l1);" title="Layout">
+              <span class="icon icon--16">▦</span>
+            </button>
+            <button class="ds-status-bar__action" style="background: var(--bg-overlay-l1); color: var(--text-default);" title="View">
+              <span class="icon icon--16">⊞</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- @component-css-end -->
+</body>
+</html>
