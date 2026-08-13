@@ -1,7 +1,17 @@
 # Askora Architecture Decision Records
 
-> `docs/architecture/decisions/` 记录已经被接受、会改变或解释 Canonical Design / Implementation Spec 的重大架构决策。
-> 所有 ADR 均受上位 `docs/product/PRODUCT-POSITIONING.md` 与 `docs/product/PRODUCT-DEFINITION.md` 约束；ADR 不拥有 Product Capability、v1 Feature Scope、Product Rule 或 Product Acceptance。
+> 状态：决策流程入口（不再是 ADR 索引）
+> 当前有效决策的唯一视图：[`../decisions/DECISIONS.md`](../decisions/DECISIONS.md)
+> 历史 ADR 原文：`../archive/adr/`（26 份，immutable）
+
+## 0. 入口导航
+
+| 我想知道…… | 去哪里 |
+|---|---|
+| 当前有效决策（某个系统现在为什么这样设计） | [`../decisions/DECISIONS.md`](../decisions/DECISIONS.md) |
+| 决策原文、备选方案、决策时的后果 | [`../archive/adr/`](../archive/adr/)（按 `ADR-XXXX` 查找） |
+| 某个旧决策是否还有效、被什么替代 | DECISIONS.md Part B 历史废止索引 |
+| 如何提交一个新架构决策 | 按下方 §1/§3 流程 |
 
 ## 1. 何时必须建立 ADR
 
@@ -29,39 +39,15 @@
 
 不得创建下位 ADR 绕过 Product Positioning / Product Definition。
 
-## 2. 权威链
+## 2. ADR 生命周期
 
 ```text
-PRODUCT-STRATEGY.md
-→ PRODUCT-POSITIONING.md
-→ PRODUCT-DEFINITION.md
-→ Current Canonical Design
-→ Accepted ADR
-→ Updated Implementation Spec
-→ Linear Issue / EXEC
-→ Code / Test
+proposed → accepted → superseded
 ```
 
-ADR 回答的是：
-
-> **在既定 Product WHAT 与 Design 语义下，为什么选择这一重大系统/架构决策，以及它如何迁移、回滚和验证。**
-
-ADR 不回答：
-
-- 产品为什么值得做；
-- 某 Capability 是否存在；
-- 某 Feature 是否属于 v1；
-- Product Acceptance 何时成立；
-- 当前 Issue 是否 Done。
-
-ADR 接受后必须同步更新受影响 current Design consolidation / Spec（适用时）；Codex 仍以最新 Product docs + current Design + applicable ADR + 最新 Spec 作为直接执行约束。
-
-历史 ADR 如果被新的 Product Positioning / Product Definition / Canonical Design 部分 supersede，应保留原始决策记录，并明确标记：
-
-- 哪些 Product Scope / mechanics 已 superseded；
-- 哪些 architecture invariant 继续有效；
-- current Experience / Design / implementation contract 在哪里；
-- 禁止历史 ADR 反向覆盖当前上位产品定义。
+- ADR 正文 immutable；只有 `Status` 可变；
+- 被 supersede 后，ADR 原文保留在 `../archive/adr/`，状态与替代链记录在 `DECISIONS.md` Part B；
+- 禁止历史 ADR 反向覆盖当前上位产品定义；current truth 以 `DECISIONS.md` + current Spec 为准。
 
 ## 3. 文件模板
 
@@ -90,6 +76,8 @@ Affected specs: ...
 
 `Product trace` 的目的只是说明 ADR 服务哪个已定义 Product Requirement；不得在 ADR 中自行创造新的 `CAP-* / PD-REQ-* / PD-AC-*`。
 
+ADR 接受后：更新 `DECISIONS.md` 对应条目（Status / 结论 / 指向），并同步受影响 current Spec（适用时）。
+
 ## 4. Codex 权限
 
 Codex 可以指出需要 ADR 的 `DESIGN GAP` / `SPEC GAP`。当用户已明确授权目标或明确委托架构自治时，Codex 可以为该目标创建并接受**下位架构 ADR**，并继续同步 Design/Spec、EXEC、代码和测试；不再要求另一次顶层人工批准。
@@ -105,239 +93,3 @@ Codex 可以指出需要 ADR 的 `DESIGN GAP` / `SPEC GAP`。当用户已明确�
 - 对 Product / UX / Engineering / Policy / Learning Evidence 声明边界的影响。
 
 Codex 的架构自治权限只作用于下位设计/架构，**不得自行突破 Frozen Product Positioning 或 Product Definition**。若发现目标本身需要改变 Product Scope，必须先报告正确的上游 GAP，而不是用 accepted ADR 制造既成事实。
-
-## 5. ADR Index
-
-| ADR | Title | Status | Date |
-|---|---|---|---|
-| `ADR-0001` | Teaching Strategy Ontology | accepted | 2026-08-07 |
-| `ADR-0002` | Constrained Deterministic Teaching Policy Architecture | accepted | 2026-08-07 |
-| `ADR-0003` | Policy Runtime Profile Source and Activation Resolution | accepted | 2026-08-08 |
-| `ADR-0004` | Guided Book Learning and Durable Transcript | accepted | 2026-08-08 |
-| `ADR-0005` | Policy-bound Real-model Rendering | accepted | 2026-08-08 |
-| `ADR-0006` | Workspace Read-model Scope and Missing Objective Metadata | accepted; current Workspace product meaning governed by Product Definition | 2026-08-09 |
-| `ADR-0007` | SYS06 Activity Lifecycle and Completion | accepted | 2026-08-09 |
-| `ADR-0008` | Library Management, Deduplication and OCR Governance | **partially superseded by Product Positioning / Product Definition** — OCR-as-core/global-library/archive mechanics retired | 2026-08-09 |
-| `ADR-0009` | Local-first Identity and Privacy Lifecycle | partially superseded by ADR-0015 | 2026-08-09 |
-| `ADR-0010` | Goal Definition, State, Draft and Safe Replan | accepted | 2026-08-09 |
-| `ADR-0011` | Goal Achievement Measurement and Evidence Gate | accepted | 2026-08-09 |
-| `ADR-0012` | Unified Recovery Control Plane and Bootstrap Diagnostics | accepted | 2026-08-09 |
-| `ADR-0013` | Desktop Model Credential and Activation | **partially superseded** — Desktop mechanics retired; current CAP-08/BYOK semantics = Product Definition + ADR-0017 + LSS | 2026-08-09 |
-| `ADR-0014` | User-job-driven Information and Interaction Architecture | **partially superseded by ADR-0018 and ADR-0022**; retained semantics consolidated into current Experience Design | 2026-08-10 |
-| `ADR-0015` | Local Single-User Identity Without Authentication | accepted | 2026-08-10 |
-| `ADR-0016` | Workspace, LearningProject and LearningSession Scope Ownership | accepted | 2026-08-10 |
-| `ADR-0017` | OS-backed LocalSecretStore and Crash-consistent Model Activation | accepted | 2026-08-10 |
-| `ADR-0018` | UX Workspace Context and Three-Column Learning Architecture | **partially superseded by ADR-0022**; retained three-column semantics consolidated under `docs/design/experience/**` | 2026-08-10 |
-| `ADR-0019` | UI Workspace Context and Learning Context Read Projections | accepted; target experience amended by ADR-0022；single-default target superseded by ADR-0023 | 2026-08-11 |
-| `ADR-0020` | Learning Conversation Message Presentation and Interaction Boundary | accepted | 2026-08-11 |
-| `ADR-0021` | UserNote Ownership and Source Inspection Boundary | accepted | 2026-08-11 |
-| `ADR-0022` | Course-centric Information Architecture | accepted | 2026-08-11 |
-| `ADR-0023` | Course Workspace Selection and Activity Projection | accepted | 2026-08-11 |
-| `ADR-0103` | Local Data Recovery, Portability and Erasure | accepted; account-specific language subject to ADR-0015/current Product Definition | 2026-08-09 |
-| `ADR-0106` | Fact-driven Onboarding Readiness and Presentation Preferences | accepted; default-entry assumption partially superseded by ADR-0022 | 2026-08-09 |
-| `ADR-0107` | Account Deletion Uses the Canonical Data Erasure Workflow | partially superseded by ADR-0015 | 2026-08-09 |
-
-## 6. Current v1 Architecture Decisions
-
-### ADR-0016 — Workspace / Project / LearningSession
-
-ADR-0016 closes the implementation ownership gap for `PRODUCT-DEFINITION.md` 中的 `Workspace / LearningProject / LearningSession` product objects；它不重新定义这些 Product Objects 的产品意义。
-
-Current decisions：
-
-- Workspace → Platform Workspace Registry；
-- LearningProject / ProjectMaterial → Platform Workspace / Product Organization；
-- LearningSession → Platform Learning Session Registry；
-- LearningSession is not DialogSession and owns no transcript/TeachingAction/Assessment/Mastery truth；
-- existing `user_documents.id` remains stable Material identity during migration；
-- do not create a parallel writable `materials` truth；
-- normalize managed SourceFile separately；
-- existing LocalOwner-global data migrates idempotently into one default Workspace；
-- LearnerEvidence/Mastery/LearnerState/Review become Workspace-specific；
-- cross-workspace refs fail closed。
-
-Direct contract：`docs/specs/platform/workspace-project-session-scope.md` (`WSP-*`)。
-
-### ADR-0017 — LocalSecretStore
-
-ADR-0017 closes the security-sensitive Local Web BYOK adapter gap under `CAP-08 / PD-REQ-0803`。
-
-Current decisions：
-
-```text
-macOS   → keyring.backends.macOS.Keyring
-Windows → keyring.backends.Windows.WinVaultKeyring
-```
-
-with：
-
-- exact production backend allowlist；
-- no automatic/third-party/Null/file fallback；
-- Windows local-machine persistence；
-- opaque random secret refs；
-- browser/public API cannot read stored secrets；
-- ordinary SQLite stores only non-secret profile/ref/activation journal；
-- durable phase journal reconciles SQLite + OS credential-store crash consistency；
-- clear commits disabled routing before best-effort orphan-secret cleanup；
-- restore missing secret → degraded/re-enter, never `.env` resurrection。
-
-Direct contracts：`docs/specs/platform/local-secret-store.md` (`LSS-*`) + `systems/08-model-configuration.md` + `quality/security-standard.md`。
-
-### ADR-0018 — UX Workspace Context / Three-Column Learning
-
-ADR-0018 partially supersedes ADR-0014；其 current retained experience semantics 已 consolidation 到：
-
-- `docs/design/experience/EXPERIENCE-ARCHITECTURE.md`；
-- `docs/design/experience/LEARNING-EXPERIENCE.md`；
-- `docs/design/experience/INTERACTION-MODEL.md`。
-
-Retained decision consequences：
-
-- Learning no longer exposes Goal/Plan/Progress/History as permanent L1 management facets；
-- left rail = Where (product nav + canonical Workspace), center = Learn (sole Primary Canvas), right rail = hideable Reference/Notes；
-- default-collapsed Learning Context Drawer above the composer；
-- Workspace is shared canonical context across all three columns；
-- Library normal v1 UI does not expose OCR。
-
-其中 “OCR 是否是 v1 core / deferred candidate 是否进入 v1” 的 Product Scope authority 属于 Product Definition；ADR-0018 / Experience Design 拥有其 UX consequence，不是第二份 Product Scope owner。
-
-Direct contracts：current Experience Design + `docs/specs/ui/**` + applicable UI vertical slice。历史 clause-level supersession matrix 保留在 ADR-0018 Section 8 解释演进。
-
-### ADR-0019 — UI Workspace Read Projections
-
-ADR-0019 closes the read-query gaps intentionally left open by ADR-0018:
-
-- canonical current Workspace comes from Platform Workspace Registry, never route/frontend state；
-- Drawer stage comes from exact SYS05 TeachingAction；
-- next 1..3 directions come from exact ordered SYS06 LearningActivity refs；
-- stage-goal copy is a versioned server-side presentation catalog, not a second Goal/Policy truth；
-- query assembly is read-only, current-Workspace scoped, side-effect free and uses honest MISSING/PARTIAL/STALE semantics；
-- no database schema or migration change。
-
-Direct contracts：`state-ownership.md` + `api-contract.md` + `frontend/ui-read-model-contracts.md` (`UXA-DATA-200/220..223`)。
-
-ADR-0022 已将目标 Experience 扩展为 multi-Course；ADR-0019 当前 single-default query 继续作为 compatibility projection，但不授权前端自行实现 Course create/switch。
-
-### ADR-0022 — Course-centric Information Architecture
-
-ADR-0022 partially supersedes ADR-0014/0018 的旧 L0：
-
-- Today / Learning 不再是 stable Product Domain；
-- 用户侧 Workspace vocabulary 统一为“课程”，canonical Workspace identity 不变；
-- `＋ 新课程` 是 Primary Action；课程列表是长期 context navigation；
-- Course → LearningActivity → LearningSession → Conversation/Attempt/Events；
-- Library 保持稳定 navigation，Settings/Recovery 保持 Utility；
-- Three-column Learning Workspace、Drawer、Right Rail 与 Learning de-management 继续有效；
-- `/today`、`/learning`、`/` 与旧 deep links 必须无业务副作用迁移。
-
-Course list/create/current/switch、conflict recovery 与 Activity Switcher 的 technical query/command gap is closed by ADR-0023 / `CWSP-*`。Frontend implementation still depends on the real XIK-189 Platform implementation；frontend-only mock remains forbidden。
-
-Direct contracts：current Experience Design + `docs/specs/ui/**` + ADR-0023 / `docs/specs/platform/course-workspace-selection.md`。
-
-### ADR-0023 — Course Workspace Selection / Activity Projection
-
-ADR-0023 closes ADR-0022's technical gate：
-
-- Platform Workspace Registry owns durable versioned `WorkspaceSelection`；
-- current selection is distinct from `Workspace.is_default`；
-- fresh owner may have zero Workspace；legacy-data migration still creates one default + selection；
-- `＋ 新课程` maps to atomic create-and-select；
-- switch uses expected version、idempotency and typed draft/stream/note/session/material recovery guard；
-- deep links/GET/redirect are side-effect free；
-- Course Activity index is read-only exact SYS06 composition；
-- new Activity-scoped LearningSession pins exact Activity without taking SYS06 ownership。
-
-Direct contract：`docs/specs/platform/course-workspace-selection.md` (`CWSP-*`)；implementation EXEC：`EXEC-077` / XIK-189。
-
-### ADR-0020 — Learning Conversation Message Boundary
-
-ADR-0020 closes the Message System Prototype governance gap：
-
-- canonical target = LearningActivity-scoped、SYS08-owned presentation/transcript artifact；
-- Conversation/Message/Block do not become LearningEvidence or a ninth learning owner；
-- new `LearningMessageV1` is separate from unchanged, non-interactive `RenderPayloadV1`；
-- six typed blocks use exact owner/provenance/trace refs；
-- frontend only renders server-issued capabilities and dispatches narrow owner commands；
-- assessment/mastery/teaching/activity/review states remain split across SYS03～SYS07；
-- legacy Dialog/RenderPayload paths are bounded adapters with explicit retirement conditions。
-
-Direct contracts：`docs/specs/interfaces/learning-conversation-message-system-spec-delta.md` (`LCMS-*`) + LCMS Vertical Slice / EXEC-075。
-
-## 7. Historical Supersession Notes
-
-### Local Single-User Identity Supersession
-
-ADR-0015 supersedes ADR-0009 / ADR-0107 current product semantics for Account、Login、Password、JWT、AuthSession、Recovery Kit、Account Deletion Lifecycle。
-
-Owner-safe erasure、privacy/no-resurrection 等仍有独立数据治理价值的原则继续由最新 `LID-*` 与 P1-03 contracts 承接。Product no-auth meaning 由 Product Definition / Positioning 拥有；ADR-0015 拥有其 identity architecture consequence。
-
-### ADR-0008
-
-Product Positioning / Product Definition superseded：
-
-- full OCR Pipeline as v1 core/release requirement；
-- current-user global library scope；
-- archive/restore as the primary ordinary-delete product model。
-
-Retained：
-
-- SYS01 metadata/content ownership；
-- duplicate suggestion, no automatic merge；
-- rebuildable search/index projections；
-- provenance/version/idempotency；
-- optional OCR candidate safety。
-
-Current contracts：`systems/01-library-management.md` + `interfaces/content-ingestion-contract.md` + `interfaces/material-lifecycle-contract.md`。
-
-### ADR-0013
-
-Product Positioning / Product Definition / ADR-0017 superseded：
-
-- Electron `safeStorage` required path；
-- Desktop vault/main/preload IPC；
-- desktop child-backend/launcher mechanics；
-- macOS App as v1 product shell。
-
-Retained：
-
-- SYS08 owns ModelRouteProfile；
-- secret/routing separation；
-- secure local persistence；
-- probe-before-activation；
-- revision/concurrency/rollback；
-- no silent failover/no secret leakage。
-
-Current contract：Product Definition `CAP-08 / PD-REQ-0803` + ADR-0017 + `LSS-*` + `MODEL-CONFIG-*`。
-
-## 8. v0.3 ADR Breaking Change Register
-
-| ID | ADR | Breaking Surface | Current | New | Migration Required | Spec Delta Target |
-|---|---|---|---|---|---|---|
-| `BC-001` | ADR-0001 | Strategy enum | 9 top-level strategy families | 6 Strategy Families + move/pattern/modifier/deferred mapping | Yes | Domain Model + SYS05 (`SD-01`) |
-| `BC-002` | ADR-0001 | TeachingAction semantics | `strategy_id + action_type` mixed semantics | Strategy Family + immutable action/move/modifier/envelope | Yes | Domain Model + SYS05 |
-| `BC-003` | ADR-0001 / ADR-0002 | Support / exposure | integer fields | orthogonal scaffold/hint/exposure/assistance | Yes | Domain + SYS03/04/05 |
-| `BC-004` | ADR-0002 | Policy configuration | loose config | immutable component-versioned PolicyBundle | Yes | SYS05 |
-| `BC-005` | ADR-0002 | DecisionTrace probability / replay | generic propensity | assignment probability separated; deterministic action propensity null | Yes | Decision Contract |
-| `BC-006` | ADR-0001 / ADR-0002 | Legacy Socratic selector | implicit policy owner | bounded adapter behind SYS05 | Yes | SYS05 |
-| `BC-V1-001` | Product Positioning / ADR-0013 history | Product shell | Electron/Desktop target | Local Web Browser → loopback Local Server | Yes | Architecture + MODEL-CONFIG |
-| `BC-V1-002` | Product Definition / ADR-0016 | Material/scope | owner-global | real Workspace + Project/Session scope | Yes | WSP + Domain/SYS01/SYS02 |
-| `BC-V1-003` | Product Positioning / Product Definition | Persistence | service-compatible framing | SQLite production-local; distributed infra optional | Yes | Persistence/Architecture |
-| `BC-V1-004` | ADR-0017 | Provider credential | Electron vault/env | OS-backed LocalSecretStore + activation journal | Yes | LSS + MODEL-CONFIG + SEC |
-
-## 9. Migration Candidate Register
-
-| Candidate | Classification | Required handling |
-|---|---|---|
-| historical strategy records | `BEST_EFFORT` | preserve original value; versioned legacy mapping |
-| historical TeachingAction | `BEST_EFFORT` | retain payload; project when reconstructable |
-| old scaffold/hint/exposure fields | `AMBIGUOUS` | explicit mapping or unknown; never guess |
-| legacy Socratic selector | `DEFER_TO_SPEC` | bounded adapter only; SYS05 final owner |
-| old policy config | `BEST_EFFORT` | exact PolicyBundle where reconstructable |
-| old DecisionTrace propensity | `AMBIGUOUS` | unresolved → null/unknown + reason |
-| historical replay | `BEST_EFFORT` | FULL only with exact historical refs/config |
-| Desktop model vault / IPC | `DEFER_TO_SPEC` | v1 new writes use ADR-0017/LSS; no silent vault/env import |
-| owner-global library/goal/learner scope | `DEFER_TO_SPEC` | migrate through default Workspace per ADR-0016/WSP |
-| legacy `UserDocument` material storage | `DEFER_TO_SPEC` | preserve ID as Material; normalize SourceFile; no second truth |
-| legacy ordinary document delete | `DEFER_TO_SPEC` | source-present deleted rows → Trash; already-removed source → terminal legacy tombstone per MATLIFE |
-
-All migration work MUST preserve provenance and must not keep retired mechanics as permanent dual truth。

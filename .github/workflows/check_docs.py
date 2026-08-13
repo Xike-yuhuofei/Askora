@@ -20,6 +20,7 @@ EXCLUDED_DIRECTORIES = {
     "dist",
     "node_modules",
     "release",
+    "reverse-engineering",
 }
 
 STALE_PATTERNS = {
@@ -27,22 +28,7 @@ STALE_PATTERNS = {
         "docs/architecture/当前项目架构.md",
         "本仓库当前尚无正式提交",
     ),
-    "docs/planning/README.md": (
-        "execs/EXEC-007-v0.3-governance-preconditions.md",
-        "当前 active contracts",
-    ),
     "docs/specs/README.md": ("下一阶段：正式生成 `EXEC-007`",),
-    "docs/specs/vertical-slices/v0.3-adaptive-teaching-loop.md": (
-        "下一阶段为生成 `EXEC-007`",
-    ),
-    "docs/design/learning/个人AI辅助学习平台设计方案.md": (
-        "进入实现前依次完成",
-        "本阶段不修改 `docs/specs/**`",
-    ),
-    "docs/design/learning/AI学习系统算法与教学内核设计.md": (
-        "当前阶段完成的是 Canonical Design，不是 Spec 或实现",
-        "后续流程必须先进入 ADR Resolution",
-    ),
     "docs/research/learning-core/README.md": (
         "研究完成前不得直接生成 v0.3 EXEC",
     ),
@@ -57,6 +43,9 @@ def documentation_files() -> list[Path]:
             part in EXCLUDED_DIRECTORIES or part.endswith(".egg-info")
             for part in relative.parts
         ):
+            continue
+        # docs/archive 是历史快照，不参与 current 链接校验
+        if relative.parts[:2] == ("docs", "archive"):
             continue
         if path.is_file() and path.suffix.lower() in {".md", ".mdx", ".rst"}:
             files.append(path)

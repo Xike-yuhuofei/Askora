@@ -1127,3 +1127,1037 @@ Normal
 - Desktop/Electron 对象成为 v1 公共领域模型；
 - Account/AuthSession/JWT 成为 learner ownership；
 - Redis/PostgreSQL/Kafka job state 成为 production-local 唯一 truth。
+
+---
+
+## Askora Decision Trace Contract
+
+> Spec ID 范围：`DECISION-*`  
+> 状态：Canonical Implementation Contract  
+> 版本：v0.3
+
+### 1. Purpose
+
+Askora 的关键决策 MUST 能回答：当时看到了什么、有哪些候选、受什么约束、为什么选择该结果、由哪个算法/策略/模型/PolicyBundle 版本产生。
+
+DecisionTrace 是 immutable audit/replay record，不是新的业务状态 owner；它记录**当时为什么这样决定**，与后续 OutcomeObservation 严格分离。
+
+### 2. Existing Cross-system Contracts Retained
+
+#### DECISION-001 — Decision Payload Ownership
+
+做出业务决策的领域系统负责产生 DecisionTrace payload；SYS08 Decision Ledger MAY 负责 append-only 持久化、索引和查询。
+
+#### DECISION-002 — Ledger Must Not Rewrite Semantics
+
+SYS08 MUST NOT 修改 `selected_action`、`reason_codes`、candidate/score 或其他领域决策语义来“修复”记录。
+
+#### DECISION-010 — SYS01 High-impact Knowledge Publication
+
+KnowledgeUnit merge/split、hard prerequisite publish/reject 与高影响人工审核 MUST 有 trace。
+
+#### DECISION-011 — SYS02 EvidenceBundle Selection
+
+MUST 记录 retrieval request、主要 candidates/rank source、hard filter reason、selected evidence、exposure filter、missing/conflict。
+
+#### DECISION-012 — SYS03 MasteryEstimate Update
+
+MUST 记录 evidence ids/weights、prior/new state version、algorithm/config version 与 reason codes。
+
+#### DECISION-013 — SYS04 Non-trivial Assessment
+
+开放题、模型辅助评分、evaluator conflict 或 misconception diagnosis MUST 记录 evaluator results、rubric/version、constraints/adjudication 与 selected AssessmentResult。纯 deterministic grader MAY 使用精简 trace。
+
+#### DECISION-014 — SYS05 TeachingAction
+
+MUST 记录全部可行动作候选、typed hard filters、features/scores、anti-oscillation、tie-break、最终 TeachingAction 与 reason codes，并满足 v0.3 `DECISION-200..222`。
+
+#### DECISION-015 — SYS06 Plan / Replan
+
+MUST 记录 feasible candidates、prerequisite/deadline/time constraints、priority factors、selected activities 与 replan trigger。
+
+#### DECISION-016 — SYS07 ReviewSchedule Update
+
+MUST 记录 prior memory state、valid retrieval evidence、desired retention、new next_due_at、scheduler/model version。
+
+#### DECISION-017 — SYS08 High-impact Route / Degradation
+
+隐私导致的 model choice、primary-model fallback、tool permission denial、validation-triggered retry/degradation 与影响质量/成本的重要 route MUST 有 trace。
+
+#### DECISION-020 — Stable Reason Codes
+
+每个关键决策 MUST 至少有一个稳定、机器可查询 reason code。自然语言解释 MAY 附加，MUST NOT 替代 reason code。
+
+#### DECISION-021 — Reason-code Versioning
+
+Reason code 发布后 MUST NOT 复用同一 code 改变含义；语义变化必须新 code 或新主版本。
+
+#### DECISION-030 — Candidate Retention
+
+存在真实候选选择时，trace MUST 保存足够 candidates/features/scores/eligibility 支持 replay/shadow/counterfactual comparison；MUST NOT 只保存赢家。
+
+#### DECISION-031 — Hard vs Soft Separation
+
+Hard constraint 与 soft score MUST 分开记录。Hard constraint MUST NOT 仅表示为可被高分抵消的 penalty。v0.3 soft example 使用 `learning_value_proxy`，该值 MUST NOT 被称为 causal learning-effect estimate。
+
+#### DECISION-040 — Confidence
+
+`confidence` 只有在有明确定义/校准方法时才 MAY 使用；否则 MUST null 或使用离散 reason code，MUST NOT 让 LLM 自报 0.93 作为系统置信度。
+
+#### DECISION-050 — ModelInference Link
+
+模型参与关键决策时 MUST 通过 `model_inference_ids`/等价 versioned refs 关联 ModelInference，而不是只记录模型名字。
+
+#### DECISION-051 — Model Output != Final Decision
+
+`ModelInference = 模型产生了什么`；`DecisionTrace = 领域系统最终接受了什么、为什么`。二者 MUST 分离。
+
+#### DECISION-060 — Experiment Logging, v0.3 Clarified
+
+Experiment MUST 记录 experiment id/version、variant、assignment unit、assignment probability 与可用 guardrail/context。只有行为策略本身真实 stochastic 时才 MAY 记录 action propensity。Deterministic B3 MUST 服从 `DECISION-210`。
+
+#### DECISION-061 — OPE Claim Boundary
+
+若未来进行 IPS/SNIPS/DR 等 causal off-policy analysis，必须有真实 behavior-policy action availability/propensity 语义。v0.3 canonical runtime 不实施 causal RL OPE；assignment probability MUST NOT 伪装 action propensity。
+
+#### DECISION-062 — Reward / Outcome Boundary
+
+实验主要学习目标 MUST NOT 使用聊天时长、点击率、点赞、hint/token/session duration 替代真实学习 outcome；这些只能作为 process/experience guardrail。
+
+#### DECISION-070 — Replay Uses
+
+DecisionTrace MUST 支持历史解释、同版本 replay、新旧算法 shadow compare、candidate counterfactual compare 与回滚定位（在可用数据边界内）。
+
+#### DECISION-071 — Replayability Gap
+
+历史输入/version 不可取得时 MUST 明确标记 replayability 缺口，MUST NOT 声称 FULL replay。
+
+#### DECISION-080 — User-facing Explanation
+
+用户可见“为什么” SHOULD 从稳定 reason codes + 真实 evidence 生成，MUST NOT 由 LLM 事后自由编造。
+
+#### DECISION-090 — Append-only
+
+DecisionTrace MUST append-only；更正通过新 trace/correction record，MUST NOT 原地修改历史。
+
+#### DECISION-091 — Ledger Indexing
+
+Decision Ledger SHOULD 支持按 decision_id/type、owner_system、correlation/trace id、input entity、algorithm/PolicyBundle version、experiment id、created_at 查询。
+
+### 3. DecisionTrace v0.3
+
+#### DECISION-200 — Required Shape
+
+```yaml
+decision_trace:
+  decision_id: uuid
+  decision_schema_version: string
+  decision_type: teaching_action_selection|string
+  owner_system: string
+  decision_time: datetime
+
+  teaching_context_ref: versioned_ref|null
+  teaching_context_schema_version: string|null
+  context_fingerprint: string|null
+  context_source_refs: [versioned_ref]
+
+  policy_bundle_ref: versioned_ref|null
+  policy_bundle_hash: string|null
+  policy_version: string|null
+
+  strategy_family: string|null
+  strategy_version: string|null
+  derived_teaching_stage: string|null
+  stage_mapper_version: string|null
+
+  available_actions: [object]
+  hard_filtered_actions:
+    - action_ref: string
+      filter_reason_codes: [string]
+
+  features:
+    - feature_name: string
+      value: number|null
+      availability: AVAILABLE|MISSING|STALE|LOW_CONFIDENCE|NOT_APPLICABLE
+      confidence: float|null
+      feature_version: string
+      source_refs: [versioned_ref]
+
+  candidate_scores: [object]
+  selected_teaching_action_ref: versioned_ref|null
+  previous_teaching_action_ref: versioned_ref|null
+
+  transition_reason_codes: [string]
+  material_evidence_refs: [versioned_ref]
+  anti_oscillation_decision: object|null
+  tie_break_reason: string|null
+
+  experiment_assignment_ref: versioned_ref|null
+  experiment_assignment_probability: float|null
+
+  behavior_policy_type: DETERMINISTIC|STOCHASTIC_EXPERIMENTAL|UNKNOWN
+  action_propensity: float|null
+
+  algorithm:
+    algorithm_id: string
+    algorithm_version: string
+    model_inference_ids: [uuid]
+    prompt_versions: [string]
+
+  reason_codes: [string]
+  replayability_status: FULL|PARTIAL|NON_REPLAYABLE
+  replayability_reason_codes: [string]
+  migration_metadata: object|null
+  correlation_id: uuid|string
+  trace_id: string
+  created_at: datetime
+```
+
+Non-SYS05 decision types MAY leave teaching-specific fields null/not-applicable while still obeying common ownership/reason/version/replay contracts。
+
+#### DECISION-201 — Teaching Trace Completeness
+
+SYS05 trace MUST 保存 all available candidates、hard-filter reasons、feature availability/confidence/version、candidate scores、selected/previous action、transition/material evidence、anti-oscillation、tie-break reason。MUST NOT 只保存赢家。
+
+#### DECISION-202 — Immutable Historical Semantics
+
+DecisionTrace MUST 固定 decision-time TeachingContext、PolicyBundle/source versions。后续 LearnerState、PolicyBundle、OutcomeObservation MUST NOT 回写旧 trace。
+
+### 4. Probability Semantics
+
+#### DECISION-210 — Deterministic B3
+
+Canonical B3 runtime MUST 写：
+
+```text
+behavior_policy_type = DETERMINISTIC
+action_propensity = null
+```
+
+MUST NOT 写 `action_propensity = 1.0`。
+
+#### DECISION-211 — Assignment Probability Separation
+
+`ExperimentAssignment.assignment_probability` 表示 experiment variant 分配概率；它 MUST NOT 被解释为 action selection propensity。
+
+#### DECISION-212 — Historical Propensity Migration
+
+历史 `experiment.propensity` 只有在 provenance 明确证明其语义时 MAY 迁移到对应字段。若语义不明：
+
+```text
+action_propensity = null
+behavior_policy_type = UNKNOWN（若行为策略类型也不明）
+migration_reason = AMBIGUOUS_LEGACY_PROPENSITY
+replayability_status = PARTIAL
+```
+
+原始值 MAY 保留 legacy/audit metadata，MUST NOT 无条件解释成 action propensity。
+
+### 5. v0.3 Replay Contract
+
+#### DECISION-220
+
+`FULL` replay 至少要求 exact TeachingContext/source versions、exact PolicyBundle、deterministic evaluator components、ExperimentAssignment 与 stable tie-break 可用。
+
+#### DECISION-221
+
+Canonical policy replay MUST NOT 读取当前 mutable state，也 MUST NOT 重新调用在线 LLM。缺失历史 owner version/bundle/feature source 时 MUST 返回 PARTIAL/NON_REPLAYABLE + reason code。
+
+#### DECISION-222
+
+同 TeachingContext + exact PolicyBundle + ExperimentAssignment MUST 产生同一个 semantic TeachingAction；否则属于 determinism defect 或 historical replayability 不足。
+
+### 6. Decision vs Outcome
+
+#### DECISION-230
+
+`DecisionTrace = 当时为什么这么决定`；`OutcomeObservation = 后来实际测到了什么`。
+
+OutcomeObservation MUST NOT 修改 candidate scores、transition reasons、feature values 或 selected-action reasoning。Delayed outcome attribution 由 Outcome contract 决定。
+
+### 7. v0.3 Hard / Soft / Experiment Trace
+
+#### DECISION-240
+
+Trace MUST 区分 typed Hard Constraint filter、Soft Preference feature/score、Experiment Guardrail/assignment。Hard-filtered action MUST NOT 被 soft score/experiment 恢复。
+
+#### DECISION-241
+
+`learning_value_proxy` MAY 作为 soft feature，但 MUST 明确为 heuristic/proxy，MUST NOT 描述为 causal learning-effect estimate。
+
+### 8. v0.3 Persistence / Failure
+
+#### DECISION-250
+
+相同 `decision_id`/idempotency key 重试 MUST NOT 创建语义重复 trace。
+
+#### DECISION-251
+
+Trace persistence failure 时，依赖该 trace 的 canonical action emission MUST degraded/failed；不得产生“已可 replay”的假记录。
+
+#### DECISION-260
+
+Trace SHOULD 通过 correlation refs 连接 TeachingAction、AssessmentResult、LearningEvent、OutcomeObservation、ExperimentAssignment、ModelInference；敏感 raw prompt/response MUST 遵循 data-minimization/retention policy。
+
+### 9. Tests
+
+必须覆盖：deterministic B3 `action_propensity=null`；assignment/action probability separation；ambiguous historical propensity → null + PARTIAL；losing candidates/hard filters/features/anti-oscillation/tie-break trace completeness；replay no mutable state/no online LLM；same context+bundle+assignment determinism；Outcome no trace rewrite；hard-filtered action not restored；legacy cross-system trace IDs continue semantics。
+
+### 10. Acceptance Criteria
+
+原有 AC 保留：
+
+- `DECISION-AC-001`：任一 TeachingAction 可追溯到 decision-time owner inputs/versions。
+- `DECISION-AC-002`：任一 MasteryEstimate update 可列出 source evidence/algorithm version。
+- `DECISION-AC-003`：EvidenceBundle 被排除的高暴露 candidate 可由 reason code 解释。
+- `DECISION-AC-004`：Plan replan 可说明 trigger 与前后版本。
+- `DECISION-AC-005`：model fallback 有 ModelInference/route trace。
+- `DECISION-AC-006`：用户看到的“为什么”可映射真实 reason codes。
+
+新增 v0.3 AC：
+
+- `DECISION-AC-201`：任一 SYS05 action 可恢复 decision-time context/bundle 与筛选过程。
+- `DECISION-AC-202`：B3 trace 不出现 `action_propensity=1.0`。
+- `DECISION-AC-203`：assignment probability 与 action propensity 独立。
+- `DECISION-AC-204`：ambiguous historical propensity migration/replay status 显式。
+- `DECISION-AC-205`：Outcome 不会回写历史 DecisionTrace。
+
+### 11. Legacy Probability Mapping
+
+旧 `experiment.propensity` 被 v0.3 assignment probability / action propensity 两套语义拆分。旧 raw value MAY read-only/audit；MUST NOT permanent dual-write 或无条件解释。
+
+### 12. Forbidden Implementations
+
+禁止：只保存最终动作而缺关键输入版本；无 machine-readable reason code；ModelInference/DecisionTrace 合并；ledger 反向修改领域 state；deterministic `action_propensity=1.0`；assignment probability 当 action propensity；ambiguous legacy propensity 强行解释；policy replay 调在线 LLM/当前 mutable state；Outcome 回写 DecisionTrace；current PolicyBundle 重解释历史 action；点赞/会话时长作为主要教学 reward；LLM 事后编造历史理由。
+
+---
+
+## Askora Learning Event Contract
+
+> Spec ID 范围：`EVENT-*`  
+> 状态：Canonical Implementation Contract  
+> 版本：v0.3
+
+### 1. Event Semantics
+
+#### EVENT-001 — Command / Event / Projection Separation
+
+- Command：希望系统执行的动作；
+- Event：已发生且被系统接纳的事实；
+- Projection：由事件/证据计算得到的状态。
+
+Event MUST 使用过去时事实语义，MUST NOT 表示“希望发生什么”。
+
+#### EVENT-002 — Immutable Event
+
+已持久化 LearningEvent MUST append-only；业务纠正通过 correction/invalidation event，MUST NOT 原地重写历史。
+
+#### EVENT-003 — Ledger Hosting != Business Ownership
+
+SYS08 MAY 托管 Event Ledger，但 payload 业务语义由对应领域 owner 定义。托管权 MUST NOT 被实现为重新解释领域结论或第二 truth owner。
+
+### 2. LearningEvent Envelope
+
+```yaml
+learning_event:
+  event_id: uuid
+  event_type: string
+  schema_version: string
+  aggregate_type: string
+  aggregate_id: uuid|string
+  aggregate_version: integer
+  sequence: integer
+  occurred_at: datetime
+  recorded_at: datetime
+  idempotency_key: string
+  correlation_id: uuid|string
+  causation_id: uuid|string|null
+  actor: object
+  context: object
+  producer_system: SYS01|SYS02|SYS03|SYS04|SYS05|SYS06|SYS07|SYS08
+  payload: object
+  provenance:
+    source: string
+    model_provider: string|null
+    model_name: string|null
+    model_snapshot: string|null
+    prompt_id: string|null
+    prompt_version: string|null
+    policy_version: string|null
+    policy_bundle_ref: versioned_ref|null
+    projection_version: string|null
+    algorithm_version: string|null
+  trace: object
+  privacy: object
+```
+
+### 3. Existing Envelope Constraints Retained
+
+#### EVENT-010
+
+`event_id` MUST 全局唯一。
+
+#### EVENT-011
+
+同一 aggregate 内 `(aggregate_id, aggregate_version)` MUST 唯一且 version 单调递增。
+
+#### EVENT-012
+
+`sequence` 表示 aggregate/stream logical order。实现 MUST NOT 假设跨 aggregate 有全局严格时序。
+
+#### EVENT-013
+
+`occurred_at` 与 `recorded_at` MUST 分离，不得混用。
+
+#### EVENT-014
+
+`idempotency_key` MUST 在 command 幂等范围唯一。重复同一用户动作 MUST 返回原/等价结果，不产生第二份学习证据。
+
+#### EVENT-015
+
+`correlation_id` MUST 串联一次业务 workflow/teaching round；`causation_id` SHOULD 指向直接 command/event/decision。
+
+#### EVENT-016
+
+事件正文 SHOULD 使用假名化标识，MUST NOT 无必要写 password、secret、完整凭据或多余 PII。
+
+#### EVENT-017
+
+关键 event 若由模型/算法参与且影响 mastery/plan/assessment/policy，相关 model/prompt/policy/algorithm versions MUST 可追溯。缺必要 version 时，不得成为无条件高权 evidence。
+
+### 4. Existing Canonical Event Families Retained
+
+#### EVENT-020 — Goal / Plan
+
+至少支持 `GoalCreated`、`GoalConfirmed`、`PlanCreated`、`PlanReplanned`、`ActivitySelected`，由 SYS06 定义 payload 语义。
+
+#### EVENT-021 — Content / Retrieval
+
+至少支持 `ContentImported`、`ContentPublished`、`KnowledgeRelationPublished`、`ContentRetrieved`、`RetrievalFailed`，分别由 SYS01/SYS02 定义 payload 语义。
+
+#### EVENT-022 — Teaching Execution
+
+至少支持：
+
+- `PolicyDecisionMade` / `TeachingActionDecided`：action ref、DecisionTrace ref、TeachingContext ref/fingerprint、PolicyBundle ref/hash、StrategyFamily、TeachingStage、reason codes；
+- `EngineTransitioned`；
+- `ExplanationPresented`；
+- `HintRequested`；
+- `HintPresented`；
+- `AnswerExposed`；
+- `ReflectionRecorded`。
+
+`HintPresented`/support events 的 canonical payload MUST 使用：
+
+```text
+scaffold_control
+hint_specificity
+answer_exposure
+interaction_move
+support_reason
+delivery_mode
+```
+
+旧 `hint_level/exposure_level` MAY 仅 legacy metadata/read-upcast，MUST NOT 继续作为 v0.3 canonical truth。
+
+#### EVENT-023 — Assessment / Evidence
+
+至少支持 `DiagnosticStarted`、`AssessmentAttemptStarted`、`ResponseSubmitted`、`ResponseRevised`、`AssessmentResultProduced/AttemptScored`、`DiagnosisProduced/DiagnosisUncertain`、`EvidenceAccepted`、`EvidenceRejected`、`MisconceptionDetected`、`MasteryProjectionUpdated`、`TransferAttemptCompleted`。
+
+AssessmentResult/Diagnosis event MUST 能表达 `assessment_confidence` 与独立的 `diagnostic_confidence`，并允许 ErrorType `UNKNOWN`。
+
+#### EVENT-024 — Review
+
+至少支持 `ReviewScheduled`、`ReviewCompleted`、`ReviewScheduleUpdated`。ReviewCompleted MUST 引用 actual Attempt/AssessmentResult/assistance facts，而不是只引用计划状态。
+
+### 5. Existing Payload Rules Retained
+
+#### EVENT-030 — Minimal Facts, Not Full State Copy
+
+Event payload SHOULD 保存 replay/audit 所需最小事实/引用，MUST NOT 无限制复制整个 LearnerState、文档或 Prompt。
+
+#### EVENT-031 — Stable References for Large Objects
+
+原始回答、文档片段、模型输出过大时 MAY 保存稳定 content ref/hash，但在 retention policy 内必须可审计。
+
+#### EVENT-032 — Assistance Frozen at Attempt Time
+
+`ResponseSubmitted` MUST 能还原提交时 actual assistance：
+
+```text
+assistance_state = INDEPENDENT|ASSISTED|ANSWER_EXPOSED
+scaffold_control = NONE|LOW|MEDIUM|HIGH
+hint_specificity = NONE|ORIENTATION|CONCEPTUAL_STRATEGIC|SUBGOAL|PARTIAL_STEP|BOTTOM_OUT
+answer_exposure = NONE|PARTIAL|COMPLETE
+```
+
+MUST NOT 在评分后根据当前 UI 或 planned TeachingAction 猜历史帮助程度。
+
+### 6. Persistence / Delivery
+
+#### EVENT-040 — Transactional Outbox
+
+Domain state update 与需传播 event/outbox MUST 在相应 persistence transaction contract 下原子写入。
+
+#### EVENT-041 — At-least-once
+
+Consumers MUST 按 at-least-once delivery 设计，projection/side-effect consumer MUST idempotent。
+
+#### EVENT-042 — Failure Classification
+
+Transient infrastructure error MAY retry/backoff；schema/business validation error MUST NOT blind retry；unrecoverable poison event MUST 进入 dead-letter/review 并保留诊断。
+
+#### EVENT-043 — Late Events
+
+不得假设事件永不迟到。Late but valid evidence MAY 触发局部 replay/reprojection。
+
+### 7. Schema Evolution
+
+#### EVENT-050
+
+`schema_version` 使用明确版本治理；minor/additive change MUST backward compatible。
+
+#### EVENT-051
+
+删除字段、改变字段/enum 语义等 breaking change MUST 新 major/versioned migration/upcaster strategy。
+
+#### EVENT-052
+
+Consumer MUST 声明支持版本范围。未知 major/enum MUST NOT 被静默解释为当前语义。
+
+### 8. Replay
+
+#### EVENT-060
+
+固定 event set + fixed projection/algorithm version MUST 得到 deterministic projection。
+
+#### EVENT-061
+
+Replay MUST NOT 调用在线 LLM 或依赖当前 provider 重建历史判断。历史 LLM 结论必须使用已持久化结构化 result/inference；新模型重评必须显式 reassessment/recompute 并创建新版本。
+
+#### EVENT-062
+
+Algorithm upgrade MUST 支持 old log + old projector = old state；old log + new projector = candidate state；compare → approved migration。
+
+### 9. Correction / Deletion
+
+#### EVENT-070
+
+普通错误修正 MUST 追加 correction/invalidation event，不修改原 event row。
+
+#### EVENT-071
+
+用户/法律删除要求下，MUST 删除受保护内容，在允许范围保留不含被删数据的 audit tombstone，并重建受影响 projection；不得继续引用已删除 evidence。
+
+### 10. Legacy Event Naming
+
+#### EVENT-080
+
+旧 dotted event names 迁移时 MUST adapter 到 canonical names，MUST NOT 长期维护两套语义相同 event names。
+
+### 11. v0.3 Adaptive Teaching Additions
+
+#### EVENT-200 — TeachingActionDecided Detail
+
+Teaching decision event MUST 引用 action、DecisionTrace、TeachingContext/context_fingerprint、PolicyBundle/hash、StrategyFamily、TeachingStage、validation obligation、ExperimentAssignment（如有）。
+
+#### EVENT-201 — Actual Support / Exposure
+
+Support/exposure event MUST 使用 v0.3 orthogonal vocabulary，并能关联 rendered response/Attempt。Legacy integer support only audit/read。
+
+#### EVENT-202 — Assessment Diagnosis Detail
+
+Assessment/diagnosis event MUST 支持 canonical ErrorType 7 + UNKNOWN、assessment confidence、diagnostic confidence、alternative hypotheses、needs_probe、diagnostic evidence refs。
+
+#### EVENT-203 — Independent Validation Obligation
+
+SYS05 MAY 记录 `IndependentValidationRequired` / `IndependentValidationSatisfied` policy-control event。`Satisfied` MUST 引用 fresh independent Attempt/AssessmentResult evidence；MUST NOT 因计划已创建、聊天继续或时间经过自动满足。
+
+#### EVENT-210 — OutcomeObserved
+
+OutcomeObservation MAY 发布 `OutcomeObserved`：至少引用 outcome id/version、measurement ref、independence/assistance、delay/transfer、score/success、contamination、attribution_scope、episode/trajectory/experiment refs。MUST NOT 回写 DecisionTrace。
+
+#### EVENT-211 — ExperimentAssigned
+
+ExperimentAssignment event MUST 使用 `assignment_probability`，MUST NOT 命名/解释为 action propensity。
+
+#### EVENT-220 — Additive Record Ownership
+
+OutcomeObservation/ExperimentAssignment MAY 由 durable ledger 托管，但 MUST NOT 接管八系统既有 domain truth ownership。
+
+#### EVENT-230 — Legacy Ambiguity
+
+旧 support/error/propensity payload 无法无损映射时 MUST 保留 raw legacy value + migration reason，并把 canonical value 标记 unknown/unavailable/partial replay；MUST NOT 猜测。
+
+#### EVENT-231 — v0.3 Policy Replay
+
+Policy replay MUST 使用 event-time exact object/policy versions；缺失版本必须 PARTIAL/NON_REPLAYABLE。MUST NOT 调用在线 LLM。
+
+### 12. Acceptance Criteria
+
+原有 AC 保留并按 v0.3 assistance fields 更新：
+
+- `EVENT-AC-001`：重复 idempotency key 不产生第二 Attempt/Evidence。
+- `EVENT-AC-002`：同 aggregate version 冲突由唯一约束拒绝。
+- `EVENT-AC-003`：固定 event set 可重放得到相同 projection content。
+- `EVENT-AC-004`：replay 不发起在线模型请求。
+- `EVENT-AC-005`：domain state + outbox 具备原子性。
+- `EVENT-AC-006`：ANSWER_EXPOSED ResponseSubmitted 可在历史事件稳定识别。
+- `EVENT-AC-007`：未知 major schema version 不被静默接纳。
+
+新增 v0.3 AC：
+
+- `EVENT-AC-201`：Hint/Exposure/Attempt events 不依赖 canonical integer support 字段。
+- `EVENT-AC-202`：Diagnosis events 可表达 UNKNOWN 与独立 confidence。
+- `EVENT-AC-203`：validation satisfaction 可追溯 fresh independent evidence。
+- `EVENT-AC-204`：ExperimentAssigned probability 与 action propensity 不混用。
+- `EVENT-AC-205`：OutcomeObserved 不修改 DecisionTrace。
+
+### 13. Forbidden Implementations
+
+禁止：修改旧 event row；聊天消息表替代 event ledger；non-idempotent consumer 重复 mastery/review；policy replay 重新调用 LLM；完整用户文档复制进每个 payload；重复 EvidenceAccepted；仅记录 correct 而不记录 actual assistance/exposure；ledger host 取得 domain ownership；unknown diagnosis 强制分类；assignment probability 写成 action propensity；Outcome event 改写 DecisionTrace。
+
+### 14. P1-01 Goal Events
+
+SYS06 至少产生 `GoalDraftCreated/Previewed/Applied`、`GoalStateChanged`、`GoalFocusChanged`、
+`GoalAchievementEvaluated/Confirmed`。payload 只保存 exact refs、reason codes 与 policy version；不得复制
+全文资料、grader-only rubric 或把 plan/activity completion 写成 achievement。
+
+---
+
+## Askora Lifecycle State Machines
+
+> Spec ID 范围：`LIFE-*`  
+> 状态：Canonical Implementation Contract  
+> 版本：v0.1
+
+### 1. 通用规则
+
+#### LIFE-001
+
+公共领域对象的 `status` MUST 具有显式允许转换；Codex 不得在未更新治理合同的情况下增加可改变业务语义的新状态。用户已委托架构自治时，新增状态仍 MUST 先经 Accepted ADR、Spec 与冻结 EXEC 明确定义。
+
+#### LIFE-002
+
+已发布/已完成结论需要修改时，优先创建新 revision/version 并把旧版本标记 superseded，而不是回退并覆盖旧数据。
+
+#### LIFE-003
+
+状态转换 MUST 由对象 owner 执行，并记录产生转换的 command/event、reason code 与 trace id。
+
+### 2. SourceDocument
+
+Owner：4.1。
+
+```text
+imported
+  → parsed
+  → modeled
+  → published
+  → superseded
+
+imported/parsed/modeled
+  → failed
+  → imported/parsed       # 明确 retry/reprocess 后产生新 processing run
+
+任意预发布状态
+  → quarantined           # 安全风险
+
+quarantined
+  → imported              # 所有者显式使用更新版安全策略复检通过
+```
+
+#### LIFE-010
+
+只有 `published` revision 可以作为默认教学/评估事实来源。
+
+#### LIFE-011
+
+`quarantined` 内容不得进入检索索引或 LLM learner-visible context。
+
+#### LIFE-012 — Explicit Quarantine Reinspection
+
+`quarantined → imported` 不是 retry。只有资源所有者显式提交
+`ReinspectQuarantinedContent`，且目标 safety scanner/policy version 与上次执行版本不同，
+才 MAY 产生该转换。应用升级、worker reconciliation 或普通 processing retry MUST NOT 自动解除隔离。
+
+每次复检 MUST 保存 append-only `SafetyScanRun`，至少包含 run id、原始资产 checksum、
+scanner/policy version、阈值、verdict、reason codes 与时间。旧 run MUST NOT 被覆盖；
+复检通过后仍须重新走正常 parse/model/publish 流程。
+
+复检任务等待或执行期间对象仍按 `quarantined` 处理，不得进入 chunk projection、检索、
+知识地图或 learner-visible context。复检结论为：
+
+```text
+allow/review → imported
+security risk → quarantined
+unsupported/corrupt → rejected processing outcome（不伪装为 security risk）
+transient/internal failure → quarantined（任务可按基础设施策略 bounded retry）
+```
+
+历史隔离记录若没有 checksum，MAY 仅在本地 owner-bound 私有存储路径、持久化文件大小一致且
+新版 scanner 对当前字节执行完整扫描时建立一次兼容 checksum baseline；必须记录
+`LEGACY_RAW_ASSET_CHECKSUM_BASELINE_ESTABLISHED`，不得声称已证明历史字节从未变化。
+
+### 3. KnowledgeUnit / Relation
+
+Owner：4.1。
+
+```text
+candidate
+  → verified
+  → published
+  → superseded
+
+candidate/verified
+  → rejected
+```
+
+#### LIFE-020
+
+低证据 `candidate` 不得被 4.2/4.6 当作正式 hard prerequisite。
+
+#### LIFE-021
+
+published relation 的纠正生成新 revision 或 superseding relation，不直接改旧 edge。
+
+### 4. LearningGoal
+
+Owner：4.6。
+
+```text
+candidate
+  → confirmed
+  → active
+  → achieved
+
+active ↔ paused
+confirmed/active/paused → archived
+```
+
+#### LIFE-030
+
+未确认的 candidate goal 不得触发长期自动规划，除非产品有显式“快速开始”规则并留下等价确认记录。
+
+### 5. LearningObjective
+
+Owner：4.6。
+
+```text
+planned
+  → active
+  → satisfied
+
+satisfied → reopened      # 新证据显示能力退化/目标提高
+planned/active/reopened → superseded
+```
+
+`reopened` 不意味着旧完成记录被删除。
+
+### 6. LearningActivity
+
+Owner：4.6。
+
+```text
+planned
+  → available
+  → active
+  → completed
+
+planned/available → skipped
+planned/available/active → superseded
+```
+
+#### LIFE-040
+
+4.8 可以执行 `active` activity，但不能把另一个 activity 自行设为 active；选择权仍属于 4.6。
+
+#### LIFE-041 — Canonical Activity Lifecycle
+
+activity current status 由 SYS06-owned、append-only、单调版本 `LearningActivityStateV1` 决定。
+`LearningActivity` definition payload 中的 status 只表示创建时 initial/legacy snapshot；cutover 后
+不得原地更新，也不得由 transcript、UI local state 或 event recency 推断 current status。
+
+#### LIFE-042 — Completion Boundary
+
+`active → completed` 必须经过 versioned、idempotent owner command 与 type-specific completion
+precondition。completed 只表示该计划任务执行结束，MUST NOT 自动写 MasteryEstimate、把
+LearningObjective 设为 satisfied 或把 LearningGoal 设为 achieved。
+
+#### LIFE-043 — Atomic Progression
+
+活动完成、`ActivityCompleted` event/outbox 与下一 eligible activity 的 `planned → available`
+必须由 SYS06 原子提交。没有剩余非终态 activity 时 plan MAY completed；goal achievement 仍需
+独立冻结合同。详细合同见 `../systems/06-activity-lifecycle.md`。
+
+### 7. LearningPlan
+
+Owner：4.6。
+
+```text
+active
+  → completed
+active ↔ paused
+active/paused → superseded
+```
+
+#### LIFE-050
+
+Replan MUST 创建新 plan version；旧 active version 转为 superseded。不得原地重排历史 activity 后假装仍是同一版本。
+
+### 8. AssessmentItem
+
+Owner：4.4。
+
+```text
+draft
+  → reviewed
+  → active
+  → retired
+
+draft/reviewed → retired
+```
+
+#### LIFE-060
+
+模型生成 item MUST 从 `draft` 开始。
+
+#### LIFE-061
+
+`active` item 的 answer/rubric/claim 发生语义修改时 MUST 创建新 item version。
+
+### 9. Attempt
+
+Owner：4.4。
+
+Attempt 的生命周期状态建议：
+
+```text
+started
+  → submitted
+  → scored
+
+started → abandoned
+submitted → scoring_failed
+scoring_failed → scored      # 明确 retry 后
+```
+
+#### LIFE-070
+
+提交后的回答修订不得覆盖旧提交；使用 response revision chain 并保留 assistance snapshot。
+
+#### LIFE-071
+
+`scoring_failed` 不得产生高权 EvidenceAccepted。
+
+### 10. AssessmentResult
+
+Owner：4.4。
+
+AssessmentResult 结论采用版本化而非可变 status：
+
+```text
+result v1 accepted/rejected/needs_review
+→ reassessment
+→ result v2 supersedes v1
+```
+
+#### LIFE-080
+
+重新评分不得静默覆盖 v1。
+
+### 11. Learner Evidence
+
+Owner：4.3 对 evidence eligibility 的最终接纳。
+
+```text
+candidate
+  → accepted
+candidate → rejected
+accepted → invalidated       # 后续发现题目/评分/数据损坏
+```
+
+#### LIFE-090
+
+`invalidated` evidence 必须触发相关 MasteryEstimate 的 replay/recompute。
+
+### 12. MasteryEstimate / LearnerState
+
+Owner：4.3。
+
+它们采用 immutable version stream，不使用 mutable workflow status：
+
+```text
+v1 → v2 → v3 ...
+```
+
+UI 派生标签 MAY 为：
+
+```text
+insufficient_evidence
+forming
+basic_mastery
+stable_mastery
+transfer_capable
+```
+
+#### LIFE-100
+
+标签是投影结果，不是用户可直接写状态。
+
+#### LIFE-101
+
+`stable_mastery` 不得仅由一次即时正确或单一 probability threshold 触发。
+
+### 13. TeachingStrategy
+
+Owner：4.5。
+
+```text
+draft → active → retired
+```
+
+策略内容语义改变时创建新 semantic version。
+
+### 14. TeachingAction
+
+Owner：4.5。
+
+TeachingAction 是单轮不可变决策。执行状态属于 4.8，二者必须区分：
+
+```text
+TeachingAction created (4.5)
+  ↓
+WorkflowStep pending/running/succeeded/failed (4.8)
+```
+
+#### LIFE-110
+
+执行失败不得修改原 TeachingAction；若教学语义需要变化，4.5 创建新 action。
+
+### 15. ReviewSchedule
+
+Owner：4.7。
+
+采用 version stream：
+
+```text
+schedule v1
+→ valid retrieval evidence
+→ schedule v2
+→ ...
+```
+
+可派生：
+
+```text
+not_due | due | overdue
+```
+
+#### LIFE-120
+
+`due/overdue` 是时间投影，不需要修改 schedule row 才成立。
+
+#### LIFE-121
+
+实际复习执行时间与推荐 `next_due_at` 必须分别记录。
+
+### 16. WorkflowRun
+
+Owner：4.8。
+
+```text
+pending
+  → running
+  → succeeded
+running → failed_retriable → running
+running → failed_terminal
+running → cancelled
+```
+
+#### LIFE-130
+
+有副作用的 tool step 重试必须带幂等键或 side-effect reconciliation；不得因自动 retry 重复创建外部副作用。
+
+#### LIFE-131
+
+恢复运行必须固定 workflow/prompt/policy 版本，除非显式启动新的 run。
+
+### 17. ModelRouteProfile Activation
+
+Owner：4.8；desktop Electron 是 storage/activation adapter。
+
+```text
+no desktop revision → external_read_only | unconfigured
+candidate (transient) → probing → active(new revision)
+active → probing replacement → active(new revision)
+active | external_read_only → disabled(new tombstone revision)
+probing/applying failure → prior revision restored | rollback_failed
+```
+
+#### LIFE-132
+
+候选 credential 在探测成功前 MUST NOT 成为 active revision。探测只使用固定 synthetic text，不携带个人资料、学习历史或用户资料内容。
+
+#### LIFE-133
+
+激活必须是 revision-aware 的事务式序列：probe → encrypted atomic write → backend restart/readiness → runtime revision verification。任一步失败必须恢复上一 encrypted revision 并重启旧配置；rollback 失败必须显式报告，不能声称旧配置已恢复。
+
+#### LIFE-134
+
+clear 必须创建 `DISABLED` tombstone；不得编辑或删除用户 `.env`。同一 candidate/revision 的重复 command 必须幂等或以稳定 revision conflict 拒绝。
+
+### 18. Feedback Dispute
+
+当用户争议 learner state / assessment / content 时：
+
+```text
+FeedbackSignal
+→ open dispute/review
+→ validate evidence or retest
+→ accepted_correction | rejected_dispute | unresolved
+→ new domain version if needed
+```
+
+#### LIFE-140
+
+用户纠错不能跳过对应 owner，直接修改 canonical state。
+
+### 19. Acceptance Criteria
+
+- `LIFE-AC-001`：quarantined SourceDocument 无法进入 learner-visible retrieval。
+- `LIFE-AC-008`：没有显式 owner command 或 scanner/policy version 未变化时，quarantined SourceDocument 无法出站。
+- `LIFE-AC-009`：复检保留旧 SafetyScanRun；失败或仍有风险时内容继续不可见。
+- `LIFE-AC-002`：模型生成 AssessmentItem 未 review/validate 前不能 active。
+- `LIFE-AC-003`：replan 后旧 LearningPlan 可查询且标记 superseded。
+- `LIFE-AC-004`：AssessmentResult 重评产生新版本而非覆盖。
+- `LIFE-AC-005`：invalidated evidence 会触发 mastery recompute。
+- `LIFE-AC-006`：TeachingAction 执行失败不会原地改变教学策略。
+- `LIFE-AC-007`：WorkflowRun 重试不会重复不可逆副作用。
+- `LIFE-AC-010`：失败候选不会覆盖上一 active ModelRouteProfile。
+- `LIFE-AC-011`：激活后 backend runtime revision 与 encrypted desktop revision 一致。
+- `LIFE-AC-012`：clear 后重启保持 DISABLED，rollback failure 可见。
+
+### 20. Forbidden Implementations
+
+禁止：
+
+- 任意字符串 status 且无转换校验；
+- 修改 `published` KnowledgeUnit 内容但保留相同 revision；
+- 原地编辑已完成 LearningPlan；
+- 模型生成题直接 `active`；
+- 重评分数覆盖旧 AssessmentResult；
+- 把 WorkflowRun failure 当成 TeachingAction failure 并自动改教学策略；
+- probe 前保存候选 credential 为 active；
+- 激活失败后仍把新 revision 显示为已生效；
+- clear 仅删除内存值而允许 `.env` 重启恢复；
+- 用户点击“我会了”直接把 mastery label 改成 stable_mastery。
+
+### 19. P1-01 Definition, Draft and Goal State
+
+Definition immutable version stream；draft：`draft → preview_ready → applying → applied`，active activity
+时 `preview_ready → approved_pending_boundary → applying`；任意未应用状态可 `blocked|cancelled`。
+
+Goal State：`confirmed → active ↔ paused`、`active → achieved`、
+`confirmed|active|paused → archived`；achieved/archived terminal。Plan State：
+`active ↔ paused`、`active|paused → superseded`、`active → completed`。所有转换由 SYS06 写新 row。
