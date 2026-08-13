@@ -7,9 +7,10 @@
 
 | 路径 | 内容 |
 |---|---|
-| `adr/` | 26 个 ADR 原文（immutable 决策记录；当前有效结论见 [`../decisions/DECISIONS.md`](../decisions/DECISIONS.md)） |
-| `design/` | 历史设计基线与 Delta（Learning Core 设计稿、UX/交互 Delta、features Delta 等） |
-| `specs/` | 合并前的碎片规范与历史 vertical-slices（`systems/`、`interfaces/`、`ui/`、`vertical-slices/` 等） |
+| `adr/` | 26 个 ADR 原文（immutable 决策记录；索引导航见 [`../decisions/DECISIONS.md`](../decisions/DECISIONS.md)，现行合同见 [`../specs/`](../specs/)） |
+| `design/` | 历史设计基线与 Delta（Learning Core 设计稿等）；现行体验见 [`../design/experience/`](../design/experience/) |
+| `specs/` | 合并前的碎片规范与历史 vertical-slices |
+| `REFACTOR-PLAN.md` / `REFACTOR-MAPPING.md` / `docs-refactoring-plan.md` | 过期文档重构过程稿，不作为 current 方案 |
 
 ## 规则
 

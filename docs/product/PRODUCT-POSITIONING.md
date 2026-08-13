@@ -1,8 +1,8 @@
 # Askora PRODUCT-POSITIONING
 
 > 文档状态：Frozen Product Boundary  
-> 冻结日期：2026-08-11  
-> 适用范围：Askora v1 及后续 Canonical Design / ADR / Spec / EXEC / Code  
+> 冻结日期：2026-08-13  
+> 适用范围：Askora v1 及后续 Product Definition / Experience Design / Spec / Code  
 > 上游战略：[`PRODUCT-STRATEGY.md`](PRODUCT-STRATEGY.md)  
 > 文档职责：回答 Category / Is / Is Not / Product Shape / Boundaries  
 > 不包含：Product Discovery、页面 UX、领域 schema、API、数据库、任务、重试、日志、测试等实现 mechanics
@@ -17,7 +17,7 @@
 
 > **Askora 是什么、不是什么、v1 允许做成什么形态、哪些边界不能被下位设计或实现突破？**
 
-本文件必须服从 Product Strategy；Canonical Design、ADR、Specs、EXEC 与代码必须服从本文件。
+本文件必须服从 Product Strategy；Product Definition、Experience Design、Specs 与代码必须服从本文件。Decision Log / ADR 解释选择理由，不能覆盖本文件。
 
 如果实现与本文件冲突，默认属于 Design–Implementation / Product–Implementation Gap，不能用“已经实现了”反向定义产品。
 
@@ -61,7 +61,7 @@ Askora 是：
 - **single-user product**，优先服务一个人的长期学习，而不是组织与协作管理；
 - **BYOK AI product**，用户自行提供外部 AI Provider 凭据，Askora 不以官方 AI 额度为 v1 前提。
 
-核心学习闭环仍由现有 Canonical Design / Specs 定义，本文件只冻结其产品意义：
+核心学习闭环的现行合同由 Specs 定义，本文件只冻结其产品意义：
 
 ```text
 Goal
@@ -287,13 +287,13 @@ LLM / Agent 不得绕过明确业务规则直接成为：
 - high-impact TeachingAction 的无约束 owner；
 - 用户数据不可逆操作的自行决定者。
 
-精确 single-writer ownership 与 structured proposal contracts 由当前 Canonical Design / ADR / Specs 管理。
+精确 single-writer ownership 与 structured proposal contracts 由当前 Specs 管理；选择理由见 Decision Log / ADR。
 
 ### 10.3 User Autonomy Boundary
 
-用户拥有学习目标和高层产品状态的最终控制权。
+用户拥有删除数据、请求解释 / 答案 / 跳过、以及是否开始或停止学习等高层产品状态控制。学习目标由系统按产品规则生成并维护，开始学习不要求用户确认目标。
 
-用户可以要求解释、答案、跳过、重规划或删除数据；系统可以改变教学动作，但不能为了“尊重用户选择”伪造 evidence semantics。
+系统可以改变教学动作，但不能为了“尊重用户选择”伪造 evidence semantics。
 
 例如：
 
@@ -315,7 +315,7 @@ LLM / Agent 不得绕过明确业务规则直接成为：
 8. **Learning Evidence 是 Learner State 的事实基础。**
 9. **受助表现、答案暴露和独立表现必须保持不同证据语义。**
 10. **LLM / Agent 不得成为核心 canonical learning state 的无约束权威。**
-11. **用户拥有高层学习目标和核心产品状态；Teaching Policy 只在受约束范围内控制教学动作。**
+11. **系统按产品规则维护高层学习目标；开始学习不要求用户确认目标。Teaching Policy 只在受约束范围内控制教学动作。用户仍拥有数据删除、跳过与请求帮助 / 答案等产品状态控制。**
 12. **最终用户不需要运维 Docker / Redis / PostgreSQL / 分布式基础设施才能正常使用。**
 13. **系统复杂度必须与个人长期学习价值成比例。**
 14. **下位 Design / ADR / Specs / EXEC 不得擅自突破本文件。**
@@ -402,65 +402,17 @@ Discovery / Evidence
 
 ---
 
-## 14. Downstream Ownership Map
+## 14. Downstream
 
-本文件不再复制下游 implementation mechanics。
+本文件的直接下游是 [`PRODUCT-DEFINITION.md`](PRODUCT-DEFINITION.md)。Experience Design、Specs、Decision Log 与代码的入口见 [`../README.md`](../README.md)。
 
-### Product / Overall Design
-
-- [`../archive/design/个人AI辅助学习平台设计方案.md`](../archive/design/个人AI辅助学习平台设计方案.md)
-- [`../archive/design/AI学习系统算法与教学内核设计.md`](../archive/design/AI学习系统算法与教学内核设计.md)
-
-### UX / Interaction
-
-- [`../specs/ui.md`](../specs/ui.md)
-
-### Architecture / Domain / Platform
-
-- [`../specs/architecture.md`](../specs/architecture.md)
-- [`../specs/architecture.md`](../specs/architecture.md)
-- [`../specs/domain.md`](../specs/domain.md)
-- [`../specs/platform.md`](../specs/platform.md)
-- [`../specs/platform.md`](../specs/platform.md)
-- [`../specs/platform.md`](../specs/platform.md)
-
-### Interfaces / Technical Mechanics
-
-- [`../specs/interfaces/persistence-and-data-control.md`](../specs/interfaces/persistence-and-data-control.md)
-- [`../specs/interfaces/content.md`](../specs/interfaces/content.md)
-- [`../specs/interfaces/persistence-and-data-control.md`](../specs/interfaces/persistence-and-data-control.md)
-- [`../specs/interfaces/api.md`](../specs/interfaces/api.md)
-
-### Quality / Security / Replay
-
-- [`../specs/quality.md`](../specs/quality.md)
-- [`../specs/quality.md`](../specs/quality.md)
-- [`../specs/quality.md`](../specs/quality.md)
-- [`../specs/quality.md`](../specs/quality.md)
-
-如果这些下游文档与 Product Positioning 冲突，应收敛下游；不得把 retry、schema、job state、logging fields 等重新复制回本文件。
+如果下游文档与 Product Positioning 冲突，应收敛下游；不得把 retry、schema、job state、logging fields 等复制回本文件。
 
 ---
 
 ## 15. Authority and Change Control
 
-当前产品治理链：
-
-```text
-PRODUCT-STRATEGY.md
-        ↓
-PRODUCT-POSITIONING.md
-        ↓
-Canonical Design / Design Delta
-        ↓
-Accepted ADR
-        ↓
-Implementation Specs
-        ↓
-Vertical Slice / EXEC / Linear Issue
-        ↓
-Code / Tests / Release Evidence
-```
+本文件下游是 [`PRODUCT-DEFINITION.md`](PRODUCT-DEFINITION.md)。完整权威顺序见 [`../README.md`](../README.md) 与仓库根 `AGENTS.md`。
 
 如果下位工作需要突破本文件：
 
@@ -471,7 +423,7 @@ Code / Tests / Release Evidence
 → 说明新证据、理由与影响
 → 用户明确接受
 → 更新并重新冻结
-→ 再修改下游 Design / ADR / Specs / implementation
+→ 再修改下游 Experience Design / Specs / implementation
 ```
 
 禁止：

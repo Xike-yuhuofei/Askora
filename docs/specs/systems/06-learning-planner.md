@@ -242,7 +242,7 @@ Plan 必须保存：
 ## 14. Security
 
 - 用户材料中的指令不能改变 planner hard rules；
-- 只有确认的 Goal/用户约束可以成为长期计划事实；
+- 只有 SYS06 已采纳的 Goal（按 `PD-RULE-004` / DOMAIN-010）可以成为长期计划事实；未采纳的 LLM 草稿不能；
 - 外部 LLM 若用于 Goal decomposition 只生成候选；
 - planner 不将完整敏感 learner profile 发送给不必要模型。
 
@@ -422,7 +422,7 @@ deadline_at: datetime|null
 weekly_time_budget_minutes: integer|null
 ```
 
-`confirmed|active` 仍服从 DOMAIN-010：必须经过用户确认或已冻结的显式产品规则。
+`confirmed|active` 仍服从 DOMAIN-010。现行产品规则（`PD-RULE-004`）允许 SYS06 从材料处理直接采纳 Goal 为 `active`，不要求单独的用户确认步骤。
 
 #### D04-011
 
@@ -515,7 +515,7 @@ LLM MUST NOT：
 
 #### D04-050
 
-用户确认的是 LearningGoal 意图和必要时的 scope/重点，不要求逐个确认全部 KU。
+开始学习不要求用户确认 LearningGoal。系统按 `PD-RULE-004` 采纳 Goal 后即可进入 mapping。不要求逐个确认 KU。
 
 若 mapping 存在会产生显著不同学习路径的 blocking ambiguity，SYS06 MUST：
 
@@ -620,8 +620,7 @@ MUST 覆盖：
 `SPEC-D04`：**FROZEN / UI-02B2 ADDITIVE**。`selected_target_ids` 的稳定顺序按 deterministic
 fusion rank 降序；第一个 target 是首轮 prerequisite diagnostic 的
 `primary_diagnostic_target_id`。该规则只选择首轮诊断入口，不删除其余目标，也不改变完整
-Goal subgraph/plan scope。若实现必须新增跨系统公共 Goal 类型、改变 LearningGoal owner 或改变
-用户确认语义，必须先报告 `SPEC GAP`。
+Goal subgraph/plan scope。`PD-RULE-004` 已冻结「开始学习不要求用户确认 Goal」。若实现必须新增跨系统公共 Goal 类型或改变 LearningGoal owner，必须先报告 `SPEC GAP`。
 
 ---
 

@@ -1,58 +1,30 @@
-import { useCallback, useRef, useState } from 'react'
-import { BookOpen, FileText } from 'lucide-react'
+import { useState } from 'react'
+import { BookOpen, FileText, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import './RightRail.css'
 
-export default function RightRail({ defaultOpen = true, workspaceId }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+export default function RightRail({ workspaceId, collapsed: collapsedProp, onToggleCollapse }) {
   const [activeTab, setActiveTab] = useState('note')
-  const toggleRef = useRef(null)
-
-  const toggle = useCallback(() => {
-    setIsOpen((prev) => {
-      if (prev && toggleRef.current) {
-        setTimeout(() => toggleRef.current?.focus(), 0)
-      }
-      return !prev
-    })
-  }, [])
-
-  if (!isOpen) {
-    return (
-      <aside
-        className="right-rail right-rail--collapsed"
-        aria-label="参考资料与笔记（已折叠）"
-      >
-        <button
-          ref={toggleRef}
-          type="button"
-          className="right-rail-toggle right-rail-toggle--open"
-          aria-label="展开笔记与参考"
-          aria-expanded={false}
-          onClick={toggle}
-        >
-          笔记 &amp; 参考
-        </button>
-      </aside>
-    )
-  }
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const collapsed = collapsedProp ?? internalCollapsed
+  const toggleCollapse = onToggleCollapse ?? (() => setInternalCollapsed((value) => !value))
 
   return (
     <aside
-      className="right-rail"
-      aria-label="参考资料与笔记"
-      aria-expanded={true}
+      className={`right-rail ds-shell-three-panel__right ${collapsed ? 'right-rail--collapsed' : ''}`}
+      aria-label={collapsed ? '参考资料与笔记（已收起）' : '参考资料与笔记'}
       data-workspace-id={workspaceId || undefined}
     >
       <header className="right-rail__header">
-        <span className="right-rail__title">参考 &amp; 笔记</span>
         <button
-          ref={toggleRef}
           type="button"
-          className="right-rail-toggle right-rail-toggle--close"
-          aria-label="收起右侧面板"
-          onClick={toggle}
+          className="right-rail-collapse"
+          aria-label={collapsed ? '展开右侧栏' : '收起右侧栏'}
+          aria-expanded={!collapsed}
+          onClick={toggleCollapse}
         >
-          收起
+          {collapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
         </button>
+        <span className="right-rail__title">参考 &amp; 笔记</span>
       </header>
       <div className="right-rail__tabs" role="tablist" aria-label="右侧面板标签">
         <button
@@ -63,7 +35,7 @@ export default function RightRail({ defaultOpen = true, workspaceId }) {
           onClick={() => setActiveTab('note')}
         >
           <FileText size={14} />
-          User Note
+          学习笔记
         </button>
         <button
           type="button"
@@ -73,7 +45,7 @@ export default function RightRail({ defaultOpen = true, workspaceId }) {
           onClick={() => setActiveTab('material')}
         >
           <BookOpen size={14} />
-          Current Material
+          当前资料
         </button>
       </div>
       <div className="right-rail__content">
@@ -92,7 +64,6 @@ function UserNotePanel() {
     <div className="notes-panel">
       <div className="notes-panel__header">
         <h3>学习笔记</h3>
-        <span className="notes-panel__meta">Workspace-scoped</span>
       </div>
       <p className="right-rail__honest-state" role="status">
         笔记读取与保存尚未接入，本面板不会把浏览器内容冒充已保存笔记。

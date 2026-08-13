@@ -26,13 +26,7 @@
 | [quality.md](quality.md) | 测试 / CI / 可观测性 / DoD / 安全 |
 | [ui.md](ui.md) | UI / UX 实现合同（含 frontend read-model） |
 
-## 权威链
-
-```text
-PRODUCT-STRATEGY → PRODUCT-POSITIONING → PRODUCT-DEFINITION
-→ Canonical Design → DECISIONS.md / archive/adr/
-→ 本目录 specs/ → Code / Tests
-```
+上游权威顺序见 [`../README.md`](../README.md)。本目录是现行实现合同，不是产品范围来源。Decision Log / ADR 只解释规范为何如此，不能覆盖本目录条款。
 
 ## 维护规则
 

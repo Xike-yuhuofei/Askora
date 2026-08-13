@@ -322,7 +322,7 @@ apps/backend/app/models/knowledge.py
 - `LIB-001`：Material content metadata、SourceFile refs、duplicate suggestion/decision 只有 SYS01 可写；Workspace/LearningProject/ProjectMaterial membership 由 Platform Workspace/Product Organization owner 写。
 - `LIB-002`：managed SourceFile、raw checksum 与历史 MaterialRevision 不得因重命名、分类、去重、Trash 或 derived rebuild 静默覆盖。
 - `LIB-003`：search index、fingerprint 与其他检索 projection 是可重建数据，不是第二 Material/content truth。
-- `LIB-004`：任何正文命中、重复建议、批量操作必须 `LocalOwner + workspace_id` scoped，并可追踪 exact Material/SourceFile/revision/evidence/version。
+- `LIB-004`：已归属 Material 的正文命中、重复建议、批量操作必须 `LocalOwner + workspace_id` scoped。Unassigned Material（`workspace_id=null`）只按 LocalOwner + `material_id` 操作，不得混入某一 Workspace 的普通 Library/retrieval。所有操作必须可追踪 exact Material/SourceFile/revision/evidence/version。
 - `LIB-005`：v1 不存在跨 Workspace Global Material Library；同一 LocalOwner 的多个 Workspace 默认仍互相隔离。
 - `LIB-006`：Material 与 LearningProject 是多对多关系；从 Project 移除 Material 只解除关系，不删除 Material 本体。
 
@@ -331,7 +331,7 @@ apps/backend/app/models/knowledge.py
 ```yaml
 material_v1:
   material_id: uuid
-  workspace_id: uuid
+  workspace_id: uuid|null
   metadata_version: integer
   display_title: string
   subject: string|null
@@ -384,7 +384,7 @@ library_search_projection_v1:
   freshness: AVAILABLE|STALE|MISSING|PARTIAL
 ```
 
-- `LIB-020`：search projection 从 canonical Workspace-scoped Material/current MaterialRevision 重建。
+- `LIB-020`：search projection 从 canonical Workspace-scoped（已归属）Material/current MaterialRevision 重建。Unassigned Material 不进入任何 Workspace 的普通 search projection。
 - `LIB-021`：标题/正文搜索默认仅作用于明确 workspace；正文只搜索 approved/current、learner-visible SourceSpan。
 - `LIB-022`：结果按 explicit sort + stable tie-break；正文命中返回 bounded excerpt 和 SourceSpan ref。
 - `LIB-023`：projection failure 标 STALE/PARTIAL；不得返回旧正文却声明 READY。

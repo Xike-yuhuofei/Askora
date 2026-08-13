@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 2,
+  "slug": "code-editor",
+  "name": "Code Editor",
+  "category": "input",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "Code / Document Editor with Tabs",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screens 6, 7): center workspace area shows file tabs, document content, status indicators, and integration with AI input. Not present in UIKit prototypes but implied by product name 'TraeCode'."
+    },
+    {
+      "type": "Workspace Content View",
+      "evidence": "The center panel in the three-panel shell serves as a multi-purpose content area that can display code, design specs, task progress, or web previews based on the selected task/context."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "editor-mode",
+      "values": [
+        ".ds-code-editor",
+        ".ds-code-editor--code",
+        ".ds-code-editor--design",
+        ".ds-code-editor--preview"
+      ],
+      "evidence": "Three content modes inferred from Work/Code/Design tab switcher in sidebar and content shown in center panel."
+    },
+    {
+      "name": "layout-configuration",
+      "values": [
+        ".ds-code-editor",
+        ".ds-code-editor--single",
+        ".ds-code-editor--split-horizontal",
+        ".ds-code-editor--split-vertical"
+      ],
+      "evidence": "Single pane default; split view implied by IDE product patterns."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screens 1, 6, 7)",
+    "representativeSelectors": [
+      ".ds-code-editor",
+      ".ds-code-editor__tab-bar",
+      ".ds-code-editor__tab",
+      ".ds-code-editor__content",
+      ".ds-code-editor__status-bar",
+      ".ds-code-editor__minimap",
+      ".ds-code-editor__search",
+      ".ds-code-editor--split"
+    ],
+    "cssRuleCount": 42
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "tab-bar-height",
+      "value": "36px",
+      "evidence": "Estimated from screenshot header area showing file/document tabs."
+    },
+    {
+      "dimension": "tab-height",
+      "value": "32px",
+      "evidence": "Consistent with button height pattern; tabs include file icon + name + close button."
+    },
+    {
+      "dimension": "status-bar-height",
+      "value": "24px",
+      "evidence": "Estimated for inline editor status bar showing cursor position, encoding, language."
+    },
+    {
+      "dimension": "tab-max-width",
+      "value": "200px",
+      "evidence": "Long file names truncate with ellipsis; tabs have overflow hidden."
+    },
+    {
+      "dimension": "close-button-size",
+      "value": "16px",
+      "evidence": "Small close button on tabs; only visible on hover for clean look."
+    },
+    {
+      "dimension": "search-overlay-height",
+      "value": "40px",
+      "evidence": "Compact search/replace input bar above editor content."
+    },
+    {
+      "dimension": "minimap-width",
+      "value": "60px",
+      "evidence": "Narrow minimap on right edge (optional)."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "focused",
+      "dirty",
+      "saved",
+      "search-active",
+      "split-view",
+      "minimap-visible",
+      "zen-mode"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-code-editor",
+      "whySelected": "Root editor container with tab bar, content area, and inline status bar.",
+      "traits": [
+        "display: flex",
+        "flex-direction: column",
+        "background: var(--bg-base-default)",
+        "border: 1px solid var(--border-neutral-l1)",
+        "border-radius: var(--radius-8)",
+        "overflow: hidden",
+        "min-height: 300px"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__tab-bar",
+        ".ds-code-editor__content",
+        ".ds-code-editor__status-bar"
+      ]
+    },
+    {
+      "selector": ".ds-code-editor__tab-bar",
+      "whySelected": "Horizontal tab strip for open files/documents.",
+      "traits": [
+        "display: flex",
+        "align-items: stretch",
+        "height: 36px",
+        "background: var(--bg-base-secondary)",
+        "border-bottom: 1px solid var(--border-neutral-l1)",
+        "overflow-x: auto"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__tab",
+        ".ds-code-editor__tab-actions"
+      ]
+    },
+    {
+      "selector": ".ds-code-editor__tab",
+      "whySelected": "Individual file/document tab with icon, name, and close button.",
+      "traits": [
+        "display: flex",
+        "align-items: center",
+        "height: 32px",
+        "padding: 0 12px",
+        "gap: 6px",
+        "background: transparent",
+        "border-right: 1px solid var(--border-neutral-l1)",
+        "font-size: var(--body-sm-font-size)",
+        "cursor: pointer",
+        "transition: background-color 120ms ease"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__tab-icon",
+        ".ds-code-editor__tab-name",
+        ".ds-code-editor__tab-close"
+      ]
+    },
+    {
+      "selector": ".ds-code-editor__tab--active",
+      "whySelected": "Active/selected tab with bottom border indicator and background highlight.",
+      "traits": [
+        "background: var(--bg-base-default)",
+        "border-bottom: 2px solid var(--bg-brand)",
+        "color: var(--text-default)",
+        "font-weight: var(--font-weight-medium)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-code-editor__tab--dirty",
+      "whySelected": "Modified but unsaved file; shows dot indicator or different close button state.",
+      "traits": [
+        "position: relative",
+        "shows-dot-before-close: true"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-code-editor__content",
+      "whySelected": "Main content area for code, design specs, or document content.",
+      "traits": [
+        "flex: 1",
+        "overflow: auto",
+        "background: var(--bg-base-default)",
+        "padding: 0",
+        "position: relative"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__gutter",
+        ".ds-code-editor__body",
+        ".ds-code-editor__minimap"
+      ]
+    },
+    {
+      "selector": ".ds-code-editor__status-bar",
+      "whySelected": "Inline status bar at bottom showing cursor position, language, encoding.",
+      "traits": [
+        "display: flex",
+        "align-items: center",
+        "justify-content: space-between",
+        "height: 24px",
+        "padding: 0 8px",
+        "background: var(--bg-base-secondary)",
+        "border-top: 1px solid var(--border-neutral-l1)",
+        "font-size: var(--body-xs-font-size)",
+        "color: var(--text-tertiary)",
+        "font-family: var(--font-family-metric)",
+        "font-variant-numeric: tabular-nums"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__status-left",
+        ".ds-code-editor__status-right"
+      ]
+    },
+    {
+      "selector": ".ds-code-editor__search",
+      "whySelected": "Search/replace overlay positioned within the editor or as a floating panel.",
+      "traits": [
+        "position: absolute",
+        "top: 0",
+        "right: 8px",
+        "width: 320px",
+        "background: var(--bg-menu)",
+        "border: 1px solid var(--border-neutral-l1)",
+        "border-radius: var(--radius-6)",
+        "box-shadow: 0 4px 12px rgba(0,0,0,0.1)"
+      ],
+      "childrenDigest": [
+        ".ds-code-editor__search-input",
+        ".ds-code-editor__search-replace",
+        ".ds-code-editor__search-actions"
+      ]
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-code-editor",
+      ".ds-code-editor__tab-bar",
+      ".ds-code-editor__tab",
+      ".ds-code-editor__tab-icon",
+      ".ds-code-editor__tab-name",
+      ".ds-code-editor__tab-close",
+      ".ds-code-editor__tab-actions",
+      ".ds-code-editor__content",
+      ".ds-code-editor__gutter",
+      ".ds-code-editor__body",
+      ".ds-code-editor__minimap",
+      ".ds-code-editor__status-bar",
+      ".ds-code-editor__status-left",
+      ".ds-code-editor__status-right",
+      ".ds-code-editor__search",
+      ".ds-code-editor__search-input",
+      ".ds-code-editor__search-replace",
+      ".ds-code-editor__search-actions",
+      ".ds-code-editor--split",
+      ".ds-code-editor--zen"
+    ]
+  },
+  "structurePatterns": [
+    "Flex column layout: tab-bar → content → status-bar.",
+    "Tab bar is horizontally scrollable; tabs truncate with ellipsis.",
+    "Active tab shows brand-color bottom border (2px).",
+    "Dirty (unsaved) tabs show a dot indicator before the close button.",
+    "Tab close button (×) only visible on tab hover for clean aesthetics.",
+    "Content area has a line-number gutter on the left (20px wide).",
+    "Minimap (60px wide) optionally visible on the right edge.",
+    "Status bar shows line:col position, language, encoding, and EOL format.",
+    "Search overlay floats on top-right of content area.",
+    "Split view divides content into two panes vertically or horizontally.",
+    "Zen mode hides tab-bar and status-bar for distraction-free editing."
+  ],
+  "usageHints": [
+    "Use for any content area that requires document/file management with tabs.",
+    "Integrate with the Three-Panel Shell center panel as the primary workspace.",
+    "Support both code (with syntax highlighting) and document (markdown/design spec) modes.",
+    "Always include the inline status bar for cursor position and file info.",
+    "Tab close buttons should only appear on hover to reduce visual noise.",
+    "Search/replace should be keyboard-accessible (Ctrl+F / Cmd+F).",
+    "Consider minimap for documents over 100 lines; hide for shorter content.",
+    "Split view is a power-user feature; provide keyboard shortcut (Ctrl+\\)."
+  ],
+  "doNotInvent": [
+    "Do not use more than 200px max-width for tabs (long file names).",
+    "Do not show close buttons on tabs by default — only on hover.",
+    "Do not use different border-radius values for tabs vs the editor shell.",
+    "Do not skip the inline status bar; it's critical for code editing context.",
+    "Do not make the minimap visible by default on small screens."
+  ],
+  "unknowns": [
+    "Exact syntax highlighting color scheme not defined in the current Light token system.",
+    "Monaco/CodeMirror integration details not available from static screenshots.",
+    "Tab drag-and-drop reordering behavior not confirmed.",
+    "Split view keyboard shortcuts not documented.",
+    "Vim/emacs keybindings support unknown.",
+    "Auto-save behavior not visible in static screenshots.",
+    "Zen mode toggle mechanism not confirmed.",
+    "Multi-cursor editing support unknown."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-base-secondary",
+    "--bg-menu",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--bg-overlay-l3",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--border-brand",
+    "--spacer-0",
+    "--spacer-1",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--radius-4",
+    "--radius-6",
+    "--radius-8",
+    "--radius-full",
+    "--font-family-metric",
+    "--font-weight-regular",
+    "--font-weight-medium",
+    "--font-weight-semibold",
+    "--body-xs-font-size",
+    "--body-sm-font-size",
+    "--body-base-font-size",
+    "--body-xs-line-height",
+    "--body-sm-line-height",
+    "--body-base-line-height",
+    "--status-success-default",
+    "--status-warning-default",
+    "--status-error-default",
+    "--shadow-1",
+    "--code-gutter-bg",
+    "--code-gutter-color",
+    "--code-selection-bg",
+    "--code-active-line-bg"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-code-editor",
+        "ds-code-editor__tab-bar",
+        "ds-code-editor__tab",
+        "ds-code-editor__tab-icon",
+        "ds-code-editor__tab-name",
+        "ds-code-editor__tab-close",
+        "ds-code-editor__tab-actions",
+        "ds-code-editor__content",
+        "ds-code-editor__gutter",
+        "ds-code-editor__body",
+        "ds-code-editor__minimap",
+        "ds-code-editor__status-bar",
+        "ds-code-editor__status-left",
+        "ds-code-editor__status-right",
+        "ds-code-editor__search",
+        "ds-code-editor__search-input",
+        "ds-code-editor__search-replace",
+        "ds-code-editor__search-actions",
+        "ds-code-editor--split",
+        "ds-code-editor--zen"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screens 1,6,7: TraeCode main interface and Askora Work View screenshots showing tabbed workspace with file documents",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "code-editor"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshots. The center panel of the Three-Panel Shell serves as a multi-document workspace with tabs, content area, and inline status bar. The product name 'TraeCode' implies code editing capabilities but the screenshots show a design/task workspace view."
+  },
+  "assetsConsumed": [
+    "assets/icons/CodeFile.svg",
+    "assets/icons/DocFile.svg",
+    "assets/icons/File.svg",
+    "assets/icons/Folder.svg",
+    "assets/icons/Close.svg",
+    "assets/icons/Search.svg",
+    "assets/icons/Replace.svg",
+    "assets/icons/RegularExpression.svg",
+    "assets/icons/Split.svg",
+    "assets/icons/Fullscreen.svg",
+    "assets/icons/FullscreenExit.svg",
+    "assets/icons/Code.svg",
+    "assets/icons/CodeBlock.svg",
+    "assets/icons/CodeFrame.svg",
+    "assets/icons/Branch.svg",
+    "assets/icons/Run.svg",
+    "assets/icons/Stop.svg",
+    "assets/icons/Save.svg",
+    "assets/icons/explorer-file.svg",
+    "assets/icons/explorer-folder-closed.svg",
+    "assets/icons/explorer-folder-open.svg",
+    "assets/icons/explorer-lang-html.svg",
+    "assets/icons/explorer-lang-css.svg",
+    "assets/icons/explorer-lang-ts.svg",
+    "assets/icons/explorer-lang-js.svg",
+    "assets/icons/explorer-lang-react.svg",
+    "assets/icons/explorer-lang-vue.svg",
+    "assets/icons/explorer-type-markdown.svg",
+    "assets/icons/explorer-type-docker.svg",
+    "assets/icons/explorer-type-json.svg",
+    "assets/icons/explorer-type-svg.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--editor-tab-bar-height",
+      "value": "36px",
+      "purpose": "Tab bar container height"
+    },
+    {
+      "token": "--editor-tab-height",
+      "value": "32px",
+      "purpose": "Individual tab height"
+    },
+    {
+      "token": "--editor-tab-max-width",
+      "value": "200px",
+      "purpose": "Maximum tab width before truncation"
+    },
+    {
+      "token": "--editor-status-bar-height",
+      "value": "24px",
+      "purpose": "Inline editor status bar height"
+    },
+    {
+      "token": "--editor-gutter-width",
+      "value": "40px",
+      "purpose": "Line-number gutter width"
+    },
+    {
+      "token": "--editor-minimap-width",
+      "value": "60px",
+      "purpose": "Minimap sidebar width"
+    },
+    {
+      "token": "--editor-search-width",
+      "value": "320px",
+      "purpose": "Search/replace overlay width"
+    },
+    {
+      "token": "--editor-font-size",
+      "value": "13px",
+      "purpose": "Code/content base font size"
+    },
+    {
+      "token": "--editor-line-height",
+      "value": "20px",
+      "purpose": "Code/content line height (must accommodate line numbers)"
+    },
+    {
+      "token": "--editor-font-family",
+      "value": "var(--font-family-metric), 'SF Mono', Menlo, Consolas, monospace",
+      "purpose": "Code font stack"
+    },
+    {
+      "token": "--editor-gutter-bg",
+      "value": "var(--bg-base-secondary)",
+      "purpose": "Gutter/line-number background"
+    },
+    {
+      "token": "--editor-gutter-color",
+      "value": "var(--text-tertiary)",
+      "purpose": "Gutter text (line numbers) color"
+    },
+    {
+      "token": "--editor-active-line-bg",
+      "value": "rgba(124, 58, 237, 0.04)",
+      "purpose": "Highlight for current line"
+    },
+    {
+      "token": "--editor-selection-bg",
+      "value": "rgba(124, 58, 237, 0.16)",
+      "purpose": "Text selection background"
+    },
+    {
+      "token": "--editor-tab-active-indicator",
+      "value": "2px solid var(--bg-brand)",
+      "purpose": "Active tab bottom border indicator"
+    },
+    {
+      "token": "--editor-search-bg",
+      "value": "var(--bg-menu)",
+      "purpose": "Search overlay background"
+    },
+    {
+      "token": "--editor-tab-radius",
+      "value": "var(--radius-6)",
+      "purpose": "Tab border radius (top corners rounded)"
+    }
+  ]
+}

@@ -1,35 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from '../router'
-import {
-  CalendarDays,
-  GraduationCap,
-  FolderOpen,
-  Settings,
-  Shield,
-  Menu,
-  X,
-  BookOpen,
-} from 'lucide-react'
+import { FolderOpen, Settings, Menu, X, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { NavLink, useNavigate } from '../router'
 import { WorkspaceContextDisplay } from './WorkspaceContext'
+import Button from './ui/Button'
+import DsIcon from './ui/DsIcon'
 import './WorkspaceContext.css'
 import './Sidebar.css'
 
-const productNavItems = [
-  { path: '/today', label: '今天', icon: CalendarDays, match: 'exact' },
-  { path: '/learning', label: '学习', icon: GraduationCap, match: 'prefix' },
-  { path: '/library', label: '资料库', icon: FolderOpen, match: 'prefix' },
-]
-
 const utilityNavItems = [
   { path: '/settings', label: '设置', icon: Settings },
-  { path: '/settings/recovery', label: '恢复中心', icon: Shield },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse }) {
   const [open, setOpen] = useState(false)
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
   const menuButtonRef = useRef(null)
   const sidebarRef = useRef(null)
   const firstLinkRef = useRef(null)
+  const navigate = useNavigate()
+  const collapsed = collapsedProp ?? internalCollapsed
+  const toggleCollapse = onToggleCollapse ?? (() => setInternalCollapsed((value) => !value))
 
   useEffect(() => {
     if (!open) return undefined
@@ -90,10 +80,10 @@ export default function Sidebar() {
       <aside
         id="primary-sidebar"
         ref={sidebarRef}
-        className={`sidebar ${open ? 'open' : ''}`}
+        className={`sidebar ${open ? 'open' : ''} ${collapsed ? 'sidebar--collapsed' : ''}`}
         role={open ? 'dialog' : undefined}
         aria-modal={open ? 'true' : undefined}
-        aria-label={open ? '主导航' : undefined}
+        aria-label={open ? '主导航' : '主导航'}
       >
         <div className="sidebar-logo">
           <div className="logo-icon">
@@ -101,52 +91,65 @@ export default function Sidebar() {
           </div>
           <div className="logo-text">
             <div className="logo-title">Askora</div>
-            <div className="logo-sub">AI 学习伙伴</div>
+            <div className="logo-sub">个人学习系统</div>
           </div>
+          <button
+            type="button"
+            className="sidebar-collapse"
+            aria-label={collapsed ? '展开左侧栏' : '收起左侧栏'}
+            aria-expanded={!collapsed}
+            aria-controls="primary-sidebar"
+            onClick={toggleCollapse}
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
 
-        <WorkspaceContextDisplay />
+        <div className="sidebar-primary-action">
+          <Button
+            variant="brand"
+            className="ds-btn--block"
+            aria-label="新课程"
+            onClick={() => {
+              setOpen(false)
+              navigate('/courses/new')
+            }}
+          >
+            <DsIcon name="plus" />
+            <span className="sidebar-action-label">新课程</span>
+          </Button>
+        </div>
 
         <nav className="sidebar-nav" aria-label="产品域导航">
           <div className="sidebar-nav-section">
-            {productNavItems.map((item, index) => (
-              <NavLink
-                key={item.path}
-                ref={index === 0 ? firstLinkRef : undefined}
-                to={item.path}
-                match={item.match}
-                className="nav-link nav-link--product"
-                onClick={() => setOpen(false)}
-              >
-                <item.icon size={18} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-
-          <div className="sidebar-nav-divider" role="presentation" />
-
-          <div className="sidebar-nav-section sidebar-nav-section--utility">
-            {utilityNavItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className="nav-link nav-link--utility"
-                onClick={() => setOpen(false)}
-              >
-                <item.icon size={16} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+            <p className="sidebar-nav-label">课程</p>
+            <WorkspaceContextDisplay />
+            <NavLink
+              ref={firstLinkRef}
+              to="/library"
+              match="prefix"
+              className="ds-nav-row"
+              onClick={() => setOpen(false)}
+            >
+              <FolderOpen size={16} />
+              <span>资料库</span>
+            </NavLink>
           </div>
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="compliance-badge">
-            <Shield size={12} />
-            <span>私人本地应用</span>
-          </div>
-        </div>
+        <nav className="sidebar-footer" aria-label="工具">
+          {utilityNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className="ds-nav-row ds-nav-row--utility"
+              onClick={() => setOpen(false)}
+            >
+              <item.icon size={16} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
       </aside>
     </>
   )

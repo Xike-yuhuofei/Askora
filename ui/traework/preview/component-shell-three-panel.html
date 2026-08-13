@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component: Three-Panel Shell — TraeWork</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <style>
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+    }
+
+    /* Three-Panel Shell */
+    .ds-shell-three-panel {
+      display: grid;
+      grid-template-columns: var(--shell-left-width, 200px) minmax(480px, 1fr) var(--shell-right-width, 360px);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Panel — Task Hierarchy */
+    .ds-shell-three-panel__left {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-menu);
+      border-right: 1px solid var(--border-neutral-l1);
+      overflow: hidden;
+    }
+
+    .ds-shell-three-panel__left-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+
+    .ds-shell-three-panel__left-title {
+      font-size: var(--heading-sm-font-size);
+      font-weight: var(--heading-sm-font-weight);
+    }
+
+    .ds-shell-three-panel__left-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 4px;
+    }
+
+    /* Center Panel — Workspace */
+    .ds-shell-three-panel__center {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base-default);
+      min-width: 0;
+    }
+
+    .ds-shell-three-panel__center-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 48px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-neutral-l1);
+      flex-shrink: 0;
+    }
+
+    .ds-shell-three-panel__center-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      min-height: 0;
+    }
+
+    .ds-shell-three-panel__center-footer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+
+    /* Right Panel — Task Detail */
+    .ds-shell-three-panel__right {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-menu);
+      border-left: 1px solid var(--border-neutral-l1);
+      overflow: hidden;
+    }
+
+    .ds-shell-three-panel__right-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+
+    .ds-shell-three-panel__right-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* Resizer */
+    .ds-shell-three-panel__resizer {
+      width: 4px;
+      cursor: col-resize;
+      background: transparent;
+      transition: background-color 120ms ease;
+    }
+    .ds-shell-three-panel__resizer:hover {
+      background: var(--border-brand);
+    }
+
+    /* Collapsed States */
+    .ds-shell-three-panel--collapsed-left {
+      grid-template-columns: 48px minmax(480px, 1fr) 360px;
+    }
+    .ds-shell-three-panel--collapsed-right {
+      grid-template-columns: 200px minmax(0, 1fr) 0px;
+    }
+    .ds-shell-three-panel--collapsed-right .ds-shell-three-panel__right {
+      display: none;
+    }
+
+    /* Demo content styling */
+    .demo-section { margin-bottom: 32px; }
+    .demo-section h3 {
+      font-size: var(--heading-md-font-size);
+      margin-bottom: 16px;
+    }
+    .demo-annotation {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+    .demo-ghost {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 120px;
+      border: 2px dashed var(--border-neutral-l2);
+      border-radius: var(--radius-8);
+      color: var(--text-tertiary);
+      font-size: var(--body-sm-font-size);
+    }
+  </style>
+</head>
+<body>
+  <!-- @component-css-start -->
+  <main style="padding: 40px; max-width: 1200px; margin: 0 auto;">
+    <h1 style="font-size: var(--heading-xl-font-size); margin-bottom: 8px;">Three-Panel Shell</h1>
+    <p style="color: var(--text-tertiary); margin-bottom: 32px;">
+      Reverse-engineered layout component for AI-powered IDE surfaces. Three-column grid with resizable panels.
+      <span style="color: var(--status-warning-default); font-weight: 500;">confidence: low</span>
+    </p>
+
+    <!-- Shell Demo -->
+    <div class="demo-section">
+      <h3>Default State</h3>
+      <p class="demo-annotation">200px left · fluid center · 360px right</p>
+      <div class="ds-shell-three-panel" style="height: 500px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-8); overflow: hidden;">
+        <div class="ds-shell-three-panel__left">
+          <div class="ds-shell-three-panel__left-header">
+            <span style="font-weight: 500;">Task Tree</span>
+            <button class="ds-btn ds-btn--icon" title="Collapse">
+              <span class="icon icon--16">◀</span>
+            </button>
+          </div>
+          <div class="ds-shell-three-panel__left-body">
+            <div class="ds-ghost" style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">← Left Panel (200px)</div>
+          </div>
+        </div>
+        <div class="ds-shell-three-panel__center">
+          <div class="ds-shell-three-panel__center-header">
+            <span>Workspace</span>
+            <span style="color: var(--text-tertiary);">·</span>
+            <span style="color: var(--text-tertiary);">Design + Code</span>
+          </div>
+          <div class="ds-shell-three-panel__center-body">
+            <div class="demo-ghost">Center Panel (min 480px, fluid)</div>
+          </div>
+          <div class="ds-shell-three-panel__center-footer">
+            <div class="demo-ghost" style="height: 100px; margin: 16px;">AI Input Area (see ai-input component)</div>
+          </div>
+        </div>
+        <div class="ds-shell-three-panel__right">
+          <div class="ds-shell-three-panel__right-header">
+            <span style="font-weight: 500;">Task Progress</span>
+            <button class="ds-btn ds-btn--icon" title="Collapse">
+              <span class="icon icon--16">▶</span>
+            </button>
+          </div>
+          <div class="ds-shell-three-panel__right-body">
+            <div class="ds-ghost" style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary);">→ Right Panel (360px)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed Left -->
+    <div class="demo-section">
+      <h3>Collapsed Left Panel</h3>
+      <p class="demo-annotation">Left collapses to 48px (icon-only)</p>
+      <div class="ds-shell-three-panel ds-shell-three-panel--collapsed-left" style="height: 200px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-8); overflow: hidden;">
+        <div class="ds-shell-three-panel__left">
+          <div class="ds-ghost" style="width: 48px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 24px;">☰</div>
+        </div>
+        <div class="ds-shell-three-panel__center">
+          <div class="demo-ghost">Center Panel (expanded)</div>
+        </div>
+        <div class="ds-shell-three-panel__right">
+          <div class="demo-ghost">Right Panel</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed Right -->
+    <div class="demo-section">
+      <h3>Collapsed Right Panel</h3>
+      <p class="demo-annotation">Right fully hidden (0px), center expands</p>
+      <div class="ds-shell-three-panel ds-shell-three-panel--collapsed-right" style="height: 200px; border: 1px solid var(--border-neutral-l2); border-radius: var(--radius-8); overflow: hidden;">
+        <div class="ds-shell-three-panel__left">
+          <div class="demo-ghost">Left Panel</div>
+        </div>
+        <div class="ds-shell-three-panel__center">
+          <div class="demo-ghost">Center Panel (fully expanded)</div>
+        </div>
+        <div class="ds-shell-three-panel__right" style="display: none;"></div>
+      </div>
+    </div>
+  </main>
+  <!-- @component-css-end -->
+</body>
+</html>

@@ -65,9 +65,11 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
   it('states the runtime boundary without exposing credentials', async () => {
     render(<RouterProvider><Settings /></RouterProvider>)
 
+    expect(screen.getByRole('dialog', { name: '通用' })).toBeInTheDocument()
     expect(await screen.findByText('私人使用')).toBeInTheDocument()
     expect(screen.getAllByText('未配置').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: '打开恢复中心' })).toBeInTheDocument()
+    expect(screen.queryByText('账号')).not.toBeInTheDocument()
   })
 
   it('offers a distinct "重新打开首次引导" action in the 通用 section', async () => {
@@ -187,6 +189,19 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
     fireEvent.click(screen.getByRole('button', { name: '危险操作' }))
 
     expect(await screen.findByRole('heading', { name: '删除本地学习数据' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '重置应用' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '重置应用' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '重置应用' })).not.toBeInTheDocument()
+  })
+
+  it('closes the settings dialog on Escape and the close control', async () => {
+    const onClose = vi.fn()
+    render(<RouterProvider><Settings onClose={onClose} /></RouterProvider>)
+
+    expect(screen.getByRole('dialog', { name: '通用' })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭设置' }))
+    expect(onClose).toHaveBeenCalledTimes(2)
   })
 })

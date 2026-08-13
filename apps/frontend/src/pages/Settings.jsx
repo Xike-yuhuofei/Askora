@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CircleAlert,
   Download,
   Eye,
-  RefreshCw,
-  Server,
+  Settings as SettingsIcon,
   Shield,
   Trash2,
+  X,
 } from 'lucide-react'
 import * as usersApi from '../api/users'
 import * as dataControlApi from '../api/dataControl'
 import * as onboardingApi from '../api/onboarding'
+import Button from '../components/ui/Button'
 import { useNavigate } from '../router'
 import './Settings.css'
 
@@ -22,8 +23,18 @@ const exportScopeLabels = [
   ['MODEL_EXECUTION', '模型执行记录'],
 ]
 
-export default function Settings() {
+const categories = [
+  { id: 'general', label: '通用', icon: SettingsIcon },
+  { id: 'data', label: '数据管理', icon: Download },
+  { id: 'privacy', label: '隐私与安全', icon: Shield },
+  { id: 'danger', label: '危险操作', icon: AlertTriangle },
+]
+
+export default function Settings({ onClose }) {
   const navigate = useNavigate()
+  const dialogRef = useRef(null)
+  const closeButtonRef = useRef(null)
+  const previouslyFocusedRef = useRef(null)
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [onboardingJourney, setOnboardingJourney] = useState({ status: 'loading', data: null, error: '' })
   const [onboardingReopenState, setOnboardingReopenState] = useState('idle')
@@ -45,11 +56,57 @@ export default function Settings() {
   const [erasurePhrase, setErasurePhrase] = useState('')
   const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
 
+  const close = () => {
+    if (onClose) onClose()
+    else navigate('/today')
+  }
+
   useEffect(() => {
     usersApi.getSystemConfig()
       .then((data) => setSystem({ status: 'ready', data, error: '' }))
       .catch(() => setSystem({ status: 'error', data: null, error: '后端服务不可用，无法读取实时运行状态。' }))
     loadOnboardingJourney()
+  }, [])
+
+  useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeys = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        close()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusables = Array.from(
+        dialogRef.current?.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) || [],
+      )
+      if (!focusables.length) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeys)
+    return () => {
+      window.clearTimeout(focusTimer)
+      document.removeEventListener('keydown', handleKeys)
+      document.body.style.overflow = previousOverflow
+      if (previouslyFocusedRef.current instanceof HTMLElement) {
+        previouslyFocusedRef.current.focus()
+      }
+    }
   }, [])
 
   const loadOnboardingJourney = () => {
@@ -150,252 +207,270 @@ export default function Settings() {
     }
   }
 
-  const categories = [
-    { id: 'general', label: '通用' },
-    { id: 'data', label: '数据管理' },
-    { id: 'privacy', label: '隐私与安全' },
-    { id: 'danger', label: '危险操作' },
-  ]
+  const active = categories.find((item) => item.id === activeCategory) || categories[0]
+  const onboardingVisibility = onboardingJourney.data?.preference?.visibility === 'DISMISSED' ? '已暂存' : '进行中'
 
   return (
-    <div className="settings-page page-stack">
-      <header className="page-header">
-        <p className="eyebrow">本地应用</p>
-        <h1>设置</h1>
-        <p>管理应用行为、数据与安全边界。</p>
-      </header>
-
-      <nav className="settings-categories" aria-label="设置分类">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            className={`settings-category ${activeCategory === cat.id ? 'is-active' : ''}`}
-            onClick={() => setActiveCategory(cat.id)}
-            aria-current={activeCategory === cat.id ? 'page' : undefined}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </nav>
-
-      {activeCategory === 'general' && (
-        <div className="settings-grid">
-          <section className="surface settings-section settings-section--wide">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <h2>错误恢复中心</h2>
-                <p>查看资料、模型、后台任务和本地数据的可恢复问题，以及每个动作的安全边界。</p>
-              </div>
-              <CircleAlert size={18} />
-            </div>
-            <button type="button" className="button button--secondary" onClick={() => navigate('/settings/recovery')}>
-              打开恢复中心
+    <div className="ds-dialog-backdrop settings-overlay" onClick={close}>
+      <div
+        ref={dialogRef}
+        className="settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-dialog-title"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <nav className="settings-dialog__nav" aria-label="设置分类">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={`settings-dialog__nav-item ${activeCategory === cat.id ? 'is-active' : ''}`}
+              onClick={() => setActiveCategory(cat.id)}
+              aria-current={activeCategory === cat.id ? 'page' : undefined}
+            >
+              <cat.icon size={16} aria-hidden="true" />
+              <span>{cat.label}</span>
             </button>
-          </section>
+          ))}
+        </nav>
 
-          <section className="surface settings-section">
-            <div className="section-heading section-heading--compact">
-              <div><h2>运行状态</h2></div>
-              <Server size={18} />
-            </div>
-            {system.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取…</div>}
-            {system.status === 'error' && <p className="inline-error" role="alert">{system.error}</p>}
-            {system.status === 'ready' && (
-              <dl className="settings-list">
-                <div><dt>运行模式</dt><dd>{system.data.mode === 'private' ? '私人使用' : '服务模式'}</dd></div>
-                <div>
-                  <dt>AI 模型</dt>
-                  <dd>{system.data.llm_ready ? '已配置' : '未配置'}</dd>
-                </div>
-              </dl>
-            )}
-          </section>
+        <div className="settings-dialog__main">
+          <header className="settings-dialog__head">
+            <h1 id="settings-dialog-title" className="settings-dialog__title">{active.label}</h1>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="ds-dialog__close"
+              aria-label="关闭设置"
+              onClick={close}
+            >
+              <X size={16} />
+            </button>
+          </header>
 
-          <section className="surface settings-section">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <p className="eyebrow">App 工具</p>
-                <h2>首次引导</h2>
-                <p>第一次使用时出现的引导流程。</p>
-              </div>
-              <Eye size={18} />
-            </div>
-            {onboardingJourney.status === 'loading' && <div className="inline-state" role="status"><div className="spinner" /> 正在读取…</div>}
-            {onboardingJourney.status === 'error' && <p className="inline-error" role="alert">{onboardingJourney.error}</p>}
-            {onboardingJourney.status === 'ready' && (
+          <div className="settings-dialog__body">
+            {activeCategory === 'general' && (
               <>
-                <p className="settings-help">
-                  当前引导：{onboardingJourney.data?.preference?.visibility === 'DISMISSED' ? '已暂存' : '进行中'}。
-                </p>
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={reopenOnboardingFlow}
-                  disabled={onboardingReopenState === 'loading'}
-                >
-                  {onboardingReopenState === 'loading' ? '正在打开…' : '重新打开首次引导'}
-                </button>
+                <SettingGroup title="运行状态">
+                  {system.status === 'loading' && (
+                    <div className="inline-state" role="status"><div className="spinner" /> 正在读取…</div>
+                  )}
+                  {system.status === 'error' && <p className="inline-error" role="alert">{system.error}</p>}
+                  {system.status === 'ready' && (
+                    <>
+                      <SettingRow label="运行模式" description="当前应用的本地运行边界。">
+                        <span className="settings-row__value">{system.data.mode === 'private' ? '私人使用' : '服务模式'}</span>
+                      </SettingRow>
+                      <SettingRow label="AI 模型" description="是否已配置可用的本地模型路由。">
+                        <span className="settings-row__value">{system.data.llm_ready ? '已配置' : '未配置'}</span>
+                      </SettingRow>
+                    </>
+                  )}
+                </SettingGroup>
+
+                <SettingGroup title="引导与恢复">
+                  <SettingRow
+                    label="首次引导"
+                    description="第一次使用时出现的引导流程。"
+                  >
+                    {onboardingJourney.status === 'loading' && (
+                      <div className="inline-state" role="status"><div className="spinner" /> 正在读取…</div>
+                    )}
+                    {onboardingJourney.status === 'error' && <p className="inline-error" role="alert">{onboardingJourney.error}</p>}
+                    {onboardingJourney.status === 'ready' && (
+                      <div className="settings-row__actions">
+                        <span className="settings-row__value">{onboardingVisibility}</span>
+                        <Button
+                          variant="secondary"
+                          onClick={reopenOnboardingFlow}
+                          disabled={onboardingReopenState === 'loading'}
+                        >
+                          {onboardingReopenState === 'loading' ? '正在打开…' : '重新打开首次引导'}
+                        </Button>
+                      </div>
+                    )}
+                  </SettingRow>
+                  <SettingRow
+                    label="错误恢复中心"
+                    description="查看资料、模型、后台任务和本地数据的可恢复问题。"
+                  >
+                    <Button variant="secondary" onClick={() => navigate('/settings/recovery')}>
+                      <CircleAlert size={16} />
+                      打开恢复中心
+                    </Button>
+                  </SettingRow>
+                </SettingGroup>
               </>
             )}
-          </section>
-        </div>
-      )}
 
-      {activeCategory === 'data' && (
-        <div className="settings-grid">
-          <section className="surface settings-section settings-section--wide">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <h2>导出我的数据</h2>
-                <p>生成一次性、短期有效的可读 ZIP；它不是数据库恢复包。</p>
-              </div>
-              <Download size={18} />
-            </div>
-            <div className="settings-export-scopes">
-              {exportScopeLabels.map(([scope, label]) => (
-                <label key={scope}>
-                  <input
-                    type="checkbox"
-                    checked={exportScopes[scope]}
-                    onChange={() => toggleExportScope(scope)}
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={includeDocumentOriginals}
-                  disabled={!exportScopes.DOCUMENTS}
-                  onChange={(event) => setIncludeDocumentOriginals(event.target.checked)}
-                />
-                <span>包含资料原件</span>
-              </label>
-            </div>
-            <button
-              type="button"
-              className="button button--secondary"
-              onClick={exportUserData}
-              disabled={exportState.status === 'working' || !Object.values(exportScopes).some(Boolean)}
-            >
-              <Download size={16} />
-              {exportState.status === 'working' ? '正在生成…' : '创建并下载导出'}
-            </button>
-            {exportState.message && (
-              <p
-                className={exportState.status === 'error' ? 'inline-error' : 'settings-success'}
-                role={exportState.status === 'error' ? 'alert' : 'status'}
-              >
-                {exportState.message}
-              </p>
+            {activeCategory === 'data' && (
+              <>
+                <SettingGroup title="导出我的数据" intro="生成一次性、短期有效的可读 ZIP；它不是数据库恢复包。">
+                  {exportScopeLabels.map(([scope, label]) => (
+                    <SettingRow key={scope} label={label}>
+                      <label className="settings-check">
+                        <input
+                          type="checkbox"
+                          checked={exportScopes[scope]}
+                          onChange={() => toggleExportScope(scope)}
+                        />
+                        <span className="visually-hidden">{label}</span>
+                      </label>
+                    </SettingRow>
+                  ))}
+                  <SettingRow label="包含资料原件" description="仅在导出资料元数据时可选。">
+                    <label className="settings-check">
+                      <input
+                        type="checkbox"
+                        checked={includeDocumentOriginals}
+                        disabled={!exportScopes.DOCUMENTS}
+                        onChange={(event) => setIncludeDocumentOriginals(event.target.checked)}
+                      />
+                      <span className="visually-hidden">包含资料原件</span>
+                    </label>
+                  </SettingRow>
+                  <SettingRow label="创建导出">
+                    <Button
+                      variant="secondary"
+                      onClick={exportUserData}
+                      disabled={exportState.status === 'working' || !Object.values(exportScopes).some(Boolean)}
+                    >
+                      <Download size={16} />
+                      {exportState.status === 'working' ? '正在生成…' : '创建并下载导出'}
+                    </Button>
+                  </SettingRow>
+                  {exportState.message && (
+                    <p
+                      className={exportState.status === 'error' ? 'inline-error' : 'settings-success'}
+                      role={exportState.status === 'error' ? 'alert' : 'status'}
+                    >
+                      {exportState.message}
+                    </p>
+                  )}
+                </SettingGroup>
+
+                <SettingGroup title="永久删除数据" intro="先读取真实影响，再输入精确短语确认；完成前受影响功能保持关闭。">
+                  <SettingRow label="删除范围">
+                    <select
+                      aria-label="删除范围"
+                      className="settings-select"
+                      value={erasureScope}
+                      onChange={(event) => {
+                        setErasureScope(event.target.value)
+                        setErasurePreview(null)
+                        setErasureState({ status: 'idle', message: '', report: null })
+                      }}
+                    >
+                      <option value="DOCUMENT">单份资料</option>
+                      <option value="LEARNING_RECORDS">学习记录</option>
+                      <option value="MODEL_EXECUTION">模型执行记录</option>
+                    </select>
+                  </SettingRow>
+                  {erasureScope === 'DOCUMENT' && (
+                    <SettingRow label="资料 ID">
+                      <input
+                        aria-label="资料 ID"
+                        className="settings-input"
+                        value={erasureTarget}
+                        onChange={(event) => setErasureTarget(event.target.value)}
+                      />
+                    </SettingRow>
+                  )}
+                  <SettingRow label="预览影响">
+                    <Button variant="secondary" onClick={previewErasure} disabled={erasureState.status === 'working'}>
+                      预览删除影响
+                    </Button>
+                  </SettingRow>
+                  {erasurePreview && (
+                    <div className="settings-erasure-preview">
+                      <p><strong>不可恢复操作</strong>：{erasurePreview.backup_impact}</p>
+                      <ul>{erasurePreview.impacts.map((impact) => <li key={impact.owner_system}>{impact.owner_system}：{impact.estimated_records} 项</li>)}</ul>
+                      <p>请输入：<code>{erasurePreview.confirmation_phrase}</code></p>
+                      <label>
+                        <span>输入确认短语</span>
+                        <input aria-label="输入确认短语" value={erasurePhrase} onChange={(event) => setErasurePhrase(event.target.value)} autoComplete="off" />
+                      </label>
+                      <Button
+                        variant="danger"
+                        onClick={confirmErasure}
+                        disabled={erasurePhrase !== erasurePreview.confirmation_phrase || erasureState.status === 'working'}
+                      >
+                        确认永久删除
+                      </Button>
+                    </div>
+                  )}
+                  {erasureState.message && (
+                    <p className={erasureState.status === 'success' ? 'settings-success' : 'inline-error'} role={erasureState.status === 'success' ? 'status' : 'alert'}>
+                      {erasureState.message}
+                    </p>
+                  )}
+                </SettingGroup>
+              </>
             )}
-          </section>
 
-          <section className="surface settings-section settings-section--wide">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <h2>永久删除数据</h2>
-                <p>先读取真实影响，再输入精确短语确认；完成前受影响功能保持关闭。</p>
-              </div>
-              <Trash2 size={18} />
-            </div>
-            <div className="settings-erasure-controls">
-              <label>
-                <span>删除范围</span>
-                <select aria-label="删除范围" value={erasureScope} onChange={(event) => {
-                  setErasureScope(event.target.value)
-                  setErasurePreview(null)
-                  setErasureState({ status: 'idle', message: '', report: null })
-                }}>
-                  <option value="DOCUMENT">单份资料</option>
-                  <option value="LEARNING_RECORDS">学习记录</option>
-                  <option value="MODEL_EXECUTION">模型执行记录</option>
-                </select>
-              </label>
-              {erasureScope === 'DOCUMENT' && (
-                <label>
-                  <span>资料 ID</span>
-                  <input aria-label="资料 ID" value={erasureTarget} onChange={(event) => setErasureTarget(event.target.value)} />
-                </label>
-              )}
-              <button type="button" className="button button--secondary" onClick={previewErasure} disabled={erasureState.status === 'working'}>预览删除影响</button>
-            </div>
-            {erasurePreview && (
-              <div className="settings-erasure-preview">
-                <p><strong>不可恢复操作</strong>：{erasurePreview.backup_impact}</p>
-                <ul>{erasurePreview.impacts.map((impact) => <li key={impact.owner_system}>{impact.owner_system}：{impact.estimated_records} 项</li>)}</ul>
-                <p>请输入：<code>{erasurePreview.confirmation_phrase}</code></p>
-                <label>
-                  <span>输入确认短语</span>
-                  <input aria-label="输入确认短语" value={erasurePhrase} onChange={(event) => setErasurePhrase(event.target.value)} autoComplete="off" />
-                </label>
-                <button type="button" className="button button--danger" onClick={confirmErasure} disabled={erasurePhrase !== erasurePreview.confirmation_phrase || erasureState.status === 'working'}>确认永久删除</button>
-              </div>
+            {activeCategory === 'privacy' && (
+              <SettingGroup title="隐私与安全事实">
+                <SettingRow
+                  label="本地优先"
+                  description="所有学习数据存储在本地设备，不经过中央服务器。"
+                >
+                  <Shield size={16} aria-hidden="true" />
+                </SettingRow>
+                <SettingRow
+                  label="不收集个人身份"
+                  description="Askora 不要求账号，不收集个人身份信息。"
+                >
+                  <Eye size={16} aria-hidden="true" />
+                </SettingRow>
+                <SettingRow
+                  label="私人使用边界"
+                  description="当前 App 不公开发布；这不代表已经取得备案、合规认证或第三方内容审核。"
+                >
+                  <AlertTriangle size={16} aria-hidden="true" />
+                </SettingRow>
+              </SettingGroup>
             )}
-            {erasureState.message && <p className={erasureState.status === 'success' ? 'settings-success' : 'inline-error'} role={erasureState.status === 'success' ? 'status' : 'alert'}>{erasureState.message}</p>}
-          </section>
-        </div>
-      )}
 
-      {activeCategory === 'privacy' && (
-        <div className="settings-grid">
-          <section className="surface settings-section settings-section--wide">
-            <div className="section-heading section-heading--compact">
-              <div><h2>隐私与安全事实</h2></div>
-              <Shield size={18} />
-            </div>
-            <div className="fact-list">
-              <div><Shield size={18} /><span><strong>本地优先</strong><small>所有学习数据存储在本地设备，不经过中央服务器。</small></span></div>
-              <div><Eye size={18} /><span><strong>不收集个人身份</strong><small>Askora 不要求账号，不收集个人身份信息。</small></span></div>
-              <div><AlertTriangle size={18} /><span><strong>私人使用边界</strong><small>当前 App 不公开发布；这不代表已经取得备案、合规认证或第三方内容审核。</small></span></div>
-            </div>
-          </section>
+            {activeCategory === 'danger' && (
+              <SettingGroup title="删除本地学习数据">
+                <SettingRow
+                  label="永久删除"
+                  description="永久删除学习记录、资料和本地知识缓存。建议先导出数据，再执行删除。"
+                >
+                  <Button variant="danger" onClick={() => setActiveCategory('data')}>
+                    <Trash2 size={16} />
+                    前往数据管理执行删除
+                  </Button>
+                </SettingRow>
+              </SettingGroup>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  )
+}
 
-      {activeCategory === 'danger' && (
-        <div className="settings-grid">
-          <section className="surface settings-section settings-section--wide settings-danger">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <p className="eyebrow">危险操作</p>
-                <h2>删除本地学习数据</h2>
-                <p>永久删除学习记录、资料和本地知识缓存；操作不可撤销。</p>
-              </div>
-              <Trash2 size={18} />
-            </div>
-            <p className="settings-help">建议先导出数据，再执行删除。删除后学习进度将无法恢复。</p>
-            <button
-              type="button"
-              className="button button--danger"
-              onClick={() => setActiveCategory('data')}
-            >
-              前往数据管理执行删除
-            </button>
-          </section>
+function SettingGroup({ title, intro, children }) {
+  return (
+    <section className="settings-group">
+      <h2 className="settings-group__title">{title}</h2>
+      {intro ? <p className="settings-group__intro">{intro}</p> : null}
+      <div className="settings-group__rows">{children}</div>
+    </section>
+  )
+}
 
-          <section className="surface settings-section settings-section--wide">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <p className="eyebrow">危险操作</p>
-                <h2>重置应用</h2>
-                <p>清除所有本地数据，恢复到首次启动状态。</p>
-              </div>
-              <RefreshCw size={18} />
-            </div>
-            <p className="settings-help">此操作将删除所有资料、学习记录和配置。请谨慎操作。</p>
-            <button
-              type="button"
-              className="button button--danger"
-              disabled
-              title="重置功能将在后续版本中开放"
-            >
-              重置应用
-            </button>
-          </section>
-        </div>
-      )}
+function SettingRow({ label, description, children }) {
+  return (
+    <div className="settings-row">
+      <div className="settings-row__copy">
+        <div className="settings-row__label">{label}</div>
+        {description ? <p className="settings-row__desc">{description}</p> : null}
+      </div>
+      <div className="settings-row__control">{children}</div>
     </div>
   )
 }

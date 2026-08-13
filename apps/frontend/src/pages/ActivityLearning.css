@@ -312,10 +312,6 @@
 
 .activity-learning__composer {
   flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: .75rem;
   width: 100%;
   max-width: 760px;
   margin: 0 auto;

@@ -48,9 +48,7 @@ apps/backend/data/
 *.swo
 *~
 
-# Raw design material (uncommitted source archives, screenshots, working dirs)
-TraeWork/
-reverse-engineering/
+# Source archives
 *.zip
 
 # Internal topic metadata (reasoning tooling aux state)

@@ -5,7 +5,7 @@
 > 上游产品定义：`PD-NFR-005` 及适用 Product Requirements  
 > Governing Experience：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`docs/design/experience/INTERACTION-MODEL.md`、`docs/design/experience/LEARNING-EXPERIENCE.md`  
 > 下游：frontend component implementation / tests  
-> Supporting assets：`.design_library/Askora/**`（reference only, not authority）
+> Supporting assets：`ui/traework/`（TraeWork Light foundation source；semantic roles 的 authority 仍是本文件）；`.design_library/Askora/**`（旧本地库，reference only, not authority）；`ui/prototypes/shell-replica/`（构图证据，不是 token 源）
 
 ---
 
@@ -115,50 +115,64 @@ color.focus
 
 ### UI-DS-TOK-002 — Current Light Baseline
 
-当前推荐 baseline：
+当前 Light foundation 采用 TraeWork Light（`ui/traework/colors_and_type.css` / `css.json`）。Askora 保留本文件的 semantic role 名；业务代码 MUST 使用这些 role，不得直接散落 TraeWork 内部名或页面级 hex。
 
 ```text
-accent              #007AFF
-accent-subtle       #EAF3FF
-canvas              #F2F2F7
+accent              #4B3FE3
+accent-subtle       #E0E5FF
+canvas              #F5F5F5
 surface             #FFFFFF
-surface-subtle      #F7F7FA
+surface-subtle      #E5E5E5
 surface-elevated    #FFFFFF
-text-primary        #1C1C1E
-text-secondary      #636366
-text-muted          #8E8E93
-border              #E5E5EA
-success             #248A3D
-warning             #C93400
-error               #D70015
-info                #007AFF
+text-primary        #171717
+text-secondary      #404040
+text-muted          #737373
+border              rgba(115, 115, 115, 0.12)
+border.strong       rgba(115, 115, 115, 0.36)
+success             #0F7A56
+warning             #A85A00
+error               #C9382F
+info                #4B3FE3
+focus               #4B3FE3
 ```
 
-颜色 MAY 因 WCAG 对比度验证微调，但 semantic role 不得漂移。
+`accent-subtle` 是 TraeWork `--bg-brand-popup`（`#AAB7FF` @ 0.36）叠在白色上的合成值；实现 MAY 使用 `rgba(170, 183, 255, 0.36)`。
+
+`success` / `warning` 相对 TraeWork `--status-*-default` 做了 text-on-canvas WCAG AA 微调（见 `UI-DS-TOK-005`）。`error` 使用 TraeWork `--status-error-active`，因 `--status-error-default` 作正文对比不足。颜色 MAY 因 WCAG 再微调，但 semantic role 不得漂移。
+
+状态色作 fill/icon 时 MAY 使用 TraeWork 原始 `--status-*-default`，但不得把对比不足的 fill 配白色正文。`UI-DS-TOK-004` 仍然要求非颜色表达。
 
 ### UI-DS-TOK-003 — Dark Theme
 
-如果当前产品提供 dark theme，必须定义完整 semantic mapping；不得简单反转 light colors。
+v1 **不采用** Dark theme。TraeWork 官方库是 Light-only；`ui/prototypes/shell-replica/` 的测量 Dark hex **不得**写入本文件或生产 CSS。
 
-建议 baseline：
-
-```text
-canvas              #0B0B0D
-surface             #1C1C1E
-surface-subtle      #2C2C2E
-surface-elevated    #2C2C2E
-text-primary        #F5F5F7
-text-secondary      #D1D1D6
-text-muted          #98989D
-border              #3A3A3C
-accent              #0A84FF
-```
-
-若当前产品没有正式 dark theme capability，不得仅因 Design System 存在 token 而强制新增产品设置。
+若未来产品提供 dark theme，必须定义完整 semantic mapping，不得简单反转 Light，也不得把复刻页当 Dark foundation。没有正式 dark capability 时，不得新增主题设置。
 
 ### UI-DS-TOK-004 — State Colors
 
 任何 state color 都必须同时有非颜色表达：文本、icon、shape、border 或 accessible state。
+
+### UI-DS-TOK-005 — TraeWork Light Foundation Mapping
+
+每个 Askora semantic role 必须能回溯到 TraeWork token 名。本表是 foundation 溯源，不是第二套 role 体系。
+
+| Askora role | TraeWork token | TraeWork 源值 | Askora 采用值 |
+|---|---|---|---|
+| `color.accent` / `color.info` / `color.focus` | `--bg-brand` / `--border-brand` | `#4B3FE3` | `#4B3FE3` |
+| `color.accent.subtle` | `--bg-brand-popup` | `#AAB7FF` @ 0.36 | `#E0E5FF`（合成） |
+| `color.canvas` | `--bg-base-secondary` | `#F5F5F5` | `#F5F5F5` |
+| `color.surface` / `color.surface.elevated` | `--bg-base-default` | `#FFFFFF` | `#FFFFFF` |
+| `color.surface.subtle` | `--bg-base-tertiary` | `#E5E5E5` | `#E5E5E5` |
+| `color.text.primary` | `--text-default` | `#171717` | `#171717` |
+| `color.text.secondary` | `--text-secondary` | `#404040` | `#404040` |
+| `color.text.muted` | `--text-tertiary` | `#737373` | `#737373` |
+| `color.border` | `--border-neutral-l1` | `#737373` @ 0.12 | 同源 |
+| `color.border.strong` | `--border-neutral-l3` | `#737373` @ 0.36 | 同源 |
+| `color.success` | `--status-success-default` | `#15A877` | `#0F7A56`（AA 微调） |
+| `color.warning` | `--status-warning-default` | `#E27900` | `#A85A00`（AA 微调） |
+| `color.error` | `--status-error-default` | `#E8463A` | `#C9382F`（`--status-error-active`） |
+
+消费顺序见 `ui/traework/library-consumption.json`。`ui_kits/` 不可 copyable，不得当生产页面模板。
 
 ---
 
@@ -166,15 +180,17 @@ accent              #0A84FF
 
 ### UI-DS-TYPE-001 — Font Stack
 
+对齐 TraeWork `--font-family-default`，不引入远程 webfont：
+
 ```css
--apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+"SF Pro Text", "PingFang SC", system-ui, -apple-system, "Segoe UI",
 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif
 ```
 
-代码/标识：
+代码/标识继续使用系统等宽。不得为对齐 TraeWork `--font-family-metric` / `--font-family-mono` 而加载 Inter 或 JetBrains Mono 远程字体。
 
 ```css
-"SF Mono", Menlo, Monaco, Consolas, monospace
+ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace
 ```
 
 ### UI-DS-TYPE-002 — Reading Range
@@ -352,9 +368,9 @@ Product Domain 与 Utility 必须视觉分组；Settings / Recovery 不得因同
 
 Navigation activation 不产生隐藏 business write。
 
-### UI-DS-COMP-013 — Create Course Action
+### UI-DS-COMP-013 — Create Space Action
 
-`＋ 新课程` 使用既有 primary Action / Button foundation，不创建 Course-specific token 或独立 button family。其层级在 Left / Where 中突出，但仍必须具备 focus、pending、error 与 accessible name；打开 flow 不等于创建成功。
+`＋ 新建空间` 使用既有 primary Action / Button foundation，不创建 Space-specific token 或独立 button family。其层级在 Left / Where 中突出，但仍必须具备 focus、pending、error 与 accessible name；打开 flow 不等于创建成功。
 
 ---
 
@@ -376,10 +392,10 @@ Contextual action 不得只在 hover 出现；keyboard focus、touch、More Menu
 
 Course row 复用 Navigation / InteractiveContent row：
 
-- primary label 使用课程名称；
+- primary label 使用空间名称；
 - selected/current、focus 与 pending switch 状态可同时被识别；
 - trailing state/action 是独立 target；
-- 不使用统计 Card、彩色学科 token 或 mastery decoration 让课程列表变成 Dashboard。
+- 不使用统计 Card、彩色学科 token 或 mastery decoration 让空间或对话列表变成 Dashboard。
 
 ### UI-DS-COMP-024 — Activity Switcher
 
@@ -491,6 +507,20 @@ Tab 只用于同一 local context 内的并列 views，不自动代表 Product D
 
 当前 Learning Right Rail 的 Material tabs 由 Learning Interaction Contract 定义；Design System 不提供通用 extension host。
 
+### UI-DS-COMP-090 — TraeWork Component Mapping
+
+本表只冻结下一轮组件消费对照，不授权本轮改组件实现，也不授权从 `shell-replica` 复制 IA。
+
+| Askora 合同 | TraeWork slug / 资产 | 消费规则 |
+|---|---|---|
+| Button / `＋ 新建空间` | `buttons` | copy `preview/component-buttons.html`；不造 Space-specific button family |
+| Course Row / Activity Switcher | `menu` + row/list | 复用既有 Navigation / Row foundation |
+| Learning Composer | `ai-input` | 解剖：textarea + control row + send；submit 语义仍听 Learning Interaction Contract |
+| Status / Badge | `tag` / `alert` | 短状态；长解释进 Disclosure |
+| Dialog / Sheet | `dialog` | focus / Escape / restore 仍听 `UI-DS-COMP-072` |
+| 三栏几何 | `shell-three-panel` | 只借宽度/gutter；槽位仍是 Where / Learn / Notes |
+| Icons | `assets/icons/` | `currentColor` mask；不得手绘第二套 icon |
+
 ---
 
 ## 17. Loading / Empty / Error
@@ -560,12 +590,13 @@ reduced motion 必须生效；live region 不得因 streaming token 造成持续
 
 ## 20. Code / Asset Source-of-Truth Boundary
 
-`.design_library/Askora/**`、HTML preview、组件 JSON、CSS 资产都是 supporting reference。
+`ui/traework/` 是 Light foundation source。`.design_library/Askora/**`、`ui/prototypes/**`、HTML preview、组件 JSON 都是 supporting reference，不能覆盖本文件的 semantic roles。
 
 正式关系：
 
 ```text
-Design System Spec
+Design System Spec（本文件 semantic roles）
+→ TraeWork Light foundation 值（UI-DS-TOK-005）
 → frontend component implementation
 → tests / visual regression
 ```
@@ -575,6 +606,7 @@ Design System Spec
 不得维护第二套独立 Design System truth 在：
 
 - `.design_library`；
+- `ui/prototypes/shell-replica` 的 Dark 测量值；
 - page-local CSS conventions；
 - Story/demo-only assets；
 - screenshots。
@@ -601,7 +633,7 @@ Design System Spec
 
 ## 22. Acceptance Criteria
 
-- `UI-DS-AC-001`：核心 UI 使用统一 semantic tokens，新增页面不大量硬编码视觉值；
+- `UI-DS-AC-001`：核心 UI 使用统一 semantic tokens，新增页面不大量硬编码视觉值；foundation 值必须能按 `UI-DS-TOK-005` 回溯到 TraeWork token 名；
 - `UI-DS-AC-002`：7 interaction primitives 与 component/pattern 明确分层；
 - `UI-DS-AC-003`：Button/Nav/Row/Input/Selection/Disclosure/Tab/Status 的关键状态完整；
 - `UI-DS-AC-004`：loading/empty/partial/stale/error 不通过 fake data 或 visual-only truth 表达；
@@ -610,7 +642,7 @@ Design System Spec
 - `UI-DS-AC-007`：360px / 200% zoom / long content 下 reusable components 不导致页面级横向滚动；
 - `UI-DS-AC-008`：`.design_library` / code / screenshot 不形成第二 Design System Authority；
 - `UI-DS-AC-009`：Design System pass 不被描述为 Product Acceptance 或 Learning Evidence pass。
-- `UI-DS-AC-010`：Create Course、Course Row 与 Activity Switcher 复用既有 Action/Nav/Row/Disclosure foundation，无 feature-specific token fork。
+- `UI-DS-AC-010`：新建空间、空间/对话 Row 与已有对话列表复用既有 Action/Nav/Row/Disclosure foundation，无 feature-specific token fork。
 
 ---
 
@@ -670,7 +702,7 @@ transcript truth
 
 #### UI-LRN-004 — Course Scope
 
-Learning Workspace 必须显示用户可理解的当前课程，并解析同一 canonical `workspace_id`。Course route、Activity ref 与 Workspace query 不一致时 fail closed，不得用 route 覆盖 owner truth。
+Learning Workspace 必须显示用户可理解的当前空间，并解析同一 canonical `workspace_id`。Space/course route、Activity ref 与 Workspace query 不一致时 fail closed，不得用 route 覆盖 owner truth。
 
 #### UI-LRN-005 — Activity Switcher / Recent Learning
 
@@ -1217,11 +1249,11 @@ UI/UX PASS 不能自动满足 Product Acceptance，更不能证明真实 retenti
 必须验证：
 
 - Today / Learning 不再是 L0 或 stable Product Domain；
-- `＋ 新课程` 是 Action，Course rows 是 Navigation / InteractiveContent；
-- 用户界面使用“课程”，canonical Workspace identity 不变；
+- `＋ 新建空间`、加入学习空间、马上开始学习、对空间继续学习是 Action；已有对话是 Navigation / InteractiveContent；
+- 用户界面使用“空间”“对话”，canonical Workspace / LearningActivity identity 不变；
 - Settings/Recovery 是 Utility；
-- Chat/Tutor 不成为 Product Domain；
-- Course 不恢复 Goal/Plan/Progress/History 常驻管理中心；
+- Chat/Tutor 不成为 Product Domain；「对话」不得做成 Chat thread manager；
+- 空间不恢复 Goal/Plan/Progress/History 常驻管理中心；
 - 不新增 Today replacement Dashboard；
 - route/navigation 不产生隐藏 business write；
 - domain object 不因新增 backend projection 自动变成 page/nav/card；
@@ -1358,7 +1390,7 @@ streaming 不得对每个 token delta 产生 screen-reader spam。
 - 无 Card ocean；
 - no hover-only core action；
 - page-local CSS 不建立第二 token体系；
-- `.design_library` / screenshot 不被当作 runtime Authority。
+- `.design_library` / `shell-replica` / screenshot 不被当作 runtime Authority；foundation 回溯 `UI-DS-TOK-005`。
 
 视觉回归只能证明 presentation regression，不证明 interaction/business semantics。
 
@@ -1481,8 +1513,10 @@ pre-existing failure
 仅自动化通过仍不足以证明复杂学习体验质量。M5 / release acceptance 应至少人工检查：
 
 - 首次进入是否理解该做什么；
-- 无 Course → 新课程 → 首个 Activity 是否自然；
-- Course / Activity 恢复与切换是否可理解；
+- 上传资料 → 加入空间或马上开始学习 → 首段对话是否自然；
+- Welcome / 已有对话恢复 / 对空间继续学习是否可理解；
+- 对话中作答、反馈、请求帮助、查看原文是否成立；
+- 新建空空间、往已有空间补资料是否诚实、不自动假开聊；
 - 长解释与 Question boundary 是否清晰；
 - Attempt / Feedback 是否容易对应；
 - citation / source 查看是否不打断学习；
@@ -1550,17 +1584,17 @@ Learning Evidence Gate PASS
 - `UI-QR-AC-006`：long-session / streaming / source / notes failure paths 有验证；
 - `UI-QR-AC-007`：一次性 migration status 不进入本长期合同；
 - `UI-QR-AC-008`：UI/UX Acceptance、Product Acceptance、Learning Evidence 分开报告。
-- `UI-QR-AC-009`：Course-centric navigation、empty/create/switch、Activity Switcher 与 legacy route migration 有自动化和人工证据。
+- `UI-QR-AC-009`：Welcome、空间/对话 navigation、empty/create/switch、「继续学习」与 legacy route migration 有自动化和人工证据。
 
 ---
 
 ## Askora Screen & Navigation Contracts
 
 > 状态：**Canonical UI/UX Implementation Contract — Current Only**  
-> 冻结日期：2026-08-11  
+> 冻结日期：2026-08-13  
 > 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`  
 > Governing Experience：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`docs/design/experience/INTERACTION-MODEL.md`  
-> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0022
+> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0022、ADR-0025、ADR-0026
 > 技术上游：Workspace / Goal / Activity / Recovery / Onboarding current Specs
 
 ---
@@ -1626,18 +1660,19 @@ UNAUTHORIZED
 
 ### 4. Canonical User-facing IA
 
-#### UI-NAV-001 — Course-centric IA
+#### UI-NAV-001 — Space-centric IA
 
 稳定用户侧结构只允许：
 
 ```text
-＋ 新课程                  Action
-课程列表 / 当前课程          Navigation / InteractiveContent
-资料库                     Stable Product Domain Navigation
-Settings / Recovery        Utility Navigation
+Welcome                      Default Destination
+已有对话                      Navigation / InteractiveContent
+＋ 新建空间                   Action
+资料库                        Stable Product Domain Navigation
+Settings / Recovery           Utility Navigation
 ```
 
-Today / Learning 不得作为 stable Product Domain、L0 Navigation 或默认 destination 出现。
+Today / Learning 不得作为 stable Product Domain、L0 Navigation 或默认 destination 出现。打开 App 的默认目的地是 Welcome。
 
 #### UI-NAV-002 — Utilities
 
@@ -1651,23 +1686,29 @@ Search / Command（仅正式 capability 存在时）
 
 Askora v1 无 Login / Register / Account shell。
 
-#### UI-NAV-003 — Course Is Not a Management Center
+#### UI-NAV-003 — Space Is Not a Management Center
 
-Course context 不提供 Goal / Plan / Progress / History 的常驻管理 navigation。
+空间不提供 Goal / Plan / Progress / History 的常驻管理 navigation。
 
-这些 domain truth 继续存在；仅在明确 user job 下通过 contextual task flow / Disclosure / compatibility deep link 进入。
+这些 domain truth 继续存在；主路径不出现目标确认。Goal 由系统按 `PD-RULE-004` 维护。仅在明确 user job 下通过 contextual task flow / Disclosure / compatibility deep link 进入。
 
 #### UI-NAV-004 — Chat Is Not Navigation
 
-Chat / Tutor 不得成为 L0 Product Domain。Conversation 是当前 LearningActivity 的 interaction mode。
+Chat / Tutor 不得成为 L0 Product Domain。Conversation / Message 是当前 LearningActivity 的 interaction mode。用户侧「对话」是该 Activity 的称呼，侧栏不得做成 Chat thread manager。
 
-#### UI-NAV-005 — User-facing Course Vocabulary
+#### UI-NAV-005 — User-facing Space Vocabulary
 
-正常 UI 使用“课程”“当前课程”“切换课程”。`Workspace`、`current_workspace_id` 只在 engineering/diagnostic/audit context 出现。Course route id 仍是 canonical `workspace_id`；不得创建第二 Course identity。
+正常 UI 使用“空间”“当前空间”“切换空间”“对话”。`Workspace`、`current_workspace_id`、`LearningActivity` 只在 engineering/diagnostic/audit context 作为主文案出现。Route id 仍是 canonical `workspace_id` / activity id；不得创建第二 space / conversation identity。
 
-#### UI-NAV-006 — New Course Action
+#### UI-NAV-006 — New Space and Start-learning Actions
 
-`＋ 新课程` 是 Primary `Action`。打开 `/courses/new` 是 Navigation 且无业务副作用；只有提交正式 Workspace create command 才可显示成功。Owner command 不可用时不得用 disabled placeholder、localStorage 或 React object 冒充已创建课程。
+`＋ 新建空间` 是显式创建 Workspace 的 `Action`。打开创建流程是 Navigation 且无业务副作用；只有提交正式 Workspace create command 才可显示成功。
+
+「马上开始学习」是 Action：自动创建 Workspace、把刚上传资料归属该空间、开第一段对话。  
+「加入学习空间」是 Action：把已处理资料归属选定或当场新建的空间。  
+对空间「继续学习」是 Action：在该空间新开一段对话。
+
+Owner command 不可用时不得用 disabled placeholder、localStorage 或 React object 冒充已创建空间或对话。
 
 ---
 
@@ -1689,13 +1730,14 @@ Right = Reference / Notes
 
 左侧只承担：
 
-- `＋ 新课程` Action；
-- 当前课程、课程列表与 Course / Workspace switch；
-- 当前课程 Activity Switcher / Recent Learning；
+- Welcome destination；
+- 已有对话列表；
+- `＋ 新建空间` Action；
+- 学习中的当前空间上下文；
 - Library Navigation；
 - Utility group。
 
-不得放置常驻 Goal/Plan/Progress/Evidence 管理结构。
+不得放置常驻 Goal/Plan/Progress/Evidence 管理结构。不得把左侧做成 Chat thread manager。
 
 #### UI-SHELL-003 — Center / Learn
 
@@ -1728,13 +1770,14 @@ Drawer 固定在 Composer/输入区域上方，默认收起。
 稳定用户侧目的地：
 
 ```text
-/courses/new
+/                       # Welcome，打开 App 的默认目的地
+/welcome                # Welcome 的显式 route
+/courses/new            # 新建空间；courses 为 legacy route vocabulary
 /courses/:workspaceId
 /courses/:workspaceId/activities/:activityId
 /library
 /settings
 /settings/recovery
-/welcome            # supporting route, not L0
 ```
 
 兼容 Workspace route 可以提供：
@@ -1745,7 +1788,7 @@ Drawer 固定在 Composer/输入区域上方，默认收起。
 /workspaces/:workspaceId/library
 ```
 
-其中 `:workspaceId` 保持 canonical Workspace identity；`courses` 只是 user-facing route vocabulary。
+其中 `:workspaceId` 保持 canonical Workspace identity；`courses` 是 legacy route vocabulary，用户文案是「空间」，不得据此恢复「课程」用词。
 
 具体 router implementation（hash/history/native bridge）不是本合同 Authority。
 
@@ -1758,24 +1801,13 @@ Drawer 固定在 Composer/输入区域上方，默认收起。
 /quick/:sessionId
 ```
 
-但必须进入对应 Course scope 下同一 canonical LearningActivity / dialog facade，不得创建第二 transcript / Attempt / TeachingAction truth。无法证明 Activity 属于目标 Course 时 fail closed。
+但必须进入对应空间 scope 下同一 canonical LearningActivity / dialog facade，不得创建第二 transcript / Attempt / TeachingAction truth。无法证明 Activity 属于目标空间时 fail closed。
 
 #### UI-ROUTE-003 — Legacy Today / Learning Compatibility
 
-`/today`、`/learning` 与 `/` 必须按 canonical read state side-effect-free 解析：
+`/` 必须进入 Welcome，side-effect-free，不得自动创建或自动进入对话。
 
-```text
-最近 Course + resumable Activity
-→ /courses/:workspaceId/activities/:activityId
-
-有 Course、无 resumable Activity
-→ /courses/:workspaceId
-
-无 Course
-→ Course Empty State
-```
-
-`/today`、`/learning` 只作为 compatibility entry，UI/analytics/Sidebar 不再把它们描述为 Product Domain。
+`/today`、`/learning` 只作为 compatibility entry，解析到 Welcome，UI/analytics/Sidebar 不再把它们描述为 Product Domain。不得用它们恢复 Today / Learning L0，也不得自动 resume 上一段对话。
 
 #### UI-ROUTE-004 — Contextual Learning Management Routes
 
@@ -1824,40 +1856,47 @@ Redirect / route change / facet-like presentation change不得自动：
 
 ---
 
-### 7. Course Entry / Empty / Creation Contract
+### 7. Space Entry / Welcome / Creation Contract
 
-#### UI-COURSE-001 — Course Empty State
+#### UI-COURSE-001 — Welcome / Empty State
 
-没有 canonical Course/Workspace 时，`/` 与 course shell 显示 Course Empty State：
+`/` 与 `/welcome` 显示 Welcome。没有 canonical Workspace 时：
 
-- 明确当前还没有课程；
-- Primary Action 只有“新课程”；
-- 可以解释课程是长期学习空间；
-- 不生成默认课程、Goal、Plan、Activity 或示例数据。
+- 明确当前还没有空间；
+- 用户可以上传资料，或 `＋ 新建空间`；
+- 不生成默认空间、Goal、Plan、对话或示例数据。
 
-#### UI-COURSE-002 — Course Creation Flow
+有空间或对话时，Welcome 仍是打开 App 的第一屏：侧栏列出已有对话；Welcome 上可选空间并「继续学习」。
+
+#### UI-COURSE-002 — First Learning Flow
+
+服从 `EXP-JOURNEY-001`：
 
 ```text
-创建课程
-→ 添加/选择资料（适用时）
-→ 明确目标
-→ 建立首个可执行 Activity
-→ Course-scoped Learning Workspace
+上传资料
+→ 系统处理
+→ 「加入学习空间」或「马上开始学习」
+→ 进入对话，或回到 Welcome
 ```
 
-每一步必须表达 LOADING/READY/PARTIAL/ERROR/RECOVERABLE 等真实状态。Course create success 只来自 Platform Workspace Registry command result；Material、Goal、Activity readiness 分别来自其 owner，不得打包成 frontend fake transaction。
+不得把「明确 Learning Goal」写成用户步骤。每一步必须表达 LOADING/READY/PARTIAL/ERROR/RECOVERABLE 等真实状态。Workspace create success 只来自 Platform Workspace Registry command result；Material、Activity readiness 分别来自其 owner，不得打包成 frontend fake transaction。未入空间 Material 服从 `WSP-021`：`workspace_id` 可为 null，归属前不得开始有依据的学习。
 
-#### UI-COURSE-003 — Course Landing
+#### UI-COURSE-005 — Create or Extend Space
 
-`/courses/:workspaceId` 展示当前 Course context 与 Activity Switcher / Recent Learning。存在 resumable Activity 时可提供一个 Primary resume Action；无 Activity 时显示缺失原因和真实可用的下一步，不生成假 Activity。
+服从 `EXP-JOURNEY-004`。`＋ 新建空间` 只创建 Workspace，不自动开对话、不编造资料。空空间必须诚实显示还不能开始有依据的学习。往已有空间加入资料的处理完成弹窗与 `UI-COURSE-002` 相同。
 
-#### UI-COURSE-004 — Activity Switcher
+#### UI-COURSE-003 — Space-scoped Landing
 
-- 只显示当前 Course 内 exact LearningActivity refs；
+`/courses/:workspaceId` 展示当前空间上下文。存在可恢复对话时，打开它们是 Navigation。对空间「继续学习」是 Primary Action，必须新开对话。无对话时显示缺失原因和真实可用的下一步，不生成假对话。
+
+#### UI-COURSE-004 — Existing Conversation List
+
+- Welcome 侧栏可列出可恢复对话；
+- 学习中只显示当前空间内 exact LearningActivity refs；
 - title 使用学习语义，不使用 Chat 1/2/3；
 - current/active state 明确；
-- 打开已 active/resumable Activity 是 Navigation / InteractiveContent；
-- 启动 available Activity 使用 `StartLearningActivity` Action；
+- 打开已 active/resumable 对话是 Navigation / InteractiveContent；
+- 对空间「继续学习」或启动 available Activity 使用 `StartLearningActivity` Action；
 - 切换 presentation 不复制 transcript、Attempt 或 TeachingAction。
 
 #### UI-COURSE-GAP-001 — Technical Command/Query Gate
@@ -1866,15 +1905,15 @@ Redirect / route change / facet-like presentation change不得自动：
 
 ---
 
-### 8. Course-scoped Learning Contract
+### 8. Space-scoped Learning Contract
 
-#### UI-LEARN-001 — Learning Workspace Under Course
+#### UI-LEARN-001 — Learning Workspace Under Space
 
-Learning Workspace 位于 Course context 之下，不再由 `/learning` L0 拥有。没有可恢复 Activity 时返回 Course landing / Activity Switcher，不得前端自行创建 Session/Goal/Plan。
+Learning Workspace 位于空间 context 之下，不再由 `/learning` L0 拥有。中央画布服从 `EXP-JOURNEY-003`：用户必须能真实作答，而不是只消费解释。没有可恢复对话时返回 Welcome 或空间 landing；对空间「继续学习」才可新开对话，不得前端自行创建 Session/Goal/Plan。
 
 #### UI-LEARN-002 — Same Activity Across Presentation Changes
 
-Course-scoped Learning Workspace、兼容 Tutor、Focus/窄屏 presentation 只允许改变呈现，不得重新生成 canonical Activity / Attempt / TeachingAction / transcript。
+空间内的 Learning Workspace、兼容 Tutor、Focus/窄屏 presentation 只允许改变呈现，不得重新生成 canonical Activity / Attempt / TeachingAction / transcript。对空间「继续学习」除外，该 Action 必须创建新的 LearningActivity。
 
 #### UI-LEARN-003 — Required Learning State
 
@@ -1950,9 +1989,9 @@ Recovery 不新增 Product Domain。存在 action-required issue 时可显示紧
 
 #### UI-WELCOME-001
 
-`/welcome` 是 supporting route，不是 L0。
+`/` 与 `/welcome` 是打开 App 的默认目的地，不是 Today / Dashboard，也不是 L0 Product Domain。
 
-first-use 只呈现用户必须完成/理解的事实步骤，例如模型能力、课程、材料、目标、首次 Activity；内部 diagnostic/planner/system stage 不得成为用户必须学习的工程流程。完成 onboarding 后使用 UI-ROUTE-003 startup resolution，不再固定跳转 `/today`。
+Welcome 承担：上传资料、选择空间并「继续学习」、看到已有对话入口。first-use 只呈现用户必须完成/理解的事实步骤（模型能力、资料、空间、开始学习）；内部 diagnostic/planner/system stage 与 Learning Goal 管理不得成为用户必须学习的工程流程。不再固定跳转 `/today`，也不自动 resume 上一段对话。
 
 #### UI-WELCOME-002
 
@@ -1999,7 +2038,7 @@ first-use 只呈现用户必须完成/理解的事实步骤，例如模型能力
 - Domain object count → navigation count；
 - 恢复 Goal/Plan/Progress/History 常驻管理中心；
 - 恢复 Today / Learning L0 或用新 Dashboard 替代；
-- `/`、`/today` 或 `/learning` 直接退化为 chat-first picker；
+- `/`、`/today` 或 `/learning` 直接退化为无空间归属的 chat-first picker；
 - 用 frontend/localStorage 创建或切换 Course/Workspace；
 - route change 产生隐藏 business write；
 - 用 frontend state 冒充 Workspace/Plan/Evidence/UserNote truth；
@@ -2013,11 +2052,11 @@ first-use 只呈现用户必须完成/理解的事实步骤，例如模型能力
 
 ### 14. Acceptance Criteria
 
-- `UI-SN-AC-001`：Today / Learning 不再是 L0；`＋ 新课程`、课程列表、Library 与 Utility 语义分组正确；
-- `UI-SN-AC-002`：Course 无常驻 Goal/Plan/Progress/History 管理导航；
-- `UI-SN-AC-003`：Workspace shell 三栏解析同一 current Course/Workspace；
-- `UI-SN-AC-004`：Course Empty State、Course creation 与 Activity Switcher 无 fake data/placeholder；
-- `UI-SN-AC-005`：`/`、`/today`、`/learning` 与 deep links 无业务副作用且不会创建第二 truth；
+- `UI-SN-AC-001`：Today / Learning 不再是 L0；Welcome、已有对话、`＋ 新建空间`、Library 与 Utility 语义分组正确；
+- `UI-SN-AC-002`：空间无常驻 Goal/Plan/Progress/History 管理导航；
+- `UI-SN-AC-003`：Workspace shell 三栏解析同一 current 空间 / Workspace；
+- `UI-SN-AC-004`：Welcome、新建空间、加入空间、马上开始学习与对话列表无 fake data/placeholder；
+- `UI-SN-AC-005`：`/`、`/today`、`/learning` 与 deep links 无业务副作用且不会创建第二 truth；打开 App 先到 Welcome；
 - `UI-SN-AC-006`：Library normal v1 UI 无 OCR 暴露且 deferred candidates 无 placeholder；
 - `UI-SN-AC-007`：Settings/Recovery 保持 Utility 语义且无 Account/Auth residue；
 - `UI-SN-AC-008`：LOADING/EMPTY/PARTIAL/STALE/ERROR 等不会伪装 READY；
@@ -2025,9 +2064,9 @@ first-use 只呈现用户必须完成/理解的事实步骤，例如模型能力
 - `UI-SN-AC-010`：keyboard/touch/focus/deep-link/back/reload 的关键路径可验证；
 - `UI-SN-AC-011`：无静默丢失 draft/stream/note/session/material context；
 - `UI-SN-AC-012`：UI Acceptance 不被描述为 Product Acceptance 或 Learning Evidence。
-- `UI-SN-AC-013`：用户界面使用“课程”，但 route/API/domain/persistence 仍解析同一 Workspace identity。
-- `UI-SN-AC-014`：Course switch 改变真实 scope，并在 draft/stream/note/session/material 冲突时使用 owner-defined recovery。
-- `UI-SN-AC-015`：一个 Course 下多个 Activity 可恢复/切换，Conversation 不成为 thread manager。
+- `UI-SN-AC-013`：用户界面使用“空间”“对话”，但 route/API/domain/persistence 仍解析同一 Workspace / LearningActivity identity。
+- `UI-SN-AC-014`：空间切换改变真实 scope，并在 draft/stream/note/session/material 冲突时使用 owner-defined recovery。
+- `UI-SN-AC-015`：一个空间下多段对话可恢复；点已有对话不新开；对空间「继续学习」新开对话；Conversation 不成为 thread manager。
 
 ---
 

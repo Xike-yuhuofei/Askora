@@ -279,9 +279,9 @@ IN_PROGRESS；failed/quarantined 为 BLOCKED；deleted/missing 为 NOT_STARTED �
 
 #### ONBOARD-032 — Goal
 
-GOAL 只使用 SYS06 current confirmed/current Goal 与 canonical material mapping。draft、archived、
-superseded、unconfirmed 或 source mapping unavailable 不算 COMPLETE。Onboarding 不创建或修改 Goal，
-只导航既有 Book Learning command flow。
+GOAL 只使用 SYS06 按 `PD-RULE-004` 已采纳的 current/active Goal 与 canonical material mapping。draft、archived、
+superseded 或 source mapping unavailable 不算 COMPLETE。系统已采纳的 Goal 不算 incomplete。Onboarding 不创建或修改 Goal，
+也不把确认目标做成必经步骤。
 
 #### ONBOARD-033 — First activity completion
 

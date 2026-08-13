@@ -69,7 +69,7 @@ learning_objective:
 
 ### DOMAIN-010
 
-LLM MAY 从自然语言生成 goal candidate，但 `confirmed|active` 必须经过用户确认或显式产品规则确认。
+LLM MAY 从自然语言或材料处理生成 goal candidate，但 `confirmed|active` 必须经过用户确认或显式产品规则确认。现行显式产品规则见 `PD-RULE-004`：SYS06 从材料处理采纳的 Goal 可以直接成为 `active`，开始学习不要求用户确认步骤。
 
 ### DOMAIN-011
 

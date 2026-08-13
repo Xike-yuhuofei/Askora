@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import NoticeModal from './components/NoticeModal'
 import AppShell from './components/AppShell'
 import LearningShell from './components/LearningShell'
@@ -17,7 +18,8 @@ import RecoveryCenter from './pages/RecoveryCenter'
 import Unavailable from './pages/Unavailable'
 import Welcome from './pages/Welcome'
 import LearningWorkspace from './pages/LearningWorkspace'
-import { Navigate, useLocation, parseWorkspaceRoute } from './router'
+import CourseCreate from './pages/CourseCreate'
+import { Navigate, useLocation, useNavigate, parseWorkspaceRoute } from './router'
 
 const DEFAULT_WORKSPACE_ID = 'default'
 
@@ -36,6 +38,7 @@ const standardPages = {
   '/today': Today,
   '/library': Library,
   '/learning': LearningWorkspace,
+  '/courses/new': CourseCreate,
   '/learning/goals': Goals,
   '/learning/plan': LearningPath,
   '/learning/progress': Evidence,
@@ -72,7 +75,26 @@ const workspaceSubRoutes = {
   '/library': Library,
 }
 
+function parseCourseRoute(pathname) {
+  const match = pathname.match(/^\/courses\/([^/]+)(\/.*)?$/)
+  if (!match || match[1] === 'new') return null
+  return {
+    workspace_id: decodeRouteParam(match[1]),
+    sub_path: match[2] || '/',
+  }
+}
+
 export function resolveRoute(pathname) {
+  const courseRoute = parseCourseRoute(pathname)
+  if (courseRoute) {
+    return {
+      type: 'page',
+      Page: LearningWorkspace,
+      shell: 'workspace',
+      workspace_id: courseRoute.workspace_id,
+    }
+  }
+
   const workspaceRoute = parseWorkspaceRoute(pathname)
   if (workspaceRoute) {
     const subPath = workspaceRoute.sub_path
@@ -143,28 +165,46 @@ export function resolveRoute(pathname) {
 
 function AppRoutes() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const backgroundRef = useRef({ shell: 'workspace', content: null, pathname: '/today' })
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />
 
   let content
-  if (route.type === 'page') content = <route.Page />
+  if (route.type === 'page' && pathname !== '/settings') content = <route.Page />
   else if (route.type === 'workspace') content = <TutorWorkspace sessionId={route.sessionId} />
   else if (route.type === 'book-learning') content = <BookLearningLaunch documentId={route.documentId} />
   else if (route.type === 'activity-learning') content = <ActivityLearning activityId={route.activityId} />
   else if (route.type === 'goal-editor') content = <GoalEditor draftId={route.draftId} editGoalId={route.editGoalId} />
   else if (route.type === 'goal-detail') content = <GoalDetail goalId={route.goalId} />
-  else content = <Unavailable kind="not-found" />
+  else if (pathname !== '/settings') content = <Unavailable kind="not-found" />
 
   let wrappedContent = content
   if (route.shell === 'learning') {
     wrappedContent = <LearningShell>{content}</LearningShell>
   }
 
+  if (pathname !== '/settings') {
+    backgroundRef.current = {
+      shell: route.shell,
+      content: wrappedContent,
+      pathname,
+    }
+    return (
+      <AppShell variant={route.shell}>
+        {wrappedContent}
+      </AppShell>
+    )
+  }
+
   return (
-    <AppShell variant={route.shell}>
-      {wrappedContent}
-    </AppShell>
+    <>
+      <AppShell variant={backgroundRef.current.shell}>
+        {backgroundRef.current.content}
+      </AppShell>
+      <Settings onClose={() => navigate(backgroundRef.current.pathname || '/today')} />
+    </>
   )
 }
 

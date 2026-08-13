@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component: AI Input Box — TraeWork</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <link rel="stylesheet" href="../../components.css">
+  <style>
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+    }
+
+    /* AI Input Box */
+    .ds-ai-input {
+      border-radius: var(--radius-12);
+      border: 1px solid var(--border-neutral-l1);
+      background: var(--bg-base-default);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      overflow: hidden;
+      transition: border-color 120ms, box-shadow 120ms;
+    }
+    .ds-ai-input:hover {
+      border-color: var(--border-neutral-l2);
+    }
+    .ds-ai-input--focused {
+      border-color: var(--border-brand);
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+    }
+    .ds-ai-input--disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .ds-ai-input__textarea {
+      width: 100%;
+      min-height: 72px;
+      max-height: 300px;
+      padding: 12px 16px;
+      border: 0;
+      outline: none;
+      resize: none;
+      background: transparent;
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      overflow-y: auto;
+    }
+    .ds-ai-input__textarea::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .ds-ai-input__control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 8px 0 12px;
+      border-top: 1px solid var(--border-neutral-l1);
+      background: var(--bg-base-secondary);
+    }
+
+    .ds-ai-input__control-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ds-ai-input__control-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ds-ai-input__attachment-btn {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: var(--radius-6);
+      background: transparent;
+      color: var(--text-tertiary);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    .ds-ai-input__attachment-btn:hover {
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+    }
+
+    .ds-ai-input__model-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-6);
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    .ds-ai-input__model-selector:hover {
+      background: var(--bg-overlay-l1);
+    }
+    .ds-ai-input__model-selector .icon {
+      width: 12px;
+      height: 12px;
+      color: var(--icon-tertiary);
+    }
+
+    .ds-ai-input__send-btn {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: var(--radius-full);
+      background: var(--bg-brand);
+      color: var(--text-onbrand);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    .ds-ai-input__send-btn:hover {
+      background: var(--bg-brand-hover);
+    }
+    .ds-ai-input__send-btn:active {
+      background: var(--bg-brand-active);
+    }
+    .ds-ai-input__send-btn[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Demo */
+    .demo-section { margin-bottom: 32px; }
+    .demo-section h3 {
+      font-size: var(--heading-md-font-size);
+      margin-bottom: 12px;
+    }
+    .demo-annotation {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- @component-css-start -->
+  <main style="padding: 40px; max-width: 800px; margin: 0 auto;">
+    <h1 style="font-size: var(--heading-xl-font-size); margin-bottom: 8px;">AI Input Box</h1>
+    <p style="color: var(--text-tertiary); margin-bottom: 32px;">
+      Multi-modal AI input with model selector and send button. Primary interaction component for AI workflows.
+      <span style="color: var(--status-warning-default); font-weight: 500;">confidence: low</span>
+    </p>
+
+    <!-- Default State -->
+    <div class="demo-section">
+      <h3>Default (Idle)</h3>
+      <p class="demo-annotation">Empty textarea with AI-focused placeholder</p>
+      <div class="ds-ai-input">
+        <textarea class="ds-ai-input__textarea" placeholder="你的编写代码，调试 Bug，优化代码的提示词，让代码更优雅…"></textarea>
+        <div class="ds-ai-input__control-row">
+          <div class="ds-ai-input__control-left">
+            <button class="ds-ai-input__attachment-btn" title="Attach file">
+              <span class="icon icon--16">+</span>
+            </button>
+            <button class="ds-ai-input__attachment-btn" title="Upload">
+              <span class="icon icon--16">📎</span>
+            </button>
+          </div>
+          <div class="ds-ai-input__control-right">
+            <button class="ds-ai-input__model-selector">
+              <span>Seed-Code</span>
+              <span class="icon icon--12">▾</span>
+            </button>
+            <button class="ds-ai-input__send-btn" title="Send">
+              <span class="icon icon--16">→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focused State -->
+    <div class="demo-section">
+      <h3>Focused</h3>
+      <p class="demo-annotation">Brand border + subtle shadow ring</p>
+      <div class="ds-ai-input ds-ai-input--focused">
+        <textarea class="ds-ai-input__textarea" placeholder="你的编写代码，调试 Bug…">你好</textarea>
+        <div class="ds-ai-input__control-row">
+          <div class="ds-ai-input__control-left">
+            <button class="ds-ai-input__attachment-btn"><span class="icon icon--16">+</span></button>
+            <button class="ds-ai-input__attachment-btn"><span class="icon icon--16">📎</span></button>
+          </div>
+          <div class="ds-ai-input__control-right">
+            <button class="ds-ai-input__model-selector">
+              <span>Seed-Code</span>
+              <span class="icon icon--12">▾</span>
+            </button>
+            <button class="ds-ai-input__send-btn"><span class="icon icon--16">→</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- With Content -->
+    <div class="demo-section">
+      <h3>With Multi-Line Content</h3>
+      <p class="demo-annotation">Textarea auto-expands with content</p>
+      <div class="ds-ai-input ds-ai-input--focused">
+        <textarea class="ds-ai-input__textarea">请帮我实现一个三栏布局的应用外壳，
+左侧为任务层级导航面板，
+中间为代码编辑工作区，
+右侧为任务进度详情面板。
+
+要求支持面板拖拽调整宽度和折叠。</textarea>
+        <div class="ds-ai-input__control-row">
+          <div class="ds-ai-input__control-left">
+            <button class="ds-ai-input__attachment-btn"><span class="icon icon--16">+</span></button>
+            <button class="ds-ai-input__attachment-btn"><span class="icon icon--16">📎</span></button>
+          </div>
+          <div class="ds-ai-input__control-right">
+            <button class="ds-ai-input__model-selector">
+              <span>Seed-Code</span>
+              <span class="icon icon--12">▾</span>
+            </button>
+            <button class="ds-ai-input__send-btn"><span class="icon icon--16">→</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disabled -->
+    <div class="demo-section">
+      <h3>Disabled</h3>
+      <p class="demo-annotation">Loading state — cannot interact</p>
+      <div class="ds-ai-input ds-ai-input--disabled">
+        <textarea class="ds-ai-input__textarea" placeholder="模型加载中，请稍候…" disabled></textarea>
+        <div class="ds-ai-input__control-row">
+          <div class="ds-ai-input__control-left">
+            <button class="ds-ai-input__attachment-btn" disabled><span class="icon icon--16">+</span></button>
+          </div>
+          <div class="ds-ai-input__control-right">
+            <button class="ds-ai-input__model-selector" disabled>
+              <span>加载中…</span>
+            </button>
+            <button class="ds-ai-input__send-btn" disabled><span class="icon icon--16">→</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- @component-css-end -->
+</body>
+</html>

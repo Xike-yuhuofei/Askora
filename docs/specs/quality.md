@@ -271,7 +271,7 @@ ADR-0023 / `CWSP-*` requires L0 ownership/import tests、L2 strict schema/error/
 
 ### TEST-331
 
-Browser/E2E acceptance must separately prove Course Empty State、create-and-select、multi-Course switch、every draft/stream/note/session/material-position recovery branch、deep-link/refresh no side effect、Activity resume/start separation、360px/keyboard/focus/console。Static/component tests do not replace live browser evidence。
+Browser/E2E acceptance must separately prove Welcome-first / zero-space empty state、create-and-select space、unassigned material then assign、multi-space switch、every draft/stream/note/session/material-position recovery branch、deep-link/refresh no side effect、conversation resume vs 「继续学习」 start separation、360px/keyboard/focus/console。Static/component tests do not replace live browser evidence。
 
 ### TEST-AC-330
 
@@ -1855,7 +1855,7 @@ Course Workspace implementation is not DONE until ADR-0023 / `CWSP-AC-001..012`�
 
 #### DOD-321
 
-Course-centric frontend/route completion additionally requires live browser evidence for multi-Course create/switch/recovery、Activity resume/start、legacy route no-side-effect、responsive/accessibility/console。Engineering PASS must still report Product Acceptance、UX、Security、Quality and Learning Evidence separately。
+Space-centric frontend/route completion additionally requires live browser evidence for Welcome-first startup、multi-space create/switch/recovery、conversation resume vs 「继续学习」 new activity、legacy route no-side-effect、responsive/accessibility/console。Engineering PASS must still report Product Acceptance、UX、Security、Quality and Learning Evidence separately。
 
 ---
 

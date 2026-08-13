@@ -1,8 +1,8 @@
 # Askora PRODUCT-DEFINITION
 
 > 文档状态：Canonical Product Definition Baseline  
-> 冻结日期：2026-08-11  
-> 适用范围：Askora v1 Product Definition 及后续 Experience / Teaching / Architecture / Spec / Linear 工作  
+> 冻结日期：2026-08-13  
+> 适用范围：Askora v1 Product Definition 及后续 Experience Design / Spec / Linear 工作  
 > 上游战略：[`PRODUCT-STRATEGY.md`](PRODUCT-STRATEGY.md)  
 > 上游产品边界：[`PRODUCT-POSITIONING.md`](PRODUCT-POSITIONING.md)  
 > 文档职责：回答 Product Objects / Capabilities / Observable Behaviors / Product Rules / Requirements / Product Acceptance / Version Scope  
@@ -16,27 +16,9 @@
 
 > **为了履行 Askora 已冻结的产品承诺，产品本身必须具备什么能力、表现出什么可观察行为、遵守什么产品规则，以及当前 v1 哪些能力属于正式范围。**
 
-它位于 Product Positioning 与下游 Design / ADR / Specs 之间：
+它位于 Product Positioning 与下游 Experience Design / Specs 之间。完整权威顺序见 [`../README.md`](../README.md) 与仓库根 `AGENTS.md`。
 
-```text
-PRODUCT-STRATEGY
-        ↓ why / who / value / success
-PRODUCT-POSITIONING
-        ↓ category / hard boundary / non-goals
-PRODUCT-DEFINITION
-        ↓ capabilities / product objects / behaviors / requirements / product acceptance
-Experience / Teaching / Architecture Design
-        ↓
-Accepted ADR
-        ↓
-Implementation / Quality Specs
-        ↓
-Linear Issue / EXEC
-        ↓
-Code / Tests / Release Evidence
-```
-
-本文件**不是 Master Technical PRD**。它只冻结用户或产品层可观察的 WHAT；下游 HOW 必须在对应 Design / ADR / Specs 中定义。
+本文件**不是 Master Technical PRD**。它只冻结用户或产品层可观察的 WHAT；下游 HOW 必须在 Experience Design 与 Specs 中定义。Decision Log / ADR 只解释为什么这样选，不是现行合同。
 
 ---
 
@@ -56,9 +38,9 @@ Code / Tests / Release Evidence
 下游必须从本文件获得产品层输入：
 
 - Experience Design：决定用户如何理解、导航和操作已定义 capability；
-- Teaching / AI Design：决定学习能力内部如何通过 Teaching Policy / Learner Model / Assessment 等成立；
-- Architecture：决定 software ownership、state、persistence、interface 与 dependency；
-- Quality：决定 reliability / security / performance / accessibility 等验证合同；
+- `docs/specs/systems/`：决定学习能力内部如何通过 Teaching Policy / Learner Model / Assessment 等成立；
+- `docs/specs/architecture.md` 与相关 Specs：决定 software ownership、state、persistence、interface 与 dependency；
+- `docs/specs/quality.md`：决定 reliability / security / performance / accessibility 等验证合同；
 - Linear：管理当前实施优先级、Milestone、Issue、dependency 与状态。
 
 ### 2.3 Explicit Non-ownership
@@ -159,15 +141,16 @@ Askora 必须能够让用户建立受控的长期学习上下文，把自己提�
 
 ### CAP-02 — Learning Goal & Success Definition
 
-Askora 必须能够把用户的长期学习意图形成可持续维护、可验证的 Learning Goal / Objective，并保持用户对高层目标的最终控制权。
+Askora 必须能够把材料与学习过程形成可持续维护、可验证的 Learning Goal / Objective，供规划、教学与验证使用。
 
 产品必须支持：
 
-- 从自然语言意图形成目标候选；
+- 从材料与（若有）自然语言意图形成目标；
 - 明确目标能力、应用情境与成功条件；
-- 用户确认或纠正高层目标；
+- 由系统按产品规则采纳并维护 Goal，开始学习不以用户确认目标为前置；
 - 目标暂停、调整、重规划与证据约束下的 achievement；
-- 不把“完成活动”自动等同“目标已达成”。
+- 不把“完成活动”自动等同“目标已达成”；
+- 不把目标管理做成用户主路径工作。
 
 ### CAP-03 — Readiness, Diagnosis & Learning Planning
 
@@ -360,9 +343,11 @@ Conversation / Message 可以承载教学交互，但只有满足 evidence contr
 
 系统必须保持 independent、assisted、answer-exposed 等证据语义。用户要求答案可以被允许，但不能把已暴露答案的表现重新标成无提示独立成功。
 
-### PD-RULE-004 — User Owns High-level Learning Intent
+### PD-RULE-004 — Goals Are System-maintained Planning Facts
 
-系统可以提出 Goal、Plan、next activity 与教学建议，但用户拥有高层学习目标和核心产品状态的最终控制权。
+系统根据材料与学习过程生成并维护 Learning Goal / Objective。开始学习不以用户确认目标为前置。目标不是用户主路径上的管理对象。
+
+这是 DOMAIN-010 所称的「显式产品规则」：SYS06 按本合同采纳的 Goal 即可成为 `active` planning fact，不要求单独的用户确认步骤。LLM 仍不得无约束拥有 Goal truth（`PD-RULE-005`）。系统在 mapping 存在 blocking ambiguity 时 MAY 做最小澄清，但不得把确认目标做成开始学习的必经步骤。
 
 ### PD-RULE-005 — LLM Is Not Canonical Product Authority
 
@@ -400,16 +385,16 @@ Provider、network、parsing、storage 或 runtime failure 不得伪造成 learn
 
 ### CAP-01 Requirements
 
-- `PD-REQ-0101`：用户必须能够把受支持的本地学习材料纳入指定 Workspace，并在后续学习中持续引用同一 Material identity。
+- `PD-REQ-0101`：用户必须能够把受支持的本地学习材料纳入指定 Workspace，并在后续学习中持续引用同一 Material identity。上传可以先创建尚未归属 Workspace 的 Material；开始有依据的学习前，该 Material 必须已归属某一 Workspace。
 - `PD-REQ-0102`：v1 core material import 至少覆盖 EPUB、文本型 PDF、Markdown、TXT；扫描 OCR 不属于 v1 core requirement。
 - `PD-REQ-0103`：材料驱动的解释、引用和学习证据必须保持 source provenance。
 - `PD-REQ-0104`：普通 Material 删除必须进入可恢复生命周期；永久删除必须是独立明确动作。
 
 ### CAP-02 Requirements
 
-- `PD-REQ-0201`：系统必须能够把用户自然语言学习意图形成可审查的 Goal candidate，而不是要求用户提供内部 ID。
+- `PD-REQ-0201`：系统必须能够从材料与（若有）自然语言意图形成 Goal，而不是要求用户提供内部 ID 或先填写目标表单。
 - `PD-REQ-0202`：正式 Goal 必须包含足以判断学习成功的产品级能力/成功条件；不可验证的“了解/熟悉”不能作为唯一成功定义。
-- `PD-REQ-0203`：Goal 的确认、纠正、暂停和高层改变必须保持用户控制。
+- `PD-REQ-0203`：开始学习不要求用户确认 Goal。Goal 由 SYS06 按 `PD-RULE-004` 采纳为 planning fact；主路径不出现目标管理。
 
 ### CAP-03 Requirements
 
@@ -501,7 +486,7 @@ Askora 使用分层 Acceptance，禁止把所有“完成”混为一个 PASS。
 | Capability | Minimum Product Acceptance |
 |---|---|
 | CAP-01 | 用户的受支持材料能够进入真实 Workspace 学习上下文，并在学习时保持来源与生命周期语义 |
-| CAP-02 | 用户能够建立可验证 Goal，并保有确认/纠正控制权 |
+| CAP-02 | 系统能够从材料形成可验证 Goal 并用于规划；开始学习不要求用户确认目标 |
 | CAP-03 | 系统能够从真实状态判断 readiness、诊断必要缺口并给出可执行 next activity |
 | CAP-04 | LearningActivity 能依据新 evidence 改变教学行为，且不绕过 evidence/exposure rules |
 | CAP-05 | Attempt → Assessment → Evidence → Learner State 的产品语义可追溯且不混淆 |
@@ -701,15 +686,16 @@ Linear Issue 可以引用 `CAP-*` / `PD-REQ-*` / `PD-AC-*`，但不得复制并�
 | Product Actors / Objects / Capabilities | **本文件** |
 | Product Rules / Product Requirements | **本文件或明确 Product Feature Spec** |
 | Product Acceptance / v1 Feature Scope | **本文件或明确 Product Feature Spec** |
-| Navigation / Flow / Screen / Interaction | Canonical Experience Design / `docs/specs/ui/**` |
-| Teaching algorithm / Learner Model / Assessment mechanics | Teaching Canonical Design / `docs/specs/systems/**` |
-| Domain ownership / API / persistence / technical contracts | ADR / `docs/specs/**` |
-| Quality thresholds / test oracle | `docs/specs/quality/**` |
+| Navigation / Flow / Screen / Interaction | Experience Design / `docs/specs/ui.md` |
+| Teaching algorithm / Learner Model / Assessment mechanics | `docs/specs/systems/**` |
+| Domain ownership / API / persistence / technical contracts | `docs/specs/**` |
+| 决策选择理由 / 历史替代 | `docs/decisions/DECISIONS.md` + `docs/archive/adr/` |
+| Quality thresholds / test oracle | `docs/specs/quality.md` |
 | Current priority / milestone / task / dependency / status | Linear |
-| Historical completion evidence | `docs/archive/releases/**` |
+| Historical completion evidence | `docs/archive/` |
 
 ---
 
 ## 17. Working Rule
 
-> **Strategy 决定为什么值得做；Positioning 决定 Askora 允许成为什么；Product Definition 决定产品必须具备什么能力和行为；Experience / Teaching / Architecture 决定这些能力如何在人机体验和软件系统中成立；Linear 决定现在做什么；实现与证据决定当前实际上做到了什么。**
+> **Strategy 决定为什么值得做；Positioning 决定 Askora 允许成为什么；Product Definition 决定产品必须具备什么能力和行为；Experience Design 决定用户如何使用；Specs 决定软件必须怎样表现；Decision Log 解释为什么这样选；Linear 决定现在做什么；实现与证据决定当前实际上做到了什么。**

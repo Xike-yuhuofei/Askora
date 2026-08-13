@@ -47,9 +47,11 @@ Managed SourceFile 是 durable data。Cache 清理、Embedding/Index 重建、AI
 
 ### D01-003 — Workspace Scope
 
-每个 Material/SourceFile import MUST 属于一个明确 Workspace。导入任务、MaterialRevision、SourceSpan、derived index/rebuild task MUST 能解析该 workspace scope。
+Material import MAY 先以 `workspace_id=null` 创建 unassigned Material（`WSP-021` / `EXP-JOURNEY-001`）。导入任务、MaterialRevision、SourceSpan、derived index/rebuild task MUST 能解析 LocalOwner，并在已归属后解析 Workspace。
 
-不得因为同一 LocalOwner 存在多个 Workspace 而默认建立全局 Material scope。
+Unassigned Material MUST NOT 作为某一 Workspace 的普通 retrieval 成员，也 MUST NOT 启动有依据的 LearningActivity。
+
+归属后，后续 revision / span / index MUST 解析该 workspace scope。不得因为同一 LocalOwner 存在多个 Workspace 而默认建立全局已归属 Material scope。
 
 ## 3. Required Pipeline and Stage State
 
@@ -150,7 +152,7 @@ MUST NOT 自动跨 Material merge、跨 Workspace deduplicate 或删除用户选
 document_ir:
   material_id: uuid
   revision_id: uuid
-  workspace_id: uuid
+  workspace_id: uuid|null
   parser_version: string
   format: epub|pdf|markdown|text
   root_node_id: uuid

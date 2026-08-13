@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Sidebar from './Sidebar'
 import RightRail from './RightRail'
 import RecoveryIndicator from './RecoveryIndicator'
@@ -16,28 +17,43 @@ function AppShellContent({ children, variant }) {
   const isWorkspaceVariant = variant === 'workspace'
   const workspace = useWorkspace()
   const workspaceId = workspace?.current_workspace?.workspace_id
+  const [navCollapsed, setNavCollapsed] = useState(false)
+  const [railCollapsed, setRailCollapsed] = useState(false)
 
   return (
     <div
-      className={`app-shell app-shell--${variant}`}
+      className={[
+        'app-shell',
+        `app-shell--${variant}`,
+        isWorkspaceVariant ? 'ds-shell-three-panel' : '',
+        navCollapsed ? 'app-shell--nav-collapsed' : '',
+        isWorkspaceVariant && railCollapsed ? 'app-shell--rail-collapsed' : '',
+      ].filter(Boolean).join(' ')}
       data-workspace-id={workspaceId || undefined}
     >
-      <Sidebar />
+      <Sidebar
+        collapsed={navCollapsed}
+        onToggleCollapse={() => setNavCollapsed((value) => !value)}
+      />
       <main className={`app-main app-main--${variant}`} id="main-content">
         <RecoveryIndicator />
         {isWorkspaceVariant ? (
-          <div className="app-main--workspace-content" data-workspace-id={workspaceId || undefined}>
-            <section
-              className="app-main--center"
-              aria-label="学习画布"
-              data-workspace-id={workspaceId || undefined}
-            >
-              {children}
-            </section>
-            <RightRail workspaceId={workspaceId} />
-          </div>
+          <section
+            className="app-main--center ds-shell-three-panel__center"
+            aria-label="学习画布"
+            data-workspace-id={workspaceId || undefined}
+          >
+            {children}
+          </section>
         ) : children}
       </main>
+      {isWorkspaceVariant ? (
+        <RightRail
+          workspaceId={workspaceId}
+          collapsed={railCollapsed}
+          onToggleCollapse={() => setRailCollapsed((value) => !value)}
+        />
+      ) : null}
     </div>
   )
 }

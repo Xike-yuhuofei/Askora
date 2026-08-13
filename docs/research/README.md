@@ -33,9 +33,9 @@ docs/research/
 
 - [`learning-core/evidence/`](learning-core/evidence/)：教育科学、ITS、检索、教学策略、复习调度与 LLM/Agent 治理的来源证据；
 - [`learning-core/synthesis/`](learning-core/synthesis/)：八类系统研究、DR-03 系列、研究综合、候选范围与历史研究议程；
-- [`learning-core/README.md`](learning-core/README.md)：Research → Synthesis → Canonical Design / ADR / Spec 的形成链与历史边界。
+- [`learning-core/README.md`](learning-core/README.md)：Research → Synthesis → Product / Experience Design / Specs 的形成链与历史边界。
 
-这些文件可以包含历史架构候选与研究结论；其 current canonical 吸收结果必须从 `docs/design/learning/`、`docs/architecture/decisions/` 与 `docs/specs/` 读取。
+这些文件可以包含历史架构候选与研究结论；其 current canonical 吸收结果必须从 Product 三份、`docs/design/experience/` 与 `docs/specs/` 读取。Decision Log 只解释为什么，不是现行合同。
 
 ## 2. Research 职责
 
@@ -60,9 +60,9 @@ Research 不直接冻结：
 
 ```text
 Evidence / Research
-→ Synthesis / Decision
-→ PRODUCT-STRATEGY or Canonical Design
-→ downstream governance
+→ Synthesis
+→ PRODUCT-STRATEGY / PRODUCT-DEFINITION / Experience Design / Specs
+→ downstream implementation
 ```
 
 ## 3. Evidence Rule

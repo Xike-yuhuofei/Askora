@@ -532,13 +532,16 @@ Canonical current Material persistence MUST be able to represent at least:
 ```yaml
 material_lifecycle:
   material_id: uuid
-  workspace_id: uuid
+  workspace_id: uuid|null
+  assignment_state: unassigned|assigned
   lifecycle: active|trash
   lifecycle_version: integer
   trashed_at: datetime|null
   trash_reason: USER_DELETE|BATCH_DELETE|OTHER|null
   updated_at: datetime
 ```
+
+`assignment_state=unassigned` 当且仅当 `workspace_id=null`。Unassigned Material 仍属于 LocalOwner，可被 Trash/Restore；不得用于启动有依据的学习。归属 Workspace 后 `assignment_state=assigned`。
 
 A terminal permanent-delete tombstone/receipt MAY be stored outside the current Material row according to Data Control so long as `material_id`, scope, deletion time/workflow/checkpoint and idempotency can be proven without retained content.
 
@@ -557,7 +560,7 @@ Trash/Restore commands MUST include expected lifecycle/material version and idem
 
 #### MATLIFE-030 — Preflight
 
-Before Trash, validate exact LocalOwner + Workspace + Material scope.
+Before Trash, validate exact LocalOwner + Material scope。Assigned Material 还必须匹配其 `workspace_id`；unassigned Material 只按 LocalOwner + `material_id` 校验。
 
 If Material is already permanently deleted/not found, return stable not-found/deleted semantics without exposing cross-workspace metadata.
 
@@ -567,7 +570,7 @@ Trash UI/application SHOULD have a read-only preview containing at least same-Wo
 
 ```yaml
 material_id: uuid
-workspace_id: uuid
+workspace_id: uuid|null
 current_lifecycle: active|trash
 project_references:
   - project_id: uuid

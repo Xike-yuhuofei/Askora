@@ -1,10 +1,10 @@
 # Askora Experience Architecture
 
 > 状态：**Canonical Experience Design Baseline**  
-> 冻结日期：2026-08-11  
+> 冻结日期：2026-08-13  
 > 适用范围：Askora v1 Experience / IA / Navigation / Workspace / Journey 设计  
 > 上游：[`../../product/PRODUCT-STRATEGY.md`](../../product/PRODUCT-STRATEGY.md)、[`../../product/PRODUCT-POSITIONING.md`](../../product/PRODUCT-POSITIONING.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)
+> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)、[`../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md`](../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md)
 > 下游实现合同：[`../../specs/ui.md`](../../specs/ui.md)
 
 ---
@@ -33,23 +33,16 @@ System Design      = HOW the software owns and implements it
 
 本文件是当前 Experience Architecture 的 consolidated current truth。
 
-历史增量设计：
+历史增量设计已吸收进本文件；原文不在 current。溯源见 [`ADR-0018`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md) 与 [`ADR-0014`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)。新的实现和 Spec 不应要求通过 Supersession Matrix 自行推断当前体验模型。
 
-- `../UX-Architecture-Canonical-Design-Delta.md`
-- `../Interactive-Element-System-Canonical-Design-Delta.md`
-
-其已被本 Experience 文档体系吸收。历史 Delta 继续作为设计演进记录保留，但新的实现和 Spec 不应要求执行代理通过 Supersession Matrix 自行推断当前体验模型。
-
-重大 Experience 变更仍应遵循：
+重大 Experience 变更：
 
 ```text
 Product Definition
-→ Design / Design Delta
-→ ADR（需要稳定决策记录时）
-→ 更新本 Canonical Experience Design
-→ UI / UX Specs
-→ Linear / EXEC
-→ Implementation
+→ 更新本 Experience Design
+→ 更新 specs/ui.md
+→ 需要稳定决策记录时追加 ADR
+→ Linear / implementation
 ```
 
 ---
@@ -138,50 +131,82 @@ Experience Design 拥有：
 
 ## 5. Canonical User-facing IA
 
-### EXP-IA-001 — Course-centric Product IA
+### EXP-IA-001 — Space-centric Product IA
 
 Askora v1 的稳定用户侧 IA 为：
 
 ```text
-＋ 新课程                  Primary Action
-课程列表 / 当前课程          Long-term Context Navigation
-资料库                     Stable Product Domain Navigation
-Settings / Recovery        Utilities
+Welcome                      Default Destination
+已有对话                      Resumable Learning Process Navigation
+＋ 新建空间                   Explicit Action
+资料库                        Stable Product Domain Navigation
+Settings / Recovery           Utilities
 ```
 
-`今天` 与 `学习` 不再是 stable Product Domain 或 L0 Navigation。课程回答“我正在长期学习什么、当前可恢复哪个 LearningActivity”；资料库回答“我的学习资料与来源在哪里”。
+`今天` 与 `学习` 不再是 stable Product Domain 或 L0 Navigation。`课程` / `＋ 新课程` 不再是用户侧词汇。
 
-不得以 Goal、Plan、Progress、Knowledge Graph、Agent、Chat History 或新的 Dashboard 替代已移除的 Today/Learning 入口。
+- Welcome 回答“我打开 Askora 后先到哪里”；
+- 空间回答“长期学习上下文与进度记在哪里”；
+- 对话回答“哪一段可恢复的学习过程”；
+- 资料库回答“学习资料与来源在哪里”。
+
+不得以 Goal、Plan、Progress、Knowledge Graph、Agent、Chat History 或新的 Dashboard 替代 Welcome / 空间 / 对话。
 
 ### EXP-IA-002 — Utilities Are Not Product Domains
 
-Settings、Recovery 等是 App Utility，不与课程上下文或资料库等权。
+Settings、Recovery 等是 App Utility，不与空间上下文或资料库等权。
 
 Search / Command 只有在正式 capability 与 contract 存在时才作为 Utility 暴露，不得为了“功能完整”预留空入口。
 
-### EXP-IA-003 — Course Is Not a Management Center
+### EXP-IA-003 — Space Is Not a Management Center
 
-`Goal / Plan / Progress / History` 继续作为 canonical product truth 与必要的 contextual task flow 存在，但不作为 Course 的常驻管理 Facets。
+`Goal / Plan / Progress / History` 继续作为 canonical product truth 存在，但不作为空间的常驻管理 Facets，也不出现在主路径 Journey 上。
 
-用户只有在明确任务需要时进入：创建/纠正目标、查看计划原因、理解证据、恢复历史或审计状态。
+主路径不要求用户创建、确认或管理目标。查看计划原因、证据或历史只在明确任务需要时进入。Goal 由系统按 `PD-RULE-004` 维护。
 
 ### EXP-IA-004 — Chat Is Not a Product Domain
 
-Conversation / Tutor 是 LearningActivity 的交互形式之一，不是 L0 Product Domain，也不是 Askora 的产品心智模型。
+Conversation / Message / Tutor 是学习过程的交互形式，不是 L0 Product Domain，也不是 Askora 的产品心智模型。
 
-### EXP-IA-005 — New Course Is an Action
+用户界面的「对话」是某空间内一次可恢复学习过程的称呼，对应 canonical `LearningActivity`，不是 Chat thread，不新增 Product Object，不得用 Chat 1/2/3 或轮次计数组织。
 
-`＋ 新课程` 是 Primary `Action`。进入 creation flow 的 Navigation 不得产生业务写入；只有提交 owner-defined create command 才能创建真实 Workspace。没有真实 command/readiness 时不得显示 placeholder、disabled future entry 或 frontend-only success。
+### EXP-IA-005 — Create Space and Start Learning Are Actions
+
+以下才是会写入的 `Action`：
+
+- `＋ 新建空间`：提交后创建真实 Workspace；
+- 上传资料：只创建 `Material`，不创建空间或对话；
+- 加入学习空间：把已处理资料归属到选定或当场新建的空间；
+- 马上开始学习：系统自动创建空间、放入刚上传的资料、开第一段对话；
+- 对某空间「继续学习」：在该空间新开一段对话；
+- 开始尚未 active 的对话 / 学习活动：正式 lifecycle Action。
+
+进入创建流程的 Navigation 不得产生业务写入。没有真实 command/readiness 时不得显示 placeholder、disabled future entry 或 frontend-only success。
+
+### EXP-IA-006 — User-facing Object Model
+
+```text
+空间  1 ── n  资料
+空间  1 ── n  对话
+```
+
+| 用户文案 | Canonical | 创建时机 |
+|---|---|---|
+| 资料 | `Material` | 用户上传成功 |
+| 空间 | `Workspace` | 用户显式新建；加入空间时当场新建；「马上开始学习」自动创建 |
+| 对话 | `LearningActivity`（用户侧称呼） | 开始学习或对空间「继续学习」 |
+
+`LearningProject` 仍是 Workspace 内可选组织对象，不与「空间」互换。不得创建第二套 `space_id` / `conversation_id` 身份。
 
 ---
 
 ## 6. Workspace Experience Model
 
-### EXP-WSP-001 — Course Is the User-facing Long-term Context
+### EXP-WSP-001 — Space Is the User-facing Long-term Context
 
-用户界面统一使用“课程”表达长期学习上下文；canonical `Workspace` identity、scope 与 owner 保持不变。
+用户界面统一使用“空间”表达长期学习上下文；canonical `Workspace` identity、scope 与 owner 保持不变。
 
-`LearningProject` 继续是 Workspace 内可选组织对象，不与“课程”互换。
+`LearningProject` 继续是 Workspace 内可选组织对象，不与“空间”互换。「对话」不与空间互换。
 
 界面不得用 route、subject、session title 或 frontend local state 冒充 Workspace truth。
 
@@ -203,13 +228,17 @@ Workspace 切换不得静默丢弃：
 
 exact persistence / command / version mechanics 由下游 Spec 定义。
 
-### EXP-WSP-004 — Course Switching Changes Real Scope
+### EXP-WSP-004 — Space Switching Changes Real Scope
 
-切换课程必须切换同一 canonical Workspace scope 下的 Activity、Session、Materials、Retrieval、Notes、Current Material、Goal/Plan/LearnerState/Review projections 与 History/resumable state。Selection 与 switch Action 分离；route、Sidebar selected state、React state 或 localStorage 不构成切换成功。
+切换空间必须切换同一 canonical Workspace scope 下的 Activity、Session、Materials、Retrieval、Notes、Current Material、Goal/Plan/LearnerState/Review projections 与 History/resumable state。Selection 与 switch Action 分离；route、Sidebar selected state、React state 或 localStorage 不构成切换成功。
 
-### EXP-WSP-005 — One Course, Many Learning Activities
+### EXP-WSP-005 — One Space, Many Conversations
 
-一个课程可以包含多个 LearningActivity。当前课程提供 Activity Switcher / Recent Learning；Activity 标题使用学习目的，不使用 Chat 1/2/3。打开可恢复 Activity 可以是 Navigation / InteractiveContent；启动或恢复 lifecycle 必须使用正式 Action。
+一个空间可以包含多段对话。对话标题使用学习目的，不使用 Chat 1/2/3。
+
+- 打开已有可恢复对话是 Navigation / InteractiveContent，不得创建第二 Activity / Session / transcript；
+- 对某空间「继续学习」是 Action，必须调用 SYS06 owner 创建/启动新的 LearningActivity，并继承该空间的学习进度；
+- 启动尚未 active 的对话必须使用正式 Action。
 
 ---
 
@@ -220,10 +249,10 @@ exact persistence / command / version mechanics 由下游 Spec 定义。
 ```text
 Left / Where        Center / Learn             Right / Reference & Notes
 
-Create Course        Teaching content           Learning Notes
-Course context       Questions / tasks           Current Material
-Course switch        Learner answers             Citation / source context
-Activity switcher
+Welcome              Teaching content           Learning Notes
+已有对话              Questions / tasks           Current Material
+＋ 新建空间           Learner answers             Citation / source context
+当前空间（学习中）
 Library / Utilities
                     Feedback
                     Learning Context Drawer
@@ -234,13 +263,13 @@ Library / Utilities
 
 左侧只承担：
 
-- `＋ 新课程` Action；
-- 当前课程与课程列表；
-- Course / Workspace 切换；
-- 当前课程的 Activity Switcher / Recent Learning；
+- Welcome destination；
+- 已有对话列表（恢复入口）；
+- `＋ 新建空间` Action；
+- 学习中的当前空间上下文；
 - 资料库与 Utility navigation。
 
-不得承担 Goal/Plan/Progress/Evidence 的常驻管理 Dashboard。
+不得承担 Goal/Plan/Progress/Evidence 的常驻管理 Dashboard。不得把左侧做成 Chat thread manager。
 
 ### EXP-LAYOUT-002 — Center = Learn
 
@@ -280,62 +309,125 @@ Learning Context Drawer 位于输入/Composer 上方，默认收起，只提供�
 
 ## 8. Core Journeys
 
-### EXP-JOURNEY-001 — New Course to First Meaningful Learning
+现行 Core Journey 四条，覆盖用户侧主工作，不覆盖 Settings / Recovery / 备份等 Utility。Product / Positioning / SYS06 / Platform 已按 ADR-0026 与这四条对齐：开始学习不确认目标；上传允许未归属空间的资料。
 
 ```text
-＋ 新课程
-→ 创建课程
-→ 添加/选择学习材料（适用时）
-→ 明确 Learning Goal
-→ 建立可开始的 LearningActivity
-→ 进入 Course-scoped Learning Workspace
+001 用资料开始学习
+002 回来继续
+003 在对话里学习
+004 建立或扩充空间
 ```
 
-首次使用流程只解释用户必须理解的步骤，不暴露内部系统阶段。
+`001` / `002` / `004` 的终点是进入或回到 `003`。`003` 的细部语义（Attempt、帮助、证据、引用、笔记）由 [`LEARNING-EXPERIENCE.md`](LEARNING-EXPERIENCE.md) 拥有；本文件只冻结用户可走的主路径。
 
-### EXP-JOURNEY-002 — App Start / Continuation
+每一步区分：用户做 / 系统做 / 用户看到。系统内部阶段（解析、诊断、规划、生成目标）不得要求用户当作步骤来完成。
+
+### EXP-JOURNEY-001 — Materials to First Learning
+
+**情境：** 用户有自己的材料，想开始用 Askora 学。  
+**期望：** 放下资料后进入学习；不必先理解目标、计划或内部对象。
 
 ```text
-最近活动课程 + resumable Activity
-→ 恢复 Course / Activity
-
-有课程、无 resumable Activity
-→ 最近课程 orientation / Activity Switcher
-
-无课程
-→ Course Empty State
-→ Primary Action: 新课程
+上传资料
+→ 系统处理
+→ 选择「加入学习空间」或「马上开始学习」
+→ 进入对话，或回到 Welcome
 ```
 
-启动解析与 redirect 不得创建 Course、Activity 或 Session，也不得修改 Workspace truth。
+| 阶段 | 用户做 | 系统做 | 用户看到 |
+|---|---|---|---|
+| 放入资料 | 上传 | 只创建 `Material` | 处理中；不得假装已有空间或对话 |
+| 处理 | 等待 | 解析、分析；内部可生成总目标 / 阶段目标 | 不出现目标管理；状态诚实 |
+| 决定去向 | 选「加入学习空间」或「马上开始学习」 | 按选择执行 | 二选一 |
+| 加入空间 | 选已有空间；没有则可当场新建 | 资料归属该空间 | 再问：要不要现在开始学习 |
+| 现在学（加入之后） | 要 / 不要 | 要：在该空间开一段对话；不要：结束本次 | 对话，或回到 Welcome |
+| 马上开始学习 | 选这条 | 自动建空间、放入刚上传的资料、开第一段对话 | 进入对话 |
 
-### EXP-JOURNEY-003 — Material to Active Learning
+首次使用只解释用户必须理解的步骤。处理中 / 失败必须可理解；系统故障不得显示成学习者失败。
+
+### EXP-JOURNEY-002 — Return and Continue
+
+**情境：** 用户再次打开 Askora。  
+**期望：** 能接着某段对话，或按某个空间的进度往下学。
 
 ```text
-Library / Current Material
-→ 阅读或定位来源
-→ 进入解释 / 问题 / retrieval / practice
-→ Attempt
-→ Feedback
+打开 Askora
+→ Welcome（侧栏挂着已有对话）
+→ 点某段对话恢复
+  或 在 Welcome 选空间并点「继续学习」
 ```
 
-资料消费不是学习闭环终点；Experience 应支持从“看材料”自然进入主动学习。
+| 阶段 | 用户做 | 系统做 | 用户看到 |
+|---|---|---|---|
+| 打开 | 打开 Askora | 不自动新建空间 / 对话 / Session | **每次先 Welcome**；侧栏是已有对话 |
+| 续聊 | 点侧栏某段对话 | 恢复同一段对话 | 该对话的现场；不新开 |
+| 按空间续学 | 选空间，点「继续学习」 | 分析该空间进度，**新开一段对话**接续 | 新对话；旧对话仍在侧栏 |
 
-### EXP-JOURNEY-004 — Interrupted Learning Recovery
+启动解析与 redirect 不得创建空间、对话或 Session，也不得修改 Workspace truth。打开某段已有对话不得复制 Activity / transcript。对空间「继续学习」必须走正式 owner Action。
+
+复习 / 迁移 / 受助后的独立验证通过「继续学习」或打开相关对话回到真实学习过程，而不是提醒数字或掌握度 Dashboard。
+
+恢复已有对话必须基于 durable truth；浏览器内存不等于已保存。
+
+### EXP-JOURNEY-003 — Learn in a Conversation
+
+**情境：** 用户已经在某段对话里。  
+**期望：** 能真正想、答、看反馈；需要时要帮助或看原文；停下来之后还能接上。
 
 ```text
-重新进入 Askora
-→ 恢复 Course / canonical Workspace
-→ 恢复 current activity/session/context
-→ 识别未完成状态
-→ 继续学习
+知道我现在在学什么
+→ 思考并作答
+→ 看到诚实反馈
+→ 需要时请求帮助或查看原文
+→ 再试，或做一次独立验证
+→ 停下来可恢复，或进入真实的下一步
 ```
 
-恢复必须基于 durable truth；浏览器内存不等于已保存。
+| 阶段 | 用户做 | 系统做 | 用户看到 |
+|---|---|---|---|
+| 定向 | 进入或回到这段对话 | 呈现当前任务与必要上下文 | 在哪个空间、这段对话要做什么；不出现 Goal/Plan 管理 |
+| 作答 | 思考并提交 Attempt | 记录真实 Attempt；评估 | 自己的回答被保留 |
+| 反馈 | 阅读反馈 | 说明哪部分成立、哪部分要改、下一步是什么 | 学习反馈，不是「你答错了」式的系统故障 |
+| 请求帮助 | 要解释 / 提示 / 例子 / 直接答案 | 按 request 与 Teaching Policy 响应；保留暴露语义 | 帮助状态可读（独立 / 已用帮助 / 已暴露答案 / 待验证） |
+| 对照来源 | 点引用或查看原文 | 打开真实来源，不把用户带离当前对话 | 可读出处；无来源时说不可用 |
+| 写笔记 | 写下自己的文字 | 保存为 `UserNote`；不无确认覆盖原文 | 保存中 / 已保存 / 失败 诚实 |
+| 再试 | 再次作答 | 作为新的 Attempt，不覆盖旧回答 | 两次作答都可追溯 |
+| 这一段结束 | 停下，或接受系统给出的下一步 | 给真实下一步，或诚实说没有 | 继续当前对话 / 新对话 / 可恢复暂停 / 仍需独立验证 |
 
-### EXP-JOURNEY-005 — Review / Validation Return
+阅读完成、点「懂了」、AI 代答不得被包装成独立掌握。补救必须留在当前空间 / 对话 / 资料上下文，并回到新的 Attempt。
 
-用户因延迟复习、迁移验证或受助后的独立验证重新进入学习时，应被引导回真实 LearningActivity，而不是只看到提醒数字或掌握度 Dashboard。
+本 Journey 的教学、评估与证据规则听 [`LEARNING-EXPERIENCE.md`](LEARNING-EXPERIENCE.md) 与 `docs/specs/systems/`。
+
+### EXP-JOURNEY-004 — Create or Extend a Space
+
+**情境：** 用户要先有一个长期容器，或给已有空间补充资料。  
+**期望：** 不必先开聊也能建空间；后补的资料能进同一个空间。
+
+```text
+＋ 新建空间
+→ 得到空空间
+→ 放入资料，或先不学
+
+或
+
+已有空间
+→ 再上传 / 加入资料
+→ 系统处理
+→ 问要不要现在开始学习
+```
+
+| 阶段 | 用户做 | 系统做 | 用户看到 |
+|---|---|---|---|
+| 显式新建 | 提交「新建空间」 | 创建真实 Workspace | 一个空空间；不是对话 |
+| 空空间 | 可先离开 | 不自动开对话，不编造资料或目标 | 诚实的空态：可以加资料，还不能开始有依据的学习 |
+| 往已有空间加资料 | 上传或从资料库加入 | 只创建或归属 `Material`，再处理 | 处理中；完成后问要不要现在开始学习 |
+| 现在学 | 要 / 不要 | 要：在该空间开一段对话（走 `003`）；不要：留在空间 / Welcome | 对话，或资料已在空间里 |
+
+没有资料时，「开始学习 / 继续学习」必须说明还缺依据，不得进入伪装成有来源的对话。后补资料的处理完成弹窗与 `001` 相同：加入哪个空间（默认当前空间）以及要不要现在学。
+
+`001` 是「手上有资料，第一次决定去哪」；`004` 是「先有空间，或以后再往里加东西」。不要把两条合成一个必须先建空间才能上传的向导。
+
+上传未归属空间的 Material 服从 `PD-REQ-0101` 与 `WSP-021`：允许 `workspace_id=null`；归属前不得开始有依据的学习。目标不出现在主路径，服从 `PD-RULE-004` / `PD-REQ-0203`。
 
 ---
 
@@ -366,7 +458,7 @@ Primary learning task
 
 - 使用简体中文作为 v1 正式语言；
 - 优先使用学习者可理解词汇，而不是 `SYSxx`、DTO、version id；
-- 正常用户界面使用“课程”，不用 `Workspace`；工程/诊断层仍保持 canonical naming；
+- 正常用户界面使用“空间”“对话”，不用 `Workspace` / `LearningActivity` 作为主文案；工程/诊断层仍保持 canonical naming；
 - 清楚区分“建议”“估计”“已验证”“受助”“答案已暴露”；
 - 错误说明回答：发生了什么、数据是否安全、现在能做什么；
 - 不把系统/模型故障表达成学习者失败；

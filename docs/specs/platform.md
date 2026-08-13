@@ -551,9 +551,18 @@ The ORM class/table MAY retain the legacy name during the compatibility window. 
 
 #### WSP-021 — Workspace on Material
 
-Current Material persistence MUST gain direct non-null `workspace_id` after backfill/cutover.
+Current Material persistence MUST have a durable `workspace_id` column. After legacy backfill/cutover, migrated rows MUST be non-null.
 
-New Material writers MUST require Workspace explicitly or derive it from an exact Workspace-scoped parent command; owner-only creation is forbidden after cutover.
+New Material writers MAY create an **unassigned** Material with `workspace_id=null`（`EXP-JOURNEY-001` 上传只创建资料）。Unassigned Material：
+
+- 拥有稳定 `material_id`；
+- MUST NOT 被用来启动有依据的 LearningActivity；
+- MUST NOT 作为某一 Workspace 的普通 retrieval 成员；
+- MUST 通过 owner command 归属到某一 Workspace 之后，才能进入 `马上开始学习` / `继续学习` 的有依据学习。
+
+归属 command（加入学习空间，或马上开始学习所触发的自动建空间）写入 exactly one `workspace_id`。v1 归属后不得用 frontend 改挂到另一 Workspace。
+
+Assigned Material writers MUST require Workspace explicitly or derive it from an exact Workspace-scoped parent command。
 
 #### WSP-022 — Normalized Managed SourceFile
 
@@ -708,7 +717,7 @@ If LocalOwner is missing/ambiguous, startup/migration MUST fail closed; it MUST 
 
 ADR-0023 / `CWSP-*` amends the original unconditional first-use bootstrap：
 
-- fresh LocalOwner with no legacy data MAY have zero Workspace/default/selection so Course Empty State is real；
+- fresh LocalOwner with no legacy data MAY have zero Workspace/default/selection so Welcome empty state is real；
 - legacy-data migration MUST ensure exactly one active default Workspace before backfill；
 - first explicit Workspace create MUST create the first active default and current selection atomically；
 - once any active Workspace exists, DB/application invariants MUST prevent multiple active defaults for the same owner。
@@ -1411,7 +1420,7 @@ sanitized telemetry至少：`workspace_id`、source/target selection version、c
 
 ### 11. Acceptance Criteria
 
-- `CWSP-AC-001`：fresh owner真实返回 Course Empty State基础事实，不隐式创建 Workspace。
+- `CWSP-AC-001`：fresh owner真实返回 Welcome empty / zero-Workspace 基础事实，不隐式创建 Workspace。
 - `CWSP-AC-002`：legacy data幂等归属 exactly one default Workspace + selection。
 - `CWSP-AC-003`：current selection只有 Platform Registry writer，与 default marker分离。
 - `CWSP-AC-004`：create-and-select原子、versioned、idempotent，无半成品 Course。

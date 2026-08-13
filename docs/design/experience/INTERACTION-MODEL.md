@@ -1,10 +1,10 @@
 # Askora Interaction Model
 
 > 状态：**Canonical Interaction Design Baseline**  
-> 冻结日期：2026-08-11  
+> 冻结日期：2026-08-13  
 > 适用范围：Askora v1 semantic interaction model  
 > 上游：[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)
+> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)
 > 下游：UI Screen / Learning Interaction / Design System Specs
 
 ---
@@ -65,8 +65,8 @@ StatusFeedback
 
 典型用途：
 
-- 进入 Course、Library 或 Utility；
-- 打开已存在的 LearningActivity；
+- 进入 Welcome、空间、Library 或 Utility；
+- 打开已存在的对话；
 - 返回；
 - 打开对象详情；
 - 进入明确 task flow；
@@ -80,11 +80,14 @@ Navigation 本身不得创建 Goal、Activity、Session、Evidence 或改变 can
 
 典型用途：
 
-- 开始/继续 LearningActivity；
+- 新建空间；
+- 上传资料；
+- 加入学习空间；
+- 马上开始学习；
+- 对空间继续学习；
+- 开始尚未 active 的对话；
 - 提交作答；
 - 请求帮助；
-- 导入资料；
-- 创建/确认目标；
 - 删除、恢复、导出、重试。
 
 Action 必须具备可预测结果，并在适用时定义 pending / disabled / error / destructive / retry semantics。
@@ -241,52 +244,54 @@ Delete
 
 ## 7. Askora-specific Semantic Mapping
 
-### INT-MAP-001 — Course / Workspace
+### INT-MAP-001 — Space / Workspace
 
 ```text
-查看当前课程              → StatusFeedback / Context
-选择候选课程              → Selection
-提交课程切换              → Action
-进入某课程上下文           → Navigation
-＋ 新课程                 → Action
+查看当前空间              → StatusFeedback / Context
+选择候选空间              → Selection
+提交空间切换              → Action
+进入 Welcome              → Navigation
+＋ 新建空间               → Action
+马上开始学习（自动建空间） → Action
+加入学习空间              → Action
 切换中的保存/恢复状态      → StatusFeedback
 ```
 
-用户界面使用“课程”；owner/domain contract 继续使用 Workspace。Course row 是 Navigation / InteractiveContent，不因为视觉上是 Button/Card 改变语义。
+用户界面使用“空间”；owner/domain contract 继续使用 Workspace。空间 row 是 Navigation / InteractiveContent，不因为视觉上是 Button/Card 改变语义。
 
-### INT-MAP-002 — Learning Activity
+### INT-MAP-002 — Conversation / Learning Activity
 
 ```text
 查看当前任务             → InteractiveContent / Content
-开始 / 继续              → Action
+打开已有对话             → Navigation / InteractiveContent
+对空间「继续学习」         → Action（新开对话）
 提交 Attempt              → Action
 请求帮助                 → Action
 帮助 / 暴露状态           → StatusFeedback
 查看来源                 → Disclosure / Navigation
-Activity Switcher row    → Navigation / InteractiveContent
-启动尚未 active 的 Activity → Action
+启动尚未 active 的对话     → Action
 ```
 
-Conversation 是 Activity 的交互形式，不是独立 Product Domain。
+「对话」是用户侧对 `LearningActivity` 的称呼。Conversation / Message 是该过程的交互形式，不是独立 Product Domain。
 
-Activity title 必须有学习语义；禁止使用 Chat 1/2/3 将 switcher 设计为聊天线程管理器。
+对话标题必须有学习语义；禁止使用 Chat 1/2/3 将侧栏设计为聊天线程管理器。
 
 ### INT-MAP-003 — Goal / Plan / Evidence / History
 
 ```text
 必要上下文摘要           → Content / StatusFeedback
 查看原因或详情           → Disclosure / contextual Navigation
-创建 / 纠正 / 确认       → Action（仅 owner contract 存在时）
+创建 / 纠正 / 确认       → 主路径不出现；Goal 由系统按 PD-RULE-004 维护
 直接编辑 canonical state → FORBIDDEN unless explicitly authorized
 ```
 
-它们不自动成为 Course 常驻 navigation facet。
+它们不自动成为空间常驻 navigation facet。
 
 ### INT-MAP-004 — Material
 
 ```text
 Material row             → InteractiveContent
-Import                   → Action
+上传 / Import            → Action（只创建 Material）
 Search / Filter          → Control
 Multi-select             → Selection
 Selected-object operation→ Contextual Action
@@ -418,4 +423,4 @@ UI / UX Specs 必须：
 - 不让 Navigation 产生隐藏业务写入；
 - 不让 frontend-only state 形成第二 canonical truth；
 - 对 loading / error / retry / disabled / focus 给出可自动验证行为；
-- 对当前 Experience Architecture 的 Workspace、Learning Canvas、Notes/Material rail 提供一致映射。
+- 对当前 Experience Architecture 的 Welcome、空间、对话、Learning Canvas、Notes/Material rail 提供一致映射。

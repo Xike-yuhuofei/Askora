@@ -18,7 +18,10 @@
 .workspace-context {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  text-decoration: none;
 }
 
 .workspace-context__label {

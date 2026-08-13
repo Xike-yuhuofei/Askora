@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 2,
+  "slug": "shell-three-panel",
+  "name": "Three-Panel Shell",
+  "category": "layout",
+  "sourceKind": "reverse-engineered",
+  "confidence": "low",
+  "semanticTypeCandidates": [
+    {
+      "type": "Three-Panel Application Shell",
+      "evidence": "Reverse-engineered from Light Mode screenshots (Screens 6, 7): left task hierarchy panel + center workspace + right task detail panel. Not present in UIKit prototypes."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "panel-configuration",
+      "values": [
+        ".ds-shell-three-panel",
+        ".ds-shell-three-panel__left",
+        ".ds-shell-three-panel__center",
+        ".ds-shell-three-panel__right",
+        ".ds-shell-three-panel__gutter",
+        ".ds-shell-three-panel--collapsed-left",
+        ".ds-shell-three-panel--collapsed-right",
+        ".ds-shell-three-panel--fullscreen"
+      ],
+      "evidence": "Inferred from screenshot analysis: three horizontal panels with resizable widths and collapse states."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "reverse-engineering/screenshots/ (Screens 6, 7)",
+    "representativeSelectors": [
+      ".ds-shell-three-panel",
+      ".ds-shell-three-panel__left",
+      ".ds-shell-three-panel__center",
+      ".ds-shell-three-panel__right",
+      ".ds-shell-three-panel__gutter",
+      ".ds-shell-three-panel__resizer",
+      ".ds-shell-three-panel--collapsed-left",
+      ".ds-shell-three-panel--collapsed-right",
+      ".ds-shell-three-panel--fullscreen"
+    ],
+    "cssRuleCount": 28
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "left-panel-width",
+      "value": "200px (collapsible to 48px)",
+      "evidence": "Measured from screenshots: ~200px default, icons-only collapsed state."
+    },
+    {
+      "dimension": "right-panel-width",
+      "value": "360px (collapsible to 0px)",
+      "evidence": "Measured from screenshots: ~360px default, fully collapsible."
+    },
+    {
+      "dimension": "center-panel-min-width",
+      "value": "480px",
+      "evidence": "Minimum usable width for code editor + AI input."
+    },
+    {
+      "dimension": "panel-gutter",
+      "value": "1px border + 4px gap",
+      "evidence": "Thin visual separator between panels."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "resizing",
+      "collapsed-left",
+      "collapsed-right",
+      "fullscreen",
+      "responsive"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ds-shell-three-panel",
+      "whySelected": "Root shell container with three-column CSS grid layout.",
+      "traits": [
+        "display: grid",
+        "grid-template-columns: 200px minmax(480px, 1fr) 360px",
+        "height: 100vh",
+        "overflow: hidden"
+      ],
+      "childrenDigest": [
+        ".ds-shell-three-panel__left",
+        ".ds-shell-three-panel__center",
+        ".ds-shell-three-panel__right",
+        ".ds-shell-three-panel__resizer"
+      ]
+    },
+    {
+      "selector": ".ds-shell-three-panel--collapsed-left",
+      "whySelected": "Left panel collapsed to icon-only 48px width.",
+      "traits": [
+        "grid-template-columns: 48px minmax(480px, 1fr) 360px"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ds-shell-three-panel--collapsed-right",
+      "whySelected": "Right panel fully collapsed to 0px.",
+      "traits": [
+        "grid-template-columns: 200px minmax(0, 1fr) 0px"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "reverse-engineering/screenshots/",
+    "selectors": [
+      ".ds-shell-three-panel",
+      ".ds-shell-three-panel__left",
+      ".ds-shell-three-panel__center",
+      ".ds-shell-three-panel__right",
+      ".ds-shell-three-panel__gutter",
+      ".ds-shell-three-panel__resizer",
+      ".ds-shell-three-panel--collapsed-left",
+      ".ds-shell-three-panel--collapsed-right",
+      ".ds-shell-three-panel--fullscreen"
+    ]
+  },
+  "structurePatterns": [
+    "Three-column CSS grid with fractional center column.",
+    "Left panel: navigation hierarchy, 200px default, 48px collapsed.",
+    "Center panel: workspace (code editor + AI input), fluid width.",
+    "Right panel: task detail/progress, 360px default, fully collapsible.",
+    "Resizer handles between panels for drag-to-resize.",
+    "Status bar positioned at bottom of entire shell.",
+    "Minimum total viewport width: 960px (sum of all panel min-widths)."
+  ],
+  "usageHints": [
+    "Use for IDE/workspace product surfaces that require navigation + content + detail simultaneously.",
+    "Always provide collapse/expand controls for left and right panels.",
+    "Center panel should contain the primary workspace (code editor, design canvas, etc).",
+    "Left panel hosts task hierarchy navigation.",
+    "Right panel hosts task progress, terminal output, and contextual information."
+  ],
+  "doNotInvent": [
+    "Do not add more than three horizontal panels.",
+    "Do not allow left panel to collapse to less than 48px (icon-only minimum).",
+    "Do not remove resizer handles.",
+    "Do not use this shell for simple two-panel or single-panel layouts."
+  ],
+  "unknowns": [
+    "Exact resize behavior (snap points, min/max widths) not confirmed from static screenshots.",
+    "Keyboard shortcuts for panel resize/collapse not documented.",
+    "Touch/mobile adaptation not available.",
+    "Original design intent for panel widths not available."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-base-secondary",
+    "--bg-menu",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--spacer-0",
+    "--spacer-1",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-8",
+    "--spacer-16",
+    "--text-default",
+    "--text-tertiary",
+    "--radius-4",
+    "--radius-8",
+    "--status-error-default",
+    "--status-success-default",
+    "--status-warning-default"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "reverse-engineering/screenshots/",
+      "classes": [
+        "ds-shell-three-panel",
+        "ds-shell-three-panel__left",
+        "ds-shell-three-panel__center",
+        "ds-shell-three-panel__right",
+        "ds-shell-three-panel__gutter",
+        "ds-shell-three-panel__resizer",
+        "ds-shell-three-panel--collapsed-left",
+        "ds-shell-three-panel--collapsed-right",
+        "ds-shell-three-panel--fullscreen"
+      ]
+    }
+  },
+  "provenance": {
+    "preview": "N/A — not present in UIKit prototypes",
+    "source": "screens 6-7: Askora Work View screenshots",
+    "css": {
+      "file": "N/A — to be added to components.css",
+      "marker": "shell-three-panel"
+    },
+    "contractBasis": "Reverse-engineered from Light Mode screenshots showing a three-panel IDE layout. Measurements confirmed against 07-screenshot-measurements.md."
+  },
+  "assetsConsumed": [
+    "assets/icons/Collapse.svg",
+    "assets/icons/Expand.svg",
+    "assets/icons/DockLeft.svg",
+    "assets/icons/DockRight.svg",
+    "assets/icons/DockUp.svg",
+    "assets/icons/SidebarLeft.svg",
+    "assets/icons/SidebarRight.svg",
+    "assets/icons/Fullscreen.svg",
+    "assets/icons/FullscreenExit.svg"
+  ],
+  "newTokensProposed": [
+    {
+      "token": "--shell-left-width",
+      "value": "200px",
+      "purpose": "Default left panel width"
+    },
+    {
+      "token": "--shell-left-collapsed-width",
+      "value": "48px",
+      "purpose": "Left panel collapsed (icon-only) width"
+    },
+    {
+      "token": "--shell-right-width",
+      "value": "360px",
+      "purpose": "Default right panel width"
+    },
+    {
+      "token": "--shell-center-min-width",
+      "value": "480px",
+      "purpose": "Minimum center panel width"
+    },
+    {
+      "token": "--shell-gutter-width",
+      "value": "1px",
+      "purpose": "Visual separator between panels"
+    },
+    {
+      "token": "--shell-resizer-width",
+      "value": "4px",
+      "purpose": "Click target for panel resizer"
+    }
+  ]
+}

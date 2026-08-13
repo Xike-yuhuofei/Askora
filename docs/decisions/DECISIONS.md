@@ -1,20 +1,20 @@
-# Askora 决策权威视图（Decision Log）
+# Askora 决策索引（Decision Log）
 
-> 状态：**Current — 当前有效决策的唯一视图**
-> 定位：decision log（Nygard 模式）——ADR 原文 immutable 保留在 `docs/archive/adr/`，本视图可变，只反映**当前有效结论**
+> 状态：**Index — 决策索引，不是现行合同**
+> 定位：Nygard ADR 的可变索引。ADR 原文不可变，保留在 `docs/archive/adr/`。现行行为一律以 `docs/specs/**` 与 Experience Design 为准。
 > 最近校准：2026-08-13
-> 上位的不可变原文：`docs/archive/adr/ADR-XXXX-*.md`（26 份）
+> 上位的不可变原文：`docs/archive/adr/ADR-XXXX-*.md`（29 份）
 
 ## 如何使用
 
-1. 想知道"某个系统现在为什么这样设计/当前决策是什么" → 在 **Part A** 按主题查；
-2. 想知道"某个旧决策是不是还有效、被什么替代" → 在 **Part B** 查；
-3. 需要决策原文 / 决策时的备选方案与后果 → 点 `原文` 链接到 `docs/archive/adr/`；
-4. 本视图只表达决策的**当前有效语义**，实现细节一律以 `docs/specs/**` 为直接合同。
+1. 想知道“为什么当年这样选、被什么替代” → 在 **Part A / Part B** 按主题查；
+2. 想知道软件现在必须怎样表现 → 打开对应 Spec，不要把本页结论当 MUST；
+3. 需要决策原文 / 备选方案与后果 → 点 `原文` 链接到 `docs/archive/adr/`；
+4. 本页与 Spec 冲突时，**以 Spec 为准**；若决策结论已变，写新 ADR 并更新 Spec。
 
 ---
 
-# Part A — 当前有效决策
+# Part A — 仍被现行 Spec / Experience Design 承接的决策
 
 ## 主题 1：Learning Core（教学内核，SYS01-SYS08）
 
@@ -83,7 +83,7 @@
 ### ADR-0006 — Workspace Read-model Scope and Missing Objective Metadata
 - Status: `accepted`（2026-08-09）
 - 结论：UI read 层是 additive read-only composition：`/workspace/goals|path|evidence` 按 current identity/workspace 读最新 immutable version；无 `goal_id` 时仅一个 eligible plan 可自动返回，多个返回 scoped-selection 而非任意 winner；缺失 owner 元数据返回 null + `OBJECTIVE_METADATA_UNAVAILABLE`；mastery label 在 SYS03 发布前保持 null。
-- 规范：[`specs/frontend/`（UI Read Model Contracts）](../specs/ui.md)
+- 规范：[`specs/ui.md`](../specs/ui.md)（UI Read Model）
 - 原文：[`ADR-0006`](../archive/adr/ADR-0006-workspace-read-model-scope-and-missing-objective-metadata.md)
 
 ### ADR-0103 — Local Data Recovery, Portability and Erasure
@@ -106,28 +106,46 @@
 
 ## 主题 3：Experience / UI / 交互边界
 
+### ADR-0026 — Close Core Journey Goal and Unassigned-Material Gaps
+- Status: `accepted`（2026-08-13）
+- 结论：开始学习不以确认目标为前置（`PD-RULE-004`）；上传允许未归属 Workspace 的 Material（`WSP-021`）。关掉 ADR-0025 留下的两条 GAP。
+- 规范：[`product/PRODUCT-DEFINITION.md`](../product/PRODUCT-DEFINITION.md) + [`specs/platform.md`](../specs/platform.md) + Experience
+- 原文：[`ADR-0026`](../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md)
+
+### ADR-0025 — Space / Conversation User-facing IA and Core Journeys
+- Status: `accepted`（2026-08-13）；两条 GAP 由 ADR-0026 关闭
+- 结论：用户侧词汇改为「空间 / 对话」；Core Journey 为「用资料开始」「回来继续」「在对话里学习」「建立或扩充空间」。打开 App 先 Welcome；点已有对话恢复，对空间「继续学习」新开对话。
+- 规范：[`design/experience/EXPERIENCE-ARCHITECTURE.md`](../design/experience/EXPERIENCE-ARCHITECTURE.md) + [`specs/ui.md`](../specs/ui.md)
+- 原文：[`ADR-0025`](../archive/adr/ADR-0025-space-conversation-core-journeys.md)
+
 ### ADR-0022 — Course-centric Information Architecture
-- Status: `accepted`（2026-08-11）
-- 结论：用户侧 Workspace vocabulary 统一为「课程」，canonical Workspace identity 不变；`＋ 新课程` 是 Primary Action；Course → LearningActivity → LearningSession → Conversation/Attempt/Events；Library 稳定、Settings/Recovery 保持 Utility；`/today`、`/learning`、`/` 与旧 deep links 无业务副作用迁移。
-- 规范：[`specs/ui.mdui.md`](../specs/ui.md) + [`specs/platform/platform.md`](../specs/platform.md)（Course Workspace Selection）
+- Status: `partially superseded by ADR-0025`（2026-08-11）
+- 结论：用户侧 Workspace vocabulary 曾统一为「课程」，canonical Workspace identity 不变；`＋ 新课程` 曾是 Primary Action。现行用户文案与 Core Journey 以 ADR-0025 / current Experience 为准；Workspace identity、三栏、Chat 非 Product Domain 仍有效。
+- 规范：[`specs/ui.md`](../specs/ui.md) + [`specs/platform.md`](../specs/platform.md)（Course Workspace Selection）
 - 原文：[`ADR-0022`](../archive/adr/ADR-0022-course-centric-information-architecture.md)
 
 ### ADR-0023 — Course Workspace Selection and Activity Projection
 - Status: `accepted`（2026-08-11）
-- 结论：Platform Workspace Registry 拥有 durable versioned `WorkspaceSelection`（与 `Workspace.is_default` 区分）；fresh owner 可零 Workspace；`＋ 新课程` = atomic create-and-select；switch 使用 expected version + idempotency + typed recovery guard；deep links/GET 无副作用；Course Activity index 是只读 exact SYS06 composition；Activity-scoped LearningSession 不取 SYS06 ownership。
+- 结论：Platform Workspace Registry 拥有 durable versioned `WorkspaceSelection`（与 `Workspace.is_default` 区分）；fresh owner 可零 Workspace；用户侧创建入口现为 `＋ 新建空间` / 「马上开始学习」，command 仍是 atomic create-and-select；switch 使用 expected version + idempotency + typed recovery guard；deep links/GET 无副作用；Course Activity index 是只读 exact SYS06 composition；Activity-scoped LearningSession 不取 SYS06 ownership。
 - 规范：[`specs/platform/platform.md`](../specs/platform.md)（CWSP）
 - 原文：[`ADR-0023`](../archive/adr/ADR-0023-course-workspace-selection-and-activity-projection.md)
+
+### ADR-0024 — Adopt TraeWork Light as Askora Visual Foundation
+- Status: `accepted`（2026-08-13）
+- 结论：Askora Light foundation 采用 TraeWork Light 值，保留 Askora semantic roles；accent = `--bg-brand` `#4B3FE3`；v1 不采用 Dark；`shell-replica` 只当构图证据；本轮不实现组件替换。
+- 规范：[`specs/ui.md`](../specs/ui.md)（`UI-DS-TOK-*` / `UI-DS-COMP-090`）
+- 原文：[`ADR-0024`](../archive/adr/ADR-0024-traework-light-foundation.md)
 
 ### ADR-0018 — UX Workspace Context and Three-Column Learning Architecture
 - Status: `partially superseded by ADR-0022`（旧 L0 变更）；retained 语义已 consolidation 进 Experience Design。
 - 当前有效：left rail = Where（产品导航 + canonical Workspace），center = Learn（唯一 Primary Canvas），right rail = hideable Reference/Notes；Learning Context Drawer 默认折叠；Library v1 UI 不暴露 OCR。
-- 规范：[`design/experience/EXPERIENCE-ARCHITECTURE.md`](../design/experience/EXPERIENCE-ARCHITECTURE.md) + [`specs/ui.mdui.md`](../specs/ui.md)
+- 规范：[`design/experience/EXPERIENCE-ARCHITECTURE.md`](../design/experience/EXPERIENCE-ARCHITECTURE.md) + [`specs/ui.md`](../specs/ui.md)
 - 原文：[`ADR-0018`](../archive/adr/ADR-0018-ux-workspace-context-architecture.md)
 
 ### ADR-0019 — UI Workspace Context and Learning Context Read Projections
 - Status: `accepted`；single-default query 限制被 ADR-0023 superseded。
 - 结论：canonical current Workspace 来自 Platform Workspace Registry（非 route/frontend state）；Drawer stage 来自 exact SYS05 TeachingAction；next 1..3 directions 来自 exact SYS06 LearningActivity refs；stage-goal copy 是 versioned server-side presentation catalog；query assembly 只读、current-Workspace scoped、无副作用、诚实 MISSING/PARTIAL/STALE。
-- 规范：[`specs/ui.mdui.md`](../specs/ui.md)（UI Read Model）
+- 规范：[`specs/ui.md`](../specs/ui.md)（UI Read Model）
 - 原文：[`ADR-0019`](../archive/adr/ADR-0019-ui-workspace-read-projections.md)
 
 ### ADR-0020 — Learning Conversation Message Presentation and Interaction Boundary
@@ -153,7 +171,7 @@
 ### ADR-0017 — OS-backed LocalSecretStore and Crash-consistent Model Activation
 - Status: `accepted`（2026-08-10）
 - 结论：生产后端 allowlist（macOS keyring / Windows WinVault），无 third-party/Null/file fallback；opaque random secret refs；SQLite 只存非密 profile/ref/activation journal；durable phase journal 协调 SQLite + OS credential-store 崩溃一致性；restore 缺失 secret → degraded/re-enter，绝不 `.env` resurrection。
-- 规范：[`specs/platform/platform.md`](../specs/platform.md)（LSS）+ [`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/quality/quality.md`](../specs/quality.md)
+- 规范：[`specs/platform.md`](../specs/platform.md)（LSS）+ [`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + [`specs/quality.md`](../specs/quality.md)
 - 原文：[`ADR-0017`](../archive/adr/ADR-0017-os-backed-local-secret-store-and-crash-consistent-model-activation.md)
 
 ### ADR-0013 — Desktop Model Credential and Atomic Activation
@@ -194,7 +212,8 @@
 | ADR-0014 | partially superseded | ADR-0018 / ADR-0022 | Experience Design + Interaction Model |
 | ADR-0018 | partially superseded | ADR-0022（旧 L0） | Experience Design + UI contracts |
 | ADR-0019 | 部分（single-default） | ADR-0023 | CWSP + UI Read Model |
-| ADR-0106 | 部分（default-entry） | ADR-0022 | Onboarding + Course IA |
+| ADR-0022 | 部分（课程词汇 / 五条 Journey / 启动直达） | ADR-0025 | Experience Design + UI contracts |
+| ADR-0106 | 部分（default-entry） | ADR-0022 / ADR-0025 | Onboarding + Welcome-first IA |
 | ADR-0107 | partially superseded | ADR-0015（Account 语义退休） | P1-03 erasure workflow |
 
-> 规则：历史 ADR 原文保留在 `docs/archive/adr/`，不在本视图之外另行解释；若未来新决策 supersede 某 ADR，只更新本视图对应条目的 Status 与指向，并记录到上表。
+> 规则：历史 ADR 原文保留在 `docs/archive/adr/`。若未来新决策 supersede 某 ADR，更新本索引的 Status 与指向，并同步修改对应 Spec；不得只改本页而让 Spec 落后。

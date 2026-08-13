@@ -1,7 +1,7 @@
 # Askora Learning Experience
 
 > 状态：**Canonical Learning Experience Baseline**  
-> 冻结日期：2026-08-11  
+> 冻结日期：2026-08-13  
 > 适用范围：Askora v1 Learning Workspace、Learning Conversation、Attempt / Feedback / Evidence / Provenance Experience  
 > 上游：[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)、[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、历史设计基线见 [`archive/design/`](../../archive/design/)
 > 交互语义：[`INTERACTION-MODEL.md`](INTERACTION-MODEL.md)  
@@ -47,13 +47,15 @@ LearningSession 服务连续学习过程与恢复；它不是登录 Session，�
 
 跨 session 的真实学习连续性来自 Workspace、Goal/Activity、Evidence 与可恢复状态，而不是无限长的聊天线程。
 
-### LEXP-003 — Course Organizes Multiple Activities
+### LEXP-003 — Space Organizes Multiple Conversations
 
-用户界面以 Course 表达 canonical Workspace。一个 Course 可以包含多个 LearningActivity；Activity Switcher / Recent Learning 必须用学习目的组织恢复入口，而不是用 Chat thread 命名或 conversation turn count 组织学习。
+用户界面以「空间」表达 canonical Workspace，以「对话」表达该空间内一次可恢复的 `LearningActivity`。一个空间可以包含多段对话；恢复入口必须用学习目的组织，而不是用 Chat thread 命名或 conversation turn count 组织学习。
 
 ---
 
 ## 3. Canonical Learning Experience Loop
+
+用户侧主路径见 Experience Architecture `EXP-JOURNEY-003`。本节冻结该路径内部的学习语义。
 
 Askora 的体验必须支持以下闭环：
 
@@ -73,12 +75,12 @@ Orientation
 
 进入学习时，用户至少应知道：
 
-- 当前在哪个课程中学习（canonical Workspace）；
-- 当前要完成什么（LearningActivity / task）；
+- 当前在哪个空间中学习（canonical Workspace）；
+- 当前要完成什么（当前对话 / task）；
 - 为什么现在做这一步（存在可靠 reason 时）；
 - 完成任务所需的关键上下文或来源。
 
-不要求用户理解完整 LearningPlan、LearnerState 或内部 policy。
+不要求用户理解完整 LearningPlan、LearnerState 或内部 policy。主路径不要求用户看见或管理 Learning Goal；Goal 由系统按 `PD-RULE-004` 维护。
 
 ### LEXP-011 — Active Processing
 
@@ -301,7 +303,7 @@ Learning Context Drawer 只承担：
 
 ### LEXP-NEXT-002 — “Next” Must Stay Honest
 
-“接下来”是当前 canonical context 下的动态教学方向，不等于永不变化的课程目录。
+“接下来”是当前 canonical context 下的动态教学方向，不等于永不变化的空间目录。
 
 当前数据缺失、partial 或 stale 时必须诚实显示；前端不得根据 chat 文本、heading 顺序或 probability threshold 推断 next knowledge point。
 
@@ -318,9 +320,9 @@ Learning Context Drawer 只承担：
 
 不得为了保持 engagement 自动生成无依据的“继续学习”内容。
 
-### LEXP-NEXT-004 — Activity Switching Stays Course-scoped
+### LEXP-NEXT-004 — Conversation Switching Stays Space-scoped
 
-Activity Switcher 只显示当前课程内 exact Activity refs。打开已 active/resumable Activity 不得创建第二 Activity/Session；启动 planned/available Activity 必须调用 SYS06 owner Action。跨课程 Activity ref 必须 fail closed。
+已有对话列表在学习中只显示当前空间内 exact Activity refs。打开已 active/resumable 对话不得创建第二 Activity/Session；对空间「继续学习」或启动 planned/available 对话必须调用 SYS06 owner Action。跨空间 Activity ref 必须 fail closed。
 
 ---
 
@@ -328,15 +330,15 @@ Activity Switcher 只显示当前课程内 exact Activity refs。打开已 activ
 
 ### LEXP-CONT-001 — Preserve Current Learning Identity
 
-切换 presentation mode、Course/Activity navigation、隐藏右栏、打开原文、展开 Context Drawer 不得创建第二份 LearningActivity、Attempt、TeachingAction 或 transcript truth。
+切换 presentation mode、空间 / 对话 navigation、隐藏右栏、打开原文、展开 Context Drawer 不得创建第二份 LearningActivity、Attempt、TeachingAction 或 transcript truth。对空间「继续学习」除外，该 Action 必须创建新的 LearningActivity。
 
 ### LEXP-CONT-002 — History Is Context, Not Management Burden
 
 LearningHistory 应在用户需要恢复、回顾或审计时可达，但不要求用户通过历史管理中心才能继续学习。
 
-### LEXP-CONT-003 — Recover Before Restarting
+### LEXP-CONT-003 — Welcome First; Resume Only on Explicit Selection
 
-App 启动或进入课程时，存在 durable active/resumable state 应优先恢复，而不是创建新的 quick chat/session 覆盖旧上下文。
+App 启动必须先到 Welcome，不得自动进入上一段对话，也不得自动创建新的对话 / Session。用户点侧栏已有对话时，恢复同一段对话。用户对某空间点「继续学习」时，才允许按 `EXP-JOURNEY-002` 新开一段对话；不得用 frontend 私自新建 quick chat 覆盖旧上下文。
 
 ### LEXP-CONT-004 — No Silent Loss
 

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, History as HistoryIcon, Send } from 'lucide-react'
+import { ArrowLeft, BookOpen, History as HistoryIcon } from 'lucide-react'
 import * as dialogApi from '../api/dialog'
 import LearningContextDrawer from '../components/LearningContextDrawer'
+import Composer from '../components/ui/Composer'
 import { useNavigate } from '../router'
 import WorkspaceMessage from '../components/messages/WorkspaceMessage'
 import './TutorWorkspace.css'
@@ -237,27 +238,19 @@ export default function TutorWorkspace({ sessionId }) {
         <div className="workspace-composer">
           {!isActive && <p className="inline-notice">该会话已结束，仅可查看历史内容。</p>}
           <LearningContextDrawer />
-          <div className={`composer-box ${!isActive ? 'composer-box--disabled' : ''}`}>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isActive ? '写下你的问题或思路…' : '会话已结束'}
-              aria-label="学习输入"
-              rows={1}
-              disabled={!isActive || sending}
-            />
-            <button
-              type="button"
-              className="composer-send"
-              aria-label="发送消息"
-              onClick={() => send()}
-              disabled={!input.trim() || !isActive || sending}
-            >
-              <Send size={18} />
-            </button>
-          </div>
+          <Composer
+            id="tutor-answer"
+            label="学习输入"
+            ref={textareaRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={handleKeyDown}
+            onSubmit={() => send()}
+            placeholder={isActive ? '写下你的问题或思路…' : '会话已结束'}
+            disabled={!isActive || sending}
+            sendDisabled={!input.trim() || !isActive || sending}
+            sendLabel="发送消息"
+          />
           <p className="composer-hint">兼容会话不等于 LearningActivity；不会生成学习计划或掌握结论。</p>
         </div>
       </section>
