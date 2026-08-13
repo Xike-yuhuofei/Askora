@@ -18,7 +18,7 @@ Policy Correctness Gate: PASS
 Learning Evidence Gate: LEARNING_EVIDENCE_INSUFFICIENT
 ```
 
-这表示工程链路和教学策略约束通过验收，不表示已经证明真人学习效果。完整证据见 [v0.3 Release Report](docs/archive/releases/v0.3-adaptive-teaching-loop.md)。
+这表示工程链路和教学策略约束通过验收，不表示已经证明真人学习效果。
 
 所有设计与实现首先必须服从 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md) 的产品边界，并从 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md) 获得 Capability / Product Rule / Requirement / Product Acceptance 上游输入；实现层随后服从 [Implementation Specs](docs/specs/README.md)。系统边界和单一写入者分别见 [System Architecture](docs/specs/architecture/system-architecture.md) 与 [State Ownership](docs/specs/architecture/state-ownership.md)。
 
@@ -143,4 +143,4 @@ docker compose up --build
 
 ## 文档规则
 
-产品战略见 [PRODUCT-STRATEGY](docs/product/PRODUCT-STRATEGY.md)，最高可执行产品边界见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)，Canonical Product WHAT 见 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md)。其下的文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md) 与 [文档清单](docs/governance/document-inventory.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。
+产品战略见 [PRODUCT-STRATEGY](docs/product/PRODUCT-STRATEGY.md)，最高可执行产品边界见 [PRODUCT-POSITIONING](docs/product/PRODUCT-POSITIONING.md)，Canonical Product WHAT 见 [PRODUCT-DEFINITION](docs/product/PRODUCT-DEFINITION.md)。其下的文档权威顺序、生命周期和当前处置状态见 [文档中心](docs/README.md)。历史 EXEC 和 Release Report 是不可变执行证据；研究稿用于解释设计依据，不是实现接口合同。

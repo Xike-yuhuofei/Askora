@@ -52,3 +52,6 @@ apps/backend/data/
 TraeWork/
 reverse-engineering/
 *.zip
+
+# Internal topic metadata (reasoning tooling aux state)
+.reasonix/

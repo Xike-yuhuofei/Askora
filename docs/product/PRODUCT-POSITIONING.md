@@ -413,8 +413,6 @@ Discovery / Evidence
 
 ### UX / Interaction
 
-- [`../archive/design/UX-Architecture-Canonical-Design-Delta.md`](../archive/design/UX-Architecture-Canonical-Design-Delta.md)
-- [`../archive/design/Interactive-Element-System-Canonical-Design-Delta.md`](../archive/design/Interactive-Element-System-Canonical-Design-Delta.md)
 - [`../specs/ui/README.md`](../specs/ui/README.md)
 
 ### Architecture / Domain / Platform

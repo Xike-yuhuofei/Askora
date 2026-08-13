@@ -134,30 +134,9 @@ def check_stale_claims() -> list[str]:
     return errors
 
 
-def check_inventory(files: list[Path]) -> list[str]:
-    inventory = ROOT / "docs/governance/document-inventory.md"
-    listed: set[str] = set()
-    for line in inventory.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.split("|")[1:-1]]
-        if len(cells) != 7 or cells[0] == "Current Path":
-            continue
-        target = cells[6]
-        match = re.fullmatch(r"`([^`]+)`", target)
-        if match:
-            listed.add(match.group(1))
-    actual = {str(path.relative_to(ROOT)) for path in files}
-
-    return [
-        f"docs/governance/document-inventory.md: missing disposition for {name}"
-        for name in sorted(actual - listed)
-    ]
-
-
 def main() -> int:
     files = documentation_files()
-    errors = [*check_links(files), *check_stale_claims(), *check_inventory(files)]
+    errors = [*check_links(files), *check_stale_claims()]
     if errors:
         print("Documentation check failed:")
         for error in errors:
