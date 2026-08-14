@@ -17,6 +17,28 @@
 
 .activity-learning__header .button { justify-self: start; }
 
+.activity-learning__back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.activity-learning__back:hover {
+  color: var(--brand-primary);
+  text-decoration: underline;
+}
+
+.activity-learning__back:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
 .activity-learning__header-title h1 {
   margin: 4px 0 3px;
   font-size: clamp(22px, 3vw, 27px);
@@ -117,7 +139,7 @@
   gap: .25rem;
   padding: 2px 6px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   background: transparent;
   color: var(--text-muted);
   font-size: 11px;
@@ -134,7 +156,7 @@
 
 .activity-message__bubble {
   padding: .75rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--radius-l);
   font-size: 14px;
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -173,7 +195,7 @@
 .activity-message__bubble pre {
   margin: .6rem 0;
   padding: .7rem .85rem;
-  border-radius: 10px;
+  border-radius: var(--radius-l);
   background: var(--surface-container-high);
   overflow-x: auto;
   font-size: 13px;
@@ -182,7 +204,7 @@
 
 .activity-message__bubble code {
   padding: .1em .35em;
-  border-radius: 5px;
+  border-radius: var(--radius-s);
   background: var(--surface-container-high);
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: .9em;
@@ -292,8 +314,8 @@
   gap: .75rem;
   margin: 0 0 .75rem;
   padding: .65rem .85rem;
-  border-radius: 10px;
-  background: #fff0f1;
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--error) 8%, var(--surface));
   color: var(--error);
   font-size: 13px;
 }
@@ -326,7 +348,7 @@
   padding: 10px 12px;
   line-height: 1.5;
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-l);
   background: var(--surface);
   color: var(--text-primary);
   outline: none;
@@ -370,6 +392,77 @@
   display: inline-flex;
   align-items: center;
   gap: .4rem;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* AL-16：引用/来源 Disclosure */
+.activity-learning__sources {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: .4rem 0 0;
+}
+
+.activity-learning__sources-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface-container);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+
+.activity-learning__sources-toggle:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.activity-learning__sources-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.activity-learning__sources-list {
+  list-style: none;
+  margin: .5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.activity-learning__sources-list li {
+  padding: .55rem .7rem;
+  border-left: 3px solid var(--border-strong);
+  background: var(--surface-container);
+  border-radius: 0 8px 8px 0;
+}
+
+.activity-learning__sources-role {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.activity-learning__sources-list p {
+  margin: .2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.activity-learning__sources-unavailable {
   margin: 0;
   color: var(--text-muted);
   font-size: 12px;

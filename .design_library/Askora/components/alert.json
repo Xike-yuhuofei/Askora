@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 2,
+  "slug": "alert",
+  "name": "Alert",
+  "category": "feedback",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Alert",
+      "evidence": "Inferred from preview/component-alert.html title and component CSS selectors."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "status",
+      "values": [
+        ".ak-alert",
+        ".ak-alert--success",
+        ".ak-alert--warning",
+        ".ak-alert--danger",
+        ".ak-alert--info"
+      ],
+      "evidence": "Representative selectors from preview/component-alert.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-alert.html",
+    "representativeSelectors": [
+      ".ak-alert",
+      ".ak-alert__icon",
+      ".ak-alert__icon .icon",
+      ".ak-alert__body",
+      ".ak-alert__title",
+      ".ak-alert__desc",
+      ".ak-alert--success",
+      ".ak-alert--success .ak-alert__icon",
+      ".ak-alert--warning",
+      ".ak-alert--warning .ak-alert__icon",
+      ".ak-alert--danger",
+      ".ak-alert--danger .ak-alert__icon",
+      ".ak-alert--info",
+      ".ak-alert--info .ak-alert__icon"
+    ],
+    "cssRuleCount": 14
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": []
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-alert",
+      "whySelected": "Representative selector present in preview component CSS.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-alert--info",
+      "whySelected": "Default status variant using system-blue surface tokens.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-alert.html",
+    "selectors": [
+      ".ak-alert",
+      ".ak-alert__icon",
+      ".ak-alert__body",
+      ".ak-alert__title",
+      ".ak-alert__desc"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-alert.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-b.css as the executable rendering contract.",
+    "Use preview/component-alert.html and components-group-b.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-b.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this repair pass."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--body-md-font-family",
+    "--body-md-font-size",
+    "--body-md-line-height",
+    "--body-md-letter-spacing",
+    "--body-md-strong-font-family",
+    "--body-md-strong-font-size",
+    "--body-md-strong-font-weight",
+    "--body-md-strong-letter-spacing",
+    "--body-md-strong-line-height",
+    "--border-neutral-l1",
+    "--icon-default",
+    "--radius-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-2",
+    "--spacer-4",
+    "--status-error-default",
+    "--status-error-surface-l1",
+    "--status-error-surface-l2",
+    "--status-primary-default",
+    "--status-primary-surface-l1",
+    "--status-primary-surface-l2",
+    "--status-success-default",
+    "--status-success-surface-l1",
+    "--status-success-surface-l2",
+    "--status-warning-default",
+    "--status-warning-surface-l1",
+    "--status-warning-surface-l2",
+    "--text-default",
+    "--text-secondary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-alert.html",
+      "classes": [
+        "ak-alert",
+        "ak-alert--danger",
+        "ak-alert--info",
+        "ak-alert--success",
+        "ak-alert--warning",
+        "ak-alert__body",
+        "ak-alert__desc",
+        "ak-alert__icon",
+        "ak-alert__title"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-alert.html",
+    "source": "preview/component-alert.html",
+    "css": {
+      "file": "components-group-b.css",
+      "marker": "alert"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

@@ -125,6 +125,17 @@ class BookLearningReadinessQuery:
                 correlation_id=correlation_id,
             )
 
+        if document.workspace_id is None:
+            return self._result(
+                document_id=document_id,
+                state="BLOCKED",
+                refs=refs,
+                reasons=("MATERIAL_UNASSIGNED_CANNOT_START_GROUNDED_LEARNING",),
+                commands=(),
+                now=now,
+                correlation_id=correlation_id,
+            )
+
         user_id = canonical_user_id(user.id)
         goal = await self._latest_goal_for_document(user_id=user_id, document_id=document_id)
         if goal is None:
@@ -133,7 +144,7 @@ class BookLearningReadinessQuery:
                 state="READY_FOR_GOAL",
                 refs=refs,
                 reasons=("PUBLISHED_CONTENT_READY_FOR_GOAL",),
-                commands=("CreateLearningGoalCandidate",),
+                commands=("AdoptLearningGoalFromMaterial",),
                 now=now,
                 correlation_id=correlation_id,
             )
@@ -146,8 +157,8 @@ class BookLearningReadinessQuery:
                 document_id=document_id,
                 state="GOAL_CONFIRMATION_REQUIRED",
                 refs=refs,
-                reasons=("LEARNING_GOAL_USER_CONFIRMATION_REQUIRED",),
-                commands=("ConfirmLearningGoal",),
+                reasons=("LEARNING_GOAL_SYSTEM_ADOPTION_REQUIRED",),
+                commands=("AdoptLearningGoalFromMaterial",),
                 now=now,
                 correlation_id=correlation_id,
             )

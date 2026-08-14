@@ -201,6 +201,58 @@ class LearningGoalService:
         )
         return saved
 
+    async def adopt_from_material(
+        self,
+        *,
+        user: User,
+        document_id: UUID,
+        document_title: str,
+        idempotency_key: str,
+        correlation_id: UUID,
+        adopted_at: datetime,
+    ) -> LearningGoalV1:
+        existing = await self._repo.find_goal_by_idempotency(idempotency_key)
+        if existing is not None:
+            return existing
+        latest = await self._repo.latest_goal_for_document(
+            user_id=canonical_user_id(user.id),
+            document_id=document_id,
+        )
+        if latest is None:
+            topic = " ".join((document_title or "这份资料").split()) or "这份资料"
+            latest = await self.create_candidate(
+                user=user,
+                intent=f"掌握《{topic}》中的核心内容，并能独立解释和应用",
+                source_document_ids=(document_id,),
+                idempotency_key=f"{idempotency_key}:candidate",
+                correlation_id=correlation_id,
+                created_at=adopted_at,
+            )
+        if latest.status != "candidate":
+            return latest
+        adopted = latest.model_copy(
+            update={
+                "version": await self._repo.next_goal_version(latest.goal_id),
+                "status": "active",
+                "confirmed_by_user": False,
+                "confirmed_at": adopted_at,
+                "created_at": adopted_at,
+                "supersedes_version": latest.version,
+                "reason_codes": (
+                    *latest.reason_codes,
+                    "GOAL_SYSTEM_ADOPTED_FROM_MATERIAL",
+                ),
+            }
+        )
+        saved = await self._repo.save_goal(adopted, idempotency_key=idempotency_key)
+        await self._append_goal_event(
+            goal=saved,
+            event_type="GoalConfirmed",
+            correlation_id=correlation_id,
+            idempotency_key=f"goal-adopted:{idempotency_key}",
+        )
+        return saved
+
     async def map_goal(
         self,
         *,

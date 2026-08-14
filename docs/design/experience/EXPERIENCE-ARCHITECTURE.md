@@ -4,7 +4,7 @@
 > 冻结日期：2026-08-13  
 > 适用范围：Askora v1 Experience / IA / Navigation / Workspace / Journey 设计  
 > 上游：[`../../product/PRODUCT-STRATEGY.md`](../../product/PRODUCT-STRATEGY.md)、[`../../product/PRODUCT-POSITIONING.md`](../../product/PRODUCT-POSITIONING.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)、[`../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md`](../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md)
+> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)、[`../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md`](../../archive/adr/ADR-0026-close-journey-goal-and-unassigned-material-gaps.md)、[`../../archive/adr/ADR-0027-welcome-home-not-first-use-wizard.md`](../../archive/adr/ADR-0027-welcome-home-not-first-use-wizard.md)、[`../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md`](../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md)
 > 下游实现合同：[`../../specs/ui.md`](../../specs/ui.md)
 
 ---
@@ -337,7 +337,7 @@ Learning Context Drawer 位于输入/Composer 上方，默认收起，只提供�
 | 阶段 | 用户做 | 系统做 | 用户看到 |
 |---|---|---|---|
 | 放入资料 | 上传 | 只创建 `Material` | 处理中；不得假装已有空间或对话 |
-| 处理 | 等待 | 解析、分析；内部可生成总目标 / 阶段目标 | 不出现目标管理；状态诚实 |
+| 处理 | 等待 | 先完成本地解析；模型可用且开关开启时再做 AI 增强 | 不出现目标管理；写清「仅本机解析」或「已用模型增强」；无 key 不得假装已用模型 |
 | 决定去向 | 选「加入学习空间」或「马上开始学习」 | 按选择执行 | 二选一 |
 | 加入空间 | 选已有空间；没有则可当场新建 | 资料归属该空间 | 再问：要不要现在开始学习 |
 | 现在学（加入之后） | 要 / 不要 | 要：在该空间开一段对话；不要：结束本次 | 对话，或回到 Welcome |
@@ -428,6 +428,34 @@ Learning Context Drawer 位于输入/Composer 上方，默认收起，只提供�
 `001` 是「手上有资料，第一次决定去哪」；`004` 是「先有空间，或以后再往里加东西」。不要把两条合成一个必须先建空间才能上传的向导。
 
 上传未归属空间的 Material 服从 `PD-REQ-0101` 与 `WSP-021`：允许 `workspace_id=null`；归属前不得开始有依据的学习。目标不出现在主路径，服从 `PD-RULE-004` / `PD-REQ-0203`。
+
+### EXP-PARSE-001 — Local Parse Always; AI Parse Is Optional
+
+资料处理只有两种模式，不是两种产品：
+
+```text
+仅本机解析     始终发生，不依赖模型 key
+本机 + AI 增强  叠在本机结果上，由设置开关与模型就绪共同决定
+```
+
+本地解析成功后就可以问「加入学习空间 / 马上开始学习」。用户可以打开原文、写笔记、把资料加入空间。不得把「仅本机解析」说成「模型已经读懂全书」。
+
+### EXP-PARSE-002 — Parse Toggle Lives in Settings
+
+设置里、紧挨模型配置，提供一个 Control：**用 AI 增强资料解析**。
+
+- 不要放在 Welcome 主按钮上，也不要每次上传再问一次；
+- 没有 key / 模型未就绪：开关不可用，强制仅本机解析，并说明原因；
+- 有可用模型：默认打开，用户可关掉；
+- 打开开关不得自动把已经解析过的资料发给模型。
+
+这个开关只约束**解析上传资料**。对话里的讲解、出题、反馈仍可能使用模型；界面不得暗示关掉它等于 Askora 完全离线。
+
+### EXP-PARSE-003 — Re-parse Is an Explicit Action
+
+模型就绪后，对仅本机解析过的资料提供「用模型再解析」。这是同一份资料的增强，不是重传，也不是新资料。AI 增强失败时，本机结果仍可用；状态写成「本机已就绪，模型增强失败」，可重试增强。
+
+「马上开始学习 / 继续学习 / 进入对话」若当前需要模型生成教学，而模型不可用：资料可以已就绪，但必须说明还缺模型、数据是否安全、现在能去设置。不得用假教师或 mock 对话冒充学习。
 
 ---
 

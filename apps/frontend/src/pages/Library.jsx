@@ -1,43 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Archive,
+  ArrowRight,
   BookOpen,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Copy,
-  FileText,
   FolderOpen,
-  FolderPlus,
   GraduationCap,
   Network,
   RefreshCw,
   RotateCcw,
-  ScanText,
   Search,
-  Tags,
   Upload,
+  X,
 } from 'lucide-react'
 import * as documentApi from '../api/documents'
 import * as workspaceApi from '../api/workspace'
-import SourceStatus from '../components/SourceStatus'
+import Button from '../components/Button'
+import MaterialDestination from '../components/MaterialDestination'
 import './Library.css'
-
-const processingLabels = {
-  pending: '等待处理',
-  processing: '正在处理',
-  completed: '处理完成',
-  failed: '处理失败',
-  rejected: '已拒绝',
-  quarantined: '已隔离',
-}
-
-const knowledgeLabels = {
-  NOT_MODELED: '尚未建模',
-  CANDIDATES: '待审核候选',
-  PUBLISHED: '已发布',
-  LEGACY_COMPATIBILITY: '正在升级',
-}
 
 const nodeStatusLabels = {
   candidate: '候选',
@@ -63,14 +44,8 @@ const relationStrengthLabels = {
   contextual: '情境相关',
 }
 
-const provenanceLabels = {
-  source_explicit: '原文明确表述',
-  system_inferred: '系统推断',
-  human_curated: '人工整理',
-}
-
 const processingOptions = [
-  ['', '全部状态'],
+  ['', '全部'],
   ['pending', '等待处理'],
   ['processing', '正在处理'],
   ['completed', '处理完成'],
@@ -79,7 +54,39 @@ const processingOptions = [
   ['quarantined', '已隔离'],
 ]
 
+const sortOptions = [
+  ['created_desc', '最近导入'],
+  ['updated_desc', '最近更新'],
+  ['title_asc', '名称 A-Z'],
+  ['title_desc', '名称 Z-A'],
+]
+
 const knowledgeBlockedStatuses = new Set(['failed', 'rejected', 'quarantined'])
+
+const processingUserFacing = {
+  pending: { label: '等待处理', tone: 'neutral' },
+  processing: { label: '处理中…', tone: 'neutral' },
+  completed: { label: '可学习', tone: 'success' },
+  failed: { label: '处理失败', tone: 'danger' },
+  rejected: { label: '处理失败', tone: 'danger' },
+  quarantined: { label: '已归档', tone: 'neutral' },
+}
+
+const mediaTypeLabels = {
+  'text/markdown': 'Markdown',
+  'text/plain': 'TXT',
+  'application/pdf': 'PDF',
+  'application/epub+zip': 'EPUB',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+}
+
+const mediaShortLabels = {
+  'text/markdown': 'MD',
+  'text/plain': 'TXT',
+  'application/pdf': 'PDF',
+  'application/epub+zip': 'EPUB',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+}
 
 const safetyReasonLabels = {
   CONTENT_FILE_SIZE_EXCEEDED: '文件超过安全大小限制',
@@ -101,14 +108,14 @@ const safetyReasonLabels = {
 }
 
 function formatBytes(value) {
-  if (!Number.isFinite(value)) return '大小未知'
+  if (!Number.isFinite(value)) return ''
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / 1024 / 1024).toFixed(1)} MB`
 }
 
 function formatDate(value) {
-  if (!value) return '时间未知'
+  if (!value) return ''
   return new Intl.DateTimeFormat('zh-CN', {
     month: 'short',
     day: 'numeric',
@@ -160,12 +167,36 @@ function documentStateHint(document) {
   return ''
 }
 
+function learningStateFromDocument(document) {
+  if (!document) return { label: '尚未学习', tone: 'neutral' }
+  if (document.processing_status !== 'completed' || knowledgeBlockedStatuses.has(document.processing_status)) {
+    return { label: '尚未学习', tone: 'neutral' }
+  }
+  if (document.knowledge_status === 'NOT_MODELED') return { label: '尚未学习', tone: 'neutral' }
+  return { label: '可学习', tone: 'success' }
+}
+
+function unifiedCardStatus(document) {
+  const proc = document.processing_status
+  if (proc === 'pending') return { label: '等待处理', tone: 'warning' }
+  if (proc === 'processing') return { label: '正在处理', tone: 'warning' }
+  if (proc === 'failed' || proc === 'rejected') return { label: '处理失败', tone: 'danger' }
+  if (proc === 'quarantined') return { label: '已归档', tone: 'neutral' }
+  if (document.knowledge_status === 'NOT_MODELED') return { label: '尚未建模', tone: 'neutral' }
+  if (document.knowledge_status === 'LEGACY_COMPATIBILITY') return { label: '正在升级', tone: 'warning' }
+  return { label: '可学习', tone: 'success' }
+}
+
+function canReinspectDocument(document) {
+  return document.processing_status === 'quarantined'
+    && document.reason_codes?.includes('CONTENT_REINSPECTION_AVAILABLE')
+}
+
 function readRecoveryTarget() {
   const query = window.location.hash.replace(/^#/, '').split('?')[1] || ''
   const params = new URLSearchParams(query)
   return {
     documentId: params.get('document'),
-    ocrRunId: params.get('ocrRun'),
   }
 }
 
@@ -173,50 +204,38 @@ export default function Library() {
   const fileInputRef = useRef(null)
   const recoveryTargetRef = useRef(readRecoveryTarget())
   const pendingSelectionRef = useRef(recoveryTargetRef.current.documentId)
-  const ocrReviewRef = useRef(null)
+  const lastOpenerRef = useRef(null)
+  const modalCloseRef = useRef(null)
+  const dragDepthRef = useRef(0)
   const [library, setLibrary] = useState({ status: 'loading', payload: null, error: '' })
   const [map, setMap] = useState({ status: 'idle', payload: null, error: '' })
   const [selectedDocumentId, setSelectedDocumentId] = useState(null)
   const [selectedNodeRef, setSelectedNodeRef] = useState(null)
-  const [selectedSpanRef, setSelectedSpanRef] = useState(null)
   const [statusFilter, setStatusFilter] = useState('')
-  const [subjectDraft, setSubjectDraft] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('')
   const [queryDraft, setQueryDraft] = useState('')
   const [queryFilter, setQueryFilter] = useState('')
-  const [tagFilter, setTagFilter] = useState('')
-  const [collectionFilter, setCollectionFilter] = useState('')
-  const [archivedFilter, setArchivedFilter] = useState(false)
   const [sort, setSort] = useState('created_desc')
   const [page, setPage] = useState(1)
-  const [uploadSubject, setUploadSubject] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const [actionMessage, setActionMessage] = useState('')
   const [actionError, setActionError] = useState('')
   const [checkedIds, setCheckedIds] = useState([])
   const [batchTagId, setBatchTagId] = useState('')
   const [batchCollectionId, setBatchCollectionId] = useState('')
-  const [newTagName, setNewTagName] = useState('')
-  const [newCollectionName, setNewCollectionName] = useState('')
   const [managing, setManaging] = useState(false)
   const [metadataDraft, setMetadataDraft] = useState({ title: '', subject: '', author: '', language: '' })
-  const [duplicates, setDuplicates] = useState({ status: 'loading', items: [], error: '' })
-  const [ocr, setOcr] = useState({ status: 'idle', payload: null, error: '' })
-  const [ocrDecisions, setOcrDecisions] = useState({})
-  const [ocrPage, setOcrPage] = useState(1)
-  const [ocrPageUrl, setOcrPageUrl] = useState('')
   const [reinspectingDocumentId, setReinspectingDocumentId] = useState(null)
   const [mapReloadKey, setMapReloadKey] = useState(0)
+  const [unassigned, setUnassigned] = useState([])
+  const [destination, setDestination] = useState(null)
 
   const loadLibrary = useCallback(async ({
     quiet = false,
     status = statusFilter,
-    subject = subjectFilter,
     query = queryFilter,
     documentId = recoveryTargetRef.current.documentId,
-    tagId = tagFilter,
-    collectionId = collectionFilter,
-    archived = archivedFilter,
+    archived = false,
     requestedSort = sort,
     requestedPage = page,
   } = {}) => {
@@ -224,24 +243,33 @@ export default function Library() {
     try {
       const payload = await workspaceApi.getLibraryWorkspace({
         status,
-        subject,
         query,
         documentId,
-        tagId,
-        collectionId,
         archived,
         sort: requestedSort,
         page: requestedPage,
         pageSize: 20,
       })
       setLibrary({ status: 'ready', payload, error: '' })
+      try {
+        const unassignedPayload = await documentApi.listUnassignedMaterials()
+        const items = unassignedPayload?.items || []
+        setUnassigned(items)
+        setDestination((current) => {
+          if (!current) return current
+          return items.find((item) => item.document_id === current.document_id) || current
+        })
+      } catch {
+        setUnassigned([])
+      }
       const documents = payload.data.documents || []
       const pendingSelection = pendingSelectionRef.current
       const pendingExists = documents.some((document) => document.document_id === pendingSelection)
       if (pendingExists) pendingSelectionRef.current = null
       setSelectedDocumentId((current) => {
+        if (pendingExists) return pendingSelection
         const retained = documents.some((document) => document.document_id === current)
-        return pendingExists ? pendingSelection : retained ? current : documents[0]?.document_id || null
+        return retained ? current : null
       })
     } catch (error) {
       if (quiet) {
@@ -254,7 +282,7 @@ export default function Library() {
         error: responseMessage(error, '资料库暂时无法读取。'),
       })
     }
-  }, [archivedFilter, collectionFilter, page, queryFilter, sort, statusFilter, subjectFilter, tagFilter])
+  }, [page, queryFilter, sort, statusFilter])
 
   useEffect(() => {
     loadLibrary()
@@ -271,6 +299,7 @@ export default function Library() {
     ['pending', 'processing'].includes(document.processing_status)
     || document.knowledge_status === 'LEGACY_COMPATIBILITY'
     || document.reason_codes?.includes('CONTENT_REINSPECTION_PENDING'))
+    || unassigned.some((item) => ['pending', 'processing'].includes(item.processing_status))
 
   useEffect(() => {
     if (library.status !== 'ready' || !hasActiveProcessing) return undefined
@@ -309,17 +338,6 @@ export default function Library() {
   ])
   const nodes = map.payload?.data?.nodes || []
   const edges = map.payload?.data?.edges || []
-  const sourceSpans = map.payload?.data?.source_spans || []
-  const selectedNode = nodes.find((node) => node.knowledge_unit_ref === selectedNodeRef) || null
-  const relatedSpanRefs = selectedNode?.evidence_span_refs || []
-  const relatedSpans = sourceSpans.filter((span) => relatedSpanRefs.includes(span.source_span_ref))
-  const selectedSpan = relatedSpans.find((span) => span.source_span_ref === selectedSpanRef)
-    || relatedSpans[0]
-    || null
-
-  useEffect(() => {
-    setSelectedSpanRef(selectedNode?.evidence_span_refs?.[0] || null)
-  }, [selectedNodeRef, selectedNode])
 
   useEffect(() => {
     setMetadataDraft({
@@ -328,121 +346,62 @@ export default function Library() {
       author: selectedDocument?.author || '',
       language: selectedDocument?.language || '',
     })
-    setOcr({ status: 'idle', payload: null, error: '' })
   }, [selectedDocumentId])
 
-  useEffect(() => {
-    const target = recoveryTargetRef.current
-    if (!target.ocrRunId || !target.documentId || selectedDocumentId !== target.documentId) {
-      return undefined
-    }
-    const runId = target.ocrRunId
-    target.ocrRunId = null
-    let active = true
-    setOcr({ status: 'loading', payload: null, error: '' })
-    documentApi.getDocumentOcrRun(runId)
-      .then((payload) => {
-        if (!active) return
-        if (payload.document_id !== target.documentId || payload.status !== 'review_required') {
-          setOcr({ status: 'error', payload: null, error: '这项 OCR 复核已不可用或不属于当前资料。' })
-          return
-        }
-        setOcr({ status: 'ready', payload, error: '' })
-        setOcrPage(payload.candidates?.[0]?.page_number || 1)
-        setOcrDecisions(Object.fromEntries((payload.candidates || []).map((candidate) => [
-          candidate.candidate_id,
-          { accepted: false, text: candidate.text },
-        ])))
-      })
-      .catch((error) => {
-        if (active) {
-          setOcr({ status: 'error', payload: null, error: responseMessage(error, 'OCR 复核暂时无法读取。') })
-        }
-      })
-    return () => { active = false }
-  }, [selectedDocumentId])
-
-  useEffect(() => {
-    if (ocr.payload?.status !== 'review_required') return
-    window.requestAnimationFrame(() => ocrReviewRef.current?.focus())
-  }, [ocr.payload?.status])
-
-  const loadDuplicates = useCallback(async () => {
-    try {
-      const items = await documentApi.getDuplicateSuggestions('pending')
-      setDuplicates({ status: 'ready', items, error: '' })
-    } catch (error) {
-      setDuplicates({ status: 'error', items: [], error: responseMessage(error, '重复资料建议暂时无法读取。') })
-    }
+  const closeModal = useCallback(() => {
+    setSelectedDocumentId(null)
+    const opener = lastOpenerRef.current
+    lastOpenerRef.current = null
+    if (opener && document.contains(opener)) opener.focus()
   }, [])
 
-  useEffect(() => { loadDuplicates() }, [loadDuplicates])
+  const openDocument = useCallback((document, opener) => {
+    lastOpenerRef.current = opener || null
+    setSelectedDocumentId(document.document_id)
+  }, [])
 
+  // 弹窗打开时：Esc 关闭、锁定背景滚动、初始焦点落到关闭按钮
   useEffect(() => {
-    if (!['pending', 'processing'].includes(ocr.payload?.status)) return undefined
-    const timer = window.setTimeout(async () => {
-      try {
-        const payload = await documentApi.getDocumentOcrRun(ocr.payload.run_id)
-        setOcr({ status: 'ready', payload, error: '' })
-        if (payload.status === 'review_required') {
-          setOcrPage(payload.candidates?.[0]?.page_number || 1)
-          setOcrDecisions(Object.fromEntries((payload.candidates || []).map((candidate) => [
-            candidate.candidate_id,
-            { accepted: false, text: candidate.text },
-          ])))
-        }
-      } catch (error) {
-        setOcr({ status: 'error', payload: null, error: responseMessage(error, '文字识别状态暂时无法读取。') })
-      }
-    }, 1200)
-    return () => window.clearTimeout(timer)
-  }, [ocr.payload])
-
-  useEffect(() => {
-    let active = true
-    let objectUrl = ''
-    if (ocr.payload?.status !== 'review_required') {
-      setOcrPageUrl('')
-      return undefined
+    if (!selectedDocumentId) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeModal()
     }
-    documentApi.getOcrPageImage(ocr.payload.run_id, ocrPage)
-      .then((blob) => {
-        if (!active) return
-        objectUrl = URL.createObjectURL(blob)
-        setOcrPageUrl(objectUrl)
-      })
-      .catch(() => { if (active) setOcrPageUrl('') })
+    document.addEventListener('keydown', onKeyDown)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    modalCloseRef.current?.focus()
     return () => {
-      active = false
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
     }
-  }, [ocr.payload?.run_id, ocr.payload?.status, ocrPage])
+  }, [selectedDocumentId, closeModal])
 
   const submitFilters = (event) => {
     event.preventDefault()
     setPage(1)
-    setSubjectFilter(subjectDraft.trim())
     setQueryFilter(queryDraft.trim())
   }
 
-  const uploadFile = async (event) => {
-    const file = event.target.files?.[0]
+  const upload = async (file) => {
     if (!file || uploading) return
     setUploading(true)
     setActionError('')
     setActionMessage('')
     try {
-      const result = await documentApi.uploadDocument(file, uploadSubject)
+      const result = await documentApi.uploadDocument(file, '')
       pendingSelectionRef.current = result.document_id
-      setActionMessage('资料已安全保存，后台处理会在页面中自动更新。')
-      setUploadSubject('')
+      setDestination({
+        document_id: result.document_id,
+        title: file.name,
+        processing_status: result.status || 'pending',
+        lifecycle_version: result.lifecycle_version || 1,
+      })
+      setActionMessage('资料已保存，尚未加入空间。处理完成后选择去向。')
       setStatusFilter('')
-      setSubjectDraft('')
-      setSubjectFilter('')
       setPage(1)
       setQueryDraft('')
       setQueryFilter('')
-      await loadLibrary({ quiet: true, status: '', subject: '', query: '', requestedPage: 1 })
+      await loadLibrary({ quiet: true, status: '', query: '', requestedPage: 1 })
     } catch (error) {
       setActionError(responseMessage(error, '上传失败，请检查文件格式后重试。'))
     } finally {
@@ -451,26 +410,32 @@ export default function Library() {
     }
   }
 
-  const createLabel = async (kind) => {
-    const name = (kind === 'tag' ? newTagName : newCollectionName).trim()
-    if (!name || managing) return
-    setManaging(true)
-    setActionError('')
-    try {
-      if (kind === 'tag') {
-        await documentApi.createLibraryTag(name, commandKey('create-tag'))
-        setNewTagName('')
-      } else {
-        await documentApi.createLibraryCollection(name, commandKey('create-collection'))
-        setNewCollectionName('')
-      }
-      setActionMessage(kind === 'tag' ? '标签已创建。' : '集合已创建。')
-      await loadLibrary({ quiet: true })
-    } catch (error) {
-      setActionError(responseMessage(error, '分类创建失败，请稍后重试。'))
-    } finally {
-      setManaging(false)
-    }
+  const uploadFile = (event) => {
+    upload(event.target.files?.[0])
+  }
+
+  const onDragEnter = (event) => {
+    if (!event.dataTransfer?.types?.includes('Files')) return
+    event.preventDefault()
+    dragDepthRef.current += 1
+    setDragActive(true)
+  }
+
+  const onDragOver = (event) => {
+    if (event.dataTransfer?.types?.includes('Files')) event.preventDefault()
+  }
+
+  const onDragLeave = () => {
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+    if (dragDepthRef.current === 0) setDragActive(false)
+  }
+
+  const onDrop = (event) => {
+    if (!event.dataTransfer?.files?.length) return
+    event.preventDefault()
+    dragDepthRef.current = 0
+    setDragActive(false)
+    upload(event.dataTransfer.files[0])
   }
 
   const applyBatch = async (archive) => {
@@ -499,6 +464,27 @@ export default function Library() {
     }
   }
 
+  const archiveSingle = async (document) => {
+    if (!document || managing) return
+    setManaging(true)
+    setActionError('')
+    try {
+      await documentApi.batchOrganizeDocuments({
+        document_ids: [document.document_id],
+        expected_versions: { [document.document_id]: document.metadata_version },
+        idempotency_key: commandKey('archive'),
+        archive: true,
+      })
+      setActionMessage('资料已归档，可在归档视图恢复。')
+      closeModal()
+      await loadLibrary({ quiet: true })
+    } catch (error) {
+      setActionError(responseMessage(error, '归档失败，请刷新后重试。'))
+    } finally {
+      setManaging(false)
+    }
+  }
+
   const saveMetadata = async (event) => {
     event.preventDefault()
     if (!selectedDocument || managing) return
@@ -517,67 +503,6 @@ export default function Library() {
       await loadLibrary({ quiet: true })
     } catch (error) {
       setActionError(responseMessage(error, '资料信息保存失败，请刷新后重试。'))
-    } finally {
-      setManaging(false)
-    }
-  }
-
-  const resolveDuplicate = async (suggestion, action) => {
-    setManaging(true)
-    try {
-      await documentApi.resolveDuplicateSuggestion(suggestion.suggestion_id, {
-        expected_version: suggestion.version,
-        idempotency_key: commandKey('resolve-duplicate'),
-        action,
-      })
-      setActionMessage(action === 'ARCHIVE_CANDIDATE' ? '候选资料已归档，原文件仍保留。' : '重复建议已处理。')
-      await Promise.all([loadDuplicates(), loadLibrary({ quiet: true })])
-    } catch (error) {
-      setActionError(responseMessage(error, '重复建议处理失败，请刷新后重试。'))
-    } finally {
-      setManaging(false)
-    }
-  }
-
-  const startOcr = async () => {
-    if (!selectedDocument || managing) return
-    setManaging(true)
-    try {
-      const payload = await documentApi.requestDocumentOcr(selectedDocument.document_id, {
-        idempotency_key: commandKey('ocr-request'),
-        languages: ['chi_sim', 'eng'],
-      })
-      setOcr({ status: 'ready', payload, error: '' })
-      setActionMessage('本地 OCR 已进入后台处理；结果必须由你复核后才会发布。')
-    } catch (error) {
-      setOcr({ status: 'error', payload: null, error: responseMessage(error, '本地 OCR 无法启动。') })
-    } finally {
-      setManaging(false)
-    }
-  }
-
-  const publishOcr = async () => {
-    if (!ocr.payload || managing) return
-    setManaging(true)
-    try {
-      const payload = await documentApi.reviewDocumentOcrRun(ocr.payload.run_id, {
-        idempotency_key: commandKey('ocr-review'),
-        decisions: ocr.payload.candidates.map((candidate) => ({
-          candidate_id: candidate.candidate_id,
-          expected_version: candidate.version,
-          action: ocrDecisions[candidate.candidate_id]?.accepted ? 'ACCEPT' : 'REJECT',
-          corrected_text: ocrDecisions[candidate.candidate_id]?.accepted
-            ? ocrDecisions[candidate.candidate_id]?.text
-            : null,
-        })),
-        publish: true,
-      })
-      setOcr({ status: 'ready', payload, error: '' })
-      setActionMessage('复核文本已发布为新的可追溯 revision。')
-      await loadLibrary({ quiet: true })
-      setMapReloadKey((value) => value + 1)
-    } catch (error) {
-      setActionError(responseMessage(error, 'OCR 复核发布失败，请检查至少接受一个候选。'))
     } finally {
       setManaging(false)
     }
@@ -614,36 +539,273 @@ export default function Library() {
         <FolderOpen size={28} />
         <h1>资料库</h1>
         <p>{library.error}</p>
-        <button type="button" className="button button--secondary" onClick={() => loadLibrary()}>
+        <Button variant="secondary" onClick={() => loadLibrary()}>
           <RefreshCw size={16} />
           重试
-        </button>
+        </Button>
       </div>
     )
   }
 
   const total = library.payload?.data?.total || 0
   const totalPages = Math.max(1, Math.ceil(total / 20))
+  const hasFilters = Boolean(statusFilter || queryFilter)
+  const isEmpty = documents.length === 0
+
+  const renderKnowledgeSection = () => {
+    if (!selectedDocument) return null
+    const isBlocked = knowledgeBlockedStatuses.has(selectedDocument.processing_status)
+
+    if (map.status === 'loading') {
+      return <div className="inline-state" role="status"><div className="spinner" />正在读取知识…</div>
+    }
+
+    if (map.status === 'error') {
+      return (
+        <div className="inline-state inline-state--error" role="alert">
+          <p>{map.error}</p>
+          <Button variant="secondary" onClick={() => setMapReloadKey((value) => value + 1)}>重试</Button>
+        </div>
+      )
+    }
+
+    if (isBlocked || nodes.length === 0) {
+      return (
+        <div className="ws-empty-state">
+          <Network size={24} />
+          <strong>{isBlocked ? '资料尚未建模' : '暂无可展示的知识'}</strong>
+          <p>{documentStateHint(selectedDocument) || '当前资料没有带原文依据的知识节点。'}</p>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        <div className="ws-knowledge-header">
+          <span className="ws-kpi">{nodes.length} 个知识点</span>
+          <span className="ws-kpi">{edges.length} 条有依据的关系</span>
+        </div>
+
+        <ul className="ws-knowledge-list">
+          {nodes.map((node) => (
+            <li key={node.knowledge_unit_ref} className={node.knowledge_unit_ref === selectedNodeRef ? 'is-selected' : ''}>
+              <button
+                type="button"
+                onClick={() => setSelectedNodeRef(node.knowledge_unit_ref)}
+                aria-pressed={node.knowledge_unit_ref === selectedNodeRef}
+              >
+                <span className="ws-knowledge-dot" aria-hidden="true" />
+                <span className="ws-knowledge-info">
+                  <strong>{node.canonical_name}</strong>
+                  <small>
+                    {knowledgeKindLabels[node.kind] || node.kind}
+                    {node.status && ` · ${nodeStatusLabels[node.status] || node.status}`}
+                  </small>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <section className="ws-relation-section" aria-labelledby="relations-title">
+          <h3 id="relations-title">关系</h3>
+          {edges.length ? (
+            <ul className="ws-relation-list">
+              {edges.map((edge) => {
+                const from = nodes.find((node) => node.knowledge_unit_ref === edge.prerequisite_ref)
+                const to = nodes.find((node) => node.knowledge_unit_ref === edge.target_ref)
+                return (
+                  <li key={edge.relation_ref}>
+                    <span className="ws-relation-list__names">
+                      {from?.canonical_name || '未知节点'}
+                      <ArrowRight size={13} aria-hidden="true" />
+                      {to?.canonical_name || '未知节点'}
+                    </span>
+                    <span className="ws-relation-list__strength">{relationStrengthLabels[edge.strength] || edge.strength}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="ws-empty-copy">尚无可核验的知识关系。页面不会用装饰性连线冒充先修关系。</p>
+          )}
+        </section>
+      </>
+    )
+  }
+
+  const renderDetailModal = () => {
+    if (!selectedDocument) return null
+    const proc = processingUserFacing[selectedDocument.processing_status] || processingUserFacing.completed
+    const learning = learningStateFromDocument(selectedDocument)
+    const hint = documentStateHint(selectedDocument)
+    const isBlocked = knowledgeBlockedStatuses.has(selectedDocument.processing_status)
+    const hasKnowledge = !isBlocked && selectedDocument.knowledge_status !== 'NOT_MODELED'
+    const canViewContent = selectedDocument.processing_status === 'completed' && !isBlocked
+    const canReinspect = canReinspectDocument(selectedDocument)
+    const reinspectionPending =
+      selectedDocument.processing_status === 'quarantined'
+      && selectedDocument.reason_codes?.includes('CONTENT_REINSPECTION_PENDING')
+
+    return (
+      <div
+        className="library-modal"
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) closeModal()
+        }}
+      >
+        <div className="library-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="library-modal-title">
+          <header className="library-modal__header">
+            <span className="library-card__badge library-modal__badge" aria-hidden="true">
+              {mediaShortLabels[selectedDocument.media_type] || '文件'}
+            </span>
+            <div className="library-modal__heading">
+              <h2 id="library-modal-title">{selectedDocument.title}</h2>
+              <span className="library-modal__meta">
+                {mediaTypeLabels[selectedDocument.media_type] || selectedDocument.media_type}
+                {selectedDocument.subject ? ` · ${selectedDocument.subject}` : ''}
+                {selectedDocument.author ? ` · ${selectedDocument.author}` : ''}
+                {' · '}
+                {formatDate(selectedDocument.updated_at) || '时间未知'}
+              </span>
+            </div>
+            <button
+              type="button"
+              ref={modalCloseRef}
+              className="library-modal__close"
+              aria-label="关闭详情"
+              onClick={closeModal}
+            >
+              <X size={17} />
+            </button>
+          </header>
+
+          <div className="library-modal__scroll">
+            <div className="library-modal__banner">
+              <span className={`ds-pill ds-pill--document-${selectedDocument.processing_status}`}>
+                {proc.label}
+              </span>
+              <span className={`ds-pill ds-pill--${learning.tone}`}>{learning.label}</span>
+              <p>{hint || (hasKnowledge ? '知识已就绪，系统会根据这份资料为你安排学习路径。' : '资料处理完成后可开始学习。')}</p>
+            </div>
+
+            {hasKnowledge && (
+              <div className="ws-kpi-strip" aria-label="知识概览">
+                <div className="ws-kpi-block">
+                  <span className="ws-kpi-block__num">{selectedDocument.knowledge_unit_count || 0}</span>
+                  <span className="ws-kpi-block__label">个知识点</span>
+                </div>
+                <div className="ws-kpi-block">
+                  <span className="ws-kpi-block__num">{selectedDocument.relation_count || 0}</span>
+                  <span className="ws-kpi-block__label">条关系</span>
+                </div>
+              </div>
+            )}
+
+            <section className="ws-card" aria-label="资料信息">
+              <h3 className="ws-card__title">资料信息</h3>
+              <dl className="ws-meta-list ws-meta-list--cols">
+                <div className="ws-meta-row"><dt>类型</dt><dd>{mediaTypeLabels[selectedDocument.media_type] || selectedDocument.media_type || '未知'}</dd></div>
+                <div className="ws-meta-row">
+                  <dt>状态</dt>
+                  <dd>
+                    <span className={`ds-pill ds-pill--document-${selectedDocument.processing_status}`}>
+                      {proc.label}
+                    </span>
+                  </dd>
+                </div>
+                <div className="ws-meta-row"><dt>导入时间</dt><dd>{formatDate(selectedDocument.created_at) || '—'}</dd></div>
+                {formatBytes(selectedDocument.file_size_bytes) && (
+                  <div className="ws-meta-row"><dt>大小</dt><dd>{formatBytes(selectedDocument.file_size_bytes)}</dd></div>
+                )}
+                {selectedDocument.subject && <div className="ws-meta-row"><dt>学科</dt><dd>{selectedDocument.subject}</dd></div>}
+                {selectedDocument.author && <div className="ws-meta-row"><dt>作者</dt><dd>{selectedDocument.author}</dd></div>}
+              </dl>
+            </section>
+
+            <section className="ws-card" aria-label="知识候选">
+              <h3 className="ws-card__title">知识候选</h3>
+              <div className="ws-section">
+                {renderKnowledgeSection()}
+              </div>
+            </section>
+
+            <details className="library-metadata-editor">
+              <summary>编辑资料信息</summary>
+              <form onSubmit={saveMetadata}>
+                <label><span>显示标题</span><input required value={metadataDraft.title} onChange={(event) => setMetadataDraft((current) => ({ ...current, title: event.target.value }))} maxLength={255} /></label>
+                <label><span>学科</span><input value={metadataDraft.subject} onChange={(event) => setMetadataDraft((current) => ({ ...current, subject: event.target.value }))} maxLength={100} /></label>
+                <label><span>作者</span><input value={metadataDraft.author} onChange={(event) => setMetadataDraft((current) => ({ ...current, author: event.target.value }))} maxLength={200} /></label>
+                <label><span>语言</span><input value={metadataDraft.language} onChange={(event) => setMetadataDraft((current) => ({ ...current, language: event.target.value }))} maxLength={35} placeholder="例如：zh-CN" /></label>
+                <Button type="submit" variant="secondary" disabled={managing}>保存信息</Button>
+                <small>只更新资料信息，不覆盖原文件，也不创建新的知识 revision。</small>
+              </form>
+            </details>
+          </div>
+
+          <footer className="library-modal__footer">
+            <Button
+              variant="ghost"
+              onClick={() => archiveSingle(selectedDocument)}
+              disabled={managing}
+            >
+              <Archive size={15} />
+              归档
+            </Button>
+            <div className="library-modal__footer-actions">
+              {canReinspect && !reinspectionPending && (
+                <Button
+                  variant="secondary"
+                  onClick={() => requestReinspection(selectedDocument)}
+                  disabled={reinspectingDocumentId === selectedDocument.document_id}
+                >
+                  <RefreshCw size={14} />
+                  {reinspectingDocumentId === selectedDocument.document_id ? '正在提交…' : '使用新版策略重新检查'}
+                </Button>
+              )}
+              {canViewContent && (
+                <Button
+                  as="a"
+                  variant="secondary"
+                  href={`/documents/${encodeURIComponent(selectedDocument.document_id)}/content`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <BookOpen size={15} />
+                  打开原文
+                </Button>
+              )}
+              {hasKnowledge && (
+                <Button
+                  as="a"
+                  variant="primary"
+                  href={`#/book-learning/${encodeURIComponent(selectedDocument.document_id)}`}
+                >
+                  <GraduationCap size={16} />
+                  开始学习
+                </Button>
+              )}
+            </div>
+          </footer>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="library-page page-stack">
+    <div
+      className={`library-page page-stack${dragActive ? ' is-drag-active' : ''}`}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <header className="page-header page-header--split library-header">
         <div>
-          <p className="eyebrow">Canonical 资料投影</p>
           <h1>资料库</h1>
-          <p>导入私人学习资料，查看可追溯的知识候选与原文依据。</p>
+          <p className="library-header__subtitle">导入私人学习资料，点击卡片查看内容、知识与学习状态。</p>
         </div>
         <div className="library-upload">
-          <label>
-            <span>学科（可选）</span>
-            <input
-              value={uploadSubject}
-              onChange={(event) => setUploadSubject(event.target.value)}
-              maxLength={50}
-              placeholder="例如：数学"
-              disabled={uploading}
-            />
-          </label>
           <input
             ref={fileInputRef}
             className="visually-hidden"
@@ -652,15 +814,15 @@ export default function Library() {
             onChange={uploadFile}
             aria-label="选择要上传的资料"
           />
-          <button
-            type="button"
-            className="button button--primary"
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
             <Upload size={16} />
             {uploading ? '正在上传…' : '导入资料'}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -670,367 +832,181 @@ export default function Library() {
         {hasActiveProcessing && <p className="inline-notice">后台处理进行中，资料状态会自动刷新。</p>}
       </div>
 
-      <section className="library-filters" aria-label="资料筛选">
-        <form onSubmit={submitFilters}>
-          <label className="library-search-field">
-            <span>搜索标题与正文</span>
-            <span className="input-with-icon"><Search size={15} /><input value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} maxLength={500} placeholder="输入资料中的关键词" /></span>
-          </label>
-          <label>
-            <span>学科</span>
-            <input value={subjectDraft} onChange={(event) => setSubjectDraft(event.target.value)} maxLength={100} placeholder="精确筛选学科" />
-          </label>
-          <button type="submit" className="button button--secondary">搜索</button>
+      {destination && (
+        <MaterialDestination
+          material={destination}
+          onDismiss={() => setDestination(null)}
+          onAssigned={(workspaceId, meta) => {
+            setDestination(null)
+            setActionMessage('资料已加入空间。')
+            if (meta?.startNow && meta.documentId) {
+              window.location.hash = `#/book-learning/${encodeURIComponent(meta.documentId)}`
+              return
+            }
+            window.location.hash = `#/courses/${encodeURIComponent(workspaceId)}`
+          }}
+        />
+      )}
+
+      <section className="library-toolbar" aria-label="资料筛选与排序">
+        <form onSubmit={submitFilters} className="library-toolbar__search">
+          <span className="input-with-icon">
+            <Search size={15} />
+            <input
+              value={queryDraft}
+              onChange={(event) => setQueryDraft(event.target.value)}
+              maxLength={500}
+              placeholder="搜索资料…"
+              aria-label="搜索资料"
+            />
+          </span>
         </form>
-        <label>
-          <span>处理状态</span>
-          <select value={statusFilter} onChange={(event) => { setPage(1); setStatusFilter(event.target.value) }}>
-            {processingOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>标签</span>
-          <select value={tagFilter} onChange={(event) => { setPage(1); setTagFilter(event.target.value) }}>
-            <option value="">全部标签</option>
-            {availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>集合</span>
-          <select value={collectionFilter} onChange={(event) => { setPage(1); setCollectionFilter(event.target.value) }}>
-            <option value="">全部集合</option>
-            {availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>视图</span>
-          <select value={archivedFilter ? 'archived' : 'active'} onChange={(event) => { setPage(1); setArchivedFilter(event.target.value === 'archived'); setCheckedIds([]) }}>
-            <option value="active">使用中</option>
-            <option value="archived">已归档</option>
-          </select>
-        </label>
-        <label>
-          <span>排序</span>
-          <select value={sort} onChange={(event) => { setPage(1); setSort(event.target.value) }}>
-            <option value="created_desc">最近导入</option>
-            <option value="updated_desc">最近更新</option>
-            <option value="title_asc">标题 A–Z</option>
-          </select>
-        </label>
-        <span className="library-count">共 {total} 份资料</span>
+        <select
+          className="library-toolbar__filter"
+          value={statusFilter}
+          onChange={(event) => { setPage(1); setStatusFilter(event.target.value) }}
+          aria-label="状态筛选"
+        >
+          {processingOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        <select
+          className="library-toolbar__sort"
+          value={sort}
+          onChange={(event) => { setPage(1); setSort(event.target.value) }}
+          aria-label="排序"
+        >
+          {sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
       </section>
 
-      {checkedIds.length > 0 ? (
-        <section className="surface library-management" aria-labelledby="organize-title">
-          <div className="section-heading section-heading--compact">
-            <div><p className="eyebrow">已选 {checkedIds.length} 份资料</p><h2 id="organize-title">批量操作</h2></div>
-            <CheckSquare size={18} />
+      {isEmpty ? (
+        hasFilters ? (
+          <div className="library-no-match">
+            <Search size={20} />
+            <strong>没有找到匹配的资料</strong>
+            <Button variant="ghost" onClick={() => { setQueryFilter(''); setQueryDraft(''); setStatusFilter(''); setPage(1) }}>
+              清除筛选
+            </Button>
           </div>
-          <div className="library-management__row">
-            <label><span>给所选资料加标签</span><select value={batchTagId} onChange={(event) => setBatchTagId(event.target.value)}><option value="">不更改</option>{availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}</select></label>
-            <label><span>加入集合</span><select value={batchCollectionId} onChange={(event) => setBatchCollectionId(event.target.value)}><option value="">不更改</option>{availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}</select></label>
-            <button type="button" className="button button--secondary" onClick={() => applyBatch(null)} disabled={!checkedIds.length || managing}>应用分类</button>
-            <button type="button" className="button button--secondary" onClick={() => applyBatch(archivedFilter ? false : true)} disabled={!checkedIds.length || managing}>
-              {archivedFilter ? <RotateCcw size={15} /> : <Archive size={15} />}
-              {archivedFilter ? '恢复所选' : '归档所选'}
-            </button>
-            <button type="button" className="button button--ghost" onClick={() => setCheckedIds([])}>取消选择</button>
+        ) : (
+          <div className="library-empty-state">
+            <BookOpen size={32} />
+            <h2>还没有学习资料</h2>
+            <p>把 Markdown、TXT、PDF、DOCX 或 EPUB 拖到这里，或点击按钮导入，开始建立你的学习库。</p>
+            <Button variant="primary" onClick={() => fileInputRef.current?.click()}>
+              <Upload size={16} />
+              导入资料
+            </Button>
           </div>
-          <div className="library-management__row library-label-create">
-            <label><span>新标签</span><input value={newTagName} onChange={(event) => setNewTagName(event.target.value)} maxLength={80} placeholder="例如：核心概念" /></label>
-            <button type="button" className="button button--ghost" onClick={() => createLabel('tag')} disabled={!newTagName.trim() || managing}><Tags size={15} />创建标签</button>
-            <label><span>新集合</span><input value={newCollectionName} onChange={(event) => setNewCollectionName(event.target.value)} maxLength={120} placeholder="例如：物理教材" /></label>
-            <button type="button" className="button button--ghost" onClick={() => createLabel('collection')} disabled={!newCollectionName.trim() || managing}><FolderPlus size={15} />创建集合</button>
-          </div>
-        </section>
+        )
       ) : (
-        <section className="surface library-management library-management--collapsed" aria-label="批量操作提示">
-          <div className="section-heading section-heading--compact">
-            <div><p className="eyebrow">提示</p><h2>选择资料后可批量管理</h2></div>
-            <CheckSquare size={18} />
-          </div>
-          <p className="empty-copy">勾选资料后，可在此处批量加标签、加入集合或归档。</p>
-        </section>
-      )}
+        <>
+          <ul
+            className="library-grid"
+            data-batch-active={checkedIds.length > 0 || undefined}
+          >
+            {documents.map((document) => {
+              const cardStatus = unifiedCardStatus(document)
+              const isChecked = checkedIds.includes(document.document_id)
+              const isOpen = document.document_id === selectedDocumentId
+              const isBlocked = knowledgeBlockedStatuses.has(document.processing_status)
+              const isNotModeled = document.knowledge_status === 'NOT_MODELED'
+              const hasKnowledge = !isBlocked && !isNotModeled
+              const fallbackDesc = hasKnowledge
+                ? `${document.knowledge_unit_count || 0} 个知识点 · ${document.relation_count || 0} 条关系`
+                : `${mediaTypeLabels[document.media_type] || '文件'}${formatBytes(document.file_size_bytes) ? ` · ${formatBytes(document.file_size_bytes)}` : ''}`
 
-      {duplicates.items.length > 0 && (
-        <section className="surface duplicate-review" aria-labelledby="duplicate-title">
-          <div className="section-heading section-heading--compact"><div><p className="eyebrow">仅建议，不自动合并</p><h2 id="duplicate-title">重复资料复核</h2></div><Copy size={18} /></div>
-          {duplicates.items.map((suggestion) => (
-            <div className="duplicate-row" key={suggestion.suggestion_id}>
-              <span>{suggestion.kind === 'EXACT_DUPLICATE' ? '文件内容完全一致' : suggestion.kind === 'REVISION_CANDIDATE' ? '可能是同一资料的新版本' : '正文高度相似'} · {Math.round((suggestion.confidence || 0) * 100)}%</span>
-              <div><button type="button" className="button button--ghost" onClick={() => resolveDuplicate(suggestion, 'KEEP_SEPARATE')} disabled={managing}>保留两份</button><button type="button" className="button button--secondary" onClick={() => resolveDuplicate(suggestion, 'ARCHIVE_CANDIDATE')} disabled={managing}>归档候选</button></div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      <div className="library-workspace">
-        <section className="surface library-documents" aria-labelledby="documents-title">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <p className="eyebrow">资料范围</p>
-              <h2 id="documents-title">我的资料</h2>
-            </div>
-            <FileText size={18} />
-          </div>
-          {documents.length ? (
-            <ul className="document-list">
-              {documents.map((document) => (
-                <li key={document.document_id} className={document.document_id === selectedDocumentId ? 'is-selected' : ''}>
-                  <label className="document-check">
+              return (
+                <li
+                  key={document.document_id}
+                  className={`library-card${isChecked ? ' is-checked' : ''}${isOpen ? ' is-open' : ''}`}
+                >
+                  <label
+                    className="library-card__check"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
-                      checked={checkedIds.includes(document.document_id)}
+                      checked={isChecked}
                       onChange={(event) => setCheckedIds((current) => event.target.checked ? [...current, document.document_id] : current.filter((id) => id !== document.document_id))}
                       aria-label={`选择资料 ${document.title}`}
                     />
                   </label>
                   <button
                     type="button"
-                    className="document-select"
-                    onClick={() => setSelectedDocumentId(document.document_id)}
-                    aria-pressed={document.document_id === selectedDocumentId}
+                    className="library-card__button"
+                    onClick={(event) => openDocument(document, event.currentTarget)}
+                    aria-current={isOpen ? 'true' : undefined}
                   >
-                    <span className="document-title">{document.title}</span>
-                    <span>{document.subject || '未标注学科'} · {formatBytes(document.file_size_bytes)}</span>
-                    {(document.tags?.length > 0 || document.collections?.length > 0) && <span className="document-labels">{document.collections?.map((item) => item.name).join(' / ')}{document.tags?.length > 0 && ` · ${document.tags.map((item) => `#${item.name}`).join(' ')}`}</span>}
-                    {document.match_excerpt && <span className="document-match">命中{document.match_field === 'title' ? '标题' : '正文'}：{document.match_excerpt}</span>}
-                    <span className="document-statuses">
-                      <span className={`status-pill status-pill--document-${document.processing_status}`}>
-                        {processingLabels[document.processing_status] || document.processing_status}
+                    <span className="library-card__head">
+                      <span className="library-card__badge" aria-hidden="true">
+                        {mediaShortLabels[document.media_type] || '文件'}
                       </span>
-                      {!knowledgeBlockedStatuses.has(document.processing_status) && (
-                        <span className="status-pill status-pill--neutral">
-                          {knowledgeLabels[document.knowledge_status] || document.knowledge_status}
-                        </span>
-                      )}
+                      <span className="library-card__title">{document.title}</span>
                     </span>
-                    <small>{formatDate(document.updated_at)}</small>
+                    {document.match_excerpt && (
+                      <span className="library-card__match">
+                        命中{document.match_field === 'title' ? '标题' : '正文'}：{document.match_excerpt}
+                      </span>
+                    )}
+                    <span className="library-card__desc">{fallbackDesc}</span>
+                    <span className="library-card__meta">
+                      <span className={`ds-pill ds-pill--${cardStatus.tone}`}>
+                        {cardStatus.label}
+                      </span>
+                      <small className="library-card__date">{formatDate(document.updated_at)}</small>
+                    </span>
                   </button>
                 </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="library-empty">
-              <BookOpen size={24} />
-              <strong>还没有符合条件的资料</strong>
-              <p>可导入 Markdown、TXT、PDF、DOCX 或 EPUB。系统不会凭空补造资料事实。</p>
-            </div>
-          )}
+              )
+            })}
+          </ul>
+
           {totalPages > 1 && (
             <nav className="pagination" aria-label="资料分页">
-              <button type="button" className="button button--ghost" onClick={() => setPage((value) => value - 1)} disabled={page === 1} aria-label="上一页">
+              <Button variant="ghost" size="xs" onClick={() => setPage((value) => value - 1)} disabled={page === 1} aria-label="上一页">
                 <ChevronLeft size={16} />
-              </button>
+              </Button>
               <span>{page} / {totalPages}</span>
-              <button type="button" className="button button--ghost" onClick={() => setPage((value) => value + 1)} disabled={page === totalPages} aria-label="下一页">
+              <Button variant="ghost" size="xs" onClick={() => setPage((value) => value + 1)} disabled={page === totalPages} aria-label="下一页">
                 <ChevronRight size={16} />
-              </button>
+              </Button>
             </nav>
           )}
-          {selectedDocument && (
-            <form className="metadata-editor" onSubmit={saveMetadata}>
-              <h3>资料信息</h3>
-              <label><span>显示标题</span><input required value={metadataDraft.title} onChange={(event) => setMetadataDraft((current) => ({ ...current, title: event.target.value }))} maxLength={255} /></label>
-              <label><span>学科</span><input value={metadataDraft.subject} onChange={(event) => setMetadataDraft((current) => ({ ...current, subject: event.target.value }))} maxLength={100} /></label>
-              <label><span>作者</span><input value={metadataDraft.author} onChange={(event) => setMetadataDraft((current) => ({ ...current, author: event.target.value }))} maxLength={200} /></label>
-              <label><span>语言</span><input value={metadataDraft.language} onChange={(event) => setMetadataDraft((current) => ({ ...current, language: event.target.value }))} maxLength={35} placeholder="例如：zh-CN" /></label>
-              <button type="submit" className="button button--secondary" disabled={managing}>保存信息</button>
-              <small>只更新资料信息，不覆盖原文件，也不创建新的知识 revision。</small>
-            </form>
-          )}
-        </section>
-
-        <section className="surface knowledge-map" aria-labelledby="map-title">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <p className="eyebrow">范围化视图</p>
-              <h2 id="map-title">知识地图</h2>
-            </div>
-            <Network size={18} />
-          </div>
-          {selectedDocument && !knowledgeBlockedStatuses.has(selectedDocument.processing_status) && (
-            <a
-              className="button button--primary library-learning-link"
-              href={`#/book-learning/${encodeURIComponent(selectedDocument.document_id)}`}
-            >
-              <GraduationCap size={16} />
-              从这份资料开始学习
-            </a>
-          )}
-          {selectedDocument?.media_type === 'application/pdf' && !knowledgeBlockedStatuses.has(selectedDocument.processing_status) && (
-            <button type="button" className="button button--secondary library-ocr-button" onClick={startOcr} disabled={managing || ['pending', 'processing'].includes(ocr.payload?.status)}>
-              <ScanText size={16} />
-              {['pending', 'processing'].includes(ocr.payload?.status) ? '本地 OCR 处理中…' : '识别扫描 PDF'}
-            </button>
-          )}
-          {ocr.error && <p className="inline-error" role="alert">{ocr.error}</p>}
-          {!selectedDocument ? (
-            <div className="library-empty"><p>选择一份资料后查看知识候选。</p></div>
-          ) : map.status === 'loading' ? (
-            <div className="inline-state" role="status"><div className="spinner" />正在读取知识地图…</div>
-          ) : map.status === 'error' ? (
-            <div className="inline-state inline-state--error" role="alert">
-              <p>{map.error}</p>
-              <button type="button" className="button button--secondary" onClick={() => setMapReloadKey((value) => value + 1)}>重试</button>
-            </div>
-          ) : nodes.length ? (
-            <>
-              <div className="map-scope">
-                <strong>{selectedDocument.title}</strong>
-                <span>{nodes.length} 个知识候选 · {edges.length} 条有依据的关系</span>
-              </div>
-              <ul className="knowledge-node-list">
-                {nodes.map((node) => (
-                  <li key={node.knowledge_unit_ref}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedNodeRef(node.knowledge_unit_ref)}
-                      aria-pressed={node.knowledge_unit_ref === selectedNodeRef}
-                      className={node.knowledge_unit_ref === selectedNodeRef ? 'is-selected' : ''}
-                    >
-                      <span className="knowledge-node__dot" aria-hidden="true" />
-                      <span>
-                        <strong>{node.canonical_name}</strong>
-                        <small>{knowledgeKindLabels[node.kind] || node.kind} · {nodeStatusLabels[node.status] || node.status}</small>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <section className="relation-summary" aria-labelledby="relations-title">
-                <h3 id="relations-title">关系</h3>
-                {edges.length ? (
-                  <ul>
-                    {edges.map((edge) => {
-                      const from = nodes.find((node) => node.knowledge_unit_ref === edge.prerequisite_ref)
-                      const to = nodes.find((node) => node.knowledge_unit_ref === edge.target_ref)
-                      return <li key={edge.relation_ref}>{from?.canonical_name || '未知节点'} → {to?.canonical_name || '未知节点'}（{relationStrengthLabels[edge.strength] || edge.strength}）</li>
-                    })}
-                  </ul>
-                ) : (
-                  <p>尚无可核验的知识关系。页面不会用装饰性连线冒充先修关系。</p>
-                )}
-              </section>
-            </>
-          ) : (
-            <div className="library-empty">
-              <Network size={24} />
-              <strong>暂无可展示的知识候选</strong>
-              <p>{documentStateHint(selectedDocument) || '当前资料没有带原文依据的知识节点。'}</p>
-              {selectedDocument.reason_codes?.includes('CONTENT_REINSPECTION_AVAILABLE') && (
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={() => requestReinspection(selectedDocument)}
-                  disabled={reinspectingDocumentId === selectedDocument.document_id}
-                >
-                  <RefreshCw size={16} />
-                  {reinspectingDocumentId === selectedDocument.document_id
-                    ? '正在提交…'
-                    : '使用新版策略重新检查'}
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-
-        <aside className="surface source-inspector" aria-labelledby="inspector-title">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <p className="eyebrow">可追溯证据</p>
-              <h2 id="inspector-title">原文检查器</h2>
-            </div>
-          </div>
-          {selectedNode ? (
-            <>
-              <div className="inspector-node">
-                <span className="status-pill status-pill--neutral">{nodeStatusLabels[selectedNode.status] || selectedNode.status}</span>
-                <h3>{selectedNode.canonical_name}</h3>
-                <p>{selectedNode.description}</p>
-                <dl>
-                  <div><dt>来源</dt><dd>{provenanceLabels[selectedNode.provenance_type] || selectedNode.provenance_type}</dd></div>
-                  <div><dt>置信度</dt><dd>{selectedNode.confidence == null ? '未知，未伪造分数' : `${Math.round(selectedNode.confidence * 100)}%`}</dd></div>
-                  <div><dt>学习证据</dt><dd>{selectedNode.learner_evidence_summary ? '已有摘要' : '本切片不适用'}</dd></div>
-                </dl>
-              </div>
-              <div className="span-tabs" aria-label="原文证据位置">
-                {relatedSpans.map((span, index) => (
-                  <button
-                    key={span.source_span_ref}
-                    type="button"
-                    className={span.source_span_ref === selectedSpan?.source_span_ref ? 'is-selected' : ''}
-                    onClick={() => setSelectedSpanRef(span.source_span_ref)}
-                  >
-                    依据 {index + 1}
-                  </button>
-                ))}
-              </div>
-              {selectedSpan ? (
-                <figure className="source-span">
-                  <figcaption>
-                    {selectedSpan.chapter || '未标注章节'}
-                    {selectedSpan.page ? ` · 第 ${selectedSpan.page} 页` : ''}
-                    {selectedSpan.start_offset != null ? ` · 字符 ${selectedSpan.start_offset}–${selectedSpan.end_offset}` : ''}
-                  </figcaption>
-                  <blockquote>{selectedSpan.excerpt}</blockquote>
-                </figure>
-              ) : <p className="empty-copy">该节点没有可向学习者展示的原文片段。</p>}
-              <details className="audit-details">
-                <summary>审计引用</summary>
-                <code>{selectedNode.knowledge_unit_ref}</code>
-                {selectedSpan && <code>{selectedSpan.source_span_ref}</code>}
-                <code>{map.payload.data.scope.graph_version}</code>
-              </details>
-            </>
-          ) : (
-            <p className="empty-copy">选择知识候选后，这里会显示原文片段与稳定引用，不展示隐藏评分材料。</p>
-          )}
-          {map.payload?.source_status && <SourceStatus items={map.payload.source_status} />}
-        </aside>
-      </div>
-
-      {ocr.payload?.status === 'review_required' && (
-        <section ref={ocrReviewRef} className="surface ocr-review" aria-labelledby="ocr-review-title" tabIndex="-1">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">人工复核门禁</p>
-              <h2 id="ocr-review-title">扫描 PDF 文字复核</h2>
-              <p>左侧是本地渲染的原页，右侧是 OCR 候选。只有你勾选接受并发布的文字才会进入新的 revision。</p>
-            </div>
-            <ScanText size={20} />
-          </div>
-          <div className="ocr-pages" aria-label="OCR 页码">
-            {[...new Set(ocr.payload.candidates.map((candidate) => candidate.page_number))].map((pageNumber) => (
-              <button type="button" className={pageNumber === ocrPage ? 'is-selected' : ''} key={pageNumber} onClick={() => setOcrPage(pageNumber)}>第 {pageNumber} 页</button>
-            ))}
-          </div>
-          <div className="ocr-review__grid">
-            <figure className="ocr-page-preview">
-              {ocrPageUrl ? <img src={ocrPageUrl} alt={`PDF 第 ${ocrPage} 页原图`} /> : <div className="inline-state">原页预览载入中…</div>}
-              <figcaption>仅在本机临时渲染 · 不上传第三方</figcaption>
-            </figure>
-            <div className="ocr-candidates">
-              {ocr.payload.candidates.filter((candidate) => candidate.page_number === ocrPage).map((candidate) => (
-                <article key={candidate.candidate_id}>
-                  <header>
-                    <label><input type="checkbox" checked={ocrDecisions[candidate.candidate_id]?.accepted || false} onChange={(event) => setOcrDecisions((current) => ({ ...current, [candidate.candidate_id]: { ...current[candidate.candidate_id], accepted: event.target.checked } }))} />接受这段文字</label>
-                    <span>置信度 {candidate.confidence == null ? '未知' : `${Math.round(candidate.confidence)}%`}</span>
-                  </header>
-                  <textarea aria-label={`第 ${candidate.page_number} 页候选 ${candidate.block_index + 1}`} value={ocrDecisions[candidate.candidate_id]?.text ?? candidate.text} onChange={(event) => setOcrDecisions((current) => ({ ...current, [candidate.candidate_id]: { ...current[candidate.candidate_id], text: event.target.value } }))} rows={4} />
-                  <small>位置 [{candidate.bbox.join(', ')}] · 图像哈希 {candidate.image_hash.slice(0, 12)}…</small>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div className="ocr-review__actions">
-            <span>未勾选的候选会明确拒绝；发布失败时旧 revision 保持不变。</span>
-            <button type="button" className="button button--primary" onClick={publishOcr} disabled={managing || !Object.values(ocrDecisions).some((decision) => decision.accepted)}>发布已复核文字</button>
-          </div>
-        </section>
+        </>
       )}
-      {ocr.payload?.status === 'accepted' && <p className="inline-notice">OCR 复核已发布；资料搜索与知识地图已切换到新 revision。</p>}
+
+      {renderDetailModal()}
+
+      {checkedIds.length > 0 && (
+        <div className="library-batch-bar">
+          <span className="library-batch-bar__count">已选 {checkedIds.length} 份</span>
+          <div className="library-batch-bar__actions">
+            <select value={batchTagId} onChange={(event) => setBatchTagId(event.target.value)} aria-label="加标签">
+              <option value="">加标签…</option>
+              {availableTags.map((tag) => <option key={tag.tag_id} value={tag.tag_id}>{tag.name}</option>)}
+            </select>
+            <select value={batchCollectionId} onChange={(event) => setBatchCollectionId(event.target.value)} aria-label="加入集合">
+              <option value="">加入集合…</option>
+              {availableCollections.map((collection) => <option key={collection.collection_id} value={collection.collection_id}>{collection.name}</option>)}
+            </select>
+            <Button variant="secondary" size="sm" onClick={() => applyBatch(null)} disabled={managing}>应用</Button>
+            <Button variant="secondary" size="sm" onClick={() => applyBatch(statusFilter ? false : true)} disabled={managing}>
+              {statusFilter ? <RotateCcw size={15} /> : <Archive size={15} />}
+              {statusFilter ? '恢复' : '归档'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setCheckedIds([])}>取消</Button>
+          </div>
+        </div>
+      )}
+
+      {dragActive && (
+        <div className="library-drop-overlay" aria-hidden="true">
+          <Upload size={26} />
+          <strong>松开以导入资料</strong>
+          <span>支持 Markdown / TXT / PDF / DOCX / EPUB</span>
+        </div>
+      )}
     </div>
   )
 }

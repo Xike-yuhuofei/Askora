@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>按钮 Button</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+    hr { border: 0; border-top: 1px solid var(--border-neutral-l1); margin: var(--spacer-24) 0; }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .size-tag { display: inline-flex; align-items: center; padding: 0 var(--spacer-6); height: 18px; white-space: nowrap; background: var(--bg-overlay-l1); color: var(--text-tertiary); border-radius: var(--radius-4); font-size: var(--body-sm-font-size); }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+    .group { padding: var(--spacer-16); border: 1px dashed var(--border-neutral-l1); border-radius: var(--radius-8); margin-bottom: var(--spacer-24); }
+    .group__title { font-size: var(--body-sm-font-size); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--body-md-letter-spacing); margin-bottom: var(--spacer-12); }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>按钮 Button</h1>
+    <p>
+      八种变体 × 三种尺寸 × 四种状态。每个页面最多使用一个品牌蓝（Brand）按钮，其余主操作回退到中性反色（Primary）。在密集工具栏或行内使用 Tertiary / Link。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">层级 Hierarchy</div>
+    <p class="pv-section__sub">自上而下为页面上的强调顺序。</p>
+    <div class="stack-12">
+      <div class="row"><span class="size-tag" style="margin:0;">Brand · 每页最多 1 个</span><button class="ak-btn ak-btn--brand"><span>生成学习计划</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Primary · 中性</span><button class="ak-btn ak-btn--primary"><span>保存更改</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Secondary</span><button class="ak-btn ak-btn--secondary"><span>取消</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Tertiary · ghost</span><button class="ak-btn ak-btn--tertiary"><span>跳过</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Danger · strong</span><button class="ak-btn ak-btn--danger-strong"><span>删除</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Danger · subtle</span><button class="ak-btn ak-btn--danger-subtle"><span>断开连接</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Warning</span><button class="ak-btn ak-btn--warning"><span>强制重启</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">Link</span><button class="ak-btn ak-btn--link"><span>阅读文档</span></button></div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">尺寸 Sizes</div>
+    <p class="pv-section__sub">固定高度 28 / 32 / 40px。</p>
+    <div class="stack-12">
+      <div class="row"><span class="size-tag" style="margin:0;">sm</span><button class="ak-btn ak-btn--brand ak-btn--sm"><span>小按钮</span></button><button class="ak-btn ak-btn--secondary ak-btn--sm"><span>小按钮</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">md</span><button class="ak-btn ak-btn--brand ak-btn--md"><span>中按钮</span></button><button class="ak-btn ak-btn--secondary ak-btn--md"><span>中按钮</span></button></div>
+      <div class="row"><span class="size-tag" style="margin:0;">lg</span><button class="ak-btn ak-btn--brand ak-btn--lg"><span>大按钮</span></button><button class="ak-btn ak-btn--secondary ak-btn--lg"><span>大按钮</span></button></div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">状态 States</div>
+    <p class="pv-section__sub">默认 / 悬停 / 按下 / 禁用。</p>
+    <div class="row">
+      <button class="ak-btn ak-btn--brand"><span>默认</span></button>
+      <button class="ak-btn ak-btn--brand" disabled><span>禁用</span></button>
+      <button class="ak-btn ak-btn--secondary"><span>默认</span></button>
+      <button class="ak-btn ak-btn--secondary" disabled><span>禁用</span></button>
+      <button class="ak-btn ak-btn--danger-subtle"><span>默认</span></button>
+      <button class="ak-btn ak-btn--danger-subtle" disabled><span>禁用</span></button>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">图标按钮 Icon</div>
+    <div class="row">
+      <button class="ak-btn ak-btn--brand"><span class="ak-icon ak-icon--16" aria-hidden="true">+</span><span>新建</span></button>
+      <button class="ak-btn ak-btn--secondary ak-btn--icon" aria-label="更多"><span class="ak-icon ak-icon--16" aria-hidden="true">⋯</span></button>
+      <button class="ak-btn ak-btn--tertiary ak-btn--icon" aria-label="设置"><span class="ak-icon ak-icon--16" aria-hidden="true">⚙</span></button>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">按钮组 Button Group</div>
+    <div class="row">
+      <div class="ak-btn-group">
+        <button class="ak-btn ak-btn--secondary"><span>左</span></button>
+        <button class="ak-btn ak-btn--secondary"><span>中</span></button>
+        <button class="ak-btn ak-btn--secondary"><span>右</span></button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

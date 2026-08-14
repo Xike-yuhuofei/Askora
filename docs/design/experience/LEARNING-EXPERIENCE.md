@@ -5,6 +5,7 @@
 > 适用范围：Askora v1 Learning Workspace、Learning Conversation、Attempt / Feedback / Evidence / Provenance Experience  
 > 上游：[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)、[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、历史设计基线见 [`archive/design/`](../../archive/design/)
 > 交互语义：[`INTERACTION-MODEL.md`](INTERACTION-MODEL.md)  
+> 资料解析模式：[`../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md`](../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md)
 > 下游：Learning Interaction / Screen / Render / UI Data Specs
 
 ---
@@ -264,6 +265,10 @@ External model knowledge / explanation
 ### LEXP-SRC-005 — From Reading to Active Learning
 
 Material Experience 不以阅读完成为终点。只要当前学习目标需要，界面应提供进入问题、retrieval、比较、解释或练习的自然路径，使“读材料”能够进入主动学习闭环。
+
+### LEXP-SRC-006 — Parse Mode Must Stay Honest
+
+本地解析与「本机 + AI 增强」必须可区分。仅本机解析可以支持打开原文、结构对照和加入空间；不得把它呈现为模型已完成全书理解。需要模型生成讲解 / 出题 / 反馈时，缺模型必须说缺模型，不得用 mock 对话充学习。AI 增强解析失败不得抹掉已成功的本地原文与结构。
 
 ---
 

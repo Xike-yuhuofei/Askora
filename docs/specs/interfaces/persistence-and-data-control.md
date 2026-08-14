@@ -543,6 +543,10 @@ material_lifecycle:
 
 `assignment_state=unassigned` 当且仅当 `workspace_id=null`。Unassigned Material 仍属于 LocalOwner，可被 Trash/Restore；不得用于启动有依据的学习。归属 Workspace 后 `assignment_state=assigned`。
 
+#### MATLIFE-023 — Assign to Workspace
+
+`AssignMaterialToWorkspaceV1` 是唯一把 `workspace_id` 从 null 写成某一 Workspace 的 owner command。v1 归属后不得再改挂。幂等与 Trash/Restore 共用 `material_lifecycle_receipts`（`command_type=assign`）。
+
 A terminal permanent-delete tombstone/receipt MAY be stored outside the current Material row according to Data Control so long as `material_id`, scope, deletion time/workflow/checkpoint and idempotency can be proven without retained content.
 
 #### MATLIFE-021 — Optimistic Concurrency

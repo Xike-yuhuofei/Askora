@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "slug": "dialog",
+  "name": "Dialog",
+  "category": "feedback",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Dialog",
+      "evidence": "Inferred from preview/component-dialog.html title and component CSS selectors."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "layout",
+      "values": [
+        ".ak-dialog",
+        ".ak-dialog--form",
+        ".ak-backdrop",
+        ".ak-dialog__head",
+        ".ak-dialog__title",
+        ".ak-dialog__close",
+        ".ak-dialog__body",
+        ".ak-dialog__foot"
+      ],
+      "evidence": "Representative selectors from preview/component-dialog.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-dialog.html",
+    "representativeSelectors": [
+      ".ak-backdrop",
+      ".ak-dialog",
+      ".ak-dialog--form",
+      ".ak-dialog__head",
+      ".ak-dialog__title",
+      ".ak-dialog__close",
+      ".ak-dialog__close:hover",
+      ".ak-dialog__body",
+      ".ak-dialog__foot"
+    ],
+    "cssRuleCount": 9
+  },
+  "sizeDeltas": [
+    {
+      "name": "default",
+      "size": "520px",
+      "evidence": ".ak-dialog sets max-width 520px."
+    },
+    {
+      "name": "form",
+      "size": "560px",
+      "evidence": ".ak-dialog--form sets max-width 560px."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "hover"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-dialog",
+      "whySelected": "Representative selector present in preview component CSS.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-dialog--form",
+      "whySelected": "Wider layout for form dialogs.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-dialog.html",
+    "selectors": [
+      ".ak-backdrop",
+      ".ak-dialog",
+      ".ak-dialog__head",
+      ".ak-dialog__title",
+      ".ak-dialog__close",
+      ".ak-dialog__body",
+      ".ak-dialog__foot"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-dialog.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-b.css as the executable rendering contract.",
+    "Use preview/component-dialog.html and components-group-b.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-b.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this repair pass."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-overlay-l2",
+    "--bg-overlay-l4",
+    "--border-neutral-l1",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--heading-sm-font-size",
+    "--heading-sm-line-height",
+    "--heading-sm-font-weight",
+    "--icon-default",
+    "--icon-secondary",
+    "--radius-8",
+    "--radius-12",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-20",
+    "--spacer-24",
+    "--spacer-32",
+    "--text-default",
+    "--text-secondary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-dialog.html",
+      "classes": [
+        "ak-backdrop",
+        "ak-dialog",
+        "ak-dialog--form",
+        "ak-dialog__body",
+        "ak-dialog__close",
+        "ak-dialog__foot",
+        "ak-dialog__head",
+        "ak-dialog__title"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-dialog.html",
+    "source": "preview/component-dialog.html",
+    "css": {
+      "file": "components-group-b.css",
+      "marker": "dialog"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

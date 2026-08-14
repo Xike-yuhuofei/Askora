@@ -23,7 +23,11 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
   beforeEach(() => {
     window.location.hash = '#/settings'
     usersApi.getSystemConfig.mockReset()
-    usersApi.getSystemConfig.mockResolvedValue({ mode: 'private', llm_ready: false })
+    usersApi.getSystemConfig.mockResolvedValue({
+      status: 'ok',
+      mode: 'private',
+      model_configuration: { provider: 'none', model: 'none', runtime_ready: false },
+    })
     dataControlApi.createUserExport.mockReset()
     dataControlApi.downloadUserExport.mockReset()
     dataControlApi.createErasurePreview.mockReset()
@@ -65,7 +69,7 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
   it('states the runtime boundary without exposing credentials', async () => {
     render(<RouterProvider><Settings /></RouterProvider>)
 
-    expect(screen.getByRole('dialog', { name: '通用' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '设置' })).toBeInTheDocument()
     expect(await screen.findByText('私人使用')).toBeInTheDocument()
     expect(screen.getAllByText('未配置').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: '打开恢复中心' })).toBeInTheDocument()
@@ -86,6 +90,42 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
     const call = onboardingApi.reopenOnboarding.mock.calls[0][0]
     expect(call).toHaveProperty('expectedVersion')
     expect(call.expectedVersion).toBeGreaterThanOrEqual(1)
+  })
+
+  it('reads model readiness from model_configuration.runtime_ready', async () => {
+    usersApi.getSystemConfig.mockResolvedValue({
+      status: 'ok',
+      mode: 'private',
+      model_configuration: { provider: 'qwen', model: 'qwen-coder', runtime_ready: true },
+    })
+    render(<RouterProvider><Settings /></RouterProvider>)
+    expect(await screen.findByText('已配置')).toBeInTheDocument()
+  })
+
+  it('disables the AI enhancement toggle with a readable reason when the model is not ready', async () => {
+    render(<RouterProvider><Settings /></RouterProvider>)
+    const toggle = await screen.findByRole('switch', { name: '用 AI 增强资料解析' })
+    expect(toggle).toBeDisabled()
+    expect(toggle).not.toBeChecked()
+    expect(screen.getByText('用 AI 增强资料解析')).toBeInTheDocument()
+    expect(screen.getByText('需先配置可用的本地模型路由，才能开启 AI 增强。')).toBeInTheDocument()
+  })
+
+  it('enables the AI enhancement toggle by default and persists the choice when the model is ready', async () => {
+    usersApi.getSystemConfig.mockResolvedValue({
+      status: 'ok',
+      mode: 'private',
+      model_configuration: { provider: 'qwen', model: 'qwen-coder', runtime_ready: true },
+    })
+    render(<RouterProvider><Settings /></RouterProvider>)
+    const toggle = await screen.findByRole('switch', { name: '用 AI 增强资料解析' })
+    expect(toggle).toBeEnabled()
+    expect(toggle).toBeChecked()
+
+    fireEvent.click(toggle)
+    expect(toggle).not.toBeChecked()
+    expect(await screen.findByText('设置已保存')).toBeInTheDocument()
+    await waitFor(() => expect(globalThis.localStorage.getItem('askora:use_ai_parse_enhancement')).toBe('false'))
   })
 
   it('navigates to data management tab and exposes export scopes', async () => {
@@ -119,7 +159,7 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: '偏好与本地画像' }))
     fireEvent.click(screen.getByRole('checkbox', { name: '包含资料原件' }))
-    fireEvent.click(screen.getByRole('button', { name: '创建并下载导出' }))
+    fireEvent.click(screen.getByRole('button', { name: '导出全部数据' }))
 
     expect(await screen.findByText('导出已下载；服务端临时副本已失效。')).toBeInTheDocument()
     expect(dataControlApi.createUserExport).toHaveBeenCalledWith({
@@ -197,7 +237,7 @@ describe('UI-SCREEN-094 Settings hierarchy and data controls', () => {
     const onClose = vi.fn()
     render(<RouterProvider><Settings onClose={onClose} /></RouterProvider>)
 
-    expect(screen.getByRole('dialog', { name: '通用' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '设置' })).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
 

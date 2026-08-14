@@ -7,6 +7,13 @@ export const uploadDocument = (file, subject = '') => {
   return api.post('/documents/upload', formData).then((response) => response.data)
 }
 
+export const listUnassignedMaterials = () =>
+  api.get('/documents/unassigned').then((response) => response.data)
+
+export const assignMaterial = (documentId, body) =>
+  api.post(`/documents/${encodeURIComponent(documentId)}/assign`, body)
+    .then((response) => response.data)
+
 export const deleteDocument = (documentId) =>
   api.delete(`/documents/${encodeURIComponent(documentId)}`)
     .then((response) => response.data)

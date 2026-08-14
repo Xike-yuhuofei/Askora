@@ -26,6 +26,54 @@
   color: var(--text-muted);
 }
 
+.learning-canvas__continue {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+
+.learning-canvas__continue-hint,
+.learning-canvas__continue-reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.learning-canvas__continue-reason {
+  color: var(--text-secondary);
+}
+
+.learning-canvas__conversation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.learning-canvas__conversation-title {
+  text-align: left;
+}
+
+.learning-canvas__conversation-status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.learning-canvas__conversations {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .learning-canvas__empty {
   flex: 1;
   min-height: 0;
@@ -60,7 +108,7 @@
   gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   background: var(--surface-container);
   color: var(--text-primary);
   font-size: 0.8125rem;
@@ -70,7 +118,7 @@
 }
 
 .learning-canvas__drawer-toggle:hover {
-  border-color: var(--primary, #4b6cf5);
+  border-color: var(--brand-primary);
   background: var(--surface-container-high);
 }
 
@@ -85,7 +133,7 @@
   justify-content: space-between;
   padding: 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-l);
   background: var(--surface-container);
   font-size: 0.8125rem;
   color: var(--text-muted);
@@ -95,7 +143,7 @@
 .learning-canvas__manage-btn {
   padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   background: transparent;
   color: var(--text-primary);
   font-size: 0.75rem;
@@ -104,7 +152,7 @@
 }
 
 .learning-canvas__manage-btn:hover {
-  border-color: var(--primary, #4b6cf5);
+  border-color: var(--brand-primary);
 }
 
 .learning-canvas__messages {
@@ -137,8 +185,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--brand-soft, #f2f7ff);
-  color: var(--brand, #4b6cf5);
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,13 +196,13 @@
 }
 
 .learning-message--user .learning-message__avatar {
-  background: var(--primary, #4b6cf5);
+  background: var(--brand-primary);
   color: #fff;
 }
 
 .learning-message__bubble {
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-l);
   font-size: 0.875rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -168,7 +216,7 @@
 }
 
 .learning-message--user .learning-message__bubble {
-  background: var(--primary, #4b6cf5);
+  background: var(--brand-primary);
   color: #fff;
   border-top-right-radius: 4px;
 }
@@ -204,8 +252,8 @@
 }
 
 .suggestion-chip:hover {
-  border-color: var(--primary, #4b6cf5);
-  background: var(--brand-soft, #f2f7ff);
+  border-color: var(--brand-primary);
+  background: var(--brand-primary-soft);
 }
 
 .learning-canvas__composer {
@@ -221,14 +269,14 @@
   gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-l);
   background: var(--surface);
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 
 .composer-box:focus-within {
-  border-color: var(--primary, #4b6cf5);
-  box-shadow: 0 0 0 3px rgba(75, 108, 245, .12);
+  border-color: var(--brand-primary);
+  box-shadow: var(--focus-ring);
 }
 
 .composer-box textarea {
@@ -251,9 +299,9 @@
 
 .composer-send {
   border: 0;
-  background: var(--primary, #4b6cf5);
+  background: var(--brand-primary);
   color: #fff;
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   padding: 8px;
   cursor: pointer;
   display: inline-flex;
@@ -264,7 +312,7 @@
 }
 
 .composer-send:hover:not(:disabled) {
-  background: var(--primary-hover, #3a5ce0);
+  background: var(--brand-primary-hover);
 }
 
 .composer-send:disabled {

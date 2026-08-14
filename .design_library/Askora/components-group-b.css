@@ -1,0 +1,214 @@
+/**
+ * Askora design library — components group B
+ * Apple-inspired system-blue design language for the Askora personal AI learning system.
+ *
+ * Prefix: .ak-*  (Askora)
+ * Consumes tokens from colors_and_type.css (--askora-*, --color-*, --bg-*, --text-*,
+ * --border-*, --status-*, --radius-*, --spacer-*, --shadow-*, --body-*, --heading-*).
+ * Light mode only. Chinese-first product language.
+ *
+ * Components in this group:
+ *   alert, avatar, breadcrumb, dialog, progress, skeleton
+ * Each section is wrapped in a /* @component-css-start *\/ ... /* @component-css-end *\/
+ * marker block so previews and contracts can extract the executable rendering contract.
+ */
+
+/* ==========================================================================
+   alert
+   ========================================================================== */
+/* @component-css-start */
+.ak-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacer-12);
+  padding: var(--spacer-12) var(--spacer-16);
+  background: var(--bg-base-secondary);
+  border: 1px solid var(--border-neutral-l1);
+  border-radius: var(--radius-8);
+  color: var(--text-default);
+  font-family: var(--body-md-font-family);
+  font-size: var(--body-md-font-size);
+  line-height: var(--body-md-line-height);
+  letter-spacing: var(--body-md-letter-spacing);
+}
+.ak-alert__icon {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: var(--spacer-2);
+  color: var(--icon-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ak-alert__icon .icon { width: 16px; height: 16px; display: block; }
+.ak-alert__body { flex: 1; min-width: 0; }
+.ak-alert__title {
+  font-family: var(--body-md-strong-font-family);
+  font-size: var(--body-md-strong-font-size);
+  line-height: var(--body-md-strong-line-height);
+  font-weight: var(--body-md-strong-font-weight);
+  letter-spacing: var(--body-md-strong-letter-spacing);
+  margin-bottom: var(--spacer-4);
+}
+.ak-alert__desc {
+  color: var(--text-secondary);
+  font-size: var(--body-md-font-size);
+  line-height: var(--body-md-line-height);
+}
+.ak-alert--success { background: var(--status-success-surface-l1); border-color: var(--status-success-surface-l2); }
+.ak-alert--success .ak-alert__icon { color: var(--status-success-default); }
+.ak-alert--warning { background: var(--status-warning-surface-l1); border-color: var(--status-warning-surface-l2); }
+.ak-alert--warning .ak-alert__icon { color: var(--status-warning-default); }
+.ak-alert--danger { background: var(--status-error-surface-l1); border-color: var(--status-error-surface-l2); }
+.ak-alert--danger .ak-alert__icon { color: var(--status-error-default); }
+.ak-alert--info { background: var(--status-primary-surface-l1); border-color: var(--status-primary-surface-l2); }
+.ak-alert--info .ak-alert__icon { color: var(--status-primary-default); }
+/* @component-css-end */
+
+/* ==========================================================================
+   avatar
+   ========================================================================== */
+/* @component-css-start */
+.ak-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--bg-overlay-l3);
+  color: var(--text-default);
+  font-family: var(--body-base-strong-font-family);
+  font-size: var(--body-base-strong-font-size);
+  font-weight: var(--body-base-strong-font-weight);
+  line-height: var(--body-base-strong-line-height);
+  flex-shrink: 0;
+}
+.ak-avatar--sm { width: 24px; height: 24px; font-size: var(--body-sm-font-size); }
+.ak-avatar--lg { width: 40px; height: 40px; }
+/* @component-css-end */
+
+/* ==========================================================================
+   breadcrumb
+   ========================================================================== */
+/* @component-css-start */
+.ak-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  font-size: var(--body-base-font-size);
+  line-height: var(--body-base-line-height);
+  color: var(--text-tertiary);
+}
+.ak-breadcrumb a { display: inline-flex; align-items: center; color: var(--text-tertiary); }
+.ak-breadcrumb a:hover { color: var(--text-default); }
+.ak-breadcrumb__sep { color: var(--text-tertiary); }
+.ak-breadcrumb__current { color: var(--text-default); }
+/* @component-css-end */
+
+/* ==========================================================================
+   dialog
+   ========================================================================== */
+/* @component-css-start */
+.ak-backdrop {
+  position: relative;
+  background: var(--bg-overlay-l4);
+  border: 1px solid var(--border-neutral-l1);
+  padding: var(--spacer-32) var(--spacer-24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ak-dialog {
+  background: var(--bg-base-default);
+  border: 1px solid var(--border-neutral-l1);
+  border-radius: var(--radius-12);
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  color: var(--text-default);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--text-default) 14%, transparent), 0 4px 16px color-mix(in srgb, var(--text-default) 8%, transparent);
+}
+.ak-dialog--form { max-width: 560px; }
+.ak-dialog__head {
+  padding: var(--spacer-16) var(--spacer-20);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0;
+}
+.ak-dialog__title {
+  font-size: var(--heading-sm-font-size);
+  line-height: var(--heading-sm-line-height);
+  font-weight: var(--heading-sm-font-weight);
+  color: var(--text-default);
+}
+.ak-dialog__close {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--icon-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-8);
+}
+.ak-dialog__close:hover { background: var(--bg-overlay-l2); color: var(--icon-default); }
+.ak-dialog__body {
+  padding: var(--spacer-16) var(--spacer-20);
+  color: var(--text-secondary);
+  font-size: var(--body-base-font-size);
+  line-height: var(--body-base-line-height);
+}
+.ak-dialog__foot {
+  padding: var(--spacer-12) var(--spacer-20);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacer-8);
+  border-top: 0;
+}
+/* @component-css-end */
+
+/* ==========================================================================
+   progress
+   ========================================================================== */
+/* @component-css-start */
+.ak-progress {
+  height: 6px;
+  background: var(--bg-overlay-l2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.ak-progress__bar { height: 100%; background: var(--text-default); border-radius: inherit; }
+.ak-progress--brand .ak-progress__bar { background: var(--bg-brand); }
+/* @component-css-end */
+
+/* ==========================================================================
+   skeleton
+   ========================================================================== */
+/* @component-css-start */
+.ak-skeleton {
+  display: block;
+  background: var(--bg-overlay-l2);
+  border-radius: var(--radius-8);
+  position: relative;
+  overflow: hidden;
+}
+.ak-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--bg-overlay-l3), transparent);
+  animation: ak-skeleton-shine 1.6s ease-in-out infinite;
+}
+@keyframes ak-skeleton-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.ak-skeleton--line { height: 12px; }
+.ak-skeleton--title { height: 18px; width: 50%; }
+.ak-skeleton--circle { width: 32px; height: 32px; border-radius: var(--radius-full); }
+/* @component-css-end */

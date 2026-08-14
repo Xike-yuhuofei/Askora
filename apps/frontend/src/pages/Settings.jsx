@@ -13,7 +13,7 @@ import * as usersApi from '../api/users'
 import * as dataControlApi from '../api/dataControl'
 import * as onboardingApi from '../api/onboarding'
 import Button from '../components/ui/Button'
-import { useNavigate } from '../router'
+import { readFragment, useNavigate } from '../router'
 import './Settings.css'
 
 const exportScopeLabels = [
@@ -22,6 +22,19 @@ const exportScopeLabels = [
   ['LEARNING_RECORDS', '学习记录'],
   ['MODEL_EXECUTION', '模型执行记录'],
 ]
+
+const ENHANCEMENT_KEY = 'askora:use_ai_parse_enhancement'
+
+function readStoredEnhancement() {
+  try {
+    const raw = globalThis.localStorage?.getItem(ENHANCEMENT_KEY)
+    if (raw === 'true') return true
+    if (raw === 'false') return false
+  } catch {
+    /* localStorage 不可用时视为未设置，按默认值处理。 */
+  }
+  return null
+}
 
 const categories = [
   { id: 'general', label: '通用', icon: SettingsIcon },
@@ -34,7 +47,9 @@ export default function Settings({ onClose }) {
   const navigate = useNavigate()
   const dialogRef = useRef(null)
   const closeButtonRef = useRef(null)
+  const modelRowRef = useRef(null)
   const previouslyFocusedRef = useRef(null)
+  const initialFragment = useRef(readFragment())
   const [system, setSystem] = useState({ status: 'loading', data: null, error: '' })
   const [onboardingJourney, setOnboardingJourney] = useState({ status: 'loading', data: null, error: '' })
   const [onboardingReopenState, setOnboardingReopenState] = useState('idle')
@@ -56,9 +71,15 @@ export default function Settings({ onClose }) {
   const [erasurePhrase, setErasurePhrase] = useState('')
   const [erasureState, setErasureState] = useState({ status: 'idle', message: '', report: null })
 
+  const [parseEnhancement, setParseEnhancement] = useState({
+    value: readStoredEnhancement(),
+    saving: false,
+    state: 'idle',
+  })
+
   const close = () => {
     if (onClose) onClose()
-    else navigate('/today')
+    else navigate('/chat')
   }
 
   useEffect(() => {
@@ -116,6 +137,17 @@ export default function Settings({ onClose }) {
       .catch(() => setOnboardingJourney({ status: 'error', data: null, error: '无法读取首次引导状态。' }))
   }
 
+  useEffect(() => {
+    if (initialFragment.current !== 'model' || system.status !== 'ready') return undefined
+    const timer = window.setTimeout(() => {
+      const el = modelRowRef.current
+      if (!el) return
+      const focusable = el.querySelector('a[href], button, input, select')
+      ;(focusable || el).focus()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [system.status])
+
   const reopenOnboardingFlow = async () => {
     if (onboardingReopenState === 'loading') return
     const current = onboardingJourney
@@ -126,7 +158,7 @@ export default function Settings({ onClose }) {
         expectedVersion: current.data.preference?.preference_version ?? 1,
       })
       setOnboardingReopenState('idle')
-      navigate('/welcome')
+      navigate('/chat')
     } catch {
       setOnboardingReopenState('error')
       setOnboardingJourney((prev) => ({ ...prev, error: '无法重新打开首次引导，请稍后重试。' }))
@@ -207,8 +239,27 @@ export default function Settings({ onClose }) {
     }
   }
 
-  const active = categories.find((item) => item.id === activeCategory) || categories[0]
   const onboardingVisibility = onboardingJourney.data?.preference?.visibility === 'DISMISSED' ? '已暂存' : '进行中'
+
+  const runtimeReady = Boolean(system.data?.model_configuration?.runtime_ready)
+  const parseEffective = runtimeReady ? (parseEnhancement.value ?? true) : false
+
+  const toggleParseEnhancement = () => {
+    if (!runtimeReady || parseEnhancement.saving) return
+    const next = !parseEffective
+    let state = 'saved'
+    try {
+      globalThis.localStorage?.setItem(ENHANCEMENT_KEY, String(next))
+    } catch {
+      state = 'error'
+    }
+    setParseEnhancement({ value: next, saving: false, state })
+    if (state === 'saved') {
+      window.setTimeout(() => {
+        setParseEnhancement((current) => (current.state === 'saved' ? { ...current, state: 'idle' } : current))
+      }, 2400)
+    }
+  }
 
   return (
     <div className="ds-dialog-backdrop settings-overlay" onClick={close}>
@@ -238,7 +289,7 @@ export default function Settings({ onClose }) {
 
         <div className="settings-dialog__main">
           <header className="settings-dialog__head">
-            <h1 id="settings-dialog-title" className="settings-dialog__title">{active.label}</h1>
+            <h2 id="settings-dialog-title" className="settings-dialog__title">设置</h2>
             <button
               ref={closeButtonRef}
               type="button"
@@ -264,8 +315,26 @@ export default function Settings({ onClose }) {
                         <span className="settings-row__value">{system.data.mode === 'private' ? '私人使用' : '服务模式'}</span>
                       </SettingRow>
                       <SettingRow label="AI 模型" description="是否已配置可用的本地模型路由。">
-                        <span className="settings-row__value">{system.data.llm_ready ? '已配置' : '未配置'}</span>
+                        <span ref={modelRowRef} tabIndex={-1} className="settings-row__value">{runtimeReady ? '已配置' : '未配置'}</span>
                       </SettingRow>
+                      <SettingRow label="用 AI 增强资料解析" description="用 AI 补充解析结果时，解析内容仍可见、可核对；此开关仅影响增强，不改变原始文本。">
+                        <label className="settings-switch">
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            aria-label="用 AI 增强资料解析"
+                            aria-checked={parseEffective}
+                            aria-busy={parseEnhancement.saving}
+                            checked={parseEffective}
+                            disabled={!runtimeReady || parseEnhancement.saving}
+                            onChange={toggleParseEnhancement}
+                          />
+                          <span className="settings-switch__track" aria-hidden="true" />
+                        </label>
+                      </SettingRow>
+                      {!runtimeReady && <p className="settings-row__note">需先配置可用的本地模型路由，才能开启 AI 增强。</p>}
+                      {parseEnhancement.state === 'saved' && <p className="settings-success">设置已保存</p>}
+                      {parseEnhancement.state === 'error' && <p className="inline-error" role="alert">保存失败，请重试。</p>}
                     </>
                   )}
                 </SettingGroup>
@@ -338,7 +407,7 @@ export default function Settings({ onClose }) {
                       disabled={exportState.status === 'working' || !Object.values(exportScopes).some(Boolean)}
                     >
                       <Download size={16} />
-                      {exportState.status === 'working' ? '正在生成…' : '创建并下载导出'}
+                      {exportState.status === 'working' ? '正在导出…' : '导出全部数据'}
                     </Button>
                   </SettingRow>
                   {exportState.message && (
@@ -456,7 +525,7 @@ export default function Settings({ onClose }) {
 function SettingGroup({ title, intro, children }) {
   return (
     <section className="settings-group">
-      <h2 className="settings-group__title">{title}</h2>
+      <h3 className="settings-group__title">{title}</h3>
       {intro ? <p className="settings-group__intro">{intro}</p> : null}
       <div className="settings-group__rows">{children}</div>
     </section>

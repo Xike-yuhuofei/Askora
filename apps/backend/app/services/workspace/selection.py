@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts.workspace import (
     CreateWorkspaceV1,
+    RenameWorkspaceV1,
     SwitchWorkspaceV1,
     WorkspaceGetResponseV1,
     WorkspaceItemV1,
@@ -33,6 +34,7 @@ from app.models.workspace import (
     WorkspaceSelection,
 )
 from app.services.workspace.repository import (
+    WorkspaceError,
     WorkspaceIdempotencyConflictError,
     WorkspaceRepository,
     WorkspaceSelectionRepository,
@@ -46,7 +48,7 @@ def _aware(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-def _digest(command: CreateWorkspaceV1 | SwitchWorkspaceV1) -> str:
+def _digest(command: CreateWorkspaceV1 | SwitchWorkspaceV1 | RenameWorkspaceV1) -> str:
     payload = command.model_dump(mode="json", exclude={"idempotency_key"})
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
@@ -292,6 +294,58 @@ class WorkspaceSelectionService:
         return await self._append_or_replay(
             owner_id=owner,
             command_type="SWITCH_WORKSPACE",
+            idempotency_key=command.idempotency_key,
+            digest=digest,
+            result=result,
+        )
+
+    async def rename(
+        self, *, owner_id: UUID, workspace_id: UUID, command: RenameWorkspaceV1, correlation_id: UUID
+    ) -> WorkspaceMutationResultV1:
+        owner = str(owner_id)
+        digest = _digest(command)
+        replay = await self._replay(
+            owner_id=owner,
+            command_type="RENAME_WORKSPACE",
+            idempotency_key=command.idempotency_key,
+            digest=digest,
+        )
+        if replay is not None:
+            return replay
+
+        target = await self.workspaces.get_for_owner(owner, str(workspace_id))
+        if target is None or target.lifecycle != "active":
+            self._not_found()
+            raise AssertionError("unreachable")
+
+        try:
+            async with self.db.begin_nested():
+                workspace = await self.workspaces.rename(
+                    workspace_id=str(workspace_id),
+                    display_name=command.display_name,
+                )
+        except WorkspaceError:
+            replay_after_race = await self._replay(
+                owner_id=owner,
+                command_type="RENAME_WORKSPACE",
+                idempotency_key=command.idempotency_key,
+                digest=digest,
+            )
+            if replay_after_race is not None:
+                return replay_after_race
+            raise
+
+        selection = await self.selections.get(owner)
+        result = WorkspaceMutationResultV1(
+            outcome="SWITCHED",
+            workspace=self._item(workspace, current_id=selection.current_workspace_id if selection else None),
+            selection_ref=self._selection_ref(selection) if selection else None,
+            selection_version=selection.version if selection else None,
+            correlation_id=correlation_id,
+        )
+        return await self._append_or_replay(
+            owner_id=owner,
+            command_type="RENAME_WORKSPACE",
             idempotency_key=command.idempotency_key,
             digest=digest,
             result=result,

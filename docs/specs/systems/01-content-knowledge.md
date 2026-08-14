@@ -148,7 +148,8 @@ validate file
 → deterministic parse
 → recover structure
 → semantic segmentation
-→ schema-constrained candidate extraction
+→ deterministic candidate extraction
+→ optional schema-constrained LLM extraction (hybrid only)
 → bind SourceSpan
 → conservative entity resolution
 → relation inference
@@ -165,10 +166,29 @@ MVP MUST 优先：
 
 - deterministic parser；
 - 结构规则；
-- schema constrained LLM extraction；
 - evidence binding；
 - conservative merge；
 - graph cycle/duplicate checks。
+
+schema-constrained LLM extraction 不是无条件 MVP MUST。它只在 `SYS01-034` 允许的 hybrid run 中执行，并且 MUST 叠在本地确定性结果之上。
+
+### SYS01-034：Parse execution modes
+
+每次 knowledge extraction run MUST 记录 `execution_mode`：
+
+```text
+deterministic  仅本地算法；不得调用外部模型
+hybrid         本地结果 + schema-constrained LLM extraction
+```
+
+规则：
+
+- 安全扫描、format parse、DocumentIR、SourceSpan 与确定性 candidate **MUST** 始终先跑，且不依赖模型；
+- hybrid **MAY** 仅当 SYS08 的「用 AI 增强资料解析」偏好为 on **且** 模型 `runtime_ready`；
+- 偏好 off、无 key、或模型未就绪时 MUST 使用 `deterministic`，MUST NOT 为解析调用外部模型；
+- 打开偏好 MUST NOT 自动对既有 Material 发起 hybrid run；既有资料的增强走显式 re-parse command；
+- `model_inferred` 单独不得发布 hard prerequisite，也不得改写 DocumentIR；
+- hybrid 失败不得回滚已成功的 deterministic parse / published local candidates；run 标 `partial` / enhancement-failed，可重试增强。
 
 ### SYS01-032：Hard prerequisite
 
@@ -279,6 +299,7 @@ Published KnowledgeUnit/Relation 不能原地静默覆盖。
 - `SYS01-AC-005`：图/向量索引可从 canonical records 重建。
 - `SYS01-AC-006`：恶意文档指令不会触发未授权工具或改变系统策略。
 - `SYS01-AC-007`：4.6 报告路径冲突只能形成 evidence/review，不直接改知识图。
+- `SYS01-AC-008`：无模型或偏好关闭时 ingestion 仍可完成本地 parse；hybrid 只在偏好 on 且模型就绪时发生。
 
 ## 17. Forbidden Implementations
 
@@ -725,7 +746,7 @@ ModelInference
 → SYS01 validation/publish path
 ```
 
-LLM output MUST NOT 直接变成 KnowledgeUnit/Relation published truth。
+LLM output MUST NOT 直接变成 KnowledgeUnit/Relation published truth。SYS08 只在 `use_ai_parse_enhancement=true` 且模型 `runtime_ready` 时为解析调用模型；SYS01 决定是否采纳 candidate。
 
 ### 10. Tests
 
@@ -823,10 +844,11 @@ Model confidence MUST NOT 被解释为已校准事实概率。
 每次 extraction run MUST 固定并保存：
 
 ```text
+execution_mode: deterministic|hybrid
 parser version
 semantic segmentation version
 extractor version
-model/provider/snapshot（如有）
+model/provider/snapshot（hybrid 时 MUST；deterministic 时 MUST 为 null）
 prompt/schema version（如有）
 publication policy version
 input revision
@@ -985,7 +1007,10 @@ MUST 覆盖：
 8. reverse verification failure；
 9. invalid SourceSpan blocks publish；
 10. fixed extraction result replay 不调用 LLM；
-11. projection rebuild 不改变 published knowledge。
+11. projection rebuild 不改变 published knowledge；
+12. `execution_mode=deterministic` 不调用外部模型；
+13. 偏好 off / 模型未就绪不得进入 hybrid；
+14. hybrid 失败保留已成功的 deterministic parse。
 
 ### 14. Acceptance Criteria
 
@@ -996,6 +1021,7 @@ MUST 覆盖：
 - `D03-AC-005`：hard prerequisite cycle 不可进入 published graph。
 - `D03-AC-006`：`minimal-binding-v1` 不重新成为成熟知识 truth。
 - `D03-AC-007`：SYS04/SYS06/SYS08 不获得知识发布写权限。
+- `D03-AC-008`：`execution_mode` 与模型调用一致；deterministic run 与偏好 off 不得调用外部模型；hybrid 失败不回滚本地 parse。
 
 ### 15. Forbidden Implementations
 

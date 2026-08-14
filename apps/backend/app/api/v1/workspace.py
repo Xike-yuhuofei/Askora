@@ -21,6 +21,7 @@ from app.contracts.workspace import (
     LearningContextResponseV1,
     LearningPathResponseV1,
     LibraryWorkspaceResponseV1,
+    RenameWorkspaceV1,
     SwitchWorkspaceV1,
     TodayWorkspaceResponseV1,
     WorkspaceActivityIndexResponseV1,
@@ -130,6 +131,28 @@ async def switch_course_workspace(
     response.headers["Cache-Control"] = "private, no-store"
     return await WorkspaceSelectionService(db).switch(
         owner_id=UUID(owner.canonical_owner_id),
+        command=body,
+        correlation_id=_correlation_id(request),
+    )
+
+
+@workspaces_router.patch(
+    "/{workspace_id}",
+    response_model=WorkspaceMutationResultV1,
+    summary="重命名课程",
+)
+async def rename_course_workspace(
+    workspace_id: UUID,
+    body: RenameWorkspaceV1,
+    request: Request,
+    response: Response,
+    owner: LocalOwnerContext = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+) -> WorkspaceMutationResultV1:
+    response.headers["Cache-Control"] = "private, no-store"
+    return await WorkspaceSelectionService(db).rename(
+        owner_id=UUID(owner.canonical_owner_id),
+        workspace_id=workspace_id,
         command=body,
         correlation_id=_correlation_id(request),
     )

@@ -1,25 +1,82 @@
 import { useEffect, useRef, useState } from 'react'
-import { FolderOpen, Settings, Menu, X, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { NavLink, useNavigate } from '../router'
-import { WorkspaceContextDisplay } from './WorkspaceContext'
-import Button from './ui/Button'
-import DsIcon from './ui/DsIcon'
+import {
+  FolderOpen,
+  Library,
+  Menu,
+  MessageSquare,
+  Plus,
+  X,
+} from 'lucide-react'
+import { NavLink, useLocation, useNavigate } from '../router'
+import { useWorkspace, WorkspaceContextDisplay } from './WorkspaceContext'
+
+import * as workspaceApi from '../api/workspace'
 import './WorkspaceContext.css'
 import './Sidebar.css'
 
-const utilityNavItems = [
-  { path: '/settings', label: '设置', icon: Settings },
+const MODES = [
+  { id: 'learn', label: '资讯' },
+  { id: 'library', label: '学习' },
+  { id: 'review', label: '笔记' },
 ]
 
-export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse }) {
+const PRIMARY_ACTIONS = [
+  { id: 'new-chat', label: '新建对话', icon: MessageSquare, href: '/chat', isButton: true },
+  { id: 'new-space', label: '空间管理', icon: Plus, href: '/spaces', isButton: true },
+  { id: 'library', label: '资料库', icon: Library, href: '/library' },
+]
+
+function activityStatusLabel(activity) {
+  if (activity.status === 'active' || activity.launch_state === 'RESUMABLE') return '进行中'
+  if (activity.status === 'available') return '可开始'
+  return null
+}
+
+export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse, onPrimaryActionClick }) {
   const [open, setOpen] = useState(false)
   const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const [mode, setMode] = useState('learn')
+  const [spaces, setSpaces] = useState({ status: 'loading', items: [] })
+  const [openFolders, setOpenFolders] = useState({})
   const menuButtonRef = useRef(null)
   const sidebarRef = useRef(null)
   const firstLinkRef = useRef(null)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const workspace = useWorkspace()
   const collapsed = collapsedProp ?? internalCollapsed
-  const toggleCollapse = onToggleCollapse ?? (() => setInternalCollapsed((value) => !value))
+
+  useEffect(() => {
+    let cancelled = false
+    setSpaces({ status: 'loading', items: [] })
+    workspaceApi.listWorkspaces()
+      .then(async (payload) => {
+        const items = payload?.data?.workspaces || []
+        const enriched = await Promise.all(
+          items.map(async (space) => {
+            try {
+              const response = await workspaceApi.listWorkspaceActivities(space.workspace_id)
+              return { ...space, activities: response?.data?.activities || [] }
+            } catch {
+              return { ...space, activities: [] }
+            }
+          }),
+        )
+        if (cancelled) return
+        setSpaces({ status: 'ready', items: enriched })
+        setOpenFolders(Object.fromEntries(enriched.map((s) => [s.workspace_id, true])))
+      })
+      .catch(() => {
+        if (!cancelled) setSpaces({ status: 'error', items: [] })
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (pathname.startsWith('/library')) setMode('library')
+    else if (pathname.startsWith('/learning/history') || pathname.startsWith('/learning/progress')) setMode('review')
+    else setMode('learn')
+  }, [pathname])
 
   useEffect(() => {
     if (!open) return undefined
@@ -34,7 +91,7 @@ export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse }) 
       if (event.key !== 'Tab') return
 
       const drawerFocusables = Array.from(
-        sidebarRef.current?.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') || [],
+        sidebarRef.current?.querySelectorAll('a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])') || [],
       )
       const focusables = [menuButtonRef.current, ...drawerFocusables].filter(Boolean)
       if (!focusables.length) return
@@ -55,6 +112,10 @@ export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse }) 
       document.removeEventListener('keydown', handleDrawerKeys)
     }
   }, [open])
+
+  const toggleFolder = (id) => setOpenFolders((prev) => ({ ...prev, [id]: !prev[id] }))
+
+  const currentWorkspaceId = workspace?.current_workspace?.workspace_id
 
   return (
     <>
@@ -83,74 +144,159 @@ export default function Sidebar({ collapsed: collapsedProp, onToggleCollapse }) 
         className={`sidebar ${open ? 'open' : ''} ${collapsed ? 'sidebar--collapsed' : ''}`}
         role={open ? 'dialog' : undefined}
         aria-modal={open ? 'true' : undefined}
-        aria-label={open ? '主导航' : '主导航'}
+        aria-label="主导航"
       >
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            <BookOpen size={24} />
-          </div>
-          <div className="logo-text">
-            <div className="logo-title">Askora</div>
-            <div className="logo-sub">个人学习系统</div>
-          </div>
-          <button
-            type="button"
-            className="sidebar-collapse"
-            aria-label={collapsed ? '展开左侧栏' : '收起左侧栏'}
-            aria-expanded={!collapsed}
-            aria-controls="primary-sidebar"
-            onClick={toggleCollapse}
-          >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
-        </div>
-
-        <div className="sidebar-primary-action">
-          <Button
-            variant="brand"
-            className="ds-btn--block"
-            aria-label="新课程"
-            onClick={() => {
-              setOpen(false)
-              navigate('/courses/new')
-            }}
-          >
-            <DsIcon name="plus" />
-            <span className="sidebar-action-label">新课程</span>
-          </Button>
-        </div>
-
-        <nav className="sidebar-nav" aria-label="产品域导航">
-          <div className="sidebar-nav-section">
-            <p className="sidebar-nav-label">课程</p>
-            <WorkspaceContextDisplay />
-            <NavLink
-              ref={firstLinkRef}
-              to="/library"
-              match="prefix"
-              className="ds-nav-row"
-              onClick={() => setOpen(false)}
+        {/* B. Mode switcher */}
+        <div className="sidebar-mode-switcher" role="tablist" aria-label="工作模式">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === m.id}
+              className={`mode-pill ${mode === m.id ? 'is-active' : ''}`}
+              onClick={() => {
+                setMode(m.id)
+                if (m.id === 'library') navigate('/library')
+                else if (m.id === 'review') navigate('/learning/history')
+                else navigate('/chat')
+              }}
             >
-              <FolderOpen size={16} />
-              <span>资料库</span>
-            </NavLink>
-          </div>
-        </nav>
-
-        <nav className="sidebar-footer" aria-label="工具">
-          {utilityNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className="ds-nav-row ds-nav-row--utility"
-              onClick={() => setOpen(false)}
-            >
-              <item.icon size={16} />
-              <span>{item.label}</span>
-            </NavLink>
+              <span>{m.label}</span>
+            </button>
           ))}
+        </div>
+
+        {/* C. Primary actions */}
+        <nav className="sidebar-primary-actions" aria-label="主要功能">
+          {PRIMARY_ACTIONS.map((action, index) => {
+            const Icon = action.icon
+            const isHighlighted = index === 0
+            const isButton = action.isButton
+            const content = (
+              <span className="primary-action__row">
+                <Icon size={16} />
+                <span className="primary-action__label">{action.label}</span>
+              </span>
+            )
+            if (isButton) {
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`primary-action ${isHighlighted ? 'is-highlighted' : ''}`}
+                  onClick={() => {
+                    setOpen(false)
+                    onPrimaryActionClick?.()
+                    navigate(action.href)
+                  }}
+                >
+                  {content}
+                </button>
+              )
+            }
+            return (
+              <NavLink
+                key={action.id}
+                ref={action.id === 'library' ? firstLinkRef : undefined}
+                to={action.href}
+                className={`primary-action ${isHighlighted ? 'is-highlighted' : ''}`}
+                onClick={() => {
+                  setOpen(false)
+                  onPrimaryActionClick?.()
+                }}
+              >
+                {content}
+              </NavLink>
+            )
+          })}
         </nav>
+
+        {/* D. Scroll region */}
+        <div className="sidebar-scroll">
+          {/* Pinned current workspace */}
+          <div className="sidebar-section">
+            <WorkspaceContextDisplay />
+          </div>
+
+          {/* Workspace / activity tree */}
+          <div className="sidebar-section">
+            <SectionHeader
+              label="空间列表"
+              actions={
+                <>
+                  <button type="button" className="section-action" aria-label="新建空间">
+                    <Plus size={14} />
+                  </button>
+                </>
+              }
+            />
+            {spaces.status === 'loading' && <p className="sidebar-empty">正在读取空间…</p>}
+            {spaces.status === 'error' && <p className="sidebar-empty">空间列表暂时不可用。</p>}
+            <div className="folder-tree">
+              {spaces.items.map((space) => {
+                const isOpen = openFolders[space.workspace_id] ?? true
+                return (
+                  <div key={space.workspace_id} className="folder-group">
+                    <button
+                      type="button"
+                      className="folder-row"
+                      onClick={() => toggleFolder(space.workspace_id)}
+                    >
+                      <FolderOpen size={15} />
+                      <span className="folder-row__name">{space.display_name}</span>
+                    </button>
+                    {isOpen && (
+                      <div className="folder-tasks">
+                        {space.activities
+                          .filter((a) => ['active', 'available'].includes(a.status) || a.launch_state === 'RESUMABLE')
+                          .map((activity) => {
+                            const href = workspaceApi.conversationHref(space.workspace_id, activity.activity_ref)
+                            return (
+                              <NavLink
+                                key={activity.activity_ref}
+                                to={href || `/courses/${encodeURIComponent(space.workspace_id)}`}
+                                className="folder-task"
+                                onClick={() => setOpen(false)}
+                              >
+                                <span className="folder-task__title">{activity.display_title}</span>
+                                {activityStatusLabel(activity) && (
+                                  <span className="folder-task__meta">{activityStatusLabel(activity)}</span>
+                                )}
+                              </NavLink>
+                            )
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* F. Account footer */}
+        <NavLink
+          to="/settings"
+          className="sidebar-account"
+          aria-label="账户设置"
+          onClick={() => setOpen(false)}
+        >
+          <span className="account-avatar">稀</span>
+          <div className="account-info">
+            <span className="account-name">学习者</span>
+          </div>
+        </NavLink>
       </aside>
     </>
+  )
+}
+
+function SectionHeader({ label, actions }) {
+  return (
+    <div className="sidebar-section-header">
+      <span className="sidebar-section-header__label">{label}</span>
+      {actions && <div className="sidebar-section-header__actions">{actions}</div>}
+    </div>
   )
 }

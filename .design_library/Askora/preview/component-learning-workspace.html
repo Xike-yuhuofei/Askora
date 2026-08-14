@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Learning Workspace</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html,
+    body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body { padding: var(--spacer-32); }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+    a:hover { color: var(--text-default-hover); }
+    hr { border: 0; border-top: 1px solid var(--border-neutral-l1); margin: var(--spacer-24) 0; }
+
+    .h1 { font-family: var(--heading-2xl-font-family); font-size: var(--heading-2xl-font-size); line-height: var(--heading-2xl-line-height); font-weight: var(--heading-2xl-font-weight); color: var(--text-default); }
+    .h2 { font-family: var(--heading-md-font-family); font-size: var(--heading-md-font-size); line-height: var(--heading-md-line-height); font-weight: var(--heading-md-font-weight); color: var(--text-default); }
+    .h3 { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); color: var(--text-default); }
+    .eyebrow { font-size: var(--body-xs-font-size); line-height: var(--body-xs-line-height); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--body-xs-letter-spacing); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-24); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-24); }
+    .stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2,
+      .grid-3,
+      .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-c.css" />
+  <style>
+    body {
+      width: min(100%, 1184px);
+      margin: 0 auto;
+      padding: var(--spacer-40) var(--spacer-32) var(--spacer-48);
+    }
+    .pv-header {
+      margin-bottom: var(--spacer-24);
+      padding-bottom: var(--spacer-20);
+    }
+    .pv-header p { max-width: 920px; }
+    .pv-section {
+      margin-bottom: var(--spacer-32);
+      padding-top: var(--spacer-24);
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+    .pv-header + .pv-section {
+      padding-top: 0;
+      border-top: 0;
+    }
+    .pv-section__title {
+      margin-bottom: var(--spacer-16);
+      letter-spacing: var(--body-md-letter-spacing);
+    }
+    .size-tag {
+      display: inline-flex; align-items: center; padding: 0 var(--spacer-6); height: 18px;
+      white-space: nowrap;
+      background: var(--bg-overlay-l1); color: var(--text-tertiary);
+      border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-4);
+      font-size: var(--body-xs-font-size); font-family: var(--code-editor-font-family);
+      margin-bottom: var(--spacer-12);
+    }
+    .demo-frame {
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-12);
+      overflow: hidden;
+      background: var(--bg-base-default);
+      height: 640px;
+    }
+    .demo-frame .ak-learning-workspace { height: 100%; }
+    .demo-note {
+      margin-top: var(--spacer-12);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+    }
+    .chat-bubble {
+      max-width: 70%;
+      padding: var(--spacer-12) var(--spacer-16);
+      border-radius: var(--radius-lg);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+    }
+    .chat-bubble--assistant {
+      align-self: flex-start;
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+      border-bottom-left-radius: var(--radius-6);
+    }
+    .chat-bubble--user {
+      align-self: flex-end;
+      background: var(--bg-brand);
+      color: var(--text-onbrand);
+      border-bottom-right-radius: var(--radius-6);
+    }
+    .chat-bubble__meta {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      margin-bottom: var(--spacer-4);
+    }
+    .chat-bubble--user .chat-bubble__meta { color: rgba(255,255,255,0.8); }
+    .side-demo-card {
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-12);
+      padding: var(--spacer-12) var(--spacer-16);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-secondary);
+    }
+    .side-demo-card__title {
+      font-size: var(--body-base-font-size);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-default);
+      margin-bottom: var(--spacer-4);
+    }
+    .ak-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
+    .ak-icon svg { width: 100%; height: 100%; display: block; }
+    @media (max-width: 760px) {
+      body { padding: var(--spacer-24) var(--spacer-16) var(--spacer-40); }
+    }
+
+    /* @component-css-start */
+    /* ===== Learning Workspace ===== */
+    .ak-learning-workspace {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr) 320px;
+      height: 100vh;
+      min-height: 0;
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--font-family-default);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      overflow: hidden;
+    }
+    .ak-learning-workspace__nav {
+      display: flex;
+      flex-direction: column;
+      background: var(--askora-sidebar);
+      border-right: 1px solid var(--border-neutral-l1);
+      min-height: 0;
+      overflow: hidden;
+    }
+    .ak-lw-nav__header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      padding: var(--spacer-16) var(--spacer-16) var(--spacer-12);
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ak-lw-nav__brand {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      font-family: var(--font-family-heading);
+      font-size: var(--heading-sm-font-size);
+      font-weight: var(--font-weight-strong);
+      color: var(--text-default);
+    }
+    .ak-lw-nav__logo {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-6);
+      background: var(--bg-brand);
+      display: inline-grid;
+      place-items: center;
+      color: var(--text-onbrand);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-heavy);
+    }
+    .ak-lw-nav__scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: var(--spacer-12) var(--spacer-8);
+    }
+    .ak-lw-nav__section {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      letter-spacing: var(--body-md-letter-spacing);
+      padding: var(--spacer-12) var(--spacer-8) var(--spacer-6);
+    }
+    .ak-lw-nav__item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-8);
+      width: 100%;
+      padding: var(--spacer-8) var(--spacer-10);
+      border-radius: var(--radius-8);
+      color: var(--text-secondary);
+      font-size: var(--body-base-font-size);
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+      transition: background .12s ease, color .12s ease;
+    }
+    .ak-lw-nav__item:hover { background: var(--bg-overlay-l1); color: var(--text-default); }
+    .ak-lw-nav__item.is-active {
+      background: var(--status-primary-surface-l1);
+      color: var(--text-brand);
+      font-weight: var(--font-weight-medium);
+    }
+    .ak-lw-nav__item .ak-icon { flex: 0 0 auto; }
+    .ak-lw-nav__item__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ak-lw-nav__item__count {
+      flex: 0 0 auto;
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+    }
+    .ak-learning-workspace__main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--bg-base-secondary);
+    }
+    .ak-lw-main__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-12);
+      padding: var(--spacer-12) var(--spacer-20);
+      border-bottom: 1px solid var(--border-neutral-l1);
+      background: var(--bg-base-secondary);
+    }
+    .ak-lw-main__title {
+      font-family: var(--font-family-heading);
+      font-size: var(--heading-sm-font-size);
+      font-weight: var(--font-weight-strong);
+      color: var(--text-default);
+    }
+    .ak-lw-main__subtitle {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+    }
+    .ak-lw-main__chat {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: var(--spacer-24) var(--spacer-20);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-20);
+    }
+    .ak-lw-main__composer {
+      padding: var(--spacer-16) var(--spacer-20) var(--spacer-20);
+      border-top: 1px solid var(--border-neutral-l1);
+      background: var(--bg-base-secondary);
+    }
+    .ak-learning-workspace__side {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--askora-sidebar);
+      border-left: 1px solid var(--border-neutral-l1);
+      overflow: hidden;
+    }
+    .ak-lw-side__tabs {
+      display: flex;
+      gap: var(--spacer-4);
+      padding: var(--spacer-12) var(--spacer-12) 0;
+      border-bottom: 1px solid var(--border-neutral-l1);
+    }
+    .ak-lw-side__tab {
+      padding: var(--spacer-8) var(--spacer-12);
+      border-radius: var(--radius-8) var(--radius-8) 0 0;
+      font-size: var(--body-base-font-size);
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      transition: color .12s ease, background .12s ease;
+    }
+    .ak-lw-side__tab:hover { color: var(--text-default); }
+    .ak-lw-side__tab.is-active {
+      color: var(--text-brand);
+      font-weight: var(--font-weight-medium);
+      background: var(--bg-base-secondary);
+      border-color: var(--border-neutral-l1);
+    }
+    .ak-lw-side__panel {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: var(--spacer-16) var(--spacer-12);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-12);
+    }
+    .ak-lw-side__panel-title {
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+      letter-spacing: var(--body-md-letter-spacing);
+    }
+    /* @component-css-end */
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>Learning Workspace · 学习工作区</h1>
+    <p>
+      三栏学习工作区：左侧导航（248px）+ 中央学习对话（自适应）+ 右侧材料/笔记面板（320px）。
+      中央列承载学习对话与输入框，右侧面板承载知识卡片与目标树。Apple 风格系统蓝。
+    </p>
+  </div>
+
+  <!-- ======== Full workspace ======== -->
+  <div class="pv-section">
+    <div class="pv-section__title">完整三栏布局</div>
+    <span class="size-tag">248px / 1fr / 320px</span>
+    <div class="demo-frame">
+      <div class="ak-learning-workspace">
+        <!-- 左导航 -->
+        <aside class="ak-learning-workspace__nav">
+          <div class="ak-lw-nav__header">
+            <span class="ak-lw-nav__brand">
+              <span class="ak-lw-nav__logo">A</span>
+              Askora 学习
+            </span>
+          </div>
+          <div class="ak-lw-nav__scroll">
+            <div class="ak-lw-nav__section">学习空间</div>
+            <div class="ak-lw-nav__item is-active">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg></span>
+              <span class="ak-lw-nav__item__label">对话</span>
+              <span class="ak-lw-nav__item__count">3</span>
+            </div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg></span>
+              <span class="ak-lw-nav__item__label">目标</span>
+            </div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l6 3v4c0 3.5-2.5 6-6 7-3.5-1-6-3.5-6-7V4z"/></svg></span>
+              <span class="ak-lw-nav__item__label">知识库</span>
+            </div>
+            <div class="ak-lw-nav__section">收藏</div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 013 3v1h1a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2h1V4a3 3 0 013-3zm0 2a1 1 0 00-1 1v1h2V4a1 1 0 00-1-1z"/></svg></span>
+              <span class="ak-lw-nav__item__label">我的笔记</span>
+            </div>
+            <div class="ak-lw-nav__section">设置</div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 6a2 2 0 100 4 2 2 0 000-4zM6.6 1.2a1 1 0 011.8 0l.5 1.1a6 6 0 011.7 1l1.2-.3a1 1 0 011.1.6l.5 1.1a6 6 0 01.5 2l.8.9a1 1 0 010 1.4l-.8.9a6 6 0 01-.5 2l-.5 1.1a1 1 0 01-1.1.6l-1.2-.3a6 6 0 01-1.7 1l-.5 1.1a1 1 0 01-1.8 0l-.5-1.1a6 6 0 01-1.7-1l-1.2.3a1 1 0 01-1.1-.6l-.5-1.1a6 6 0 01-.5-2l-.8-.9a1 1 0 010-1.4l.8-.9a6 6 0 01.5-2l.5-1.1a1 1 0 011.1-.6l1.2.3a6 6 0 011.7-1z"/></svg></span>
+              <span class="ak-lw-nav__item__label">偏好设置</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 中央学习对话 -->
+        <main class="ak-learning-workspace__main">
+          <div class="ak-lw-main__header">
+            <div>
+              <div class="ak-lw-main__title">机器学习基础</div>
+              <div class="ak-lw-main__subtitle">目标：理解监督学习核心概念</div>
+            </div>
+          </div>
+          <div class="ak-lw-main__chat">
+            <div class="chat-bubble chat-bubble--assistant">
+              <div class="chat-bubble__meta">学习助手 · 刚刚</div>
+              监督学习通过「输入-输出」样本对学习映射函数。我们先用一个例子理解「损失函数」的作用。
+            </div>
+            <div class="chat-bubble chat-bubble--user">
+              <div class="chat-bubble__meta">你 · 刚刚</div>
+              请用一句话解释什么是过拟合？
+            </div>
+            <div class="chat-bubble chat-bubble--assistant">
+              <div class="chat-bubble__meta">学习助手 · 刚刚</div>
+              过拟合是指模型在训练数据上表现很好，但在未见数据上泛化能力差的现象——它「记住」了训练样本的噪声而非背后的规律。
+            </div>
+          </div>
+          <div class="ak-lw-main__composer">
+            <div class="ak-learning-input">
+              <div class="ak-learning-input__box">
+                <textarea class="ak-learning-input__textarea" placeholder="输入你的问题，或描述想学习的内容…"></textarea>
+                <div class="ak-learning-input__toolbar">
+                  <button class="ak-learning-input__action" type="button" aria-label="添加附件"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a1 1 0 011 1v6a2 2 0 01-4 0V4a1 1 0 012 0v5a0 0 0 000 0 0 0 0 000 0V3a1 1 0 011-1zM4 8a4 4 0 008 0V4a1 1 0 012 0v4a6 6 0 01-12 0V4a1 1 0 012 0v4z"/></svg></span></button>
+                  <button class="ak-learning-input__action" type="button" aria-label="引用材料"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg></span></button>
+                  <span class="ak-learning-input__spacer"></span>
+                  <button class="ak-learning-input__send" type="button" disabled>发送</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- 右材料/笔记面板 -->
+        <aside class="ak-learning-workspace__side">
+          <div class="ak-lw-side__tabs">
+            <div class="ak-lw-side__tab is-active">材料</div>
+            <div class="ak-lw-side__tab">笔记</div>
+          </div>
+          <div class="ak-lw-side__panel">
+            <div class="ak-lw-side__panel-title">当前材料</div>
+            <div class="side-demo-card">
+              <div class="side-demo-card__title">监督学习讲义 · 第 3 章</div>
+              损失函数、梯度下降与过拟合的关系。
+            </div>
+            <div class="side-demo-card">
+              <div class="side-demo-card__title">示例代码：线性回归</div>
+              Python + NumPy 最小二乘实现。
+            </div>
+            <div class="ak-lw-side__panel-title">学习目标</div>
+            <div class="side-demo-card">
+              <div class="side-demo-card__title">理解过拟合</div>
+              进度 60% · 待复习
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <p class="demo-note">预览中工作区高度被限制为 640px 以便展示；实际使用时为 100vh 全屏三栏。</p>
+  </div>
+</body>
+</html>

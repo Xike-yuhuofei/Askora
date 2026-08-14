@@ -1,117 +1,41 @@
 {
-  "schemaVersion": 1,
-  "headBoilerplate": "<link rel=\"stylesheet\" href=\"../../colors_and_type.css\">",
-  "corePreviewComponents": [
+  "schemaVersion": 2,
+  "library": "Askora",
+  "plan": [
     {
-      "slug": "button",
-      "reason": "fixed slot \"button\"; semantic=button:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/button.json",
-      "priority": 1,
-      "slot": "button"
+      "type": "learning-workspace",
+      "entry": "ui_kits/learning-workspace/index.html",
+      "status": "built",
+      "description": "三栏学习工作区：左导航 + 中央学习对话 + 右材料/笔记面板。核心学习页面。",
+      "components": ["learning-workspace", "learning-input", "knowledge-card", "goal-tree", "tag", "progress"]
     },
     {
-      "slug": "navigation",
-      "reason": "fixed slot \"navigation\"; semantic=sidebar:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/navigation.json",
-      "priority": 2,
-      "slot": "navigation"
+      "type": "goals",
+      "entry": "ui_kits/goals/index.html",
+      "status": "planned",
+      "description": "学习目标页：目标列表 + 目标详情 + 目标编辑。",
+      "components": ["goal-tree", "cards", "forms", "tag", "progress", "dialog"]
     },
     {
-      "slug": "card",
-      "reason": "fixed slot \"card\"; semantic=card:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/card.json",
-      "priority": 3,
-      "slot": "card"
+      "type": "today",
+      "entry": "ui_kits/today/index.html",
+      "status": "planned",
+      "description": "今日学习页：今日任务、复习提醒、学习进度。",
+      "components": ["cards", "tag", "progress", "status-bar", "alert"]
     },
     {
-      "slug": "tag",
-      "reason": "fixed slot \"tag\"; semantic=tag:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/tag.json",
-      "priority": 4,
-      "slot": "tag"
+      "type": "knowledge",
+      "entry": "ui_kits/knowledge/index.html",
+      "status": "planned",
+      "description": "知识库页：知识条目、检索、标签筛选。",
+      "components": ["knowledge-card", "table", "tabs", "tag", "pagination", "menu"]
     },
     {
-      "slug": "avatar",
-      "reason": "fallback after fixed slots; semantic=avatar:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/avatar.json",
-      "priority": 5
-    },
-    {
-      "slug": "input",
-      "reason": "fallback after fixed slots; semantic=input:0.75; policy=fixed-slots-first",
-      "evidenceFile": "components/input.json",
-      "priority": 6
+      "type": "settings",
+      "entry": "ui_kits/settings/index.html",
+      "status": "planned",
+      "description": "设置页：偏好、模型、数据。",
+      "components": ["forms", "tabs", "dialog", "alert", "avatar"]
     }
-  ],
-  "supportEvidenceComponents": [],
-  "allowedComponents": [
-    "button",
-    "navigation",
-    "card",
-    "tag",
-    "avatar",
-    "input"
-  ],
-  "screenBlueprints": [
-    {
-      "name": null,
-      "componentSlugs": [],
-      "role": "primary"
-    },
-    {
-      "name": null,
-      "componentSlugs": [],
-      "role": "secondary"
-    },
-    {
-      "name": null,
-      "componentSlugs": [],
-      "role": "secondary"
-    }
-  ],
-  "productContext": {
-    "kitType": "chat-workspace",
-    "productType": "AI Chat / Knowledge Base (SaaS)",
-    "dominantCopy": [],
-    "pageNames": [],
-    "selectedFrameNames": []
-  },
-  "selectionPolicy": "fixed-slots-first",
-  "slotAssignments": [
-    {
-      "slot": "button",
-      "slug": "button",
-      "reason": "semantic"
-    },
-    {
-      "slot": "navigation",
-      "slug": "navigation",
-      "reason": "name"
-    },
-    {
-      "slot": "card",
-      "slug": "card",
-      "reason": "semantic"
-    },
-    {
-      "slot": "tag",
-      "slug": "tag",
-      "reason": "semantic"
-    }
-  ],
-  "missingFixedSlots": [
-    "menu",
-    "table"
-  ],
-  "fallbackComponents": [
-    "avatar",
-    "input"
-  ],
-  "needsNarrative": false,
-  "forbiddenInventedComponents": [],
-  "lowConfidence": false,
-  "warnings": [
-    "missing-fixed-slot:menu",
-    "missing-fixed-slot:table"
   ]
 }

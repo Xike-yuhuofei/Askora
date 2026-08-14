@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learning Workspace · 学习工作区 — Askora UI Kit</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../../colors_and_type.css" />
+  <link rel="stylesheet" href="../../components.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+    }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+
+    /* ---- UI Kit page shell ---- */
+    .uikit-shell {
+      width: min(100%, 1440px);
+      margin: 0 auto;
+      padding: var(--spacer-40) var(--spacer-32) var(--spacer-48);
+    }
+    .pv-header { margin-bottom: var(--spacer-24); padding-bottom: var(--spacer-20); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); max-width: 920px; }
+    .size-tag {
+      display: inline-flex; align-items: center; padding: 0 var(--spacer-6); height: 18px;
+      white-space: nowrap; background: var(--bg-overlay-l1); color: var(--text-tertiary);
+      border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-4);
+      font-size: var(--body-sm-font-size); font-family: var(--font-family-mono);
+      margin-bottom: var(--spacer-12);
+    }
+    .demo-frame {
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-12);
+      overflow: hidden;
+      background: var(--bg-base-default);
+      height: 720px;
+    }
+    .demo-frame .ak-learning-workspace { height: 100%; }
+    .demo-note { margin-top: var(--spacer-12); font-size: var(--body-sm-font-size); color: var(--text-tertiary); }
+
+    /* ---- Icon normalization ---- */
+    .ak-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: 0 0 auto; }
+    .ak-icon svg { width: 100%; height: 100%; display: block; }
+
+    /* ---- Chat bubbles (central message flow) ---- */
+    .chat-bubble {
+      max-width: 72%;
+      padding: var(--spacer-12) var(--spacer-16);
+      border-radius: var(--radius-lg);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+    }
+    .chat-bubble--assistant {
+      align-self: flex-start;
+      background: var(--bg-overlay-l1);
+      color: var(--text-default);
+      border-bottom-left-radius: var(--radius-6);
+    }
+    .chat-bubble--user {
+      align-self: flex-end;
+      background: var(--bg-brand);
+      color: var(--text-onbrand);
+      border-bottom-right-radius: var(--radius-6);
+    }
+    .chat-bubble__meta { font-size: var(--body-sm-font-size); color: var(--text-tertiary); margin-bottom: var(--spacer-4); }
+    .chat-bubble--user .chat-bubble__meta { color: rgba(255,255,255,0.8); }
+
+    /* ---- Suggestion chips (建议) ---- */
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacer-8);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .suggestion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      height: 30px;
+      padding: 0 var(--spacer-12);
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-neutral-l2);
+      background: var(--bg-base-secondary);
+      color: var(--text-secondary);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: border-color .12s ease, color .12s ease, background .12s ease;
+    }
+    .suggestion-chip:hover { border-color: var(--border-brand); color: var(--text-brand); background: var(--status-primary-surface-l1); }
+    .suggestion-chip .ak-icon { width: 14px; height: 14px; }
+
+    /* ---- Right panel side cards ---- */
+    .side-card {
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-12);
+      padding: var(--spacer-12) var(--spacer-16);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-8);
+    }
+    .side-card__title { font-size: var(--body-base-font-size); font-weight: var(--font-weight-medium); color: var(--text-default); }
+    .side-card__meta { display: flex; align-items: center; gap: var(--spacer-6); font-size: var(--body-sm-font-size); color: var(--text-tertiary); }
+    .side-card__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacer-8); }
+    .side-card__progress { flex: 1; }
+
+    @media (max-width: 760px) {
+      .uikit-shell { padding: var(--spacer-24) var(--spacer-16) var(--spacer-40); }
+    }
+  </style>
+</head>
+<body>
+  <div class="uikit-shell">
+    <div class="pv-header">
+      <h1>Learning Workspace · 学习工作区</h1>
+      <p>
+        三栏学习工作区：左侧导航（空间 / 知识库 / 目标 / 今日 / 对话记录）+ 中央学习对话（消息流 + 输入框 + 建议 chips）+ 右侧材料 / 笔记面板。
+        复用 <code>.ak-</code> 组件类，Apple 风格系统蓝，中文优先文案。
+      </p>
+    </div>
+
+    <span class="size-tag">248px / 1fr / 320px</span>
+    <div class="demo-frame">
+      <div class="ak-learning-workspace">
+
+        <!-- ============ 左导航 ============ -->
+        <aside class="ak-learning-workspace__nav">
+          <div class="ak-lw-nav__header">
+            <span class="ak-lw-nav__brand">
+              <span class="ak-lw-nav__logo">A</span>
+              Askora 学习
+            </span>
+          </div>
+          <div class="ak-lw-nav__scroll">
+            <div class="ak-lw-nav__section">学习空间</div>
+            <div class="ak-lw-nav__item is-active">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg></span>
+              <span class="ak-lw-nav__item__label">空间</span>
+              <span class="ak-lw-nav__item__count">3</span>
+            </div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l6 3v4c0 3.5-2.5 6-6 7-3.5-1-6-3.5-6-7V4z"/></svg></span>
+              <span class="ak-lw-nav__item__label">知识库</span>
+              <span class="ak-lw-nav__item__count">12</span>
+            </div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg></span>
+              <span class="ak-lw-nav__item__label">目标</span>
+            </div>
+
+            <div class="ak-lw-nav__section">日程</div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1H2zM2 6h12v1H2zM2 9h12v1H2zM2 12h8v1H2z"/></svg></span>
+              <span class="ak-lw-nav__item__label">今日</span>
+              <span class="ak-lw-nav__item__count">2</span>
+            </div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h10a1 1 0 011 1v9a1 1 0 01-1 1H6.2L3.6 15.2A.8.8 0 012.4 14.6V3a1 1 0 011-1z"/></svg></span>
+              <span class="ak-lw-nav__item__label">对话记录</span>
+            </div>
+
+            <div class="ak-lw-nav__section">设置</div>
+            <div class="ak-lw-nav__item">
+              <span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 6a2 2 0 100 4 2 2 0 000-4zM6.6 1.2a1 1 0 011.8 0l.5 1.1a6 6 0 011.7 1l1.2-.3a1 1 0 011.1.6l.5 1.1a6 6 0 01.5 2l.8.9a1 1 0 010 1.4l-.8.9a6 6 0 01-.5 2l-.5 1.1a1 1 0 01-1.1.6l-1.2-.3a6 6 0 01-1.7 1l-.5 1.1a1 1 0 01-1.8 0l-.5-1.1a6 6 0 01-1.7-1l-1.2.3a1 1 0 01-1.1-.6l-.5-1.1a6 6 0 01-.5-2l-.8-.9a1 1 0 010-1.4l.8-.9a6 6 0 01.5-2l.5-1.1a1 1 0 011.1-.6l1.2.3a6 6 0 011.7-1z"/></svg></span>
+              <span class="ak-lw-nav__item__label">偏好设置</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- ============ 中央学习对话 ============ -->
+        <main class="ak-learning-workspace__main">
+          <div class="ak-lw-main__header">
+            <div>
+              <div class="ak-lw-main__title">机器学习基础</div>
+              <div class="ak-lw-main__subtitle">目标：理解监督学习核心概念</div>
+            </div>
+            <span class="ak-tag ak-tag--brand">学习中</span>
+          </div>
+
+          <div class="ak-lw-main__chat">
+            <div class="chat-bubble chat-bubble--assistant">
+              <div class="chat-bubble__meta">学习助手 · 刚刚</div>
+              监督学习通过「输入-输出」样本对学习映射函数。我们先用一个例子理解「损失函数」的作用。
+            </div>
+            <div class="chat-bubble chat-bubble--user">
+              <div class="chat-bubble__meta">你 · 刚刚</div>
+              请用一句话解释什么是过拟合？
+            </div>
+            <div class="chat-bubble chat-bubble--assistant">
+              <div class="chat-bubble__meta">学习助手 · 刚刚</div>
+              过拟合是指模型在训练数据上表现很好，但在未见数据上泛化能力差的现象——它「记住」了训练样本的噪声而非背后的规律。
+            </div>
+            <div class="chat-bubble chat-bubble--user">
+              <div class="chat-bubble__meta">你 · 刚刚</div>
+              那如何避免过拟合？给我几个方法。
+            </div>
+            <div class="chat-bubble chat-bubble--assistant">
+              <div class="chat-bubble__meta">学习助手 · 刚刚</div>
+              常见方法包括：增加训练数据、正则化（L1 / L2）、早停、Dropout，以及简化模型结构。其中正则化与早停最常用，我可以结合你的讲义第 3 章详细展开。
+            </div>
+          </div>
+
+          <div class="ak-lw-main__composer">
+            <div class="suggestion-chips" aria-label="建议提问">
+              <button class="suggestion-chip" type="button"><span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 013 3v1h1a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2h1V4a3 3 0 013-3zm0 2a1 1 0 00-1 1v1h2V4a1 1 0 00-1-1z"/></svg></span>解释正则化</button>
+              <button class="suggestion-chip" type="button"><span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 013 3v1h1a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2h1V4a3 3 0 013-3zm0 2a1 1 0 00-1 1v1h2V4a1 1 0 00-1-1z"/></svg></span>给我一个练习题</button>
+              <button class="suggestion-chip" type="button"><span class="ak-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 013 3v1h1a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2h1V4a3 3 0 013-3zm0 2a1 1 0 00-1 1v1h2V4a1 1 0 00-1-1z"/></svg></span>总结本章要点</button>
+            </div>
+
+            <div class="ak-learning-input">
+              <div class="ak-learning-input__box">
+                <textarea class="ak-learning-input__textarea" placeholder="输入你的问题，或描述想学习的内容…"></textarea>
+                <div class="ak-learning-input__toolbar">
+                  <button class="ak-learning-input__action" type="button" aria-label="添加附件"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a1 1 0 011 1v6a2 2 0 01-4 0V4a1 1 0 012 0v5a0 0 0 000 0 0 0 0 000 0V3a1 1 0 011-1zM4 8a4 4 0 008 0V4a1 1 0 012 0v4a6 6 0 01-12 0V4a1 1 0 012 0v4z"/></svg></span></button>
+                  <button class="ak-learning-input__action" type="button" aria-label="引用材料"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg></span></button>
+                  <button class="ak-learning-input__action" type="button" aria-label="关联目标"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg></span></button>
+                  <span class="ak-learning-input__spacer"></span>
+                  <button class="ak-learning-input__send" type="button" disabled>发送</button>
+                </div>
+              </div>
+              <div class="ak-learning-input__hint"><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</div>
+            </div>
+          </div>
+        </main>
+
+        <!-- ============ 右材料 / 笔记面板 ============ -->
+        <aside class="ak-learning-workspace__side">
+          <div class="ak-lw-side__tabs">
+            <div class="ak-lw-side__tab is-active">材料</div>
+            <div class="ak-lw-side__tab">笔记</div>
+          </div>
+
+          <div class="ak-lw-side__panel">
+            <div class="ak-lw-side__panel-title">当前材料</div>
+            <div class="ak-knowledge-card">
+              <div class="ak-knowledge-card__head">
+                <span class="ak-knowledge-card__tag">讲义</span>
+                <span class="ak-knowledge-card__menu" aria-label="更多"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 9.5A1.5 1.5 0 118 6.5a1.5 1.5 0 010 3zM8 15a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span></span>
+              </div>
+              <div class="ak-knowledge-card__title">监督学习讲义 · 第 3 章</div>
+              <div class="ak-knowledge-card__body is-clamped">损失函数、梯度下降与过拟合的关系，以及正则化与早停的实践。</div>
+              <div class="ak-knowledge-card__footer">
+                <span class="ak-knowledge-card__meta">已读 80%</span>
+                <span class="ak-knowledge-card__link">打开</span>
+              </div>
+            </div>
+
+            <div class="ak-knowledge-card">
+              <div class="ak-knowledge-card__head">
+                <span class="ak-knowledge-card__tag is-success">代码</span>
+                <span class="ak-knowledge-card__menu" aria-label="更多"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 9.5A1.5 1.5 0 118 6.5a1.5 1.5 0 010 3zM8 15a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span></span>
+              </div>
+              <div class="ak-knowledge-card__title">示例代码：线性回归</div>
+              <div class="ak-knowledge-card__body is-clamped">Python + NumPy 最小二乘实现，含训练与预测示例。</div>
+              <div class="ak-knowledge-card__footer">
+                <span class="ak-knowledge-card__meta">12 行</span>
+                <span class="ak-knowledge-card__link">查看</span>
+              </div>
+            </div>
+
+            <div class="ak-lw-side__panel-title">学习目标</div>
+            <div class="side-card">
+              <div class="side-card__row">
+                <div class="side-card__title">理解过拟合</div>
+                <span class="ak-tag ak-tag--warning">待复习</span>
+              </div>
+              <div class="ak-progress ak-progress--brand side-card__progress"><div class="ak-progress__bar" style="width:60%"></div></div>
+              <div class="side-card__meta">进度 60% · 上次复习 3 天前</div>
+            </div>
+            <div class="side-card">
+              <div class="side-card__row">
+                <div class="side-card__title">掌握正则化</div>
+                <span class="ak-tag ak-tag--success">已掌握</span>
+              </div>
+              <div class="ak-progress ak-progress--brand side-card__progress"><div class="ak-progress__bar" style="width:100%"></div></div>
+              <div class="side-card__meta">进度 100% · 已通过评估</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <p class="demo-note">预览中工作区高度被限制为 720px 以便展示；实际使用时为 100vh 全屏三栏。建议 chips 与消息气泡为页面级自定义样式，均基于设计令牌与系统蓝。</p>
+  </div>
+</body>
+</html>

@@ -4,7 +4,7 @@
 > 冻结日期：2026-08-13  
 > 适用范围：Askora v1 semantic interaction model  
 > 上游：[`EXPERIENCE-ARCHITECTURE.md`](EXPERIENCE-ARCHITECTURE.md)、[`../../product/PRODUCT-DEFINITION.md`](../../product/PRODUCT-DEFINITION.md)  
-> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)
+> 关键已接受决策：[`../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md`](../../archive/adr/ADR-0014-user-job-driven-interaction-architecture.md)、[`../../archive/adr/ADR-0018-ux-workspace-context-architecture.md`](../../archive/adr/ADR-0018-ux-workspace-context-architecture.md)、[`../../archive/adr/ADR-0022-course-centric-information-architecture.md`](../../archive/adr/ADR-0022-course-centric-information-architecture.md)、[`../../archive/adr/ADR-0025-space-conversation-core-journeys.md`](../../archive/adr/ADR-0025-space-conversation-core-journeys.md)、[`../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md`](../../archive/adr/ADR-0029-local-and-hybrid-material-parse.md)
 > 下游：UI Screen / Learning Interaction / Design System Specs
 
 ---
@@ -292,10 +292,12 @@ Delete
 ```text
 Material row             → InteractiveContent
 上传 / Import            → Action（只创建 Material）
+用 AI 增强资料解析       → Control（设置；默认作用于之后的自动解析）
+用模型再解析             → Action（同一 Material 的增强 run）
 Search / Filter          → Control
 Multi-select             → Selection
 Selected-object operation→ Contextual Action
-Processing / extraction  → StatusFeedback
+Processing / extraction  → StatusFeedback（仅本机 / 已用模型增强 / 增强失败）
 查看原文                 → Navigation / Disclosure
 ```
 

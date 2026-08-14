@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 2,
+  "slug": "table",
+  "name": "表格 Table",
+  "category": "data-display",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Table",
+      "evidence": "Inferred from preview/component-table.html title and component CSS selectors (.ak-table)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-table__container",
+        ".ak-table",
+        ".ak-table th",
+        ".ak-table td",
+        ".ak-table tbody tr",
+        ".ak-table--striped",
+        ".ak-table__cell--muted",
+        ".ak-table__cell--strong"
+      ],
+      "evidence": "Representative selectors from preview/component-table.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-table.html",
+    "representativeSelectors": [
+      ".ak-table__container",
+      ".ak-table",
+      ".ak-table th",
+      ".ak-table td",
+      ".ak-table tbody tr",
+      ".ak-table tbody tr:hover",
+      ".ak-table--striped",
+      ".ak-table--striped tbody tr:nth-child(even)",
+      ".ak-table__cell--muted",
+      ".ak-table__cell--strong"
+    ],
+    "cssRuleCount": 15
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-table__container",
+      "whySelected": "Bordered rounded container wrapping the table.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-table",
+      "whySelected": "Base table with header and row styling.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-table--striped",
+      "whySelected": "Zebra-striped variant for dense data.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-table.html",
+    "selectors": [
+      ".ak-table__container",
+      ".ak-table",
+      ".ak-table th",
+      ".ak-table td",
+      ".ak-table tbody tr",
+      ".ak-table--striped",
+      ".ak-table__cell--muted",
+      ".ak-table__cell--strong"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-table.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-table.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-sm-font-family",
+    "--body-sm-font-size",
+    "--body-sm-line-height",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--font-weight-medium",
+    "--radius-12",
+    "--spacer-10",
+    "--spacer-12",
+    "--spacer-16",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-table.html",
+      "classes": [
+        "ak-table",
+        "ak-table--striped",
+        "ak-table__cell--muted",
+        "ak-table__cell--strong",
+        "ak-table__container"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-table.html",
+    "source": "preview/component-table.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "table"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

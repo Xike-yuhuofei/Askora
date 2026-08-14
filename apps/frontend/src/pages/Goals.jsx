@@ -73,7 +73,7 @@ export default function Goals() {
           <ul className="product-list">
             {data.goals.map((goal) => (
               <li key={goal.goal_ref} className="product-row">
-                <div className="product-row__content">
+                <button type="button" className="product-row__content product-row__link" onClick={() => navigate(`/learning/goals/${goalIdFromRef(goal.goal_ref)}`)}>
                   <div className="product-row__title"><h3>{goal.title}</h3><span className="status-pill">{statusLabels[goal.status] || goal.status}</span></div>
                   <p>{goal.topic}</p>
                   <dl className="fact-grid">
@@ -82,7 +82,7 @@ export default function Goals() {
                     <div><dt>时间安排</dt><dd>{goal.weekly_time_budget_minutes ? `每周 ${goal.weekly_time_budget_minutes} 分钟` : '未设置每周时间'} · {formatDeadline(goal.deadline_at)}</dd></div>
                     <div><dt>当前版本</dt><dd>v{versionFromRef(goal.goal_ref)}</dd></div>
                   </dl>
-                </div>
+                </button>
                 <div className="goal-row-actions"><button type="button" className="button button--secondary" onClick={() => navigate(`/learning/goals/${goalIdFromRef(goal.goal_ref)}`)}>查看目标</button><button type="button" className="button button--secondary" onClick={() => navigate(`/learning/plan?goal_id=${goalIdFromRef(goal.goal_ref)}`)}>查看路径<ArrowRight size={16} /></button></div>
               </li>
             ))}

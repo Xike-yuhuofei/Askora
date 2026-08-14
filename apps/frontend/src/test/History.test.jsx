@@ -17,7 +17,8 @@ describe('UI01-VSLICE-AC-008 history', () => {
     dialogApi.getSessions.mockResolvedValue({ items: [] })
     render(<RouterProvider><History /></RouterProvider>)
 
-    expect(await screen.findByText(/暂无历史会话/)).toBeInTheDocument()
+    expect(await screen.findByText(/完成学习活动后，这里会记录过程/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /开始学习/ })).toBeInTheDocument()
     expect(screen.queryByText('已掌握')).not.toBeInTheDocument()
   })
 

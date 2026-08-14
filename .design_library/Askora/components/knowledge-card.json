@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 2,
+  "slug": "knowledge-card",
+  "name": "Knowledge Card",
+  "category": "data-display",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Knowledge Card",
+      "evidence": "Inferred from preview/component-knowledge-card.html: card with tag, title, clamped body, meta, and link."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "tag-tone-clamp",
+      "values": [
+        ".ak-knowledge-card",
+        ".ak-knowledge-card__tag",
+        ".ak-knowledge-card__tag.is-success",
+        ".ak-knowledge-card__tag.is-warning",
+        ".ak-knowledge-card__body.is-clamped"
+      ],
+      "evidence": "Representative selectors from preview/component-knowledge-card.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-knowledge-card.html",
+    "representativeSelectors": [
+      ".ak-knowledge-card",
+      ".ak-knowledge-card:hover",
+      ".ak-knowledge-card__head",
+      ".ak-knowledge-card__tag",
+      ".ak-knowledge-card__tag.is-success",
+      ".ak-knowledge-card__tag.is-warning",
+      ".ak-knowledge-card__menu",
+      ".ak-knowledge-card__menu:hover",
+      ".ak-knowledge-card__title",
+      ".ak-knowledge-card__body",
+      ".ak-knowledge-card__body.is-clamped",
+      ".ak-knowledge-card__footer",
+      ".ak-knowledge-card__meta",
+      ".ak-knowledge-card__link",
+      ".ak-knowledge-card__link:hover"
+    ],
+    "cssRuleCount": 17
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "tag-height",
+      "value": "20px",
+      "evidence": "Pill tag height."
+    },
+    {
+      "dimension": "clamp-lines",
+      "value": "3",
+      "evidence": "Body text clamped to 3 lines when is-clamped."
+    },
+    {
+      "dimension": "radius",
+      "value": "radius-lg (16px)",
+      "evidence": "Card corner radius."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-knowledge-card",
+      "whySelected": "Root knowledge card container.",
+      "traits": [
+        "display: flex",
+        "flex-direction: column",
+        "gap: var(--spacer-10)",
+        "padding: var(--spacer-16)",
+        "background: var(--bg-base-secondary)",
+        "border: 1px solid var(--border-neutral-l1)",
+        "border-radius: var(--radius-lg)",
+        "box-shadow: var(--shadow-1)"
+      ],
+      "childrenDigest": [
+        ".ak-knowledge-card__head",
+        ".ak-knowledge-card__title",
+        ".ak-knowledge-card__body",
+        ".ak-knowledge-card__footer"
+      ]
+    },
+    {
+      "selector": ".ak-knowledge-card__tag",
+      "whySelected": "Knowledge type tag (pill).",
+      "traits": [
+        "height: 20px",
+        "padding: 0 var(--spacer-8)",
+        "border-radius: var(--radius-full)",
+        "background: var(--status-primary-surface-l1)",
+        "color: var(--text-brand)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-knowledge-card__body.is-clamped",
+      "whySelected": "Clamped body text.",
+      "traits": [
+        "display: -webkit-box",
+        "-webkit-line-clamp: 3",
+        "-webkit-box-orient: vertical",
+        "overflow: hidden"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-knowledge-card.html",
+    "selectors": [
+      ".ak-knowledge-card",
+      ".ak-knowledge-card__head",
+      ".ak-knowledge-card__tag",
+      ".ak-knowledge-card__menu",
+      ".ak-knowledge-card__title",
+      ".ak-knowledge-card__body",
+      ".ak-knowledge-card__footer",
+      ".ak-knowledge-card__meta",
+      ".ak-knowledge-card__link"
+    ]
+  },
+  "structurePatterns": [
+    "Card with head (tag + menu), title, body, and footer.",
+    "Tag is a pill with tone variants (primary / success / warning).",
+    "Body can be clamped to 3 lines via is-clamped.",
+    "Footer separates meta (source/date) from a link action.",
+    "Hover raises border and shadow from shadow-1 to shadow-2."
+  ],
+  "usageHints": [
+    "Use in the right materials/notes panel to display knowledge snippets.",
+    "Use is-clamped for list views, remove it for detail views.",
+    "Tag tones: primary = 概念, success = 已掌握, warning = 待复习.",
+    "Keep body text concise; the link can open the full source."
+  ],
+  "doNotInvent": [
+    "Do not add tag tones or card states absent from the preview marker block.",
+    "Do not change the tag pill shape away from radius-full.",
+    "Do not add card actions absent from the preview."
+  ],
+  "unknowns": [
+    "Image/thumbnail support is not frozen in this contract."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--status-primary-surface-l1",
+    "--status-success-surface-l1",
+    "--status-success-default",
+    "--status-warning-surface-l1",
+    "--status-warning-default",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--text-brand",
+    "--text-brand-hover",
+    "--icon-default",
+    "--icon-tertiary",
+    "--radius-6",
+    "--radius-full",
+    "--radius-lg",
+    "--shadow-1",
+    "--shadow-2",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-10",
+    "--spacer-16",
+    "--body-sm-font-size",
+    "--body-base-font-size",
+    "--heading-sm-font-size",
+    "--heading-sm-line-height",
+    "--font-weight-medium",
+    "--font-weight-strong"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "preview/component-knowledge-card.html",
+      "classes": [
+        "ak-knowledge-card",
+        "ak-knowledge-card__head",
+        "ak-knowledge-card__tag",
+        "ak-knowledge-card__menu",
+        "ak-knowledge-card__title",
+        "ak-knowledge-card__body",
+        "ak-knowledge-card__footer",
+        "ak-knowledge-card__meta",
+        "ak-knowledge-card__link"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-knowledge-card.html",
+    "source": "preview/component-knowledge-card.html",
+    "css": {
+      "file": "components-group-c.css",
+      "marker": "knowledge-card"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup."
+  },
+  "assetsConsumed": []
+}

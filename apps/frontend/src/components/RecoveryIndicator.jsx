@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { listRecoveryIssues } from '../api/recovery'
 
 export default function RecoveryIndicator() {
@@ -19,8 +19,8 @@ export default function RecoveryIndicator() {
 
   if (!count) return null
   return (
-    <a className="recovery-indicator" href="#/settings/recovery" aria-label={`${count} 个待处理问题`}>
-      <CircleAlert size={16} aria-hidden="true" />
+    <a className="recovery-indicator" role="status" href="#/settings/recovery" aria-label={`${count} 个问题待处理`}>
+      <AlertTriangle size={16} aria-hidden="true" />
       <span>{count} 个问题待处理</span>
     </a>
   )

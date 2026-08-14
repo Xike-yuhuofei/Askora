@@ -5,27 +5,57 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  /* Askora semantic roles ← TraeWork Light (docs/specs/ui.md UI-DS-TOK-005). */
-  --brand-primary: #4b3fe3;
-  --brand-primary-hover: #6a6fff;
-  --brand-primary-soft: rgba(170, 183, 255, 0.36);
-  --canvas: #f5f5f5;
-  --surface: #ffffff;
-  --surface-container: #e5e5e5;
-  --surface-container-high: #e5e5e5;
-  --text-primary: #171717;
-  --text-secondary: #404040;
-  --text-muted: #737373;
-  --border: rgba(115, 115, 115, 0.12);
-  --border-strong: rgba(115, 115, 115, 0.36);
-  --success: #0f7a56;
-  --warning: #a85a00;
-  --error: #c9382f;
-  --nav-width: 228px;
-  --rail-width: 320px;
-  --focus-ring: 0 0 0 3px rgba(75, 63, 227, 0.22);
+  /* ── Askora dark theme · semantic tokens ── */
 
-  /* Temporary aliases for the still-mounted legacy API notice component. */
+  /* Brand */
+  --brand-primary: #5b4ff0;
+  --brand-primary-hover: #7a70ff;
+  --brand-primary-soft: rgba(91, 79, 240, 0.15);
+
+  /* Surface · 4-level hierarchy (reduced from 7) */
+  --canvas: #222222;
+  --sidebar-bg: #1f1f1f;
+  --surface: #171717;
+  --surface-elevated: #1f1f1f;
+  --surface-container: #2c2c2c;
+  --surface-container-high: #2c2c2c;
+  --surface-muted: #242424;
+
+  /* Text · semantic tokens with WCAG AA target */
+  --text-primary: #e1e1e1;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888888;
+  --text-disabled: #5c5c5c;
+
+  /* Border */
+  --border: #2c2c2c;
+  --border-strong: #3f3f3f;
+
+  /* Status */
+  --success: #59b589;
+  --warning: #d19a48;
+  --error: #e06c75;
+
+  /* Layout */
+  --nav-width: 272px;
+  --rail-width: 320px;
+
+  /* Control Height · frozen */
+  --control-height-xs: 28px;
+  --control-height-sm: 32px;
+  --control-height-md: 36px;
+  --control-height-lg: 40px;
+
+  /* Radius · frozen 4-level system */
+  --radius-xs: 4px;
+  --radius-s: 6px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+
+  /* Focus ring · subtle, not web-glow */
+  --focus-ring: 0 0 0 2px rgba(91, 79, 240, 0.35);
+
+  /* Legacy aliases (do not use in new code) */
   --accent: var(--brand-primary);
   --accent2: var(--brand-primary);
   --bg: var(--canvas);
@@ -145,14 +175,15 @@ p {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
 }
 
 .page-header h1 {
-  margin: 4px 0 7px;
-  font-size: clamp(24px, 3vw, 30px);
+  margin: 4px 0 6px;
+  font-size: clamp(22px, 2.4vw, 28px);
   line-height: 1.2;
   letter-spacing: -.02em;
+  font-weight: 650;
 }
 
 .page-header p:not(.eyebrow) {
@@ -201,18 +232,19 @@ p {
   line-height: 1.55;
 }
 
+/* ── Legacy button system (DEPRECATED — use .ds-btn from ds.css) ── */
 .button,
 .btn {
-  min-height: 40px;
+  min-height: var(--control-height-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 9px 14px;
+  padding: 7px 14px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radius-m);
   font-weight: 600;
-  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+  transition: background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
 }
 
 .button--primary,
@@ -260,17 +292,18 @@ select,
 input,
 textarea {
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   background: var(--surface);
   color: var(--text-primary);
 }
 
 select,
 input {
-  min-height: 40px;
-  padding: 8px 11px;
+  min-height: var(--control-height-sm);
+  padding: 6px 10px;
 }
 
+/* ── Legacy status-pill system (DEPRECATED — use .ds-pill from ds.css) ── */
 .status-pill {
   display: inline-flex;
   align-items: center;

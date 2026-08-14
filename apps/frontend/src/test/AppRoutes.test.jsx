@@ -4,7 +4,8 @@ import { resolveRoute } from '../App'
 
 describe('UI-IA-AC-001/003/008 route contract', () => {
   it.each([
-    ['/', '/today'],
+    ['/today', '/chat'],
+    ['/learning', '/learning/goals'],
     ['/profile', '/learning/progress'],
     ['/knowledge', '/library'],
     ['/goals', '/learning/goals'],
@@ -35,18 +36,22 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
   })
 
   it('exposes canonical standard and owner-recovery destinations', () => {
-    expect(resolveRoute('/today').type).toBe('page')
-    expect(resolveRoute('/learning').type).toBe('page')
+    expect(resolveRoute('/chat')).toMatchObject({ type: 'page', shell: 'standard' })
     expect(resolveRoute('/learning/goals').type).toBe('page')
     expect(resolveRoute('/learning/plan').type).toBe('page')
     expect(resolveRoute('/learning/progress').type).toBe('page')
     expect(resolveRoute('/learning/history').type).toBe('page')
     expect(resolveRoute('/library').type).toBe('page')
+    expect(resolveRoute('/spaces').type).toBe('page')
     expect(resolveRoute('/courses/new').type).toBe('page')
     expect(resolveRoute('/courses/ws-1')).toMatchObject({ type: 'page', shell: 'workspace', workspace_id: 'ws-1' })
+    expect(resolveRoute('/courses/ws-1/activities/act-1')).toMatchObject({
+      type: 'activity-learning',
+      activityId: 'act-1',
+      workspace_id: 'ws-1',
+    })
     expect(resolveRoute('/settings').type).toBe('page')
     expect(resolveRoute('/settings/recovery').type).toBe('page')
-    expect(resolveRoute('/learning')).toMatchObject({ type: 'page', shell: 'workspace' })
   })
 
   it('routes goal creation, draft, detail and edit under /learning/goals without exposing ids as labels', () => {
@@ -63,17 +68,21 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     })
   })
 
-  it('recognises /welcome as the protected first-use onboarding page without redirect', () => {
-    expect(resolveRoute('/welcome')).toMatchObject({
+  it('treats the new-conversation page as the default home destination (/ and /chat both render it without redirect)', () => {
+    expect(resolveRoute('/')).toMatchObject({
       type: 'page',
       Page: expect.anything(),
       shell: 'standard',
     })
+    expect(resolveRoute('/chat')).toMatchObject({
+      type: 'page',
+      Page: expect.anything(),
+      shell: 'standard',
+    })
+    expect(resolveRoute('/welcome').type).toBe('not-found')
   })
 
   it.each([
-    ['/today', 'page'],
-    ['/learning', 'page'],
     ['/learning/goals', 'page'],
     ['/learning/plan', 'page'],
     ['/learning/progress', 'page'],
@@ -83,7 +92,7 @@ describe('UI-IA-AC-001/003/008 route contract', () => {
     ['/learn/activity-1', 'activity-learning'],
     ['/book-learning/doc-1', 'book-learning'],
     ['/settings/recovery', 'page'],
-  ])('preserves explicit deep link %s as %s instead of forcing /welcome', (path, expectedType) => {
+  ])('preserves explicit deep link %s as %s instead of forcing a new destination', (path, expectedType) => {
     const result = resolveRoute(path)
     expect(result.type).toBe(expectedType)
   })

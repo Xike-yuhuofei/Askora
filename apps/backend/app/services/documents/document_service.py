@@ -113,6 +113,8 @@ class DocumentService:
         subject: Optional[str] = None,
         knowledge_point_id: Optional[str] = None,
         workspace_id: Optional[str] = None,
+        *,
+        unassigned: bool = False,
     ) -> UserDocument:
         """
         上传文档
@@ -124,9 +126,9 @@ class DocumentService:
 
         document_id = str(uuid.uuid4())
 
-        # XIK-171 writer cutover: resolve the exact Workspace before persisting so
-        # that no owner-global Material record is created.
-        if workspace_id is None:
+        # Product upload (unassigned=True) leaves workspace_id null.
+        # Test/legacy helpers still resolve a Workspace unless one is provided.
+        if workspace_id is None and not unassigned:
             workspace_id = await self._resolve_workspace_id(pseudonym_id)
 
         storage_path, file_size = await self.storage.save_file(

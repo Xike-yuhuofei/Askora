@@ -113,66 +113,66 @@ color.focus
 
 `success / warning / error / info` 只表达对应语义，不用于装饰。
 
-### UI-DS-TOK-002 — Current Light Baseline
+### UI-DS-TOK-002 — Current Dark Baseline
 
-当前 Light foundation 采用 TraeWork Light（`ui/traework/colors_and_type.css` / `css.json`）。Askora 保留本文件的 semantic role 名；业务代码 MUST 使用这些 role，不得直接散落 TraeWork 内部名或页面级 hex。
+v1 采用单一深色外壳（Dark Shell），无运行时浅色模式或主题切换。Semantic role 名保留；业务代码 MUST 使用这些 role，不得直接散落页面级 hex。深色值以 `ui/prototypes/shell-replica/` 的测量值为起点，并完成完整的语义映射。
 
 ```text
-accent              #4B3FE3
-accent-subtle       #E0E5FF
-canvas              #F5F5F5
-surface             #FFFFFF
-surface-subtle      #E5E5E5
-surface-elevated    #FFFFFF
-text-primary        #171717
-text-secondary      #404040
-text-muted          #737373
-border              rgba(115, 115, 115, 0.12)
-border.strong       rgba(115, 115, 115, 0.36)
-success             #0F7A56
-warning             #A85A00
-error               #C9382F
-info                #4B3FE3
-focus               #4B3FE3
+accent              #5B4FF0
+accent-subtle       rgba(91, 79, 240, 0.22)
+canvas              #222222
+surface             #171717
+surface-subtle      #2C2C2C
+surface-elevated    #2C2C2C
+text-primary        #E1E1E1
+text-secondary      #A9A9A9
+text-muted          #8B8B8B
+border              #2C2C2C
+border.strong       #3F3F3F
+success             #59B589
+warning             #D19A48
+error               #E06C75
+info                #5B4FF0
+focus               #5B4FF0
 ```
 
-`accent-subtle` 是 TraeWork `--bg-brand-popup`（`#AAB7FF` @ 0.36）叠在白色上的合成值；实现 MAY 使用 `rgba(170, 183, 255, 0.36)`。
+`accent-subtle` 是品牌色在深色表面上的低透明度表达；实现 MAY 使用 `rgba(91, 79, 240, 0.22)`。
 
-`success` / `warning` 相对 TraeWork `--status-*-default` 做了 text-on-canvas WCAG AA 微调（见 `UI-DS-TOK-005`）。`error` 使用 TraeWork `--status-error-active`，因 `--status-error-default` 作正文对比不足。颜色 MAY 因 WCAG 再微调，但 semantic role 不得漂移。
+`success` / `warning` / `error` 已按深色表面上的可读性重新选取（见 `UI-DS-TOK-005`）。颜色 MAY 因 WCAG 再微调，但 semantic role 不得漂移。
 
-状态色作 fill/icon 时 MAY 使用 TraeWork 原始 `--status-*-default`，但不得把对比不足的 fill 配白色正文。`UI-DS-TOK-004` 仍然要求非颜色表达。
+状态色作 fill/icon 时须保证与深色背景有足够对比，不得把对比不足的 fill 配白色正文。`UI-DS-TOK-004` 仍然要求非颜色表达。
 
 ### UI-DS-TOK-003 — Dark Theme
 
-v1 **不采用** Dark theme。TraeWork 官方库是 Light-only；`ui/prototypes/shell-replica/` 的测量 Dark hex **不得**写入本文件或生产 CSS。
+v1 已采用 Dark Shell 作为唯一主题（见 `UI-DS-TOK-002`）。该深色映射不是 TraeWork Light 的简单反转，而是以 `ui/prototypes/shell-replica/` 的深色测量值为起点、经完整 semantic mapping 后的 Askora Dark foundation。
 
-若未来产品提供 dark theme，必须定义完整 semantic mapping，不得简单反转 Light，也不得把复刻页当 Dark foundation。没有正式 dark capability 时，不得新增主题设置。
+在提供官方浅色模式或运行时主题切换之前，不得在生产代码中再引入第二套默认主题 token 或页面级硬编码浅色值。
 
 ### UI-DS-TOK-004 — State Colors
 
 任何 state color 都必须同时有非颜色表达：文本、icon、shape、border 或 accessible state。
 
-### UI-DS-TOK-005 — TraeWork Light Foundation Mapping
+### UI-DS-TOK-005 — Askora Dark Foundation Mapping
 
-每个 Askora semantic role 必须能回溯到 TraeWork token 名。本表是 foundation 溯源，不是第二套 role 体系。
+本表冻结 v1 Dark Shell 的 semantic role → CSS 变量/hex 映射。它不是 TraeWork Light 的简单反转，而是以 `ui/prototypes/shell-replica/` 深色测量值为起点、经 Askora 调整后的 foundation。
 
-| Askora role | TraeWork token | TraeWork 源值 | Askora 采用值 |
-|---|---|---|---|
-| `color.accent` / `color.info` / `color.focus` | `--bg-brand` / `--border-brand` | `#4B3FE3` | `#4B3FE3` |
-| `color.accent.subtle` | `--bg-brand-popup` | `#AAB7FF` @ 0.36 | `#E0E5FF`（合成） |
-| `color.canvas` | `--bg-base-secondary` | `#F5F5F5` | `#F5F5F5` |
-| `color.surface` / `color.surface.elevated` | `--bg-base-default` | `#FFFFFF` | `#FFFFFF` |
-| `color.surface.subtle` | `--bg-base-tertiary` | `#E5E5E5` | `#E5E5E5` |
-| `color.text.primary` | `--text-default` | `#171717` | `#171717` |
-| `color.text.secondary` | `--text-secondary` | `#404040` | `#404040` |
-| `color.text.muted` | `--text-tertiary` | `#737373` | `#737373` |
-| `color.border` | `--border-neutral-l1` | `#737373` @ 0.12 | 同源 |
-| `color.border.strong` | `--border-neutral-l3` | `#737373` @ 0.36 | 同源 |
-| `color.success` | `--status-success-default` | `#15A877` | `#0F7A56`（AA 微调） |
-| `color.warning` | `--status-warning-default` | `#E27900` | `#A85A00`（AA 微调） |
-| `color.error` | `--status-error-default` | `#E8463A` | `#C9382F`（`--status-error-active`） |
+| Askora role | CSS variable / hex | Notes |
+|---|---|---|
+| `color.accent` / `color.info` / `color.focus` | `--brand-primary: #5B4FF0` | 深色表面上保持足够对比 |
+| `color.accent.subtle` | `--brand-primary-soft: rgba(91, 79, 240, 0.22)` | 用于选中/激活背景 |
+| `color.canvas` | `--canvas: #222222` | 应用底层背景 |
+| `color.surface` / `color.surface.elevated` | `--surface: #171717` | 主卡片/面板 |
+| `color.surface.subtle` | `--surface-container: #2C2C2C` | 侧边栏、rail、内嵌容器 |
+| `color.text.primary` | `--text-primary: #E1E1E1` | 主文本 |
+| `color.text.secondary` | `--text-secondary: #A9A9A9` | 次级文本 |
+| `color.text.muted` | `--text-muted: #8B8B8B` | 占位/禁用提示 |
+| `color.border` | `--border: #2C2C2C` | 默认分隔线 |
+| `color.border.strong` | `--border-strong: #3F3F3F` | 可交互元素边框 |
+| `color.success` | `--success: #59B589` | 状态成功 |
+| `color.warning` | `--warning: #D19A48` | 状态警告 |
+| `color.error` | `--error: #E06C75` | 状态错误 |
 
-消费顺序见 `ui/traework/library-consumption.json`。`ui_kits/` 不可 copyable，不得当生产页面模板。
+实现见 `apps/frontend/src/styles/global.css`。业务代码 MUST 使用上述变量，不得在生产 CSS 中散落其他深色/浅色 hex。
 
 ---
 
@@ -1594,7 +1594,7 @@ Learning Evidence Gate PASS
 > 冻结日期：2026-08-13  
 > 上游产品定义：`docs/product/PRODUCT-DEFINITION.md`  
 > Governing Experience：`docs/design/experience/EXPERIENCE-ARCHITECTURE.md`、`docs/design/experience/INTERACTION-MODEL.md`  
-> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0022、ADR-0025、ADR-0026
+> Governing ADR：ADR-0014、ADR-0015、ADR-0018、ADR-0022、ADR-0025、ADR-0026、ADR-0029
 > 技术上游：Workspace / Goal / Activity / Recovery / Onboarding current Specs
 
 ---
@@ -1965,6 +1965,18 @@ Selected material context
 
 若 Product Definition 未来纳入，先更新上游 Product/Experience，再进入 UI Spec。
 
+#### UI-LIB-005 — Parse mode status and re-parse
+
+资料行 MUST 诚实区分：
+
+```text
+仅本机解析
+已用模型增强
+本机已就绪，模型增强失败
+```
+
+模型 `runtime_ready` 且资料仍为仅本机解析时，提供 Contextual Action「用模型再解析」。不得把 OCR 或「重新上传」伪装成再解析。打开「用 AI 增强资料解析」不得自动对列表中已有资料发起增强。
+
 ---
 
 ### 10. Settings / Recovery Contract
@@ -1979,6 +1991,15 @@ Settings 使用 category navigation / secondary destination，而不是 giant co
 
 Local data、BYOK、Recovery 的用户行为必须服从 current Product Definition 与 security/data-control contracts。
 
+#### UI-SET-004 — Material parse enhancement toggle
+
+设置里、紧挨模型配置，MUST 提供 Control：**用 AI 增强资料解析**（`use_ai_parse_enhancement`，SYS08 owner）。
+
+- 模型未就绪：disabled，说明还缺模型；解析强制仅本机；
+- 模型就绪：默认开启，用户可关；
+- 文案 MUST 写明：打开后解析阶段会把完成任务所需的最小资料发给外部模型；关掉则解析不离开本机；**对话教学仍可能使用模型**；
+- 不得放在 Welcome 主路径，也不得做成每次上传的必经对话框。
+
 #### UI-SET-003 — Recovery Presentation
 
 Recovery 不新增 Product Domain。存在 action-required issue 时可显示紧凑全局状态/入口；恢复 action 必须使用 owner 提供的合法 RecoveryAction，不得由 frontend 发明 command。
@@ -1991,7 +2012,7 @@ Recovery 不新增 Product Domain。存在 action-required issue 时可显示紧
 
 `/` 与 `/welcome` 是打开 App 的默认目的地，不是 Today / Dashboard，也不是 L0 Product Domain。
 
-Welcome 承担：上传资料、选择空间并「继续学习」、看到已有对话入口。first-use 只呈现用户必须完成/理解的事实步骤（模型能力、资料、空间、开始学习）；内部 diagnostic/planner/system stage 与 Learning Goal 管理不得成为用户必须学习的工程流程。不再固定跳转 `/today`，也不自动 resume 上一段对话。
+Welcome 承担：上传资料、选择空间并「继续学习」、看到已有对话入口。没有模型 key 时仍可上传；资料走本地解析。first-use 只呈现用户必须完成/理解的事实步骤（模型能力、资料、空间、开始学习）；内部 diagnostic/planner/system stage 与 Learning Goal 管理不得成为用户必须学习的工程流程。模型未就绪时，「马上开始学习 / 继续学习」若需要生成教学，必须说明还缺模型，不得用 mock 对话冒充。不再固定跳转 `/today`，也不自动 resume 上一段对话。
 
 #### UI-WELCOME-002
 
@@ -2067,6 +2088,7 @@ Welcome 承担：上传资料、选择空间并「继续学习」、看到已有
 - `UI-SN-AC-013`：用户界面使用“空间”“对话”，但 route/API/domain/persistence 仍解析同一 Workspace / LearningActivity identity。
 - `UI-SN-AC-014`：空间切换改变真实 scope，并在 draft/stream/note/session/material 冲突时使用 owner-defined recovery。
 - `UI-SN-AC-015`：一个空间下多段对话可恢复；点已有对话不新开；对空间「继续学习」新开对话；Conversation 不成为 thread manager。
+- `UI-SN-AC-016`：设置中「用 AI 增强资料解析」语义正确；无模型时强制本机解析；打开开关不自动增强旧资料；资料库可「用模型再解析」且状态诚实。
 
 ---
 

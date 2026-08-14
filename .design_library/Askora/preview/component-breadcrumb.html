@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Breadcrumb</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html,
+    body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body { padding: var(--spacer-32); }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+    a:hover { color: var(--text-default-hover); }
+    hr { border: 0; border-top: 1px solid var(--border-neutral-l1); margin: var(--spacer-24) 0; }
+
+    .h1 { font-family: var(--heading-2xl-font-family); font-size: var(--heading-2xl-font-size); line-height: var(--heading-2xl-line-height); font-weight: var(--heading-2xl-font-weight); color: var(--text-default); }
+    .h2 { font-family: var(--heading-md-font-family); font-size: var(--heading-md-font-size); line-height: var(--heading-md-line-height); font-weight: var(--heading-md-font-weight); color: var(--text-default); }
+    .h3 { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); color: var(--text-default); }
+    .eyebrow { font-size: var(--body-sm-font-size); line-height: var(--body-sm-line-height); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--body-sm-letter-spacing); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-24); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-24); }
+    .stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2,
+      .grid-3,
+      .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-b.css" />
+  <style>
+    body {
+      width: min(100%, 1184px);
+      margin: 0 auto;
+      padding: var(--spacer-40) var(--spacer-32) var(--spacer-48);
+    }
+    .pv-header { margin-bottom: var(--spacer-24); padding-bottom: var(--spacer-20); }
+    .pv-header p { max-width: 920px; }
+    .pv-section { margin-bottom: var(--spacer-32); padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+    .pv-section__title { margin-bottom: var(--spacer-16); letter-spacing: var(--body-md-letter-spacing); }
+
+    /* @component-css-start */
+    /* ===== Breadcrumb ===== */
+    .ak-breadcrumb { display: flex; align-items: center; gap: var(--spacer-8); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); }
+    .ak-breadcrumb a { display: inline-flex; align-items: center; color: var(--text-tertiary); }
+    .ak-breadcrumb a:hover { color: var(--text-default); }
+    .ak-breadcrumb__sep { color: var(--text-tertiary); }
+    .ak-breadcrumb__current { color: var(--text-default); }
+    /* @component-css-end */
+
+    [data-asset-icon] {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent !important;
+      -webkit-mask: none !important;
+      mask: none !important;
+    }
+    [data-asset-icon] > svg { display: block; width: 100%; height: 100%; flex: 0 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>Breadcrumb</h1>
+    <p>分隔符 <code>/</code> 使用 <code>--text-tertiary</code>，当前页使用 <code>--text-default</code>。超过 4 级用 <code>…</code> 截断。</p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">默认</div>
+    <nav class="ak-breadcrumb">
+      <a href="#" aria-label="首页"><span class="icon" style="width: 14px; height: 14px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M7.721 1.274c.205-.102.453-.085.643.052l6.333 4.534a.5.5 0 0 1-.728.871L8 2.601 2.03 6.875a.5.5 0 0 1-.728-.871L7.636 1.326l.085-.052Z"/><path d="M2.708 10.133V5.174a.625.625 0 0 1 1.25 0v4.959c0 .57 0 .96.026 1.263.024.294.067.45.124.561.132.259.343.469.602.601.111.056.267.1.561.125.302.024.693.025 1.263.025h2.933c.57 0 .96 0 1.263-.025.294-.024.45-.069.561-.125a1.25 1.25 0 0 0 .601-.601c.057-.111.1-.267.125-.561.024-.302.025-.693.025-1.263V5.174a.625.625 0 0 1 1.25 0v4.959c0 .55 0 1-.03 1.365-.03.372-.095.71-.257 1.027a2.5 2.5 0 0 1-1.147 1.147c-.316.162-.655.227-1.027.257-.365.03-.815.03-1.364.03H6.533c-.55 0-1 0-1.364-.03-.372-.03-.71-.095-1.027-.257a2.5 2.5 0 0 1-1.147-1.147c-.162-.316-.227-.655-.257-1.027-.03-.365-.03-.815-.03-1.365Z"/><path d="M8.709 13.333V10.667a.625.625 0 0 0-1.25 0v2.666a.625.625 0 0 0 1.25 0Z"/></svg></span></a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <a href="#">工作区</a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <a href="#">Askora</a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <span class="ak-breadcrumb__current">设计令牌</span>
+    </nav>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">截断</div>
+    <nav class="ak-breadcrumb">
+      <a href="#" aria-label="首页"><span class="icon" style="width: 14px; height: 14px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M7.721 1.274c.205-.102.453-.085.643.052l6.333 4.534a.5.5 0 0 1-.728.871L8 2.601 2.03 6.875a.5.5 0 0 1-.728-.871L7.636 1.326l.085-.052Z"/><path d="M2.708 10.133V5.174a.625.625 0 0 1 1.25 0v4.959c0 .57 0 .96.026 1.263.024.294.067.45.124.561.132.259.343.469.602.601.111.056.267.1.561.125.302.024.693.025 1.263.025h2.933c.57 0 .96 0 1.263-.025.294-.024.45-.069.561-.125a1.25 1.25 0 0 0 .601-.601c.057-.111.1-.267.125-.561.024-.302.025-.693.025-1.263V5.174a.625.625 0 0 1 1.25 0v4.959c0 .55 0 1-.03 1.365-.03.372-.095.71-.257 1.027a2.5 2.5 0 0 1-1.147 1.147c-.316.162-.655.227-1.027.257-.365.03-.815.03-1.364.03H6.533c-.55 0-1 0-1.364-.03-.372-.03-.71-.095-1.027-.257a2.5 2.5 0 0 1-1.147-1.147c-.162-.316-.227-.655-.257-1.027-.03-.365-.03-.815-.03-1.365Z"/><path d="M8.709 13.333V10.667a.625.625 0 0 0-1.25 0v2.666a.625.625 0 0 0 1.25 0Z"/></svg></span></a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <a href="#">…</a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <a href="#">Askora</a>
+      <span class="ak-breadcrumb__sep">/</span>
+      <span class="ak-breadcrumb__current">colors_and_type.css</span>
+    </nav>
+  </div>
+
+</body>
+</html>

@@ -17,50 +17,97 @@
   border-top: 1px solid var(--border);
 }
 
-.history-list button {
-  width: 100%;
+.history-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
   padding: 15px 4px;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  text-align: left;
 }
 
-.history-list button:hover {
-  color: var(--brand-primary);
-}
-
-.history-list__main {
+.history-item__main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
 }
 
-.history-list__main strong,
-.history-list__main small {
+.history-item__main strong,
+.history-item__main small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.history-list__main small {
+.history-item__main small {
   color: var(--text-muted);
 }
 
-.history-list__end {
+.history-item__main strong {
+  transition: color .15s ease;
+}
+
+.history-item__main:hover strong {
+  color: var(--brand-primary);
+}
+
+.history-item__main:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-m);
+}
+
+.history-item__end {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: 0 0 auto;
 }
 
+.history-filters {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  margin: 0 0 16px;
+}
+
+.history-filter {
+  border: 0;
+  background: transparent;
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.history-filter--active {
+  background: var(--surface-container, rgba(0, 0, 0, .05));
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
+.history-empty p {
+  margin: 0;
+}
+
 @media (max-width: 520px) {
-  .history-list__end .status-pill {
+  .history-item__end .status-pill {
     display: none;
   }
 }

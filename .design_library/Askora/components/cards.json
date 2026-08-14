@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 2,
+  "slug": "cards",
+  "name": "卡片 Card",
+  "category": "layout",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Card",
+      "evidence": "Inferred from preview/component-cards.html title and component CSS selectors (.ak-card)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-card",
+        ".ak-card__title",
+        ".ak-card__desc",
+        ".ak-card__footer",
+        ".ak-card--interactive",
+        ".ak-card--elevated",
+        ".ak-card--brand",
+        ".ak-card--success",
+        ".ak-card--danger"
+      ],
+      "evidence": "Representative selectors from preview/component-cards.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-cards.html",
+    "representativeSelectors": [
+      ".ak-card",
+      ".ak-card__title",
+      ".ak-card__desc",
+      ".ak-card__footer",
+      ".ak-card--interactive",
+      ".ak-card--interactive:hover",
+      ".ak-card--elevated",
+      ".ak-card--brand",
+      ".ak-card--success",
+      ".ak-card--danger"
+    ],
+    "cssRuleCount": 16
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "active"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-card",
+      "whySelected": "Base card container with border and radius.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-card--elevated",
+      "whySelected": "Shadow-elevated card for floating hierarchy.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-card--interactive",
+      "whySelected": "Clickable card with hover feedback.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-cards.html",
+    "selectors": [
+      ".ak-card",
+      ".ak-card__title",
+      ".ak-card__desc",
+      ".ak-card__footer",
+      ".ak-card--interactive",
+      ".ak-card--elevated",
+      ".ak-card--brand",
+      ".ak-card--success",
+      ".ak-card--danger"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-cards.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-cards.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-base-font-weight",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--bg-brand",
+    "--heading-sm-font-family",
+    "--heading-sm-font-size",
+    "--heading-sm-line-height",
+    "--heading-sm-font-weight",
+    "--heading-sm-letter-spacing",
+    "--radius-12",
+    "--shadow-1",
+    "--shadow-2",
+    "--spacer-8",
+    "--spacer-16",
+    "--spacer-20",
+    "--status-error-default",
+    "--status-success-default",
+    "--text-default",
+    "--text-secondary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-cards.html",
+      "classes": [
+        "ak-card",
+        "ak-card--brand",
+        "ak-card--danger",
+        "ak-card--elevated",
+        "ak-card--interactive",
+        "ak-card--success",
+        "ak-card__desc",
+        "ak-card__footer",
+        "ak-card__title"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-cards.html",
+    "source": "preview/component-cards.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "cards"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

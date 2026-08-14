@@ -1,0 +1,330 @@
+/* Workspace Management Page — dark theme */
+
+.workspace-manage__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+/* ── Create form (inline panel) ── */
+
+.workspace-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  animation: workspace-form-slide .18s ease-out;
+}
+
+@keyframes workspace-form-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.workspace-create-form__row {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-create-form__input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface-container);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.workspace-create-form__input::placeholder {
+  color: var(--text-muted);
+}
+
+.workspace-create-form__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.workspace-create-form__input:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.workspace-create-form__error {
+  margin: 0;
+  color: var(--error);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.workspace-create-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Error state ── */
+
+.workspace-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* ── Empty state ── */
+
+.workspace-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  text-align: center;
+}
+
+.workspace-empty__icon {
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.workspace-empty__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.workspace-empty__desc {
+  max-width: 360px;
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ── Workspace list ── */
+
+.workspace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workspace-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  transition: border-color .12s ease, background-color .12s ease;
+}
+
+.workspace-item:hover {
+  border-color: var(--text-muted);
+  background: var(--surface-container);
+}
+
+.workspace-item__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workspace-item__name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workspace-item__name {
+  color: var(--text-primary);
+  font-size: 14.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.workspace-item__count {
+  white-space: nowrap;
+}
+
+.workspace-item__dot {
+  color: var(--border-strong);
+}
+
+.workspace-item__last-active {
+  white-space: nowrap;
+}
+
+/* ── Rename inline editing ── */
+
+.workspace-rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-rename__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-m);
+  background: var(--surface-container);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  transition: box-shadow .12s ease;
+}
+
+.workspace-rename__input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.workspace-rename__input:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.workspace-rename__spinner {
+  flex-shrink: 0;
+  color: var(--brand-primary);
+  animation: spin .8s linear infinite;
+}
+
+.workspace-rename__error {
+  color: var(--error);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Item actions ── */
+
+.workspace-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.workspace-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface-container);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+
+.workspace-action-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--surface-container-high);
+  color: var(--text-primary);
+}
+
+.workspace-action-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.workspace-action-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.workspace-action-btn--cancel {
+  padding: 5px 8px;
+  color: var(--text-muted);
+}
+
+.workspace-action-btn--cancel:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.workspace-action-btn--enter {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: white;
+  gap: 5px;
+}
+
+.workspace-action-btn--enter:hover {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+  color: white;
+}
+
+.workspace-action-btn--enter:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 520px) {
+  .workspace-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .workspace-item__actions {
+    justify-content: flex-end;
+  }
+
+  .workspace-empty {
+    padding: 32px 16px;
+  }
+
+  .workspace-create-form {
+    padding: 14px;
+  }
+}

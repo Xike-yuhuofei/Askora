@@ -4,8 +4,15 @@ const RouterContext = createContext(null)
 
 function readPathname() {
   const hash = window.location.hash.replace(/^#/, '')
-  const pathname = hash.split('?')[0] || '/'
+  const withoutFragment = hash.split('#')[0]
+  const pathname = withoutFragment.split('?')[0] || '/'
   return pathname.startsWith('/') ? pathname : `/${pathname}`
+}
+
+export function readFragment() {
+  const hash = window.location.hash.replace(/^#/, '')
+  const fragment = hash.split('#')[1] || ''
+  return fragment.startsWith('/') ? fragment.slice(1) : fragment
 }
 
 export function RouterProvider({ children }) {

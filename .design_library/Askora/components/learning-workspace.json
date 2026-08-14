@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "slug": "learning-workspace",
+  "name": "Learning Workspace",
+  "category": "layout",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Three-Column Learning Workspace",
+      "evidence": "Inferred from preview/component-learning-workspace.html: grid of left navigation + central learning chat + right materials/notes panel."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "panel-configuration",
+      "values": [
+        ".ak-learning-workspace",
+        ".ak-learning-workspace__nav",
+        ".ak-learning-workspace__main",
+        ".ak-learning-workspace__side",
+        ".ak-lw-nav__item.is-active",
+        ".ak-lw-side__tab.is-active"
+      ],
+      "evidence": "Representative selectors from preview/component-learning-workspace.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-learning-workspace.html",
+    "representativeSelectors": [
+      ".ak-learning-workspace",
+      ".ak-learning-workspace__nav",
+      ".ak-lw-nav__header",
+      ".ak-lw-nav__brand",
+      ".ak-lw-nav__logo",
+      ".ak-lw-nav__scroll",
+      ".ak-lw-nav__section",
+      ".ak-lw-nav__item",
+      ".ak-lw-nav__item.is-active",
+      ".ak-learning-workspace__main",
+      ".ak-lw-main__header",
+      ".ak-lw-main__title",
+      ".ak-lw-main__subtitle",
+      ".ak-lw-main__chat",
+      ".ak-lw-main__composer",
+      ".ak-learning-workspace__side",
+      ".ak-lw-side__tabs",
+      ".ak-lw-side__tab",
+      ".ak-lw-side__tab.is-active",
+      ".ak-lw-side__panel",
+      ".ak-lw-side__panel-title"
+    ],
+    "cssRuleCount": 32
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "nav-width",
+      "value": "248px",
+      "evidence": "Left navigation column width."
+    },
+    {
+      "dimension": "side-width",
+      "value": "320px",
+      "evidence": "Right materials/notes panel width."
+    },
+    {
+      "dimension": "workspace-height",
+      "value": "100vh",
+      "evidence": "Full-viewport workspace height."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover",
+      "active"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-learning-workspace",
+      "whySelected": "Root three-column grid container.",
+      "traits": [
+        "display: grid",
+        "grid-template-columns: 248px minmax(0, 1fr) 320px",
+        "height: 100vh",
+        "overflow: hidden",
+        "background: var(--bg-base-default)"
+      ],
+      "childrenDigest": [
+        ".ak-learning-workspace__nav",
+        ".ak-learning-workspace__main",
+        ".ak-learning-workspace__side"
+      ]
+    },
+    {
+      "selector": ".ak-lw-nav__item.is-active",
+      "whySelected": "Active navigation item in the left rail.",
+      "traits": [
+        "background: var(--status-primary-surface-l1)",
+        "color: var(--text-brand)",
+        "font-weight: var(--font-weight-medium)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-lw-side__tab.is-active",
+      "whySelected": "Active tab in the right materials/notes panel.",
+      "traits": [
+        "color: var(--text-brand)",
+        "font-weight: var(--font-weight-medium)",
+        "background: var(--bg-base-secondary)",
+        "border-color: var(--border-neutral-l1)"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-learning-workspace.html",
+    "selectors": [
+      ".ak-learning-workspace",
+      ".ak-learning-workspace__nav",
+      ".ak-lw-nav__header",
+      ".ak-lw-nav__brand",
+      ".ak-lw-nav__logo",
+      ".ak-lw-nav__scroll",
+      ".ak-lw-nav__section",
+      ".ak-lw-nav__item",
+      ".ak-learning-workspace__main",
+      ".ak-lw-main__header",
+      ".ak-lw-main__chat",
+      ".ak-lw-main__composer",
+      ".ak-learning-workspace__side",
+      ".ak-lw-side__tabs",
+      ".ak-lw-side__panel"
+    ]
+  },
+  "structurePatterns": [
+    "Three-column grid: left nav (248px), central learning chat (flex), right materials/notes panel (320px).",
+    "Left nav: brand header + scrollable sections of nav items; active item uses system-blue soft surface.",
+    "Central main: header (title + subtitle), scrollable chat thread, and composer region.",
+    "Right panel: tab bar (材料 / 笔记) with active tab on white surface, scrollable panel body.",
+    "All columns share the sidebar surface color for nav/side and white surface for main."
+  ],
+  "usageHints": [
+    "Use as the top-level learning workspace shell for Askora.",
+    "Central column hosts learning-input and chat bubbles; right panel hosts knowledge-card and goal-tree.",
+    "Keep nav items to 2-3 sections to avoid clutter.",
+    "Composer region should remain visible at all times (sticky within the main column)."
+  ],
+  "doNotInvent": [
+    "Do not add a fourth column or change the three-column contract without updating the contract.",
+    "Do not make the workspace horizontally scrollable — columns collapse instead.",
+    "Do not add visual states absent from the preview marker block."
+  ],
+  "unknowns": [
+    "Responsive breakpoints below 720px are not frozen in this contract."
+  ],
+  "tokensConsumed": [
+    "--bg-base-default",
+    "--bg-base-secondary",
+    "--askora-sidebar",
+    "--bg-overlay-l1",
+    "--border-neutral-l1",
+    "--border-brand",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--text-brand",
+    "--text-onbrand",
+    "--bg-brand",
+    "--radius-6",
+    "--radius-8",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-10",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-20",
+    "--spacer-24",
+    "--body-sm-font-size",
+    "--body-base-font-size",
+    "--heading-sm-font-size",
+    "--font-weight-medium",
+    "--font-weight-strong",
+    "--font-weight-heavy"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "preview/component-learning-workspace.html",
+      "classes": [
+        "ak-learning-workspace",
+        "ak-learning-workspace__nav",
+        "ak-lw-nav__header",
+        "ak-lw-nav__brand",
+        "ak-lw-nav__logo",
+        "ak-lw-nav__scroll",
+        "ak-lw-nav__section",
+        "ak-lw-nav__item",
+        "ak-learning-workspace__main",
+        "ak-lw-main__header",
+        "ak-lw-main__title",
+        "ak-lw-main__subtitle",
+        "ak-lw-main__chat",
+        "ak-lw-main__composer",
+        "ak-learning-workspace__side",
+        "ak-lw-side__tabs",
+        "ak-lw-side__tab",
+        "ak-lw-side__panel",
+        "ak-lw-side__panel-title"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-learning-workspace.html",
+    "source": "preview/component-learning-workspace.html",
+    "css": {
+      "file": "components-group-c.css",
+      "marker": "learning-workspace"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup."
+  },
+  "assetsConsumed": []
+}

@@ -3,14 +3,14 @@
   max-width: 760px;
   margin: 0 auto;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-l);
   background: var(--surface-container);
   color: var(--text-primary);
 }
 
 .learning-context-disclosure[data-state="PARTIAL"],
 .learning-context-disclosure[data-state="STALE"] {
-  border-color: var(--warning, #b7791f);
+  border-color: var(--warning);
 }
 
 .learning-context-disclosure[data-state="ERROR"] {

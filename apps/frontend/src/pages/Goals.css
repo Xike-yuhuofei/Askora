@@ -49,6 +49,22 @@
 .empty-panel p { max-width: 620px; color: var(--text-secondary); line-height: 1.6; }
 .goal-header-actions, .goal-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 
+.product-row__link {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-l);
+}
+.product-row__link h3 { transition: color .15s ease; }
+.product-row__link:hover h3 { color: var(--brand-primary); }
+.product-row__link:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+
 @media (max-width: 680px) {
   .page-header--split, .product-row { align-items: stretch; flex-direction: column; }
   .fact-grid { grid-template-columns: 1fr; }

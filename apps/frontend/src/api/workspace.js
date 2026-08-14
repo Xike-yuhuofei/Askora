@@ -64,3 +64,45 @@ export const startActivity = (activityId, body) =>
 export const completeActivity = (activityId, body) =>
   api.post(`/workspace/activities/${encodeURIComponent(activityId)}/complete`, body)
     .then((response) => response.data)
+
+export const listWorkspaces = () =>
+  api.get('/workspaces').then((response) => response.data)
+
+export const createWorkspace = (body) =>
+  api.post('/workspaces', body).then((response) => response.data)
+
+export const renameWorkspace = (workspaceId, body) =>
+  api.patch(`/workspaces/${encodeURIComponent(workspaceId)}`, body)
+    .then((response) => response.data)
+
+export const switchWorkspace = (workspaceId, body) =>
+  api.post(`/workspaces/${encodeURIComponent(workspaceId)}/switch`, body)
+    .then((response) => response.data)
+
+export const listWorkspaceActivities = (workspaceId) =>
+  api.get(`/workspaces/${encodeURIComponent(workspaceId)}/activities`)
+    .then((response) => response.data)
+
+const CLEAR_GUARD = {
+  composer_draft: 'CLEAR',
+  stream: 'CLEAR',
+  user_note: 'CLEAR',
+  material_position: 'PRESERVED',
+}
+
+export const clearTransitionGuard = () => ({ ...CLEAR_GUARD })
+
+export function parseActivityId(activityRef) {
+  if (!activityRef) return null
+  const match = String(activityRef).match(/(?:learning_activity|LearningActivity):([^:]+)/i)
+  return match ? match[1] : String(activityRef)
+}
+
+export function conversationHref(workspaceId, activityRef) {
+  const activityId = parseActivityId(activityRef)
+  if (!activityId) return null
+  if (workspaceId) {
+    return `/courses/${encodeURIComponent(workspaceId)}/activities/${encodeURIComponent(activityId)}`
+  }
+  return `/learn/${encodeURIComponent(activityId)}`
+}

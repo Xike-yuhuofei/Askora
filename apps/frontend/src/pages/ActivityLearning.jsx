@@ -109,6 +109,7 @@ export default function ActivityLearning({ activityId }) {
   const [text, setText] = useState('')
   const [pendingText, setPendingText] = useState('')
   const [copiedTurn, setCopiedTurn] = useState('')
+  const [sourcesOpen, setSourcesOpen] = useState(false)
   const messagesRef = useRef(null)
   const composerRef = useRef(null)
 
@@ -174,6 +175,9 @@ export default function ActivityLearning({ activityId }) {
   const current = activity.state
   const transcript = state.transcript
   const turns = transcript?.turns || []
+  // AL-16：引用/来源来自 transcript 中的 evidence（后端提供 evidence / source_span 数据）。
+  const evidenceItems = turns.flatMap((turn) => (turn.evidence || []).map((ev) => ({ ...ev, turn_number: turn.turn_number })))
+  const evidenceCount = evidenceItems.length
   const canStart = activity.execution.can_start
   const canResume = activity.execution.can_resume
   const canComplete = activity.execution.can_complete && turns.length > 0
@@ -295,7 +299,7 @@ export default function ActivityLearning({ activityId }) {
   return (
     <div className="activity-learning page-stack">
       <header className="activity-learning__header">
-        <button type="button" className="button button--ghost" onClick={() => navigate('/learning/plan')}><ArrowLeft size={16} />学习路径</button>
+        <a className="activity-learning__back" href="#/learning/plan" aria-label="返回学习路径"><ArrowLeft size={16} />学习路径</a>
         <div className="activity-learning__header-title">
           <p className="eyebrow">学习活动</p>
           <h1>{activity.title}</h1>
@@ -363,6 +367,32 @@ export default function ActivityLearning({ activityId }) {
             </>
           )}
           {turns.length === 0 && <LearningContextDrawer activityId={activityId} />}
+          <div className="activity-learning__sources">
+            {evidenceCount > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="activity-learning__sources-toggle"
+                  onClick={() => setSourcesOpen((open) => !open)}
+                  aria-expanded={sourcesOpen}
+                >
+                  <Info size={14} aria-hidden="true" />查看原文 · 依据 {evidenceCount} 处
+                </button>
+                {sourcesOpen && (
+                  <ul className="activity-learning__sources-list">
+                    {evidenceItems.map((item, index) => (
+                      <li key={`${item.evidence_id}-${index}`}>
+                        <span className="activity-learning__sources-role">{item.pedagogical_role || '依据'}</span>
+                        <p>{item.excerpt}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p className="activity-learning__sources-unavailable">来源不可用</p>
+            )}
+          </div>
           <div className="activity-learning__finish"><p className="activity-learning__disclaimer"><Info size={14} aria-hidden="true" />完成本项不等于已掌握</p><button type="button" className="button button--secondary" onClick={complete} disabled={busy || !canComplete}><CheckCircle2 size={16} />完成本项</button></div>
         </main>
       )}

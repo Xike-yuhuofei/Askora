@@ -4,10 +4,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 32px;
+  gap: 8px;
+  height: var(--control-height-md);
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   border: 1px solid transparent;
   cursor: pointer;
   user-select: none;
@@ -18,6 +18,7 @@
   line-height: 1;
   color: var(--text-primary);
   background: transparent;
+  text-decoration: none;
   transition: background-color .12s ease, color .12s ease, border-color .12s ease, opacity .12s ease;
 }
 
@@ -29,6 +30,21 @@
 .ds-btn[disabled] {
   cursor: not-allowed;
   opacity: .52;
+}
+
+.ds-btn--sm {
+  height: var(--control-height-sm);
+  padding: 0 12px;
+  font-size: 12.5px;
+  border-radius: var(--radius-m);
+}
+
+.ds-btn--xs {
+  height: var(--control-height-xs);
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: var(--radius-s);
+  gap: 4px;
 }
 
 .ds-btn--brand,
@@ -72,12 +88,100 @@
 }
 
 .ds-btn--icon {
-  width: 32px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   padding: 0;
+  border-radius: var(--radius-m);
 }
 
 .ds-btn--block {
   width: 100%;
+}
+
+.ds-btn--link {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+
+.ds-btn--link:hover:not(:disabled) {
+  color: var(--brand-primary-hover);
+  text-decoration: underline;
+}
+
+/* ── Status Pill ── */
+
+.ds-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-container-high, var(--surface-container));
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ds-pill--success {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.ds-pill--danger {
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  color: var(--error);
+}
+
+.ds-pill--warning {
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  color: var(--warning);
+}
+
+.ds-pill--neutral {
+  background: var(--surface-container-high, var(--surface-container));
+  color: var(--text-secondary);
+}
+
+.ds-pill--muted {
+  background: var(--surface-container);
+  color: var(--text-muted);
+}
+
+.ds-pill--brand {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+}
+
+.ds-pill--available {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.ds-pill--missing,
+.ds-pill--partial,
+.ds-pill--low_confidence {
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  color: var(--warning);
+}
+
+.ds-pill--stale {
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  color: var(--error);
+}
+
+.ds-pill--not_applicable {
+  background: var(--surface-container-high, var(--surface-container));
+  color: var(--text-secondary);
+}
+
+.ds-pill--compatibility {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
 }
 
 .ds-icon {
@@ -91,12 +195,12 @@
 }
 
 .ds-nav-row {
-  min-height: 34px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
-  border-radius: 7px;
+  padding: 6px 10px;
+  border-radius: var(--radius-m);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
@@ -172,7 +276,7 @@
   padding: 12px 16px;
   background: var(--surface-container);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   color: var(--text-primary);
 }
 
@@ -203,7 +307,7 @@
 }
 
 .ds-ai-input {
-  border-radius: 12px;
+  border-radius: var(--radius-l);
   border: 1px solid var(--border-strong);
   background: var(--surface);
   overflow: hidden;
@@ -297,10 +401,11 @@
   max-width: 520px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-l);
   overflow: hidden;
   color: var(--text-primary);
-  box-shadow: 0 24px 64px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  /* TraeWork components.css `.ds-dialog` 原值（两层浮层阴影）。 */
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--text-primary) 14%, transparent), 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
 }
 
 .ds-dialog__head {

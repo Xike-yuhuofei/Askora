@@ -3,7 +3,7 @@
 > 状态：**Index — 决策索引，不是现行合同**
 > 定位：Nygard ADR 的可变索引。ADR 原文不可变，保留在 `docs/archive/adr/`。现行行为一律以 `docs/specs/**` 与 Experience Design 为准。
 > 最近校准：2026-08-13
-> 上位的不可变原文：`docs/archive/adr/ADR-XXXX-*.md`（29 份）
+> 上位的不可变原文：`docs/archive/adr/ADR-XXXX-*.md`（32 份）
 
 ## 如何使用
 
@@ -105,6 +105,24 @@
 - 原文：[`ADR-0009`](../archive/adr/ADR-0009-local-first-identity-privacy-lifecycle.md)
 
 ## 主题 3：Experience / UI / 交互边界
+
+### ADR-0029 — Local and Hybrid Material Parse
+- Status: `accepted`（2026-08-13）
+- 结论：本地确定性解析始终先跑；LLM 增强解析由设置开关 + 模型就绪共同决定。无 key 强制本机解析；打开开关不自动重跑旧资料；「用模型再解析」是同一 Material 的增强 run。开关不管教学是否用模型。
+- 规范：[`specs/systems/01-content-knowledge.md`](../specs/systems/01-content-knowledge.md) + [`specs/systems/08-ai-orchestration.md`](../specs/systems/08-ai-orchestration.md) + Experience
+- 原文：[`ADR-0029`](../archive/adr/ADR-0029-local-and-hybrid-material-parse.md)
+
+### ADR-0028 — Assign Unassigned Material to a Workspace
+- Status: `accepted`（2026-08-13）
+- 结论：默认上传只创建未归属资料；`AssignMaterialToWorkspaceV1` 是唯一归属 command。
+- 规范：[`specs/interfaces/content.md`](../specs/interfaces/content.md) + [`specs/interfaces/persistence-and-data-control.md`](../specs/interfaces/persistence-and-data-control.md)
+- 原文：[`ADR-0028`](../archive/adr/ADR-0028-assign-material-to-workspace.md)
+
+### ADR-0027 — Welcome Is the Home Destination, Not a First-use Wizard
+- Status: `accepted`（2026-08-13）
+- 结论：Welcome 是每次打开 App 的回家页；first-use 只保留薄提示。Onboarding 不再把用户送去 `/today` 或确认目标向导。
+- 规范：[`specs/ui.md`](../specs/ui.md) + [`specs/interfaces/recovery-and-onboarding.md`](../specs/interfaces/recovery-and-onboarding.md)
+- 原文：[`ADR-0027`](../archive/adr/ADR-0027-welcome-home-not-first-use-wizard.md)
 
 ### ADR-0026 — Close Core Journey Goal and Unassigned-Material Gaps
 - Status: `accepted`（2026-08-13）
@@ -213,7 +231,10 @@
 | ADR-0018 | partially superseded | ADR-0022（旧 L0） | Experience Design + UI contracts |
 | ADR-0019 | 部分（single-default） | ADR-0023 | CWSP + UI Read Model |
 | ADR-0022 | 部分（课程词汇 / 五条 Journey / 启动直达） | ADR-0025 | Experience Design + UI contracts |
-| ADR-0106 | 部分（default-entry） | ADR-0022 / ADR-0025 | Onboarding + Welcome-first IA |
+| ADR-0106 | 部分（default-entry / 用户可见 GOAL / OPEN_TODAY） | ADR-0025 / ADR-0027 | Onboarding + Welcome home |
+| ADR-0027 | 现行 | — | Welcome destination + onboarding thin notice |
+| ADR-0028 | 现行 | — | Unassigned upload + AssignMaterial command |
+| ADR-0029 | 现行 | — | Local / hybrid material parse + Settings toggle |
 | ADR-0107 | partially superseded | ADR-0015（Account 语义退休） | P1-03 erasure workflow |
 
 > 规则：历史 ADR 原文保留在 `docs/archive/adr/`。若未来新决策 supersede 某 ADR，更新本索引的 Status 与指向，并同步修改对应 Spec；不得只改本页而让 Spec 落后。

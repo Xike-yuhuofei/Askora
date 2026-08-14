@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 2,
+  "slug": "learning-input",
+  "name": "Learning Input",
+  "category": "input",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Learning Conversation Input",
+      "evidence": "Inferred from preview/component-learning-input.html: multiline textarea with toolbar actions and send button."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "state-focus-disabled",
+      "values": [
+        ".ak-learning-input",
+        ".ak-learning-input__box",
+        ".ak-learning-input__box:focus-within",
+        ".ak-learning-input__send",
+        ".ak-learning-input__send[disabled]"
+      ],
+      "evidence": "Representative selectors from preview/component-learning-input.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-learning-input.html",
+    "representativeSelectors": [
+      ".ak-learning-input",
+      ".ak-learning-input__box",
+      ".ak-learning-input__box:focus-within",
+      ".ak-learning-input__textarea",
+      ".ak-learning-input__textarea::placeholder",
+      ".ak-learning-input__toolbar",
+      ".ak-learning-input__action",
+      ".ak-learning-input__action:hover",
+      ".ak-learning-input__action.is-active",
+      ".ak-learning-input__spacer",
+      ".ak-learning-input__send",
+      ".ak-learning-input__send:hover",
+      ".ak-learning-input__send:active",
+      ".ak-learning-input__send[disabled]",
+      ".ak-learning-input__hint"
+    ],
+    "cssRuleCount": 18
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "min-height",
+      "value": "72px",
+      "evidence": "Textarea minimum height."
+    },
+    {
+      "dimension": "max-height",
+      "value": "220px",
+      "evidence": "Textarea maximum height before scroll."
+    },
+    {
+      "dimension": "max-width",
+      "value": "720px",
+      "evidence": "Composer max width within the central chat column."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "focus",
+      "hover",
+      "active",
+      "disabled"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-learning-input__box",
+      "whySelected": "Root input container with focus ring.",
+      "traits": [
+        "display: flex",
+        "flex-direction: column",
+        "background: var(--bg-base-secondary)",
+        "border: 1px solid var(--border-neutral-l2)",
+        "border-radius: var(--radius-lg)",
+        "box-shadow: var(--shadow-2)"
+      ],
+      "childrenDigest": [
+        ".ak-learning-input__textarea",
+        ".ak-learning-input__toolbar"
+      ]
+    },
+    {
+      "selector": ".ak-learning-input__box:focus-within",
+      "whySelected": "Focus state with system-blue ring.",
+      "traits": [
+        "border-color: var(--border-brand)",
+        "box-shadow: 0 0 0 3px var(--status-primary-surface-l1), var(--shadow-2)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-learning-input__send",
+      "whySelected": "Primary send action using system blue.",
+      "traits": [
+        "background: var(--bg-brand)",
+        "color: var(--text-onbrand)",
+        "border: 1px solid var(--bg-brand)",
+        "border-radius: var(--radius-8)",
+        "height: 28px"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-learning-input.html",
+    "selectors": [
+      ".ak-learning-input",
+      ".ak-learning-input__box",
+      ".ak-learning-input__textarea",
+      ".ak-learning-input__toolbar",
+      ".ak-learning-input__action",
+      ".ak-learning-input__spacer",
+      ".ak-learning-input__send",
+      ".ak-learning-input__hint"
+    ]
+  },
+  "structurePatterns": [
+    "Multiline textarea (72-220px) inside a rounded bordered box.",
+    "Toolbar row: left icon actions (附件/引用/目标), spacer, right send button.",
+    "Focus-within applies a 3px system-blue soft ring.",
+    "Optional hint line below the box for keyboard shortcut guidance.",
+    "Send button uses the brand blue; disabled uses brand-disabled surface."
+  ],
+  "usageHints": [
+    "Place inside the central composer region of learning-workspace.",
+    "Use Enter to send, Shift+Enter for newline (communicated via hint).",
+    "Keep toolbar actions minimal (2-3) to preserve focus.",
+    "Disable send when the textarea is empty."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states absent from the preview marker block.",
+    "Do not change the focus ring color away from system blue.",
+    "Do not add a submit-on-Enter behavior that is not documented."
+  ],
+  "unknowns": [
+    "Attachment preview behavior is not frozen in this contract."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--bg-brand",
+    "--bg-brand-hover",
+    "--bg-brand-active",
+    "--bg-brand-disabled",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--border-brand",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--text-onbrand",
+    "--icon-default",
+    "--icon-tertiary",
+    "--icon-brand",
+    "--radius-4",
+    "--radius-6",
+    "--radius-8",
+    "--radius-lg",
+    "--shadow-2",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--body-sm-font-size",
+    "--body-base-font-size",
+    "--body-base-strong-font-size",
+    "--font-weight-medium",
+    "--font-family-mono"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "preview/component-learning-input.html",
+      "classes": [
+        "ak-learning-input",
+        "ak-learning-input__box",
+        "ak-learning-input__textarea",
+        "ak-learning-input__toolbar",
+        "ak-learning-input__action",
+        "ak-learning-input__spacer",
+        "ak-learning-input__send",
+        "ak-learning-input__hint"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-learning-input.html",
+    "source": "preview/component-learning-input.html",
+    "css": {
+      "file": "components-group-c.css",
+      "marker": "learning-input"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup."
+  },
+  "assetsConsumed": []
+}

@@ -159,6 +159,16 @@ class WorkspaceRepository:
         )
         return int(result.scalar_one())
 
+    async def rename(self, *, workspace_id: str, display_name: str) -> Workspace:
+        workspace = await self.get(workspace_id)
+        if workspace is None:
+            raise WorkspaceNotFoundError(f"Workspace {workspace_id} not found")
+        workspace.display_name = display_name
+        workspace.version += 1
+        workspace.updated_at = datetime.now(timezone.utc)
+        await self.db.flush()
+        return workspace
+
     async def create_default_if_absent(self, owner_id: str) -> Workspace:
         """Create the deterministic active default Workspace, or return the existing one.
 

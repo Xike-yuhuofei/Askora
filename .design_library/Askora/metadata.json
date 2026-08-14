@@ -1,5 +1,36 @@
 {
-  "id": "3EJDZWO9A49VGQ",
-  "name": "Askora",
-  "version": 5
+  "schemaVersion": 2,
+  "library": "Askora",
+  "name": "Askora Design Library",
+  "description": "Apple-style design language for the Askora personal long-term AI learning system.",
+  "brand": {
+    "primary": "#007AFF",
+    "semantic": {
+      "success": "#34C759",
+      "warning": "#FF9500",
+      "error": "#FF3B30",
+      "info": "#00B2B2"
+    },
+    "fonts": {
+      "sans": "Inter",
+      "mono": "JetBrains Mono"
+    },
+    "language": "zh-CN"
+  },
+  "tokenBasis": "Askora canonical tokens + TraeWork-compatible aliases (--bg-*, --text-*, --status-*, --brand-*, --bg-layout-*, --spacer-*, --radius-*) reused directly, values point to Askora tokens.",
+  "componentClassPrefix": ".ak-",
+  "componentCount": 19,
+  "uiKitCount": 1,
+  "source": "Migrated from .design_library/TraeWork/traework/ (structure reused; brand, semantics, and values fully Askora-ized).",
+  "scopeNote": "Component and page scope is determined by Askora learning-product needs, not matched to TraeWork completeness.",
+  "files": [
+    "colors_and_type.css",
+    "css.json",
+    "components.css",
+    "components/index.json",
+    "library-consumption.json",
+    "uikit-plan.json",
+    "README.md",
+    "SKILL.md"
+  ]
 }

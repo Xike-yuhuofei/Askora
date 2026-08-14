@@ -262,6 +262,7 @@ class BookLearningApplication:
             correlation_id=str(correlation_id),
         )
         allowed = {
+            "AdoptLearningGoalFromMaterial",
             "MapGoalToKnowledge",
             "BuildGoalKnowledgeSubgraph",
             "GeneratePrerequisiteDiagnosis",
@@ -275,6 +276,46 @@ class BookLearningApplication:
         command_key = (
             f"book-advance:{command}:{hashlib.sha256(idempotency_key.encode('utf-8')).hexdigest()}"
         )
+        if command == "AdoptLearningGoalFromMaterial":
+            await self.adopt_goal_from_material(
+                user=user,
+                document_id=document_id,
+                idempotency_key=command_key,
+                correlation_id=correlation_id,
+                now=now,
+            )
+            next_readiness = await self.readiness(
+                user=user,
+                document_id=document_id,
+                correlation_id=str(correlation_id),
+            )
+            response = BookLearningOperationResponseV1(
+                operation="AdvanceBookLearning",
+                owner_refs=next_readiness.owner_refs,
+                payload={
+                    "applied_command": command,
+                    "readiness": next_readiness.model_dump(mode="json"),
+                },
+                correlation_id=str(correlation_id),
+            )
+            await self._transcript_repo.append_advance(
+                BookLearningAdvanceRecord(
+                    advance_record_id=str(
+                        uuid5(
+                            NAMESPACE_URL,
+                            f"askora:book-advance:{user_id}:{idempotency_key}",
+                        )
+                    ),
+                    schema_version="1.0",
+                    user_id=user_id,
+                    document_id=str(document_id),
+                    idempotency_key=idempotency_key,
+                    applied_command=command,
+                    response_payload=response.model_dump(mode="json"),
+                    created_at=now or datetime.now(timezone.utc),
+                )
+            )
+            return response
         goal_id = self._readiness_ref_id(readiness, "LearningGoal")
         if goal_id is None:
             raise BookLearningApplicationError("BOOK_LEARNING_GOAL_REF_MISSING")
@@ -459,6 +500,41 @@ class BookLearningApplication:
             weekly_time_budget_minutes=weekly_time_budget_minutes,
         )
         return self._operation("CreateGoalCandidate", correlation_id, goal=goal)
+
+    async def adopt_goal_from_material(
+        self,
+        *,
+        user: User,
+        document_id: UUID,
+        idempotency_key: str,
+        correlation_id: UUID,
+        now: datetime | None = None,
+    ) -> BookLearningOperationResponseV1:
+        document = await self._db.scalar(
+            select(UserDocument).where(
+                UserDocument.id == str(document_id),
+                UserDocument.pseudonym_id == user.pseudonym_id,
+            )
+        )
+        if document is None:
+            raise BookLearningApplicationError("BOOK_SOURCE_NOT_FOUND_OR_UNAUTHORIZED")
+        if not document.workspace_id:
+            raise BookLearningApplicationError("MATERIAL_UNASSIGNED_CANNOT_START_GROUNDED_LEARNING")
+        readiness = await self.readiness(
+            user=user, document_id=document_id, correlation_id=str(correlation_id)
+        )
+        if readiness.state not in {"READY_FOR_GOAL", "GOAL_CONFIRMATION_REQUIRED"}:
+            raise BookLearningApplicationError(f"BOOK_NOT_READY_TO_ADOPT_GOAL:{readiness.state}")
+        title = document.display_title or document.original_filename or "这份资料"
+        goal = await self._goals.adopt_from_material(
+            user=user,
+            document_id=document_id,
+            document_title=title,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            adopted_at=now or datetime.now(timezone.utc),
+        )
+        return self._operation("AdoptLearningGoalFromMaterial", correlation_id, goal=goal)
 
     async def confirm_goal(
         self,

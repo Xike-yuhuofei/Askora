@@ -1,11 +1,9 @@
 .workspace-layout {
-  height: calc(100vh - 40px);
-  min-height: calc(100vh - 40px);
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 260px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
   background: var(--surface);
 }
 
@@ -41,7 +39,7 @@
   gap: 8px;
   padding: 8px;
   margin-bottom: 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   transition: background-color .16s ease, color .16s ease;
 }
 
@@ -71,7 +69,7 @@
   flex-direction: column;
   gap: 3px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   transition: background-color .16s ease, color .16s ease;
 }
 
@@ -102,6 +100,30 @@
   font-size: 11px;
 }
 
+/* TW-11：最近会话 rail 空态 */
+.workspace-session-nav__empty {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* TW-10：当前会话状态 badge（进行中 / 只读历史） */
+.status-pill--session {
+  margin-top: 8px;
+}
+
+.status-pill--active {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.status-pill--readonly {
+  background: var(--surface-container-high);
+  color: var(--text-secondary);
+}
+
 .workspace-canvas {
   min-width: 0;
   min-height: 0;
@@ -117,7 +139,7 @@
   gap: 16px;
   padding: 18px clamp(18px, 3vw, 40px);
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, .82);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   backdrop-filter: blur(12px);
 }
 
@@ -147,8 +169,8 @@
   max-width: 760px;
   margin: 0 auto 22px;
   padding: 12px 16px;
-  border-radius: 10px;
-  background: #fff0f1;
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--error) 8%, var(--surface));
   color: var(--error);
   font-size: 13px;
 }
@@ -261,7 +283,7 @@
   margin: 0 auto;
   padding: 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius-l);
   background: var(--surface);
   transition: border-color .16s ease, box-shadow .16s ease;
 }
@@ -300,7 +322,7 @@
   height: 38px;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-m);
   background: var(--brand-primary);
   color: white;
   cursor: pointer;

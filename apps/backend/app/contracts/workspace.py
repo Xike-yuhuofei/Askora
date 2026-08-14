@@ -127,6 +127,21 @@ class SwitchWorkspaceV1(ContractModel):
     idempotency_key: str = Field(min_length=1, max_length=200)
 
 
+class RenameWorkspaceV1(ContractModel):
+    schema_version: Literal["1.0"] = "1.0"
+    display_name: str = Field(min_length=1, max_length=120)
+    expected_selection_version: int | None = Field(default=None, ge=1)
+    idempotency_key: str = Field(min_length=1, max_length=200)
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized or any(category(char) == "Cc" for char in normalized):
+            raise ValueError("workspace display name is invalid")
+        return normalized
+
+
 class WorkspaceSwitchBlockerV1(ContractModel):
     kind: Literal["COMPOSER_DRAFT", "STREAM", "USER_NOTE", "LEARNING_SESSION", "MATERIAL_POSITION"]
     source_ref: str | None = None
