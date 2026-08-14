@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "slug": "progress",
+  "name": "Progress",
+  "category": "feedback",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Progress",
+      "evidence": "Inferred from preview/component-progress.html title and component CSS selectors."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "emphasis",
+      "values": [
+        ".ak-progress",
+        ".ak-progress__bar",
+        ".ak-progress--brand"
+      ],
+      "evidence": "Representative selectors from preview/component-progress.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-progress.html",
+    "representativeSelectors": [
+      ".ak-progress",
+      ".ak-progress__bar",
+      ".ak-progress--brand .ak-progress__bar"
+    ],
+    "cssRuleCount": 3
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": []
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-progress",
+      "whySelected": "Representative selector present in preview component CSS.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-progress--brand",
+      "whySelected": "Brand-emphasis fill using system-blue token for explicit progress states.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-progress.html",
+    "selectors": [
+      ".ak-progress",
+      ".ak-progress__bar",
+      ".ak-progress--brand"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-progress.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-b.css as the executable rendering contract.",
+    "Use preview/component-progress.html and components-group-b.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-b.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this repair pass."
+  ],
+  "tokensConsumed": [
+    "--bg-brand",
+    "--bg-overlay-l2",
+    "--radius-full",
+    "--text-default"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-progress.html",
+      "classes": [
+        "ak-progress",
+        "ak-progress--brand",
+        "ak-progress__bar"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-progress.html",
+    "source": "preview/component-progress.html",
+    "css": {
+      "file": "components-group-b.css",
+      "marker": "progress"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

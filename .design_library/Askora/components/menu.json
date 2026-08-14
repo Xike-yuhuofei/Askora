@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "slug": "menu",
+  "name": "菜单 Menu",
+  "category": "navigation",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Menu",
+      "evidence": "Inferred from preview/component-menu.html title and component CSS selectors (.ak-menu)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-menu",
+        ".ak-menu__header",
+        ".ak-menu__item",
+        ".ak-menu__item--active",
+        ".ak-menu__item--disabled",
+        ".ak-menu__divider",
+        ".ak-menu__shortcut"
+      ],
+      "evidence": "Representative selectors from preview/component-menu.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-menu.html",
+    "representativeSelectors": [
+      ".ak-menu",
+      ".ak-menu__header",
+      ".ak-menu__item",
+      ".ak-menu__item:hover",
+      ".ak-menu__item:active",
+      ".ak-menu__item--active",
+      ".ak-menu__item--disabled",
+      ".ak-menu__item--disabled:hover",
+      ".ak-menu__divider",
+      ".ak-menu__shortcut"
+    ],
+    "cssRuleCount": 17
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "active",
+      "disabled"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-menu",
+      "whySelected": "Floating menu container with border and shadow.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-menu__item",
+      "whySelected": "Base menu item with hover feedback.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-menu__item--active",
+      "whySelected": "Active item highlighted with brand-blue soft background.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-menu.html",
+    "selectors": [
+      ".ak-menu",
+      ".ak-menu__header",
+      ".ak-menu__item",
+      ".ak-menu__item--active",
+      ".ak-menu__item--disabled",
+      ".ak-menu__divider",
+      ".ak-menu__shortcut"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-menu.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-menu.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-menu",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-md-letter-spacing",
+    "--body-sm-font-size",
+    "--body-sm-line-height",
+    "--border-neutral-l1",
+    "--bg-brand",
+    "--font-weight-medium",
+    "--icon-disabled",
+    "--icon-secondary",
+    "--icon-size-16",
+    "--radius-6",
+    "--radius-12",
+    "--shadow-3",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-disabled",
+    "--text-tertiary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-menu.html",
+      "classes": [
+        "ak-menu",
+        "ak-menu__divider",
+        "ak-menu__header",
+        "ak-menu__item",
+        "ak-menu__item--active",
+        "ak-menu__item--disabled",
+        "ak-menu__shortcut"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-menu.html",
+    "source": "preview/component-menu.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "menu"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

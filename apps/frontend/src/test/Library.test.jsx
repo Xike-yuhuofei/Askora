@@ -7,6 +7,8 @@ import Library from '../pages/Library'
 
 vi.mock('../api/documents', () => ({
   uploadDocument: vi.fn(),
+  listUnassignedMaterials: vi.fn(),
+  assignMaterial: vi.fn(),
   reinspectDocument: vi.fn(),
   createLibraryTag: vi.fn(),
   createLibraryCollection: vi.fn(),
@@ -22,6 +24,14 @@ vi.mock('../api/documents', () => ({
 vi.mock('../api/workspace', () => ({
   getLibraryWorkspace: vi.fn(),
   getKnowledgeMap: vi.fn(),
+  listWorkspaces: vi.fn(),
+  createWorkspace: vi.fn(),
+  clearTransitionGuard: vi.fn(() => ({
+    composer_draft: 'CLEAR',
+    stream: 'CLEAR',
+    user_note: 'CLEAR',
+    material_position: 'PRESERVED',
+  })),
 }))
 
 const documentView = {
@@ -111,12 +121,20 @@ const mapPayload = {
   ],
 }
 
+async function openDetailModal(title) {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(title) }))
+  return screen.findByRole('dialog')
+}
+
 describe('UI02A 资料库', () => {
   beforeEach(() => {
     window.location.hash = '#/library'
     workspaceApi.getLibraryWorkspace.mockReset()
     workspaceApi.getKnowledgeMap.mockReset()
     documentApi.uploadDocument.mockReset()
+    documentApi.listUnassignedMaterials.mockReset()
+    documentApi.assignMaterial.mockReset()
+    workspaceApi.listWorkspaces.mockReset()
     documentApi.reinspectDocument.mockReset()
     documentApi.createLibraryTag.mockReset()
     documentApi.createLibraryCollection.mockReset()
@@ -131,21 +149,27 @@ describe('UI02A 资料库', () => {
     workspaceApi.getLibraryWorkspace.mockResolvedValue(libraryPayload)
     workspaceApi.getKnowledgeMap.mockResolvedValue(mapPayload)
     documentApi.getDuplicateSuggestions.mockResolvedValue([])
+    documentApi.listUnassignedMaterials.mockResolvedValue({ items: [] })
+    workspaceApi.listWorkspaces.mockResolvedValue({ data: { workspaces: [], selection_version: null } })
   })
 
-  it('展示资料、可审计知识候选，并诚实说明不存在已验证关系', async () => {
+  it('展示资料卡片，打开详情弹窗后可看到学习入口与可审计知识候选', async () => {
     render(<Library />)
 
     expect(await screen.findByRole('heading', { name: '资料库' })).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: /函数的定义/ })).toBeInTheDocument()
-    expect(screen.getByText('尚无可核验的知识关系。页面不会用装饰性连线冒充先修关系。')).toBeInTheDocument()
-    expect(screen.getByText(/函数描述输入和输出之间的关系/)).toBeInTheDocument()
-    expect(screen.getByText('未知，未伪造分数')).toBeInTheDocument()
-    expect(screen.getByText('资料与知识')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '从这份资料开始学习' })).toHaveAttribute(
+    // 卡片网格直接呈现资料
+    expect(await screen.findByRole('button', { name: /函数基础\.md/ })).toBeInTheDocument()
+
+    // 点击卡片打开详情弹窗
+    await openDetailModal('函数基础\\.md')
+    // 弹窗底部提供「开始学习」主操作（Product 语义化 CTA）
+    expect(screen.getByRole('link', { name: '开始学习' })).toHaveAttribute(
       'href',
       `#/book-learning/${documentView.document_id}`,
     )
+    // 弹窗内直接展示知识候选与诚实关系说明
+    expect(await screen.findByRole('button', { name: /函数的定义/ })).toBeInTheDocument()
+    expect(screen.getByText('尚无可核验的知识关系。页面不会用装饰性连线冒充先修关系。')).toBeInTheDocument()
   })
 
   it('上传真实文件并刷新 Canonical 资料列表', async () => {
@@ -157,12 +181,11 @@ describe('UI02A 资料库', () => {
     render(<Library />)
     await screen.findByText('函数基础.md')
 
-    fireEvent.change(screen.getByLabelText('学科（可选）'), { target: { value: '数学' } })
     const file = new File(['# 极限'], '极限.md', { type: 'text/markdown' })
     fireEvent.change(screen.getByLabelText('选择要上传的资料'), { target: { files: [file] } })
 
-    await waitFor(() => expect(documentApi.uploadDocument).toHaveBeenCalledWith(file, '数学'))
-    expect(await screen.findByText('资料已安全保存，后台处理会在页面中自动更新。')).toBeInTheDocument()
+    await waitFor(() => expect(documentApi.uploadDocument).toHaveBeenCalledWith(file, ''))
+    expect(await screen.findByText('资料已保存，尚未加入空间。处理完成后选择去向。')).toBeInTheDocument()
     expect(workspaceApi.getLibraryWorkspace.mock.calls.length).toBeGreaterThan(1)
   })
 
@@ -188,8 +211,11 @@ describe('UI02A 资料库', () => {
       .mockResolvedValue(mapPayload)
 
     render(<Library />)
-    expect((await screen.findAllByText('等待处理')).length).toBeGreaterThan(1)
+    // 等待阶段，卡片展示「等待处理」状态
+    expect((await screen.findAllByText('等待处理')).length).toBeGreaterThanOrEqual(1)
 
+    // 打开详情弹窗，等待自动刷新后的知识候选出现
+    await openDetailModal('函数基础\\.md')
     await waitFor(
       () => expect(screen.getByRole('button', { name: /函数的定义/ })).toBeInTheDocument(),
       { timeout: 4000 },
@@ -224,14 +250,17 @@ describe('UI02A 资料库', () => {
 
     render(<Library />)
 
-    expect(await screen.findByText('unsafe.epub')).toBeInTheDocument()
-    expect(screen.getByRole('button', { pressed: true })).toHaveTextContent('已隔离')
-    expect(screen.queryByText('尚未建模')).not.toBeInTheDocument()
-    expect(
-      await screen.findByText('电子书包包含不安全的文件路径，资料已隔离；知识建模未启动，也不会进入检索或知识地图。'),
-    ).toBeInTheDocument()
+    // 卡片直接展示「已归档」状态（quarantined 在用户可见层面映射为已归档）
+    const card = await screen.findByRole('button', { name: /unsafe\.epub/ })
+    expect(card).toHaveTextContent('已归档')
+
+    // 打开详情弹窗：明确展示「尚未建模」，不假装成已理解
+    await openDetailModal('unsafe\\.epub')
+    expect(screen.getAllByText(/尚未建模/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/电子书包包含不安全的文件路径/).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: '使用新版策略重新检查' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: '从这份资料开始学习' })).not.toBeInTheDocument()
+    // 隔离资料不应暴露「开始学习」入口
+    expect(screen.queryByRole('link', { name: '开始学习' })).not.toBeInTheDocument()
   })
 
   it('显式提交新版策略复检并防止重复提交', async () => {
@@ -261,6 +290,7 @@ describe('UI02A 资料库', () => {
     })
     render(<Library />)
 
+    await openDetailModal('legacy\\.epub')
     fireEvent.click(await screen.findByRole('button', { name: '使用新版策略重新检查' }))
 
     await waitFor(() => expect(documentApi.reinspectDocument).toHaveBeenCalledTimes(1))
@@ -289,9 +319,11 @@ describe('UI02A 资料库', () => {
     })
     render(<Library />)
 
-    expect(
-      await screen.findByText('正在使用新版安全策略重新检查；完成前资料继续保持隔离。'),
-    ).toBeInTheDocument()
+    // 等待资料库加载完成
+    expect(await screen.findByText('pending.epub')).toBeInTheDocument()
+
+    // 打开弹窗，等待期间不应暴露「使用新版策略重新检查」按钮，防止重复提交
+    await openDetailModal('pending\\.epub')
     expect(screen.queryByRole('button', { name: '使用新版策略重新检查' })).not.toBeInTheDocument()
     await waitFor(
       () => expect(workspaceApi.getLibraryWorkspace.mock.calls.length).toBeGreaterThan(1),
@@ -312,7 +344,7 @@ describe('UI02A 资料库', () => {
     await screen.findByText('函数基础.md')
 
     fireEvent.click(screen.getByRole('checkbox', { name: '选择资料 函数基础.md' }))
-    fireEvent.click(screen.getByRole('button', { name: '归档所选' }))
+    fireEvent.click(screen.getByRole('button', { name: '归档' }))
 
     await waitFor(() => expect(documentApi.batchOrganizeDocuments).toHaveBeenCalledWith(expect.objectContaining({
       document_ids: [documentView.document_id],
@@ -334,10 +366,12 @@ describe('UI02A 资料库', () => {
     render(<Library />)
     await screen.findByText('函数基础.md')
 
-    fireEvent.change(screen.getByRole('textbox', { name: '搜索标题与正文' }), { target: { value: '映射关系' } })
-    fireEvent.click(screen.getByRole('button', { name: '搜索' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索资料' }), { target: { value: '映射关系' } })
+    fireEvent.submit(screen.getByRole('textbox', { name: '搜索资料' }).closest('form'))
     await waitFor(() => expect(workspaceApi.getLibraryWorkspace).toHaveBeenLastCalledWith(expect.objectContaining({ query: '映射关系' })))
 
+    await openDetailModal('函数基础\\.md')
+    fireEvent.click(screen.getByText('编辑资料信息'))
     fireEvent.change(screen.getByRole('textbox', { name: '显示标题' }), { target: { value: '函数与映射' } })
     fireEvent.click(screen.getByRole('button', { name: '保存信息' }))
     await waitFor(() => expect(documentApi.updateDocumentMetadata).toHaveBeenCalledWith(
@@ -347,143 +381,59 @@ describe('UI02A 资料库', () => {
     expect(await screen.findByText('资料信息已保存；原文件与知识 revision 未改变。')).toBeInTheDocument()
   })
 
-  it('扫描 PDF 必须人工接受候选后才发布', async () => {
-    const pdfDocument = { ...documentView, title: '扫描讲义.pdf', media_type: 'application/pdf' }
+  it('扫描 PDF 不提供 OCR 复核，只展示诚实处理状态（UI-LIB-003）', async () => {
+    const pdfDocument = {
+      ...documentView,
+      title: '扫描讲义.pdf',
+      media_type: 'application/pdf',
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+    }
     workspaceApi.getLibraryWorkspace.mockResolvedValue({
       ...libraryPayload,
       data: { ...libraryPayload.data, documents: [pdfDocument] },
     })
-    const pending = {
-      run_id: '55555555-5555-4555-8555-555555555555',
-      document_id: pdfDocument.document_id,
-      status: 'pending',
-      candidates: [],
-    }
-    const ready = {
-      ...pending,
-      status: 'review_required',
-      page_count: 1,
-      candidate_count: 1,
-      candidates: [{
-        candidate_id: '66666666-6666-4666-8666-666666666666',
-        page_number: 1,
-        block_index: 0,
-        bbox: [10, 20, 300, 70],
-        text: '扫描候选文字',
-        confidence: 82,
-        image_hash: 'a'.repeat(64),
-        status: 'candidate',
-        corrected_text: null,
-        version: 1,
-      }],
-    }
-    documentApi.requestDocumentOcr.mockResolvedValue(pending)
-    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
-    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
-    documentApi.reviewDocumentOcrRun.mockResolvedValue({ ...ready, status: 'accepted' })
     render(<Library />)
 
-    fireEvent.click(await screen.findByRole('button', { name: '识别扫描 PDF' }))
-    expect(await screen.findByText('扫描 PDF 文字复核', {}, { timeout: 4000 })).toBeInTheDocument()
-    const publish = screen.getByRole('button', { name: '发布已复核文字' })
-    expect(publish).toBeDisabled()
-    fireEvent.click(screen.getByRole('checkbox', { name: '接受这段文字' }))
-    fireEvent.click(publish)
-
-    await waitFor(() => expect(documentApi.reviewDocumentOcrRun).toHaveBeenCalledWith(
-      pending.run_id,
-      expect.objectContaining({
-        publish: true,
-        decisions: [expect.objectContaining({ action: 'ACCEPT', corrected_text: '扫描候选文字' })],
-      }),
-    ))
-    expect(await screen.findByText('复核文本已发布为新的可追溯 revision。')).toBeInTheDocument()
-  }, 6000)
-
-  it('从恢复中心深链当前 owner 的 OCR run 并直接展示人工复核', async () => {
-    const runId = '55555555-5555-4555-8555-555555555555'
-    const ready = {
-      run_id: runId,
-      document_id: documentView.document_id,
-      status: 'review_required',
-      page_count: 1,
-      candidate_count: 1,
-      candidates: [{
-        candidate_id: '66666666-6666-4666-8666-666666666666',
-        page_number: 1,
-        block_index: 0,
-        bbox: [10, 20, 300, 70],
-        text: '待人工核对的 OCR 文字',
-        confidence: 72,
-        image_hash: 'a'.repeat(64),
-        status: 'candidate',
-        corrected_text: null,
-        version: 1,
-      }],
-    }
-    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
-    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
-    window.location.hash = `#/library?document=${documentView.document_id}&ocrRun=${runId}`
-
-    render(<Library />)
-
-    expect(await screen.findByRole('heading', { name: '扫描 PDF 文字复核' })).toBeInTheDocument()
-    expect(documentApi.getDocumentOcrRun).toHaveBeenCalledWith(runId)
-    expect(screen.getByDisplayValue('待人工核对的 OCR 文字')).toBeInTheDocument()
+    expect(await screen.findByText('扫描讲义.pdf')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /识别扫描 PDF/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('扫描 PDF 文字复核')).not.toBeInTheDocument()
+    // 卡片诚实展示「尚未建模」状态，不伪装成已理解
+    expect(screen.getAllByText('尚未建模').length).toBeGreaterThan(0)
+    expect(documentApi.requestDocumentOcr).not.toHaveBeenCalled()
   })
 
-  it('扫描 PDF 必须人工接受候选后才发布', async () => {
-    const pdfDocument = { ...documentView, title: '扫描讲义.pdf', media_type: 'application/pdf' }
+  it('从恢复中心深链不再打开 OCR 人工复核（UI-LIB-003）', async () => {
+    const runId = '55555555-5555-4555-8555-555555555555'
+    window.location.hash = `#/library?document=${documentView.document_id}&ocrRun=${runId}`
+    render(<Library />)
+
+    expect(await screen.findByRole('heading', { name: '资料库' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '扫描 PDF 文字复核' })).not.toBeInTheDocument()
+    expect(documentApi.getDocumentOcrRun).not.toHaveBeenCalled()
+  })
+
+  it('扫描 PDF 无可靠文本时显示未建模，不伪装成已理解（EXP-PARSE-001）', async () => {
+    const pdfDocument = {
+      ...documentView,
+      title: '纯扫描件.pdf',
+      media_type: 'application/pdf',
+      knowledge_status: 'NOT_MODELED',
+      knowledge_unit_count: 0,
+    }
     workspaceApi.getLibraryWorkspace.mockResolvedValue({
       ...libraryPayload,
       data: { ...libraryPayload.data, documents: [pdfDocument] },
     })
-    const pending = {
-      run_id: '55555555-5555-4555-8555-555555555555',
-      document_id: pdfDocument.document_id,
-      status: 'pending',
-      candidates: [],
-    }
-    const ready = {
-      ...pending,
-      status: 'review_required',
-      page_count: 1,
-      candidate_count: 1,
-      candidates: [{
-        candidate_id: '66666666-6666-4666-8666-666666666666',
-        page_number: 1,
-        block_index: 0,
-        bbox: [10, 20, 300, 70],
-        text: '扫描候选文字',
-        confidence: 82,
-        image_hash: 'a'.repeat(64),
-        status: 'candidate',
-        corrected_text: null,
-        version: 1,
-      }],
-    }
-    documentApi.requestDocumentOcr.mockResolvedValue(pending)
-    documentApi.getDocumentOcrRun.mockResolvedValue(ready)
-    documentApi.getOcrPageImage.mockResolvedValue(new Blob(['page'], { type: 'image/png' }))
-    documentApi.reviewDocumentOcrRun.mockResolvedValue({ ...ready, status: 'accepted' })
     render(<Library />)
 
-    fireEvent.click(await screen.findByRole('button', { name: '识别扫描 PDF' }))
-    expect(await screen.findByText('扫描 PDF 文字复核', {}, { timeout: 4000 })).toBeInTheDocument()
-    const publish = screen.getByRole('button', { name: '发布已复核文字' })
-    expect(publish).toBeDisabled()
-    fireEvent.click(screen.getByRole('checkbox', { name: '接受这段文字' }))
-    fireEvent.click(publish)
-
-    await waitFor(() => expect(documentApi.reviewDocumentOcrRun).toHaveBeenCalledWith(
-      pending.run_id,
-      expect.objectContaining({
-        publish: true,
-        decisions: [expect.objectContaining({ action: 'ACCEPT', corrected_text: '扫描候选文字' })],
-      }),
-    ))
-    expect(await screen.findByText('复核文本已发布为新的可追溯 revision。')).toBeInTheDocument()
-  }, 6000)
+    expect(await screen.findByText('纯扫描件.pdf')).toBeInTheDocument()
+    // 卡片直接展示「尚未建模」，与知识空状态一致
+    expect(screen.getAllByText('尚未建模').length).toBeGreaterThan(0)
+    expect(screen.queryByText('扫描 PDF 文字复核')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /识别扫描 PDF/ })).not.toBeInTheDocument()
+    expect(documentApi.reviewDocumentOcrRun).not.toHaveBeenCalled()
+  })
 
   it('不把查询失败渲染为一个空资料库', async () => {
     workspaceApi.getLibraryWorkspace.mockRejectedValueOnce({ response: { status: 503 } })

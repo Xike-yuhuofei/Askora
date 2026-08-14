@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Alert</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html,
+    body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body { padding: var(--spacer-32); }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+    a:hover { color: var(--text-default-hover); }
+    hr { border: 0; border-top: 1px solid var(--border-neutral-l1); margin: var(--spacer-24) 0; }
+
+    .h1 { font-family: var(--heading-2xl-font-family); font-size: var(--heading-2xl-font-size); line-height: var(--heading-2xl-line-height); font-weight: var(--heading-2xl-font-weight); color: var(--text-default); }
+    .h2 { font-family: var(--heading-md-font-family); font-size: var(--heading-md-font-size); line-height: var(--heading-md-line-height); font-weight: var(--heading-md-font-weight); color: var(--text-default); }
+    .h3 { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); color: var(--text-default); }
+    .eyebrow { font-size: var(--body-sm-font-size); line-height: var(--body-sm-line-height); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--body-sm-letter-spacing); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-24); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-24); }
+    .stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2,
+      .grid-3,
+      .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-b.css" />
+  <style>
+    body {
+      width: min(100%, 1184px);
+      margin: 0 auto;
+      padding: var(--spacer-40) var(--spacer-32) var(--spacer-48);
+    }
+    .pv-header { margin-bottom: var(--spacer-24); padding-bottom: var(--spacer-20); }
+    .pv-header p { max-width: 920px; }
+    .pv-section { margin-bottom: var(--spacer-32); padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+    .pv-section__title { margin-bottom: var(--spacer-16); letter-spacing: var(--body-md-letter-spacing); }
+    .alert-stack { max-width: 760px; }
+
+    /* @component-css-start */
+    /* ===== Alert ===== */
+    .ak-alert {
+      display: flex; align-items: flex-start;
+      gap: var(--spacer-12);
+      padding: var(--spacer-12) var(--spacer-16);
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-8);
+      color: var(--text-default);
+      font-family: var(--body-md-font-family);
+      font-size: var(--body-md-font-size);
+      line-height: var(--body-md-line-height);
+      letter-spacing: var(--body-md-letter-spacing);
+    }
+    .ak-alert__icon { flex: 0 0 16px; width: 16px; height: 16px; margin-top: var(--spacer-2); color: var(--icon-default); display: inline-flex; align-items: center; justify-content: center; }
+    .ak-alert__icon .icon { width: 16px; height: 16px; display: block; }
+    .ak-alert__body { flex: 1; min-width: 0; }
+    .ak-alert__title { font-family: var(--body-md-strong-font-family); font-size: var(--body-md-strong-font-size); line-height: var(--body-md-strong-line-height); font-weight: var(--body-md-strong-font-weight); letter-spacing: var(--body-md-strong-letter-spacing); margin-bottom: var(--spacer-4); }
+    .ak-alert__desc { color: var(--text-secondary); font-size: var(--body-md-font-size); line-height: var(--body-md-line-height); }
+    .ak-alert--success { background: var(--status-success-surface-l1); border-color: var(--status-success-surface-l2); }
+    .ak-alert--success .ak-alert__icon { color: var(--status-success-default); }
+    .ak-alert--warning { background: var(--status-warning-surface-l1); border-color: var(--status-warning-surface-l2); }
+    .ak-alert--warning .ak-alert__icon { color: var(--status-warning-default); }
+    .ak-alert--danger { background: var(--status-error-surface-l1); border-color: var(--status-error-surface-l2); }
+    .ak-alert--danger .ak-alert__icon { color: var(--status-error-default); }
+    .ak-alert--info { background: var(--status-primary-surface-l1); border-color: var(--status-primary-surface-l2); }
+    .ak-alert--info .ak-alert__icon { color: var(--status-primary-default); }
+    /* @component-css-end */
+
+    [data-asset-icon] {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent !important;
+      -webkit-mask: none !important;
+      mask: none !important;
+    }
+    [data-asset-icon] > svg { display: block; width: 100%; height: 100%; flex: 0 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>Alert</h1>
+    <p>四种状态（成功、警告、危险、信息）。状态通过匹配的状态 token 颜色图标 + 着色表面传达，用于页面内的内联提示。</p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">成功</div>
+    <div class="stack-12 alert-stack">
+      <div class="ak-alert ak-alert--success">
+        <span class="ak-alert__icon"><span class="icon" style="width: 16px; height: 16px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1.333a6.667 6.667 0 1 0 0 13.334A6.667 6.667 0 0 0 8 1.333Zm3.138 4.528a.667.667 0 0 0-.943-.943L6.667 8.447 5.805 7.585a.667.667 0 1 0-.943.943l1.333 1.333a.667.667 0 0 0 .943 0l4-4Z"/></svg></span></span>
+        <div class="ak-alert__body">
+          <div class="ak-alert__title">学习计划已保存</div>
+          <p class="ak-alert__desc">你的每日复习计划已同步到本地，可随时离线查看。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">警告</div>
+    <div class="stack-12 alert-stack">
+      <div class="ak-alert ak-alert--warning">
+        <span class="ak-alert__icon"><span class="icon" style="width: 16px; height: 16px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.07 2.447a1 1 0 0 1 1.86 0l5 10.333A1 1 0 0 1 13 14.333H3a1 1 0 0 1-.93-1.553l5-10.333ZM8 5.333a.667.667 0 0 0-.667.667v2.667a.667.667 0 0 0 1.334 0V6A.667.667 0 0 0 8 5.333Zm0 6a.667.667 0 1 0 0-1.333.667.667 0 0 0 0 1.333Z"/></svg></span></span>
+        <div class="ak-alert__body">
+          <div class="ak-alert__title">即将到期</div>
+          <p class="ak-alert__desc">你有 3 个知识点将在明天进入遗忘曲线复习窗口，建议提前安排。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">危险</div>
+    <div class="stack-12 alert-stack">
+      <div class="ak-alert ak-alert--danger">
+        <span class="ak-alert__icon"><span class="icon" style="width: 16px; height: 16px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1.333a6.667 6.667 0 1 0 0 13.334A6.667 6.667 0 0 0 8 1.333ZM6.471 5.528a.667.667 0 1 0-.943.943L7.057 8l-1.529 1.529a.667.667 0 1 0 .943.943L8 8.943l1.529 1.529a.667.667 0 1 0 .943-.943L8.943 8l1.529-1.529a.667.667 0 1 0-.943-.943L8 7.057 6.471 5.528Z"/></svg></span></span>
+        <div class="ak-alert__body">
+          <div class="ak-alert__title">无法连接知识库</div>
+          <p class="ak-alert__desc">检索服务暂时不可用，请检查网络后重试，或稍后再来。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">信息</div>
+    <div class="stack-12 alert-stack">
+      <div class="ak-alert ak-alert--info">
+        <span class="ak-alert__icon"><span class="icon" style="width: 16px; height: 16px;" aria-hidden="true" data-asset-icon=""><svg focusable="false" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1.333a6.667 6.667 0 1 0 0 13.334A6.667 6.667 0 0 0 8 1.333ZM8 7.333a.667.667 0 0 0-.667.667v2.667a.667.667 0 0 0 1.334 0V8A.667.667 0 0 0 8 7.333Zm0-2.666a.667.667 0 1 0 0 1.333.667.667 0 0 0 0-1.333Z"/></svg></span></span>
+        <div class="ak-alert__body">
+          <div class="ak-alert__title">新功能上线</div>
+          <p class="ak-alert__desc">Askora 现已支持将学习笔记导出为 Markdown 文档。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

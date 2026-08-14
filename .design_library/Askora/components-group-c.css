@@ -1,0 +1,549 @@
+/**
+ * Askora design library — Components Group C (Learning)
+ * Apple-inspired system-blue design language.
+ *
+ * Group C contains the learning-specific components:
+ *   - learning-workspace (三栏学习工作区)
+ *   - learning-input     (学习对话输入框)
+ *   - goal-tree          (学习目标树)
+ *   - status-bar         (学习状态栏)
+ *   - knowledge-card     (知识卡片)
+ *
+ * All selectors use the .ak- prefix. Consumes tokens from colors_and_type.css.
+ * Light mode only. Chinese-first product language.
+ */
+
+/* @component-css-start */
+/* ============================================================
+   learning-workspace — 三栏学习工作区
+   左导航 + 中央学习对话 + 右材料/笔记面板
+   ============================================================ */
+.ak-learning-workspace {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr) 320px;
+  height: 100vh;
+  min-height: 0;
+  background: var(--bg-base-default);
+  color: var(--text-default);
+  font-family: var(--font-family-default);
+  font-size: var(--body-base-font-size);
+  line-height: var(--body-base-line-height);
+  overflow: hidden;
+}
+
+/* ---- 左导航 ---- */
+.ak-learning-workspace__nav {
+  display: flex;
+  flex-direction: column;
+  background: var(--askora-sidebar);
+  border-right: 1px solid var(--border-neutral-l1);
+  min-height: 0;
+  overflow: hidden;
+}
+.ak-lw-nav__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  padding: var(--spacer-16) var(--spacer-16) var(--spacer-12);
+  border-bottom: 1px solid var(--border-neutral-l1);
+}
+.ak-lw-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  font-family: var(--font-family-heading);
+  font-size: var(--heading-sm-font-size);
+  font-weight: var(--font-weight-strong);
+  color: var(--text-default);
+}
+.ak-lw-nav__logo {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-6);
+  background: var(--bg-brand);
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-onbrand);
+  font-size: var(--body-sm-font-size);
+  font-weight: var(--font-weight-heavy);
+}
+.ak-lw-nav__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacer-12) var(--spacer-8);
+}
+.ak-lw-nav__section {
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+  letter-spacing: var(--body-md-letter-spacing);
+  padding: var(--spacer-12) var(--spacer-8) var(--spacer-6);
+}
+.ak-lw-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  width: 100%;
+  padding: var(--spacer-8) var(--spacer-10);
+  border-radius: var(--radius-8);
+  color: var(--text-secondary);
+  font-size: var(--body-base-font-size);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: background .12s ease, color .12s ease;
+}
+.ak-lw-nav__item:hover { background: var(--bg-overlay-l1); color: var(--text-default); }
+.ak-lw-nav__item.is-active {
+  background: var(--status-primary-surface-l1);
+  color: var(--text-brand);
+  font-weight: var(--font-weight-medium);
+}
+.ak-lw-nav__item .ak-icon { flex: 0 0 auto; }
+.ak-lw-nav__item__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ak-lw-nav__item__count {
+  flex: 0 0 auto;
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+}
+
+/* ---- 中央学习对话 ---- */
+.ak-learning-workspace__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-base-secondary);
+}
+.ak-lw-main__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacer-12);
+  padding: var(--spacer-12) var(--spacer-20);
+  border-bottom: 1px solid var(--border-neutral-l1);
+  background: var(--bg-base-secondary);
+}
+.ak-lw-main__title {
+  font-family: var(--font-family-heading);
+  font-size: var(--heading-sm-font-size);
+  font-weight: var(--font-weight-strong);
+  color: var(--text-default);
+}
+.ak-lw-main__subtitle {
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+}
+.ak-lw-main__chat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacer-24) var(--spacer-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-20);
+}
+.ak-lw-main__composer {
+  padding: var(--spacer-16) var(--spacer-20) var(--spacer-20);
+  border-top: 1px solid var(--border-neutral-l1);
+  background: var(--bg-base-secondary);
+}
+
+/* ---- 右材料/笔记面板 ---- */
+.ak-learning-workspace__side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--askora-sidebar);
+  border-left: 1px solid var(--border-neutral-l1);
+  overflow: hidden;
+}
+.ak-lw-side__tabs {
+  display: flex;
+  gap: var(--spacer-4);
+  padding: var(--spacer-12) var(--spacer-12) 0;
+  border-bottom: 1px solid var(--border-neutral-l1);
+}
+.ak-lw-side__tab {
+  padding: var(--spacer-8) var(--spacer-12);
+  border-radius: var(--radius-8) var(--radius-8) 0 0;
+  font-size: var(--body-base-font-size);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  transition: color .12s ease, background .12s ease;
+}
+.ak-lw-side__tab:hover { color: var(--text-default); }
+.ak-lw-side__tab.is-active {
+  color: var(--text-brand);
+  font-weight: var(--font-weight-medium);
+  background: var(--bg-base-secondary);
+  border-color: var(--border-neutral-l1);
+}
+.ak-lw-side__panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacer-16) var(--spacer-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-12);
+}
+.ak-lw-side__panel-title {
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+  letter-spacing: var(--body-md-letter-spacing);
+}
+
+/* @component-css-end */
+
+/* @component-css-start */
+/* ============================================================
+   learning-input — 学习对话输入框
+   ============================================================ */
+.ak-learning-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-8);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.ak-learning-input__box {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base-secondary);
+  border: 1px solid var(--border-neutral-l2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.ak-learning-input__box:focus-within {
+  border-color: var(--border-brand);
+  box-shadow: 0 0 0 3px var(--status-primary-surface-l1), var(--shadow-2);
+}
+.ak-learning-input__textarea {
+  width: 100%;
+  min-height: 72px;
+  max-height: 220px;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-default);
+  font-family: var(--font-family-default);
+  font-size: var(--body-base-font-size);
+  line-height: var(--body-base-line-height);
+  padding: var(--spacer-16) var(--spacer-16) var(--spacer-8);
+}
+.ak-learning-input__textarea::placeholder { color: var(--text-tertiary); }
+.ak-learning-input__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-4);
+  padding: var(--spacer-8) var(--spacer-12) var(--spacer-12);
+}
+.ak-learning-input__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-8);
+  color: var(--icon-tertiary);
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  transition: background .12s ease, color .12s ease;
+}
+.ak-learning-input__action:hover { background: var(--bg-overlay-l1); color: var(--icon-default); }
+.ak-learning-input__action.is-active { color: var(--icon-brand); background: var(--status-primary-surface-l1); }
+.ak-learning-input__spacer { flex: 1; }
+.ak-learning-input__send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacer-6);
+  height: 28px;
+  padding: 0 var(--spacer-12);
+  border-radius: var(--radius-8);
+  background: var(--bg-brand);
+  color: var(--text-onbrand);
+  border: 1px solid var(--bg-brand);
+  font-family: var(--body-base-strong-font-family);
+  font-size: var(--body-base-strong-font-size);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease, border-color .12s ease;
+}
+.ak-learning-input__send:hover { background: var(--bg-brand-hover); border-color: var(--bg-brand-hover); }
+.ak-learning-input__send:active { background: var(--bg-brand-active); border-color: var(--bg-brand-active); }
+.ak-learning-input__send[disabled] { background: var(--bg-brand-disabled); border-color: transparent; color: var(--text-onbrand); cursor: not-allowed; }
+.ak-learning-input__hint {
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.ak-learning-input__hint kbd {
+  font-family: var(--font-family-mono);
+  font-size: var(--body-sm-font-size);
+  color: var(--text-secondary);
+  background: var(--bg-overlay-l1);
+  border: 1px solid var(--border-neutral-l1);
+  border-radius: var(--radius-4);
+  padding: 0 var(--spacer-4);
+}
+
+/* @component-css-end */
+
+/* @component-css-start */
+/* ============================================================
+   goal-tree — 学习目标树
+   ============================================================ */
+.ak-goal-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-4);
+  font-family: var(--font-family-default);
+  color: var(--text-default);
+}
+.ak-goal-tree__node {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-2);
+}
+.ak-goal-tree__node-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-6);
+  padding: var(--spacer-6) var(--spacer-8);
+  border-radius: var(--radius-8);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease;
+}
+.ak-goal-tree__node-head:hover { background: var(--bg-overlay-l1); }
+.ak-goal-tree__chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--icon-tertiary);
+  display: inline-grid;
+  place-items: center;
+  transition: transform .15s ease;
+}
+.ak-goal-tree__node.is-open > .ak-goal-tree__node-head .ak-goal-tree__chevron { transform: rotate(90deg); }
+.ak-goal-tree__node.is-leaf .ak-goal-tree__chevron { visibility: hidden; }
+.ak-goal-tree__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--body-base-font-size);
+  color: var(--text-default);
+}
+.ak-goal-tree__node.is-leaf .ak-goal-tree__label { font-size: var(--body-base-font-size); }
+.ak-goal-tree__meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-6);
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+}
+.ak-goal-tree__progress {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-overlay-l2);
+  overflow: hidden;
+}
+.ak-goal-tree__progress > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand);
+}
+.ak-goal-tree__children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-2);
+  margin-left: var(--spacer-16);
+  padding-left: var(--spacer-8);
+  border-left: 1px solid var(--border-neutral-l1);
+}
+.ak-goal-tree__node.is-leaf .ak-goal-tree__node-head { cursor: default; }
+.ak-goal-tree__node.is-leaf .ak-goal-tree__node-head:hover { background: transparent; }
+.ak-goal-tree__node.is-leaf .ak-goal-tree__label { color: var(--text-secondary); }
+.ak-goal-tree__node.is-done .ak-goal-tree__label { color: var(--text-tertiary); text-decoration: line-through; }
+.ak-goal-tree__node.is-active > .ak-goal-tree__node-head {
+  background: var(--status-primary-surface-l1);
+}
+.ak-goal-tree__node.is-active > .ak-goal-tree__node-head .ak-goal-tree__label { color: var(--text-brand); font-weight: var(--font-weight-medium); }
+
+/* @component-css-end */
+
+/* @component-css-start */
+/* ============================================================
+   status-bar — 学习状态栏
+   ============================================================ */
+.ak-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacer-12);
+  height: 32px;
+  padding: 0 var(--spacer-12);
+  background: var(--bg-base-secondary);
+  border-top: 1px solid var(--border-neutral-l1);
+  color: var(--text-secondary);
+  font-size: var(--body-sm-font-size);
+  font-family: var(--font-family-default);
+}
+.ak-status-bar__left,
+.ak-status-bar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-4);
+  min-width: 0;
+}
+.ak-status-bar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacer-6);
+  height: 24px;
+  padding: 0 var(--spacer-8);
+  border-radius: var(--radius-6);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: background .12s ease, color .12s ease;
+}
+.ak-status-bar__item.is-interactive { cursor: pointer; user-select: none; }
+.ak-status-bar__item.is-interactive:hover { background: var(--bg-overlay-l1); color: var(--text-default); }
+.ak-status-bar__item.is-brand { color: var(--text-brand); }
+.ak-status-bar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-success-default);
+}
+.ak-status-bar__dot.is-idle { background: var(--text-disabled); }
+.ak-status-bar__dot.is-busy { background: var(--status-warning-default); }
+.ak-status-bar__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-neutral-l1);
+}
+.ak-status-bar__action {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-6);
+  color: var(--icon-tertiary);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease, color .12s ease;
+}
+.ak-status-bar__action:hover { background: var(--bg-overlay-l1); color: var(--icon-default); }
+.ak-status-bar__action.is-active { color: var(--icon-brand); background: var(--status-primary-surface-l1); }
+
+/* @component-css-end */
+
+/* @component-css-start */
+/* ============================================================
+   knowledge-card — 知识卡片
+   ============================================================ */
+.ak-knowledge-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-10);
+  padding: var(--spacer-16);
+  background: var(--bg-base-secondary);
+  border: 1px solid var(--border-neutral-l1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  font-family: var(--font-family-default);
+  color: var(--text-default);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.ak-knowledge-card:hover { border-color: var(--border-neutral-l2); box-shadow: var(--shadow-2); }
+.ak-knowledge-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacer-8);
+}
+.ak-knowledge-card__tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--spacer-8);
+  border-radius: var(--radius-full);
+  background: var(--status-primary-surface-l1);
+  color: var(--text-brand);
+  font-size: var(--body-sm-font-size);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+.ak-knowledge-card__tag.is-success { background: var(--status-success-surface-l1); color: var(--status-success-default); }
+.ak-knowledge-card__tag.is-warning { background: var(--status-warning-surface-l1); color: var(--status-warning-default); }
+.ak-knowledge-card__menu {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-6);
+  color: var(--icon-tertiary);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease, color .12s ease;
+}
+.ak-knowledge-card__menu:hover { background: var(--bg-overlay-l1); color: var(--icon-default); }
+.ak-knowledge-card__title {
+  font-family: var(--font-family-heading);
+  font-size: var(--heading-sm-font-size);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--heading-sm-line-height);
+  color: var(--text-default);
+}
+.ak-knowledge-card__body {
+  font-size: var(--body-base-font-size);
+  line-height: var(--body-base-line-height);
+  color: var(--text-secondary);
+}
+.ak-knowledge-card__body.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ak-knowledge-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacer-8);
+  padding-top: var(--spacer-10);
+  border-top: 1px solid var(--border-neutral-l1);
+}
+.ak-knowledge-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-6);
+  font-size: var(--body-sm-font-size);
+  color: var(--text-tertiary);
+}
+.ak-knowledge-card__link {
+  font-size: var(--body-base-font-size);
+  color: var(--text-brand);
+  cursor: pointer;
+  user-select: none;
+  transition: color .12s ease;
+}
+.ak-knowledge-card__link:hover { color: var(--text-brand-hover); text-decoration: underline; }
+/* @component-css-end */

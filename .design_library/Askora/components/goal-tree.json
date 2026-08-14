@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 2,
+  "slug": "goal-tree",
+  "name": "Goal Tree",
+  "category": "navigation",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Learning Goal Hierarchy Tree",
+      "evidence": "Inferred from preview/component-goal-tree.html: nested goal nodes with chevrons, progress bars, and active/done states."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "node-depth-state",
+      "values": [
+        ".ak-goal-tree",
+        ".ak-goal-tree__node",
+        ".ak-goal-tree__node.is-open",
+        ".ak-goal-tree__node.is-leaf",
+        ".ak-goal-tree__node.is-active",
+        ".ak-goal-tree__node.is-done"
+      ],
+      "evidence": "Representative selectors from preview/component-goal-tree.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-goal-tree.html",
+    "representativeSelectors": [
+      ".ak-goal-tree",
+      ".ak-goal-tree__node",
+      ".ak-goal-tree__node-head",
+      ".ak-goal-tree__node-head:hover",
+      ".ak-goal-tree__chevron",
+      ".ak-goal-tree__node.is-open > .ak-goal-tree__node-head .ak-goal-tree__chevron",
+      ".ak-goal-tree__node.is-leaf .ak-goal-tree__chevron",
+      ".ak-goal-tree__label",
+      ".ak-goal-tree__meta",
+      ".ak-goal-tree__progress",
+      ".ak-goal-tree__progress > span",
+      ".ak-goal-tree__children",
+      ".ak-goal-tree__node.is-leaf .ak-goal-tree__label",
+      ".ak-goal-tree__node.is-done .ak-goal-tree__label",
+      ".ak-goal-tree__node.is-active > .ak-goal-tree__node-head"
+    ],
+    "cssRuleCount": 21
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "progress-width",
+      "value": "48px",
+      "evidence": "Inline progress bar width."
+    },
+    {
+      "dimension": "progress-height",
+      "value": "4px",
+      "evidence": "Inline progress bar thickness."
+    },
+    {
+      "dimension": "child-indent",
+      "value": "16px + 8px",
+      "evidence": "Nested children indentation with left guide border."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover",
+      "open",
+      "leaf",
+      "active",
+      "done"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-goal-tree__node-head",
+      "whySelected": "Row header for a goal node.",
+      "traits": [
+        "display: flex",
+        "align-items: center",
+        "gap: var(--spacer-6)",
+        "padding: var(--spacer-6) var(--spacer-8)",
+        "border-radius: var(--radius-8)",
+        "hover: background: var(--bg-overlay-l1)"
+      ],
+      "childrenDigest": [
+        ".ak-goal-tree__chevron",
+        ".ak-goal-tree__label",
+        ".ak-goal-tree__meta"
+      ]
+    },
+    {
+      "selector": ".ak-goal-tree__node.is-active > .ak-goal-tree__node-head",
+      "whySelected": "Active goal node with system-blue soft surface.",
+      "traits": [
+        "background: var(--status-primary-surface-l1)",
+        "label color: var(--text-brand)",
+        "font-weight: var(--font-weight-medium)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-goal-tree__node.is-done .ak-goal-tree__label",
+      "whySelected": "Completed goal node.",
+      "traits": [
+        "color: var(--text-tertiary)",
+        "text-decoration: line-through"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-goal-tree.html",
+    "selectors": [
+      ".ak-goal-tree",
+      ".ak-goal-tree__node",
+      ".ak-goal-tree__node-head",
+      ".ak-goal-tree__chevron",
+      ".ak-goal-tree__label",
+      ".ak-goal-tree__meta",
+      ".ak-goal-tree__progress",
+      ".ak-goal-tree__children"
+    ]
+  },
+  "structurePatterns": [
+    "Recursive nested tree: parent nodes with chevron + label + meta (progress).",
+    "Children indented with a 1px left guide border.",
+    "Leaf nodes hide the chevron and use secondary text color.",
+    "Active node uses system-blue soft surface; done node uses strikethrough tertiary text.",
+    "Inline progress bar (48x4px) with brand-blue fill."
+  ],
+  "usageHints": [
+    "Use in the right materials/notes panel or a dedicated goals view.",
+    "Map tree depth to learning goal hierarchy (目标 → 子目标 → 知识点).",
+    "Use is-active to mark the current learning focus, is-done for completed goals.",
+    "Keep progress bar values between 0 and 100."
+  ],
+  "doNotInvent": [
+    "Do not add node types or states absent from the preview marker block.",
+    "Do not change the progress fill away from system blue.",
+    "Do not remove the left guide border for nested children."
+  ],
+  "unknowns": [
+    "Drag-and-drop reordering is not frozen in this contract."
+  ],
+  "tokensConsumed": [
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--bg-brand",
+    "--border-neutral-l1",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--text-brand",
+    "--icon-tertiary",
+    "--radius-6",
+    "--radius-8",
+    "--radius-full",
+    "--spacer-2",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-16",
+    "--body-sm-font-size",
+    "--body-base-font-size",
+    "--font-weight-medium"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "preview/component-goal-tree.html",
+      "classes": [
+        "ak-goal-tree",
+        "ak-goal-tree__node",
+        "ak-goal-tree__node-head",
+        "ak-goal-tree__chevron",
+        "ak-goal-tree__label",
+        "ak-goal-tree__meta",
+        "ak-goal-tree__progress",
+        "ak-goal-tree__children"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-goal-tree.html",
+    "source": "preview/component-goal-tree.html",
+    "css": {
+      "file": "components-group-c.css",
+      "marker": "goal-tree"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup."
+  },
+  "assetsConsumed": []
+}

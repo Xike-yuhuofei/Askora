@@ -91,12 +91,15 @@ METACOGNITIVE_REVIEW
 ```text
 CreateLearningGoalCandidate
 ConfirmLearningGoal
+AdoptLearningGoalFromMaterial
 GenerateLearningPlan
 ReplanLearningPlan
 SelectNextLearningActivity
 PauseLearningPlan
 ResumeLearningPlan
 ```
+
+`AdoptLearningGoalFromMaterial` 把已归属资料上的 Goal 采纳为 `active` planning fact（`PD-RULE-004`），`confirmed_by_user=false`，reason `GOAL_SYSTEM_ADOPTED_FROM_MATERIAL`。未归属 Material 不得启动。主路径不得再要求用户确认目标。
 
 不得暴露 `SetNextReviewAt` 或 `ChooseHintLevel`。
 

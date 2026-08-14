@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Knowledge Card</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html,
+    body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body { padding: var(--spacer-32); }
+    img, svg, video, canvas { max-width: 100%; }
+    a { color: var(--text-default); text-decoration: none; }
+    a:hover { color: var(--text-default-hover); }
+    hr { border: 0; border-top: 1px solid var(--border-neutral-l1); margin: var(--spacer-24) 0; }
+
+    .h1 { font-family: var(--heading-2xl-font-family); font-size: var(--heading-2xl-font-size); line-height: var(--heading-2xl-line-height); font-weight: var(--heading-2xl-font-weight); color: var(--text-default); }
+    .h2 { font-family: var(--heading-md-font-family); font-size: var(--heading-md-font-size); line-height: var(--heading-md-line-height); font-weight: var(--heading-md-font-weight); color: var(--text-default); }
+    .h3 { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); color: var(--text-default); }
+    .eyebrow { font-size: var(--body-xs-font-size); line-height: var(--body-xs-line-height); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--body-xs-letter-spacing); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+
+    .row { display: flex; gap: var(--spacer-12); flex-wrap: wrap; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-24); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacer-24); }
+    .stack-8 { display: flex; flex-direction: column; gap: var(--spacer-8); }
+    .stack-12 { display: flex; flex-direction: column; gap: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    .stack-40 { display: flex; flex-direction: column; gap: var(--spacer-40); }
+
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2,
+      .grid-3,
+      .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-c.css" />
+  <style>
+    body {
+      width: min(100%, 1184px);
+      margin: 0 auto;
+      padding: var(--spacer-40) var(--spacer-32) var(--spacer-48);
+    }
+    .pv-header {
+      margin-bottom: var(--spacer-24);
+      padding-bottom: var(--spacer-20);
+    }
+    .pv-header p { max-width: 920px; }
+    .pv-section {
+      margin-bottom: var(--spacer-32);
+      padding-top: var(--spacer-24);
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+    .pv-header + .pv-section {
+      padding-top: 0;
+      border-top: 0;
+    }
+    .pv-section__title {
+      margin-bottom: var(--spacer-16);
+      letter-spacing: var(--body-md-letter-spacing);
+    }
+    .size-tag {
+      display: inline-flex; align-items: center; padding: 0 var(--spacer-6); height: 18px;
+      white-space: nowrap;
+      background: var(--bg-overlay-l1); color: var(--text-tertiary);
+      border: 1px solid var(--border-neutral-l1); border-radius: var(--radius-4);
+      font-size: var(--body-xs-font-size); font-family: var(--code-editor-font-family);
+      margin-bottom: var(--spacer-12);
+    }
+    .demo-surface {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-24);
+      padding: var(--spacer-24);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-12);
+      background: var(--bg-base-default);
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacer-16);
+    }
+    .ak-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
+    .ak-icon svg { width: 100%; height: 100%; display: block; }
+    @media (max-width: 760px) {
+      body { padding: var(--spacer-24) var(--spacer-16) var(--spacer-40); }
+      .demo-grid { grid-template-columns: 1fr; }
+    }
+
+    /* @component-css-start */
+    /* ===== Knowledge Card ===== */
+    .ak-knowledge-card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacer-10);
+      padding: var(--spacer-16);
+      background: var(--bg-base-secondary);
+      border: 1px solid var(--border-neutral-l1);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-1);
+      font-family: var(--font-family-default);
+      color: var(--text-default);
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+    .ak-knowledge-card:hover { border-color: var(--border-neutral-l2); box-shadow: var(--shadow-2); }
+    .ak-knowledge-card__head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacer-8);
+    }
+    .ak-knowledge-card__tag {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 var(--spacer-8);
+      border-radius: var(--radius-full);
+      background: var(--status-primary-surface-l1);
+      color: var(--text-brand);
+      font-size: var(--body-sm-font-size);
+      font-weight: var(--font-weight-medium);
+      white-space: nowrap;
+    }
+    .ak-knowledge-card__tag.is-success { background: var(--status-success-surface-l1); color: var(--status-success-default); }
+    .ak-knowledge-card__tag.is-warning { background: var(--status-warning-surface-l1); color: var(--status-warning-default); }
+    .ak-knowledge-card__menu {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-6);
+      color: var(--icon-tertiary);
+      cursor: pointer;
+      user-select: none;
+      transition: background .12s ease, color .12s ease;
+    }
+    .ak-knowledge-card__menu:hover { background: var(--bg-overlay-l1); color: var(--icon-default); }
+    .ak-knowledge-card__title {
+      font-family: var(--font-family-heading);
+      font-size: var(--heading-sm-font-size);
+      font-weight: var(--font-weight-strong);
+      line-height: var(--heading-sm-line-height);
+      color: var(--text-default);
+    }
+    .ak-knowledge-card__body {
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      color: var(--text-secondary);
+    }
+    .ak-knowledge-card__body.is-clamped {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ak-knowledge-card__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacer-8);
+      padding-top: var(--spacer-10);
+      border-top: 1px solid var(--border-neutral-l1);
+    }
+    .ak-knowledge-card__meta {
+      display: flex;
+      align-items: center;
+      gap: var(--spacer-6);
+      font-size: var(--body-sm-font-size);
+      color: var(--text-tertiary);
+    }
+    .ak-knowledge-card__link {
+      font-size: var(--body-base-font-size);
+      color: var(--text-brand);
+      cursor: pointer;
+      user-select: none;
+      transition: color .12s ease;
+    }
+    .ak-knowledge-card__link:hover { color: var(--text-brand-hover); text-decoration: underline; }
+    /* @component-css-end */
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>Knowledge Card · 知识卡片</h1>
+    <p>
+      知识卡片：标签（概念/已掌握/待复习）+ 标题 + 正文（可截断 3 行）+ 底部元信息与链接。
+      Apple 风格系统蓝。
+    </p>
+  </div>
+
+  <!-- ======== Tag tones ======== -->
+  <div class="pv-section">
+    <div class="pv-section__title">标签色调</div>
+    <span class="size-tag">primary / success / warning</span>
+    <div class="demo-surface">
+      <div class="demo-grid">
+        <div class="ak-knowledge-card">
+          <div class="ak-knowledge-card__head">
+            <span class="ak-knowledge-card__tag">概念</span>
+            <span class="ak-knowledge-card__menu" title="更多"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 9.5A1.5 1.5 0 118 6.5a1.5 1.5 0 010 3zM8 15a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span></span>
+          </div>
+          <div class="ak-knowledge-card__title">过拟合</div>
+          <div class="ak-knowledge-card__body is-clamped">过拟合是指模型在训练数据上表现很好，但在未见数据上泛化能力差的现象。它「记住」了训练样本的噪声而非背后的规律，常见于模型复杂度过高或训练样本不足时。</div>
+          <div class="ak-knowledge-card__footer">
+            <span class="ak-knowledge-card__meta">来源：讲义 3.4</span>
+            <span class="ak-knowledge-card__link">查看详情</span>
+          </div>
+        </div>
+
+        <div class="ak-knowledge-card">
+          <div class="ak-knowledge-card__head">
+            <span class="ak-knowledge-card__tag is-success">已掌握</span>
+            <span class="ak-knowledge-card__menu" title="更多"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 9.5A1.5 1.5 0 118 6.5a1.5 1.5 0 010 3zM8 15a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span></span>
+          </div>
+          <div class="ak-knowledge-card__title">线性回归</div>
+          <div class="ak-knowledge-card__body is-clamped">线性回归通过拟合一条直线来描述自变量与因变量之间的线性关系，常用最小二乘法求解参数，是监督学习中最基础的回归模型。</div>
+          <div class="ak-knowledge-card__footer">
+            <span class="ak-knowledge-card__meta">已掌握 · 2 天前</span>
+            <span class="ak-knowledge-card__link">复习</span>
+          </div>
+        </div>
+
+        <div class="ak-knowledge-card">
+          <div class="ak-knowledge-card__head">
+            <span class="ak-knowledge-card__tag is-warning">待复习</span>
+            <span class="ak-knowledge-card__menu" title="更多"><span class="ak-icon"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 9.5A1.5 1.5 0 118 6.5a1.5 1.5 0 010 3zM8 15a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span></span>
+          </div>
+          <div class="ak-knowledge-card__title">交叉验证</div>
+          <div class="ak-knowledge-card__body is-clamped">交叉验证将数据集划分为训练集与验证集多次，用于评估模型泛化能力。K 折交叉验证把数据分成 K 份，轮流取一份作为验证集，其余作为训练集。</div>
+          <div class="ak-knowledge-card__footer">
+            <span class="ak-knowledge-card__meta">待复习 · 今天</span>
+            <span class="ak-knowledge-card__link">开始复习</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== Expanded ======== -->
+  <div class="pv-section">
+    <div class="pv-section__title">展开 · 未截断</div>
+    <span class="size-tag">expanded</span>
+    <div class="demo-surface">
+      <div class="ak-knowledge-card">
+        <div class="ak-knowledge-card__head">
+          <span class="ak-knowledge-card__tag">概念</span>
+        </div>
+        <div class="ak-knowledge-card__title">梯度下降</div>
+        <div class="ak-knowledge-card__body">梯度下降是一种一阶迭代优化算法，用于最小化损失函数。它沿损失函数梯度的反方向更新参数，步长由学习率控制。学习率过大可能导致震荡，过小则收敛缓慢。</div>
+        <div class="ak-knowledge-card__footer">
+          <span class="ak-knowledge-card__meta">来源：讲义 4.1 · 3 天前</span>
+          <span class="ak-knowledge-card__link">查看详情</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

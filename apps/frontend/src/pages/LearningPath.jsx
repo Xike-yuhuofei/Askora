@@ -64,7 +64,7 @@ export default function LearningPath() {
       <header className="page-header page-header--split"><div><p className="eyebrow">当前计划</p><h1>学习路径</h1><p>按规划器发布的顺序查看活动；这里不会在前端重新规划。</p></div><span className={`status-pill status-pill--${data.view_state.toLowerCase()}`}>{data.view_state === 'READY' ? '路径可用' : data.view_state === 'PARTIAL' ? '部分信息可用' : '暂无路径'}</span></header>
 
       {!path && data.reason_codes.includes('MULTIPLE_CURRENT_PLANS_REQUIRE_GOAL_SCOPE') && (
-        <section className="surface path-scope" aria-labelledby="path-scope-title"><div><h2 id="path-scope-title">请选择要查看的目标</h2><p>存在多个当前计划，Askora 不会替你猜选其中一个。</p></div><label><span>学习目标</span><select value={selected} onChange={chooseGoal}><option value="">选择目标</option>{goalOptions.map((goal) => <option key={goal.goal_ref} value={goalIdFromRef(goal.goal_ref)}>{goal.title}</option>)}</select></label></section>
+        <section className="surface path-scope" aria-labelledby="path-scope-title"><div><h2 id="path-scope-title">请选择要查看的目标</h2><p>存在多个当前计划，系统不会替你猜选其中一个。</p></div><label><span>学习目标</span><select value={selected} onChange={chooseGoal}><option value="">选择目标</option>{goalOptions.map((goal) => <option key={goal.goal_ref} value={goalIdFromRef(goal.goal_ref)}>{goal.title}</option>)}</select></label></section>
       )}
 
       {path ? (

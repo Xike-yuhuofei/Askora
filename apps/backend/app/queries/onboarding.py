@@ -711,32 +711,17 @@ class OnboardingJourneyQueryService:
                 action_code="OPEN_LIBRARY",
                 kind="navigate",
                 label="导入一份私人资料",
-                route="/library?intent=first-learning",
+                route="/library",
                 reason_codes=material.step.source_status[0].reason_codes,
             )
-        if goals.step.state != "COMPLETE":
-            if len(material.eligible_ids) != 1:
-                return OnboardingNextActionV1(
-                    action_code="SELECT_MATERIAL",
-                    kind="navigate",
-                    label="选择要学习的资料",
-                    route="/library?intent=first-learning",
-                    reason_codes=("MULTIPLE_ELIGIBLE_MATERIALS_REQUIRE_SELECTION",),
-                )
-            document_id = material.eligible_ids[0]
-            return OnboardingNextActionV1(
-                action_code="OPEN_MATERIAL_LEARNING",
-                kind="navigate",
-                label="说明并确认学习目标",
-                route=f"/book-learning/{document_id}",
-                resource_ref=f"UserDocument:{document_id}:current",
-            )
+        # GOAL is a system-maintained planning fact, not a user-visible next step.
+        _ = goals
         if activity_step.state == "COMPLETE":
             return OnboardingNextActionV1(
-                action_code="OPEN_TODAY",
+                action_code="OPEN_WELCOME",
                 kind="navigate",
-                label="回到今天查看下一步",
-                route="/today",
+                label="回到欢迎页",
+                route="/welcome",
             )
         current = await self._latest_current_activity_states(
             user, eligible_goal_ids=eligible_goal_ids
@@ -748,7 +733,7 @@ class OnboardingJourneyQueryService:
             return OnboardingNextActionV1(
                 action_code="RESUME_ACTIVITY",
                 kind="navigate",
-                label="继续第一节",
+                label="打开已有对话",
                 route=f"/learn/{activity_id}",
                 resource_ref=f"LearningActivity:{activity_id}:v{active[0].plan_version}",
             )
@@ -757,31 +742,14 @@ class OnboardingJourneyQueryService:
             return OnboardingNextActionV1(
                 action_code="START_ACTIVITY",
                 kind="navigate",
-                label="开始第一节",
+                label="开始这一段对话",
                 route=f"/learn/{activity_id}",
                 resource_ref=f"LearningActivity:{activity_id}:v{available[0].plan_version}",
             )
-        if len(current) > 1:
-            return OnboardingNextActionV1(
-                action_code="OPEN_TODAY",
-                kind="navigate",
-                label="选择当前学习活动",
-                route="/today",
-                reason_codes=("MULTIPLE_CURRENT_ACTIVITIES_USE_SYS06_TODAY_SELECTION",),
-            )
-        if len(goals.source_document_ids) == 1:
-            document_id = goals.source_document_ids[0]
-            return OnboardingNextActionV1(
-                action_code="CONTINUE_DIAGNOSTIC",
-                kind="navigate",
-                label="继续准备第一节",
-                route=f"/book-learning/{document_id}",
-                resource_ref=f"UserDocument:{document_id}:current",
-            )
         return OnboardingNextActionV1(
-            action_code="SELECT_MATERIAL",
+            action_code="OPEN_WELCOME",
             kind="navigate",
-            label="选择要继续的学习资料",
-            route="/library?intent=first-learning",
-            reason_codes=("GOAL_SOURCE_SELECTION_REQUIRED",),
+            label="回到欢迎页",
+            route="/welcome",
+            reason_codes=("NO_UNIQUE_ACTIVITY_STAY_ON_WELCOME",),
         )

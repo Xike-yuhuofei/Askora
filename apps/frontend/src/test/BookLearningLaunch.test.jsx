@@ -143,23 +143,22 @@ describe('UI02B2 guided book learning', () => {
     bookLearningApi.getTranscript.mockResolvedValue(transcript())
   })
 
-  it('automatically advances owner-only preparation and stops for the learner diagnostic', async () => {
+  it('automatically adopts a system goal and stops for the learner diagnostic', async () => {
     bookLearningApi.getReadiness
-      .mockResolvedValueOnce(readiness('GOAL_CONFIRMATION_REQUIRED', ['ConfirmLearningGoal'], ['LEARNING_GOAL_USER_CONFIRMATION_REQUIRED'], [goalRef]))
+      .mockResolvedValueOnce(readiness('READY_FOR_GOAL', ['AdoptLearningGoalFromMaterial'], ['PUBLISHED_CONTENT_READY_FOR_GOAL']))
       .mockResolvedValueOnce(readiness('DIAGNOSIS_REQUIRED', ['MapGoalToKnowledge'], ['GOAL_KNOWLEDGE_MAPPING_REQUIRED'], [goalRef]))
       .mockResolvedValueOnce(readiness('DIAGNOSIS_REQUIRED', ['GeneratePrerequisiteDiagnosis'], ['PREREQUISITE_DIAGNOSTIC_REQUIRED'], [goalRef]))
       .mockResolvedValue(readiness('DIAGNOSING', ['ContinuePrerequisiteDiagnosis'], ['DIAGNOSTIC_ACTIVITY_ACTIVE'], [goalRef]))
 
     render(<BookLearningLaunch documentId={documentId} />)
 
-    expect(await screen.findByRole('heading', { name: '确认你的学习目标' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '确认并准备学习' }))
-
     expect(await screen.findByText('请写出比例的定义')).toBeInTheDocument()
-    await waitFor(() => expect(bookLearningApi.advance).toHaveBeenCalledTimes(2))
-    expect(bookLearningApi.advance.mock.calls[0][1].idempotency_key).toContain('MapGoalToKnowledge')
-    expect(bookLearningApi.advance.mock.calls[1][1].idempotency_key).toContain('GeneratePrerequisiteDiagnosis')
-    expect(screen.queryByRole('button', { name: /建立资料学习范围|开始先修诊断|生成学习计划|选择下一个活动/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(bookLearningApi.advance).toHaveBeenCalledTimes(3))
+    expect(bookLearningApi.advance.mock.calls[0][1].idempotency_key).toContain('AdoptLearningGoalFromMaterial')
+    expect(bookLearningApi.advance.mock.calls[1][1].idempotency_key).toContain('MapGoalToKnowledge')
+    expect(bookLearningApi.advance.mock.calls[2][1].idempotency_key).toContain('GeneratePrerequisiteDiagnosis')
+    expect(screen.queryByRole('button', { name: /确认并准备学习/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('我的学习目标')).not.toBeInTheDocument()
     expect(screen.getByText('不计分 · 用于调整学习起点')).toBeInTheDocument()
   })
 

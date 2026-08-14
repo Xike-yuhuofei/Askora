@@ -137,8 +137,8 @@ export default function TutorWorkspace({ sessionId }) {
       <div className="page-state page-state--error" role="alert">
         <h1>学习工作台</h1>
         <p>{view.error}</p>
-        <button type="button" className="button button--secondary" onClick={() => navigate('/today')}>
-          返回今天
+        <button type="button" className="button button--secondary" onClick={() => navigate('/chat')}>
+          返回欢迎
         </button>
       </div>
     )
@@ -151,14 +151,17 @@ export default function TutorWorkspace({ sessionId }) {
   return (
     <div className="workspace-layout">
       <aside className="workspace-rail" aria-label="会话历史">
-        <button type="button" className="workspace-back" onClick={() => navigate('/today')}>
+        <button type="button" className="workspace-back" onClick={() => navigate('/chat')}>
           <ArrowLeft size={16} />
-          今天
+          欢迎
         </button>
         <div className="workspace-rail__heading">
           <HistoryIcon size={16} />
           <span>最近会话</span>
         </div>
+        {view.sessions.length === 0 ? (
+          <p className="workspace-session-nav__empty">还没有最近会话</p>
+        ) : (
         <nav className="workspace-session-nav">
           {view.sessions.slice(0, 5).map((item) => (
             <button
@@ -172,6 +175,7 @@ export default function TutorWorkspace({ sessionId }) {
             </button>
           ))}
         </nav>
+        )}
       </aside>
 
       <section className="workspace-canvas" aria-labelledby="workspace-title">
@@ -182,6 +186,10 @@ export default function TutorWorkspace({ sessionId }) {
               <span>{session.subject}</span>
             </div>
             <h1 id="workspace-title">{session.knowledge_point || session.topic || session.subject || '学习会话'}</h1>
+            {/* TW-10：当前会话独立状态 badge（进行中 / 只读历史），来自后端 session.status。 */}
+            <span className={`status-pill status-pill--session ${isActive ? 'status-pill--active' : 'status-pill--readonly'}`}>
+              {isActive ? '进行中' : '只读历史'}
+            </span>
           </div>
           <button type="button" className="button button--ghost" onClick={() => navigate('/learning/history')}>
             查看历史

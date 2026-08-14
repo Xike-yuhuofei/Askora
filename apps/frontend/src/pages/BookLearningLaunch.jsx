@@ -29,6 +29,7 @@ const readinessStates = new Set([
 ])
 
 const automaticCommands = new Set([
+  'AdoptLearningGoalFromMaterial',
   'MapGoalToKnowledge',
   'BuildGoalKnowledgeSubgraph',
   'GeneratePrerequisiteDiagnosis',
@@ -39,8 +40,8 @@ const automaticCommands = new Set([
 const stateMeta = {
   PROCESSING: ['正在准备这份资料', '完成安全检查和内容整理后，就可以开始制定目标。'],
   CONTENT_PARTIAL: ['这份资料还不能开始学习', '资料中的可用内容仍不完整。你的文件已经保留，可以稍后再试。'],
-  READY_FOR_GOAL: ['你想从这份资料中学会什么？', '一句清楚的目标，能帮助 Askora 安排更合适的起点。'],
-  GOAL_CONFIRMATION_REQUIRED: ['确认你的学习目标', '看看系统的理解是否准确。确认后，余下准备会自动完成。'],
+  READY_FOR_GOAL: ['正在根据资料安排学习', '系统会从这份资料生成学习目标，不需要你先确认。'],
+  GOAL_CONFIRMATION_REQUIRED: ['正在采纳学习目标', '目标由系统维护，主路径不再要求确认。'],
   DIAGNOSIS_REQUIRED: ['正在安排学习起点', 'Askora 正在整理学习范围，并准备必要的基础检查。'],
   DIAGNOSING: ['先看看你的起点', '这不是考试，也不计分；回答会用来减少不必要的重复学习。'],
   PLAN_READY: ['正在安排第一节学习', 'Askora 正在从计划中选择现在最值得做的一小步。'],
@@ -74,6 +75,7 @@ function operationKey(documentId, operation, resource = 'current') {
 
 function readinessFingerprint(readiness, command) {
   const preferredType = {
+    AdoptLearningGoalFromMaterial: 'SourceDocument',
     MapGoalToKnowledge: 'LearningGoal',
     BuildGoalKnowledgeSubgraph: 'GoalKnowledgeMapping',
     GeneratePrerequisiteDiagnosis: 'GoalKnowledgeMapping',
@@ -143,7 +145,7 @@ function LearningProgress({ state }) {
     : state === 'DIAGNOSIS_REQUIRED' || state === 'DIAGNOSING'
       ? 1
       : 2
-  const labels = ['目标', '起点', '本次学习']
+  const labels = ['准备', '起点', '本次学习']
   return (
     <ol className="learning-progress" aria-label="学习准备进度">
       {labels.map((label, index) => (
@@ -348,7 +350,8 @@ export default function BookLearningLaunch({ documentId }) {
 
   const startLesson = () => {
     const activity = details.selection?.activity
-    if (!activity) return
+    if (!activity || busy) return
+    setBusy(true)
     window.location.hash = `#/learn/${encodeURIComponent(activity.activity_id)}`
   }
 
@@ -392,14 +395,14 @@ export default function BookLearningLaunch({ documentId }) {
     if (!activity || !transcript) return <p className="learning-empty">正在恢复本次学习…</p>
     if (!transcript.turns.length) {
       return (
-        <div className="lesson-ready">
+        <div className="lesson-ready" aria-busy={busy}>
           <span className="lesson-ready__icon"><BookOpen size={26} /></span>
           <p className="eyebrow">为你安排的下一步</p>
           <h2>{activityLabels[activity.type] || '继续学习'}</h2>
           <p>Askora 会先提出一个聚焦的问题，再根据你的回答继续。</p>
           <div className="lesson-ready__time"><Clock3 size={16} />约 {activity.estimated_duration_minutes} 分钟</div>
-          <button type="button" className="button button--primary button--prominent" onClick={startLesson} disabled={busy}>
-            <BookOpen size={17} />开始本次学习
+          <button type="button" className="button button--primary button--prominent" onClick={startLesson} disabled={busy} aria-busy={busy}>
+            <BookOpen size={17} />{busy ? '正在开始…' : '开始本次学习'}
           </button>
         </div>
       )
@@ -407,7 +410,7 @@ export default function BookLearningLaunch({ documentId }) {
     return (
       <div className="teaching-panel">
         <div className="activity-card">
-          <div><small>本次学习</small><strong>{activityLabels[activity.type] || activity.type}</strong></div>
+          <div><small>本次学习</small><h2 className="activity-card__title">{activityLabels[activity.type] || activity.type}</h2></div>
           <span><Clock3 size={14} />约 {activity.estimated_duration_minutes} 分钟</span>
         </div>
         <div className="teaching-messages" aria-live="polite">
@@ -457,37 +460,12 @@ export default function BookLearningLaunch({ documentId }) {
         <div className="learning-blocked">
           {readiness.state === 'PROCESSING' ? <Clock3 size={25} /> : <ShieldAlert size={25} />}
           <h2>{stateTitle}</h2><p>{stateDescription}</p>
-          <button type="button" className="button button--secondary" onClick={retry}><RefreshCw size={16} />重新检查</button>
+          <button type="button" className="button button--secondary" onClick={retry} disabled={busy}>{busy ? '重新检查中…' : '重新检查'}</button>
         </div>
       )
     }
-    if (readiness.state === 'READY_FOR_GOAL') {
-      return (
-        <form className="learning-form" onSubmit={(event) => { event.preventDefault(); openCanonicalGoalDraft() }}>
-          <div className="learning-form__intro"><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
-          <label><span>我的学习目标</span><textarea value={intent} onChange={(event) => setIntent(event.target.value)} rows={4} maxLength={2000} placeholder="例如：掌握这本书的核心方法，并能用它分析一个新的案例。" required autoFocus /></label>
-          <label><span>我准备用在（可选）</span><input value={applicationContext} onChange={(event) => setApplicationContext(event.target.value)} maxLength={500} placeholder="例如：工作中的数据分析" /></label>
-          <details className="learning-form__more">
-            <summary>更多选项</summary>
-            <div className="learning-form__row">
-              <label><span>每周学习时间</span><div className="input-with-suffix"><input type="number" min="1" max="10080" value={weeklyBudget} onChange={(event) => setWeeklyBudget(event.target.value)} /><span>分钟</span></div></label>
-              <label><span>希望完成的日期</span><input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} /></label>
-            </div>
-          </details>
-          <button type="submit" className="button button--primary button--prominent" disabled={busy || !intent.trim()}><Sparkles size={16} />继续</button>
-        </form>
-      )
-    }
-    if (readiness.state === 'GOAL_CONFIRMATION_REQUIRED') {
-      return (
-        <div className="goal-confirmation">
-          <div><h2>{stateTitle}</h2><p>{stateDescription}</p></div>
-          <GoalSummary goal={details.goal} />
-          <button type="button" className="button button--primary button--prominent" onClick={confirmLegacyGoal} disabled={busy || !details.goal}><CheckCircle2 size={17} />确认并准备学习</button>
-          <button type="button" className="button button--secondary" onClick={() => openCanonicalGoalDraft(details.goal)} disabled={busy || !details.goal}>迁移到新版目标草稿</button>
-          <p className="goal-confirmation__note">新目标默认进入新版草稿；这里仅保留已有旧候选的兼容确认。</p>
-        </div>
-      )
+    if (readiness.state === 'READY_FOR_GOAL' || readiness.state === 'GOAL_CONFIRMATION_REQUIRED') {
+      return renderPreparation()
     }
     if (readiness.state === 'DIAGNOSIS_REQUIRED' || readiness.state === 'PLAN_READY') {
       return renderPreparation()
@@ -501,7 +479,7 @@ export default function BookLearningLaunch({ documentId }) {
           {item.item_type === 'multiple_choice' && item.options?.length ? (
             <fieldset><legend>选择一个答案</legend>{item.options.map((option) => <label key={option}><input type="radio" name="diagnostic-answer" value={option} checked={diagnosticAnswer === option} onChange={(event) => setDiagnosticAnswer(event.target.value)} />{option}</label>)}</fieldset>
           ) : <label><span>你的回答</span><input value={diagnosticAnswer} onChange={(event) => setDiagnosticAnswer(event.target.value)} autoComplete="off" autoFocus /></label>}
-          <button type="submit" className="button button--primary button--prominent" disabled={busy || !diagnosticAnswer.trim()}>提交并继续</button>
+          <button type="submit" className="button button--primary button--prominent" disabled={busy || !diagnosticAnswer.trim()} aria-busy={busy}>{busy ? '提交中…' : '提交并继续'}</button>
         </form>
       )
     }

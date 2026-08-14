@@ -1,43 +1,36 @@
----
-name: askora-design
-description: Use this skill to generate well-branded interfaces for Askora. Contains colors, type, fonts, assets, and UI kit for prototyping chat-workspace UIs.
-user-invocable: true
----
-# Askora Design Skill
+# Askora Design Library — SKILL
 
-Read the `README.md` file within this skill, and explore the other available files.
+本技能指导如何为 Askora（个人长期 AI 学习系统）使用与扩展设计系统。
 
-If creating visual artifacts, copy assets out and create static HTML files. If working on production code, read the rules here to become an expert in designing with this brand.
+## 何时使用
 
-## Quick map
+- 需要为 Askora 产品页面编写/修改 UI 时
+- 需要新增组件、token 或 UI Kit 时
+- 需要保证视觉与 Askora 设计语言一致时
 
-- `README.md` — brand context, content fundamentals, visual foundations (read first)
-- `css.json` — structured token understanding source
-- `colors_and_type.css` — drop-in runtime CSS variables; link it, do not read it to understand tokens when css.json exists
-- `components/index.json` — component index + cross-component patterns
-- `components/{slug}.json` — component contract (intent/variants); preview HTML is the first source for DOM/CSS fidelity
-- `components.css` — aggregated component CSS
-- `preview/` — small HTML cards illustrating foundations and components (primary fidelity source)
-- `library-consumption.json` — recommended downstream read order
-- `ui_kits/chat-workspace/` — full click-thru recreation (layout, density, patterns reference)
+## 核心原则
 
-## Essentials at a glance
+1. **Token 优先**：所有颜色、间距、圆角、字号、阴影一律引用 `colors_and_type.css` 中的 token，禁止硬编码原始色值。
+2. **组件复用**：优先复用 `components/` 中的 `.ak-*` 组件；页面级自定义样式保持在页面内，不进入共享 CSS。
+3. **学习语义**：Askora 是学习系统，文案用简体中文、专业克制、无 emoji；组件语义面向学习（目标、今日、知识库、对话、复习）。
+4. **品牌一致**：品牌主色系统蓝 `#007AFF`，Apple 分层灰，Inter + JetBrains Mono，4px 网格，5 级阴影。
+5. **范围克制**：只构建学习产品实际需要的组件，不追求与参考系统同等完整度。
 
-- Primary: brand blue `#007AFF` — Apple-inspired system blue, clean and intelligent, no warm accents
-- Radius: 8/12/16/20/9999px — generous rounded corners, pill-shaped controls, soft and friendly
-- Control height: 40px default, 4px spacing unit, 8-pt grid system
-- Type: Inter (SF Pro style) + JetBrains Mono, 9 type roles from display to caption
-- Voice: professional Chinese-first, clean and precise, no emoji in UI
-- Shadows: 5 whisper-quiet levels from subtle card to modal overlay
-- AI-first design: dedicated chat message bubbles, assistant/user variants, three-column workspace layout
+## 工作流
 
-## Components
+1. 读取 `README.md` 了解结构，读取 `colors_and_type.css` 了解可用 token。
+2. 检查 `components/index.json` 是否已有可复用组件。
+3. 编写页面：引入 `colors_and_type.css` + `components.css`，从 `preview/component-{slug}.html` 复制组件标记。
+4. 新增组件时：写 `components/{slug}.json` 契约 + `preview/component-{slug}.html` 预览 + 在 `components.css` 加 `@component-css-start/end` 标记块，并更新 `components/index.json`。
+5. 新增页面时：在 `ui_kits/{type}/index.html` 构建，并生成 `quality-report.json`。
 
-| Slug | Name | Key Insight |
-|------|------|-------------|
-| button | Button | Apple-style pill buttons with primary/secondary/ghost/destructive variants |
-| card | Card | Multi-purpose card for message bubbles, knowledge items, and sidebar panels |
-| input | Input | Chat-optimized input with send button and auto-growing textarea |
-| navigation | Navigation | Left sidebar with conversation list and knowledge base sections |
-| avatar | Avatar | User and AI assistant avatars with status indicators |
-| tag | Tag | Knowledge tags and conversation labels with soft Apple-style backgrounds |
+## 契约字段
+
+组件契约沿用 schemaVersion 2：`slug`、`name`、`category`、`variantDimensions`、`coverageMatrix`、`stateCoverage`、`representativeVariants`、`tokensConsumed`、`domAnatomy`、`assetsConsumed`、`provenance`、`usageHints`、`doNotInvent`、`unknowns`。
+
+## 禁止
+
+- 不引入外部图标库/图标字体/CDN；图标仅用本地 SVG，`currentColor` mask。
+- 不硬编码 token 值；不新增一级组件而不更新契约与索引。
+- 不把页面级样式混入共享组件 CSS。
+- 不突破 Askora 产品边界（Local Web、单用户、Local-first、BYOK、中文）。

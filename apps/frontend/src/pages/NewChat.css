@@ -1,0 +1,371 @@
+/*
+  新建对话页样式 —— 1:1 复刻 TraeWork shell-replica 中栏。
+  几何与色值逐像素来自设计稿 main-workspace.tsx 注释与 app/globals.css：
+  - 内容块 max-width 800，整体位于垂直中心上方 ~35.5px
+  - composer 卡片 800×172，边框 #383738，圆角 12
+    - 输入区 126px（bg #171717），操作行 57px
+    - context bar 44px（bg #222222，分隔线 #383738）
+  - 建议 chips 高 38，边框 #3f3f3f，间距 12，距 composer 31px
+*/
+
+.newchat-page {
+  /* 设计稿 tokens（shell-replica app/globals.css） */
+  --w-main: #171717;
+  --w-ctxbar: #222222;
+  --w-border-composer: #383738;
+  --w-border-pill: #3f3f3f;
+  --w-iconwell: #252525;
+  --w-iconwell-border: #383838;
+  --w-text-1: #dedede;
+  --w-text-2: #6f6f6f;
+  --w-placeholder: #5b5e66;
+  --w-hero: #e1e1e1;
+  --w-model: #9a9a9a;
+  --w-chip-text: #d9d9d9;
+  --w-send: #3e36db;
+  --w-icon-violet: #8a63f6;
+  --w-icon-orchid: #a55ede;
+
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.newchat-page__inner {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(0.5px, -35.5px);
+}
+
+/* hero */
+.newchat-hero {
+  display: flex;
+  align-items: center;
+  gap: 19px;
+  margin: 0;
+  color: var(--w-hero);
+}
+
+.newchat-hero__icon {
+  width: 36px;
+  height: 36px;
+}
+
+.newchat-hero__text {
+  font-size: 33px;
+  line-height: 1;
+}
+
+.newchat-hero__prefix {
+  font-weight: 600;
+}
+
+.newchat-hero__brand {
+  font-weight: 400;
+}
+
+/* composer 卡片 */
+.newchat-composer {
+  margin-top: 51px;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--w-border-composer);
+  border-radius: var(--radius-l);
+}
+
+/* 输入区 */
+.newchat-composer__input-zone {
+  display: flex;
+  height: 126px;
+  flex-direction: column;
+  background: var(--w-main);
+}
+
+.newchat-composer__field {
+  padding: 6px 24px 0;
+}
+
+.newchat-composer__textarea {
+  display: block;
+  width: 100%;
+  max-height: 63px; /* 126 输入区 - 57 操作行 - 6 顶部内边距 */
+  padding: 0;
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--w-text-1);
+  font-size: 13.5px;
+  line-height: 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--w-border-composer) transparent;
+}
+
+.newchat-composer__textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.newchat-composer__textarea::-webkit-scrollbar-thumb {
+  background: var(--w-border-composer);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.newchat-composer__textarea::placeholder {
+  color: var(--w-placeholder);
+}
+
+.newchat-composer__textarea:focus {
+  outline: none;
+}
+
+.newchat-composer__textarea:focus-visible {
+  box-shadow: none; /* 设计稿 focus:outline-none；由 composer 卡片整体呈现聚焦区域 */
+}
+
+/* 操作行 */
+.newchat-composer__actions {
+  margin-top: auto;
+  display: flex;
+  height: 57px;
+  align-items: center;
+  padding-left: 22px;
+  padding-right: 13px;
+}
+
+.newchat-composer__plus {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #afafaf;
+  transition: color .12s ease;
+}
+
+.newchat-composer__plus:hover {
+  color: var(--w-text-1);
+}
+
+.newchat-composer__plus-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* 媒体井：视频 / 图片 / 网络 */
+.newchat-composer__media-well {
+  margin-left: 15px;
+  display: flex;
+  height: 26px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: 1px solid var(--w-iconwell-border);
+  border-radius: var(--radius-m);
+  background: var(--w-iconwell);
+}
+
+.newchat-composer__media-btn {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.newchat-composer__media-btn--video {
+  color: var(--w-icon-violet);
+}
+
+.newchat-composer__media-btn--image {
+  color: var(--w-icon-orchid);
+}
+
+.newchat-composer__media-btn--globe {
+  color: #d4d4d4;
+  transition: color .12s ease;
+}
+
+.newchat-composer__media-btn--globe:hover {
+  color: #ffffff;
+}
+
+.newchat-composer__media-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 操作行右侧：模型选择 / 语音 / 发送 */
+.newchat-composer__trailing {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.newchat-composer__model {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--w-model);
+  font-size: 12px;
+  transition: color .12s ease;
+}
+
+.newchat-composer__model:hover {
+  color: var(--w-text-1);
+}
+
+.newchat-composer__model-chevron {
+  width: 10px;
+  height: 10px;
+  color: var(--w-text-2);
+}
+
+.newchat-composer__mic {
+  margin-left: 14px;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #b4b4b4;
+  transition: color .12s ease;
+}
+
+.newchat-composer__mic:hover {
+  color: var(--w-text-1);
+}
+
+.newchat-composer__mic-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.newchat-composer__send {
+  margin-left: 13px;
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--w-send);
+  color: #ffffff;
+  transition: opacity .12s ease;
+}
+
+.newchat-composer__send:hover {
+  opacity: .9;
+}
+
+.newchat-composer__send-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* context bar */
+.newchat-composer__context-bar {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  padding-left: 22px;
+  border-top: 1px solid var(--w-border-composer);
+  background: var(--w-ctxbar);
+}
+
+.newchat-context-select {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--w-hero);
+  font-size: 13.5px;
+  transition: color .12s ease;
+}
+
+.newchat-context-select:hover {
+  color: #ffffff;
+}
+
+.newchat-context-select + .newchat-context-select {
+  margin-left: 22px;
+}
+
+.newchat-context-select__icon {
+  display: inline-flex;
+  color: #b4b4b4;
+}
+
+.newchat-context-select__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.newchat-context-select__chevron {
+  margin-left: 2px;
+  width: 11px;
+  height: 11px;
+  color: var(--w-text-2);
+}
+
+/* 建议 chips */
+.newchat-chips {
+  margin-top: 31px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.newchat-chip {
+  display: flex;
+  height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--w-border-pill);
+  border-radius: var(--radius-l);
+  background: transparent;
+  color: var(--w-chip-text);
+  font-size: 13px;
+  transition: border-color .12s ease, color .12s ease;
+}
+
+.newchat-chip:hover {
+  border-color: #4a4a4a;
+  color: var(--w-hero);
+}
+
+.newchat-chip__icon {
+  width: 14px;
+  height: 14px;
+  color: #b4b4b4;
+}
+
+/* 窄屏兜底（设计稿面向桌面；仅防止内容溢出，不改变桌面复刻） */
+@media (max-width: 768px) {
+  .newchat-page__inner {
+    padding: 0 16px;
+  }
+
+  .newchat-hero__text {
+    font-size: 26px;
+  }
+
+  .newchat-chips {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

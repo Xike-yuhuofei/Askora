@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "slug": "pagination",
+  "name": "分页 Pagination",
+  "category": "navigation",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Pagination",
+      "evidence": "Inferred from preview/component-pagination.html title and component CSS selectors (.ak-pagination)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-pagination",
+        ".ak-pagination__item",
+        ".ak-pagination__item--active",
+        ".ak-pagination__item--disabled",
+        ".ak-pagination__ellipsis",
+        ".ak-pagination__info",
+        ".ak-pagination__prev",
+        ".ak-pagination__next"
+      ],
+      "evidence": "Representative selectors from preview/component-pagination.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-pagination.html",
+    "representativeSelectors": [
+      ".ak-pagination",
+      ".ak-pagination__item",
+      ".ak-pagination__item:hover",
+      ".ak-pagination__item:active",
+      ".ak-pagination__item--active",
+      ".ak-pagination__item--active:hover",
+      ".ak-pagination__item--disabled",
+      ".ak-pagination__item--disabled:hover",
+      ".ak-pagination__ellipsis",
+      ".ak-pagination__info",
+      ".ak-pagination__prev",
+      ".ak-pagination__next"
+    ],
+    "cssRuleCount": 16
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "active",
+      "disabled"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-pagination",
+      "whySelected": "Pagination bar container.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-pagination__item",
+      "whySelected": "Base page item with hover feedback.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-pagination__item--active",
+      "whySelected": "Active page filled with brand blue.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-pagination.html",
+    "selectors": [
+      ".ak-pagination",
+      ".ak-pagination__item",
+      ".ak-pagination__item--active",
+      ".ak-pagination__item--disabled",
+      ".ak-pagination__ellipsis",
+      ".ak-pagination__info",
+      ".ak-pagination__prev",
+      ".ak-pagination__next"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-pagination.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-pagination.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-brand",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-sm-font-size",
+    "--body-sm-line-height",
+    "--radius-8",
+    "--spacer-4",
+    "--spacer-8",
+    "--text-default",
+    "--text-disabled",
+    "--text-onbrand",
+    "--text-secondary",
+    "--text-tertiary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-pagination.html",
+      "classes": [
+        "ak-pagination",
+        "ak-pagination__ellipsis",
+        "ak-pagination__info",
+        "ak-pagination__item",
+        "ak-pagination__item--active",
+        "ak-pagination__item--disabled",
+        "ak-pagination__next",
+        "ak-pagination__prev"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-pagination.html",
+    "source": "preview/component-pagination.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "pagination"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

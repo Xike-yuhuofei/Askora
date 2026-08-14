@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 2,
+  "slug": "tabs",
+  "name": "标签页 Tabs",
+  "category": "navigation",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Tabs",
+      "evidence": "Inferred from preview/component-tabs.html title and component CSS selectors (.ak-tabs)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-tabs",
+        ".ak-tabs__tab",
+        ".ak-tabs__tab--active",
+        ".ak-tabs__tab--disabled",
+        ".ak-tabs__panel"
+      ],
+      "evidence": "Representative selectors from preview/component-tabs.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-tabs.html",
+    "representativeSelectors": [
+      ".ak-tabs",
+      ".ak-tabs__tab",
+      ".ak-tabs__tab:hover",
+      ".ak-tabs__tab:active",
+      ".ak-tabs__tab--active",
+      ".ak-tabs__tab--active::after",
+      ".ak-tabs__tab--disabled",
+      ".ak-tabs__tab--disabled:hover",
+      ".ak-tabs__panel"
+    ],
+    "cssRuleCount": 13
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "active",
+      "disabled"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-tabs",
+      "whySelected": "Tab bar container with bottom border.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-tabs__tab",
+      "whySelected": "Base tab with hover feedback.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-tabs__tab--active",
+      "whySelected": "Active tab with brand-blue text and indicator.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-tabs.html",
+    "selectors": [
+      ".ak-tabs",
+      ".ak-tabs__tab",
+      ".ak-tabs__tab--active",
+      ".ak-tabs__tab--disabled",
+      ".ak-tabs__panel"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-tabs.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-tabs.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-brand",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--border-neutral-l1",
+    "--font-weight-medium",
+    "--radius-2",
+    "--spacer-4",
+    "--spacer-8",
+    "--spacer-10",
+    "--spacer-16",
+    "--text-default",
+    "--text-default-active",
+    "--text-disabled",
+    "--text-secondary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-tabs.html",
+      "classes": [
+        "ak-tabs",
+        "ak-tabs__panel",
+        "ak-tabs__tab",
+        "ak-tabs__tab--active",
+        "ak-tabs__tab--disabled"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-tabs.html",
+    "source": "preview/component-tabs.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "tabs"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

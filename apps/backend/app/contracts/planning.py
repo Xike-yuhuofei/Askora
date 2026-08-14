@@ -72,10 +72,14 @@ class LearningGoalV1(ContractModel):
 
     @model_validator(mode="after")
     def enforce_confirmation_owner(self) -> LearningGoalV1:
-        if self.status in {"confirmed", "active"} and (
-            not self.confirmed_by_user or self.confirmed_at is None
-        ):
-            raise ValueError("confirmed/active goal requires explicit user confirmation")
+        if self.status in {"confirmed", "active"}:
+            if self.confirmed_at is None:
+                raise ValueError("confirmed/active goal requires confirmed_at")
+            system_adopted = "GOAL_SYSTEM_ADOPTED_FROM_MATERIAL" in self.reason_codes
+            if not self.confirmed_by_user and not system_adopted:
+                raise ValueError(
+                    "confirmed/active goal requires explicit user confirmation or system adoption"
+                )
         if self.status == "candidate" and self.confirmed_by_user:
             raise ValueError("candidate goal cannot be user-confirmed")
         return self

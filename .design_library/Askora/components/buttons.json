@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 2,
+  "slug": "buttons",
+  "name": "按钮 Button",
+  "category": "action",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Button",
+      "evidence": "Inferred from preview/component-buttons.html title and component CSS selectors (.ak-btn)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-btn",
+        ".ak-btn--sm",
+        ".ak-btn--md",
+        ".ak-btn--lg",
+        ".ak-btn--brand",
+        ".ak-btn--primary",
+        ".ak-btn--secondary",
+        ".ak-btn--tertiary",
+        ".ak-btn--ghost",
+        ".ak-btn--danger",
+        ".ak-btn--danger-strong",
+        ".ak-btn--danger-subtle",
+        ".ak-btn--warning",
+        ".ak-btn--link",
+        ".ak-btn--icon",
+        ".ak-btn-group"
+      ],
+      "evidence": "Representative selectors from preview/component-buttons.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-buttons.html",
+    "representativeSelectors": [
+      ".ak-btn",
+      ".ak-btn .ak-icon",
+      ".ak-btn .ak-icon--12",
+      ".ak-btn .ak-icon--14",
+      ".ak-btn .ak-icon--16",
+      ".ak-btn .ak-icon--20",
+      ".ak-btn--sm",
+      ".ak-btn--md",
+      ".ak-btn--lg",
+      ".ak-btn--brand",
+      ".ak-btn--brand:hover",
+      ".ak-btn--brand:active",
+      ".ak-btn--brand[disabled]",
+      ".ak-btn--primary",
+      ".ak-btn--primary:hover",
+      ".ak-btn--primary:active",
+      ".ak-btn--primary[disabled]",
+      ".ak-btn--secondary",
+      ".ak-btn--secondary:hover",
+      ".ak-btn--secondary:active",
+      ".ak-btn--secondary[disabled]",
+      ".ak-btn--tertiary",
+      ".ak-btn--ghost",
+      ".ak-btn--danger",
+      ".ak-btn--danger-strong",
+      ".ak-btn--danger-subtle",
+      ".ak-btn--warning",
+      ".ak-btn--link",
+      ".ak-btn--icon",
+      ".ak-btn-group"
+    ],
+    "cssRuleCount": 45
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "active",
+      "disabled",
+      "focus-visible"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-btn",
+      "whySelected": "Base button atom shared by all variants.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-btn--brand",
+      "whySelected": "Primary brand-blue action, limited to one per page.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-btn--secondary",
+      "whySelected": "Neutral secondary action with border.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-buttons.html",
+    "selectors": [
+      ".ak-btn",
+      ".ak-btn .ak-icon",
+      ".ak-btn .ak-icon--12",
+      ".ak-btn .ak-icon--14",
+      ".ak-btn .ak-icon--16",
+      ".ak-btn .ak-icon--20",
+      ".ak-btn--sm",
+      ".ak-btn--md",
+      ".ak-btn--lg",
+      ".ak-btn--brand",
+      ".ak-btn--primary",
+      ".ak-btn--secondary",
+      ".ak-btn--tertiary",
+      ".ak-btn--ghost",
+      ".ak-btn--danger",
+      ".ak-btn--danger-strong",
+      ".ak-btn--danger-subtle",
+      ".ak-btn--warning",
+      ".ak-btn--link",
+      ".ak-btn--icon",
+      ".ak-btn-group"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-buttons.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-buttons.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-brand",
+    "--bg-brand-active",
+    "--bg-brand-disabled",
+    "--bg-brand-hover",
+    "--bg-invert",
+    "--bg-invert-active",
+    "--bg-invert-disabled",
+    "--bg-invert-hover",
+    "--bg-overlay-l1",
+    "--bg-overlay-l2",
+    "--bg-overlay-l3",
+    "--bg-base-secondary",
+    "--body-base-strong-font-family",
+    "--body-base-strong-font-size",
+    "--body-base-strong-font-weight",
+    "--body-base-strong-letter-spacing",
+    "--body-base-strong-line-height",
+    "--body-base-font-size",
+    "--body-sm-font-size",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--border-neutral-l3",
+    "--border-width-default",
+    "--font-weight-medium",
+    "--icon-size-12",
+    "--icon-size-14",
+    "--icon-size-16",
+    "--icon-size-20",
+    "--radius-0",
+    "--radius-8",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-24",
+    "--status-error-active",
+    "--status-error-default",
+    "--status-error-hover",
+    "--status-error-surface-l1",
+    "--status-error-surface-l2",
+    "--status-error-surface-l3",
+    "--status-primary-surface-l2",
+    "--status-warning-active",
+    "--status-warning-default",
+    "--status-warning-hover",
+    "--text-default",
+    "--text-default-hover",
+    "--text-disabled",
+    "--text-onaccent",
+    "--text-onbrand",
+    "--text-white"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-buttons.html",
+      "classes": [
+        "ak-btn",
+        "ak-btn--brand",
+        "ak-btn--danger",
+        "ak-btn--danger-strong",
+        "ak-btn--danger-subtle",
+        "ak-btn--ghost",
+        "ak-btn--icon",
+        "ak-btn--lg",
+        "ak-btn--link",
+        "ak-btn--md",
+        "ak-btn--primary",
+        "ak-btn--secondary",
+        "ak-btn--sm",
+        "ak-btn--tertiary",
+        "ak-btn--warning",
+        "ak-btn-group",
+        "ak-icon",
+        "ak-icon--16"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-buttons.html",
+    "source": "preview/component-buttons.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "buttons"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

@@ -37,6 +37,7 @@ from app.contracts.data_control import (
 )
 from app.core.config import settings
 from app.core.exceptions import (
+    MaterialAlreadyAssignedError,
     MaterialAlreadyTrashedError,
     MaterialDeleteVersionConflictError,
     MaterialNotFoundError,
@@ -186,6 +187,84 @@ class MaterialLifecycleService:
     def _assert_version(document: UserDocument, expected_version: int | None) -> None:
         if expected_version is not None and document.lifecycle_version != expected_version:
             raise MaterialDeleteVersionConflictError()
+
+    async def assign_to_workspace(
+        self,
+        *,
+        user: User,
+        material_id: str,
+        workspace_id: str,
+        expected_version: int | None = None,
+        idempotency_key: str = "",
+    ) -> dict[str, Any]:
+        payload = _payload_digest(target=f"{material_id}:{workspace_id}", version=expected_version)
+        cached = await self._consume_receipt(
+            user=user,
+            command_type="assign",
+            idempotency_key=idempotency_key,
+            payload=payload,
+        )
+        if cached is not None:
+            return cached
+
+        document = (
+            await self.db.execute(
+                select(UserDocument).where(
+                    UserDocument.id == material_id,
+                    UserDocument.pseudonym_id == user.pseudonym_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if document is None or document.lifecycle == MaterialLifecycle.DELETED:
+            raise MaterialNotFoundError(tombstone=document is not None)
+        if document.lifecycle != MaterialLifecycle.ACTIVE:
+            raise MaterialNotFoundError(tombstone=False)
+        self._assert_version(document, expected_version)
+
+        if document.workspace_id == workspace_id:
+            result = self._assign_result(document, outcome="ALREADY_ASSIGNED")
+        elif document.workspace_id is not None:
+            raise MaterialAlreadyAssignedError()
+        else:
+            document.workspace_id = workspace_id
+            document.lifecycle_version += 1
+            document.updated_at = datetime.now(timezone.utc)
+            result = self._assign_result(document, outcome="ASSIGNED")
+
+        await self._store_receipt(
+            user=user,
+            workspace_id=workspace_id,
+            material_id=material_id,
+            command_type="assign",
+            idempotency_key=idempotency_key,
+            payload=payload,
+            result=result,
+        )
+        await self.db.commit()
+        return result
+
+    @staticmethod
+    def _assign_result(document: UserDocument, *, outcome: str) -> dict[str, Any]:
+        return {
+            "schema_version": "1.0",
+            "outcome": outcome,
+            "material_id": document.id,
+            "workspace_id": document.workspace_id,
+            "assignment_state": "assigned",
+            "lifecycle_version": document.lifecycle_version,
+        }
+
+    async def list_unassigned(self, *, user: User) -> list[UserDocument]:
+        result = await self.db.execute(
+            select(UserDocument)
+            .where(
+                UserDocument.pseudonym_id == user.pseudonym_id,
+                UserDocument.workspace_id.is_(None),
+                UserDocument.lifecycle == MaterialLifecycle.ACTIVE,
+            )
+            .order_by(UserDocument.updated_at.desc())
+        )
+        return list(result.scalars().all())
 
     # ------------------------------------------------------------------
     # Trash

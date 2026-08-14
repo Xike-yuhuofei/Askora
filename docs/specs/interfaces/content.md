@@ -47,11 +47,46 @@ Managed SourceFile 是 durable data。Cache 清理、Embedding/Index 重建、AI
 
 ### D01-003 — Workspace Scope
 
-Material import MAY 先以 `workspace_id=null` 创建 unassigned Material（`WSP-021` / `EXP-JOURNEY-001`）。导入任务、MaterialRevision、SourceSpan、derived index/rebuild task MUST 能解析 LocalOwner，并在已归属后解析 Workspace。
+Material import MAY 先以 `workspace_id=null` 创建 unassigned Material（`WSP-021` / `EXP-JOURNEY-001`）。默认上传 writer MUST 创建 unassigned Material，不得隐式解析 default Workspace。导入任务、MaterialRevision、SourceSpan、derived index/rebuild task MUST 能解析 LocalOwner，并在已归属后解析 Workspace。
 
 Unassigned Material MUST NOT 作为某一 Workspace 的普通 retrieval 成员，也 MUST NOT 启动有依据的 LearningActivity。
 
 归属后，后续 revision / span / index MUST 解析该 workspace scope。不得因为同一 LocalOwner 存在多个 Workspace 而默认建立全局已归属 Material scope。
+
+### D01-003A — Assign Material to Workspace
+
+`AssignMaterialToWorkspaceV1` 是 SYS01 owner command，把 unassigned Material 写入 exactly one `workspace_id`：
+
+```yaml
+AssignMaterialToWorkspaceV1:
+  schema_version: "1.0"
+  material_id: uuid
+  workspace_id: uuid
+  expected_lifecycle_version: integer
+  idempotency_key: string
+```
+
+```yaml
+AssignMaterialResultV1:
+  schema_version: "1.0"
+  outcome: ASSIGNED|ALREADY_ASSIGNED
+  material_id: uuid
+  workspace_id: uuid
+  assignment_state: assigned
+  lifecycle_version: integer
+```
+
+规则：
+
+- Material 必须属于当前 LocalOwner，且 `lifecycle=active`；
+- `workspace_id=null` → 写入目标 Workspace；
+- 已归属同一 Workspace + 同 idempotency/payload → `ALREADY_ASSIGNED`；
+- 已归属另一 Workspace → fail closed，不得改挂；
+- 目标 Workspace 必须是同一 owner 的 active Workspace；
+- 本 command 不创建 LearningActivity / Goal / Session。
+
+「加入学习空间」= 选定或当场新建 Workspace 后调用本 command。  
+「马上开始学习」= 自动创建 Workspace + 本 command；若还没有可启动的 LearningActivity，进入该空间诚实空态，不得前端开聊。
 
 ## 3. Required Pipeline and Stage State
 
@@ -94,6 +129,21 @@ Overall = partial
 ```
 
 系统 MAY 允许用户在可靠 SourceSpan/structure 已可用时开始受限学习，不要求所有 Embedding / Knowledge Modeling 完成后才可进入任何学习活动。
+
+本地确定性 parse / structure 成功即视为资料处理对 `EXP-JOURNEY-001` / `004` 去向选择已经足够。hybrid LLM extraction 是后续增强 stage，失败不得把 overall 从「本机已就绪」打成整份 `failed`。
+
+### D01-006 — Parse execution preference
+
+SYS01 MUST 接受 SYS08 拥有的资料解析偏好（`MODEL-CONFIG-092`）：
+
+```text
+use_ai_parse_enhancement: boolean
+```
+
+- `false` 或模型未就绪：只跑 deterministic parse / local candidates；
+- `true` 且模型 `runtime_ready`：同一 ingestion 在本地成功后追加 hybrid extraction；
+- 改变该偏好 MUST NOT 自动重跑已有 Material；
+- 「用模型再解析」是同一 `material_id` 的新 ExtractionRun，MUST 保留既有 SourceFile / DocumentIR，不得创建第二 Material identity。
 
 ### D01-005 — Restart-safe Jobs
 

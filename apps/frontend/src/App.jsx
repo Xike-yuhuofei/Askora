@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import NoticeModal from './components/NoticeModal'
 import AppShell from './components/AppShell'
 import LearningShell from './components/LearningShell'
-import Today from './pages/Today'
 import TutorWorkspace from './pages/TutorWorkspace'
 import History from './pages/History'
 import Library from './pages/Library'
@@ -16,15 +15,17 @@ import LearningPath from './pages/LearningPath'
 import Settings from './pages/Settings'
 import RecoveryCenter from './pages/RecoveryCenter'
 import Unavailable from './pages/Unavailable'
-import Welcome from './pages/Welcome'
+import NewChat from './pages/NewChat'
 import LearningWorkspace from './pages/LearningWorkspace'
 import CourseCreate from './pages/CourseCreate'
+import WorkspaceManage from './pages/WorkspaceManage'
 import { Navigate, useLocation, useNavigate, parseWorkspaceRoute } from './router'
 
 const DEFAULT_WORKSPACE_ID = 'default'
 
 const legacyRedirects = {
-  '/': '/today',
+  '/today': '/chat',
+  '/learning': '/learning/goals',
   '/profile': '/learning/progress',
   '/knowledge': '/library',
   '/goals': '/learning/goals',
@@ -34,11 +35,11 @@ const legacyRedirects = {
 }
 
 const standardPages = {
-  '/welcome': Welcome,
-  '/today': Today,
+  '/': NewChat,
+  '/chat': NewChat,
   '/library': Library,
-  '/learning': LearningWorkspace,
-  '/courses/new': CourseCreate,
+  '/spaces': WorkspaceManage,
+  '/courses/new': WorkspaceManage,
   '/learning/goals': Goals,
   '/learning/plan': LearningPath,
   '/learning/progress': Evidence,
@@ -55,8 +56,6 @@ const learningShellPaths = new Set([
 ])
 
 const workspaceShellPaths = new Set([
-  '/today',
-  '/learning',
   '/library',
 ])
 
@@ -70,15 +69,23 @@ function decodeRouteParam(value) {
 
 const workspaceSubRoutes = {
   '/': LearningWorkspace,
-  '/today': Today,
   '/learn': LearningWorkspace,
   '/library': Library,
 }
 
 function parseCourseRoute(pathname) {
+  const activityMatch = pathname.match(/^\/courses\/([^/]+)\/activities\/([^/]+)$/)
+  if (activityMatch && activityMatch[1] !== 'new') {
+    return {
+      kind: 'activity',
+      workspace_id: decodeRouteParam(activityMatch[1]),
+      activity_id: decodeRouteParam(activityMatch[2]),
+    }
+  }
   const match = pathname.match(/^\/courses\/([^/]+)(\/.*)?$/)
   if (!match || match[1] === 'new') return null
   return {
+    kind: 'space',
     workspace_id: decodeRouteParam(match[1]),
     sub_path: match[2] || '/',
   }
@@ -86,6 +93,14 @@ function parseCourseRoute(pathname) {
 
 export function resolveRoute(pathname) {
   const courseRoute = parseCourseRoute(pathname)
+  if (courseRoute?.kind === 'activity') {
+    return {
+      type: 'activity-learning',
+      activityId: courseRoute.activity_id,
+      shell: 'workspace',
+      workspace_id: courseRoute.workspace_id,
+    }
+  }
   if (courseRoute) {
     return {
       type: 'page',
@@ -104,6 +119,7 @@ export function resolveRoute(pathname) {
       Page,
       shell: 'workspace',
       workspace_id: workspaceRoute.workspace_id,
+      hideRightRail: subPath === '/library',
     }
   }
 
@@ -121,7 +137,7 @@ export function resolveRoute(pathname) {
 
   if (standardPages[pathname]) {
     const shell = learningShellPaths.has(pathname) ? 'learning' : workspaceShellPaths.has(pathname) ? 'workspace' : 'standard'
-    return { type: 'page', Page: standardPages[pathname], shell }
+    return { type: 'page', Page: standardPages[pathname], shell, hideRightRail: pathname === '/library' }
   }
 
   const quickMatch = pathname.match(/^\/quick\/([^/]+)$/)
@@ -166,13 +182,15 @@ export function resolveRoute(pathname) {
 function AppRoutes() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const backgroundRef = useRef({ shell: 'workspace', content: null, pathname: '/today' })
+  const backgroundRef = useRef({ shell: 'standard', content: null, pathname: '/chat', hideRightRail: false })
 
   const route = resolveRoute(pathname)
   if (route.type === 'redirect') return <Navigate to={route.to} replace />
 
   let content
-  if (route.type === 'page' && pathname !== '/settings') content = <route.Page />
+  if (route.type === 'page' && pathname !== '/settings') {
+    content = <route.Page workspaceId={route.workspace_id} />
+  }
   else if (route.type === 'workspace') content = <TutorWorkspace sessionId={route.sessionId} />
   else if (route.type === 'book-learning') content = <BookLearningLaunch documentId={route.documentId} />
   else if (route.type === 'activity-learning') content = <ActivityLearning activityId={route.activityId} />
@@ -185,14 +203,17 @@ function AppRoutes() {
     wrappedContent = <LearningShell>{content}</LearningShell>
   }
 
+  const hideRightRail = Boolean(route.hideRightRail)
+
   if (pathname !== '/settings') {
     backgroundRef.current = {
       shell: route.shell,
       content: wrappedContent,
       pathname,
+      hideRightRail,
     }
     return (
-      <AppShell variant={route.shell}>
+      <AppShell variant={route.shell} hideRightRail={hideRightRail}>
         {wrappedContent}
       </AppShell>
     )
@@ -200,10 +221,10 @@ function AppRoutes() {
 
   return (
     <>
-      <AppShell variant={backgroundRef.current.shell}>
+      <AppShell variant={backgroundRef.current.shell} hideRightRail={backgroundRef.current.hideRightRail}>
         {backgroundRef.current.content}
       </AppShell>
-      <Settings onClose={() => navigate(backgroundRef.current.pathname || '/today')} />
+      <Settings onClose={() => navigate(backgroundRef.current.pathname || '/chat')} />
     </>
   )
 }

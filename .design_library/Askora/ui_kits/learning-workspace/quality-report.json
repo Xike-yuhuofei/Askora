@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "library": "Askora",
+  "kitType": "learning-workspace",
+  "sourceKind": "preview-contract",
+  "screensGenerated": 1,
+  "coreComponentsUsed": [
+    "learning-workspace",
+    "learning-input",
+    "knowledge-card",
+    "goal-tree"
+  ],
+  "supportComponentsUsed": [
+    "tag",
+    "progress",
+    "avatar"
+  ],
+  "previewClassReuseRate": 0.62,
+  "inventedComponents": [],
+  "customClasses": [
+    "suggestion-chip",
+    "chat-bubble",
+    "side-card"
+  ],
+  "interactiveStatesRendered": [
+    "default",
+    "hover",
+    "active",
+    "disabled"
+  ],
+  "primaryActionPerScreen": true,
+  "mockDataDensity": {
+    "chatMessages": 5,
+    "suggestionChips": 3,
+    "navItems": 5,
+    "sideCards": 4
+  },
+  "warnings": [
+    "suggestion-chip / chat-bubble / side-card 为页面级自定义样式，非 .ak- 组件；均基于 colors_and_type.css 令牌与系统蓝，未新增一级组件契约。",
+    "goal-tree 组件在右侧面板中以 side-card + ak-progress 形式呈现学习目标，未直接复用 .ak-goal-tree 树形结构。"
+  ],
+  "notes": [
+    "Component usage is inferred from .ak-* classes present in the UIKit HTML.",
+    "UIKit pages are visual showcases; consume component markup from preview/ and write product-specific outer layout in downstream apps.",
+    "三栏布局严格遵循 learning-workspace 契约：248px / minmax(0,1fr) / 320px，全屏 100vh。",
+    "左导航覆盖 空间 / 知识库 / 目标 / 今日 / 对话记录 五个入口，使用 .ak-lw-nav__item 与 .ak-lw-nav__section。",
+    "中央列承载消息流（chat-bubble）、建议 chips（suggestion-chip）与 .ak-learning-input 输入框。",
+    "右侧面板使用 .ak-lw-side__tab（材料 / 笔记）与 .ak-knowledge-card / .ak-progress 展示材料与学习目标。",
+    "componentUsageBasis explains whether usage came from shared .ak-* classes or semantic fallback for custom classes."
+  ],
+  "componentUsageBasis": "ak-class"
+}

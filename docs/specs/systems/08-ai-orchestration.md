@@ -606,6 +606,18 @@ Settings MUST 在 probe 动作前说明该动作只发送固定合成文本、�
 
 设置页 MUST 明确 Askora 是 BYOK，真实学习时会将完成任务所需的最小资料/上下文发送给用户选择的外部 AI Provider。不得使用“全部数据永不离开本机”等与产品实际网络依赖冲突的绝对文案。
 
+#### MODEL-CONFIG-092 — Material parse enhancement preference
+
+SYS08 拥有用户偏好 `use_ai_parse_enhancement`（用户文案：**用 AI 增强资料解析**）。
+
+- 与模型配置放在同一 Settings 分类；
+- 模型未 `runtime_ready` 时该 Control 必须 disabled，并给出可读原因；forced value 对 SYS01 视为 `false`；
+- 模型就绪时默认 `true`，用户可改为 `false`；
+- 该偏好只授权 **资料解析阶段** 是否调用外部模型。它不得被解释为关闭教学 / 评估 / Review 的模型使用；
+- 偏好从 `false` → `true` MUST NOT 自动 enqueue 既有 Material 的 hybrid run。
+
+SYS01 读取该偏好决定 `execution_mode`；SYS08 不得自己写 KnowledgeUnit / DocumentIR。
+
 ### 11. Observability
 
 #### MODEL-CONFIG-100

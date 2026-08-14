@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "slug": "skeleton",
+  "name": "Skeleton",
+  "category": "feedback",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Skeleton",
+      "evidence": "Inferred from preview/component-skeleton.html title and component CSS selectors."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "shape",
+      "values": [
+        ".ak-skeleton",
+        ".ak-skeleton--line",
+        ".ak-skeleton--title",
+        ".ak-skeleton--circle"
+      ],
+      "evidence": "Representative selectors from preview/component-skeleton.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-skeleton.html",
+    "representativeSelectors": [
+      ".ak-skeleton",
+      ".ak-skeleton::after",
+      ".ak-skeleton--line",
+      ".ak-skeleton--title",
+      ".ak-skeleton--circle"
+    ],
+    "cssRuleCount": 6
+  },
+  "sizeDeltas": [
+    {
+      "name": "line",
+      "height": "12px",
+      "evidence": ".ak-skeleton--line sets height 12px."
+    },
+    {
+      "name": "title",
+      "height": "18px",
+      "evidence": ".ak-skeleton--title sets height 18px, width 50%."
+    },
+    {
+      "name": "circle",
+      "size": "32px",
+      "evidence": ".ak-skeleton--circle sets width/height 32px, full radius."
+    }
+  ],
+  "stateCoverage": {
+    "states": []
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-skeleton",
+      "whySelected": "Representative selector present in preview component CSS.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-skeleton--circle",
+      "whySelected": "Circular shape for avatar placeholders.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-skeleton.html",
+    "selectors": [
+      ".ak-skeleton",
+      ".ak-skeleton--line",
+      ".ak-skeleton--title",
+      ".ak-skeleton--circle"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-skeleton.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-b.css as the executable rendering contract.",
+    "Use preview/component-skeleton.html and components-group-b.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-b.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this repair pass."
+  ],
+  "tokensConsumed": [
+    "--bg-overlay-l2",
+    "--bg-overlay-l3",
+    "--radius-8",
+    "--radius-full"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-skeleton.html",
+      "classes": [
+        "ak-skeleton",
+        "ak-skeleton--circle",
+        "ak-skeleton--line",
+        "ak-skeleton--title"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-skeleton.html",
+    "source": "preview/component-skeleton.html",
+    "css": {
+      "file": "components-group-b.css",
+      "marker": "skeleton"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

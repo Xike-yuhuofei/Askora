@@ -27,6 +27,7 @@ OnboardingActionCode = Literal[
     "START_ACTIVITY",
     "RESUME_ACTIVITY",
     "COMPLETE_ACTIVITY",
+    "OPEN_WELCOME",
     "OPEN_TODAY",
     "WAIT",
     "RECOVER",

@@ -18,15 +18,15 @@
 .learning-block--feedback,
 .learning-block--review,
 .learning-block--evidence {
-  border: 1px solid var(--border-subtle, #dfe3e8);
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
   padding: 0.9rem 1rem;
 }
 
 .learning-block__eyebrow,
 .learning-block__qualifier,
 .learning-block--evidence figcaption {
-  color: var(--text-secondary, #5f6873);
+  color: var(--text-secondary);
   font-size: 0.78rem;
 }
 
@@ -45,7 +45,7 @@
 }
 
 .learning-message-action {
-  border: 1px solid var(--border-subtle, #dfe3e8);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
   padding: 0.4rem 0.75rem;
@@ -53,8 +53,7 @@
 }
 
 .learning-message-action:focus-visible {
-  outline: 2px solid var(--focus-ring, #356ae6);
-  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
 }
 
 .learning-message-action:disabled {
@@ -64,6 +63,6 @@
 
 .learning-message-action-status {
   align-self: center;
-  color: var(--color-danger, #b42318);
+  color: var(--error);
   font-size: 0.8125rem;
 }

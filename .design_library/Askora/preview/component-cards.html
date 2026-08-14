@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>卡片 Card</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacer-24); }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>卡片 Card</h1>
+    <p>
+      用于承载内容块的基础容器。默认带细边框；Elevated 用于浮起层级；Interactive 可点击；Brand / Success / Danger 顶部色条用于强调语义。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">基础卡片</div>
+    <div class="grid-3">
+      <div class="ak-card">
+        <h3 class="ak-card__title">今日复习</h3>
+        <p class="ak-card__desc">根据间隔重复算法，今天有 12 张卡片需要复习，预计用时 8 分钟。</p>
+        <div class="ak-card__footer"><button class="ak-btn ak-btn--brand ak-btn--sm"><span>开始复习</span></button></div>
+      </div>
+      <div class="ak-card">
+        <h3 class="ak-card__title">掌握度</h3>
+        <p class="ak-card__desc">线性代数章节整体掌握度 78%，其中矩阵运算表现最佳。</p>
+        <div class="ak-card__footer"><button class="ak-btn ak-btn--secondary ak-btn--sm"><span>查看详情</span></button></div>
+      </div>
+      <div class="ak-card">
+        <h3 class="ak-card__title">学习建议</h3>
+        <p class="ak-card__desc">建议将「概率论」加入本周计划，以巩固近期薄弱知识点。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">语义强调</div>
+    <div class="grid-3">
+      <div class="ak-card ak-card--brand">
+        <h3 class="ak-card__title">推荐课程</h3>
+        <p class="ak-card__desc">基于你的学习目标推荐的进阶课程。</p>
+      </div>
+      <div class="ak-card ak-card--success">
+        <h3 class="ak-card__title">目标达成</h3>
+        <p class="ak-card__desc">本周学习时长目标已完成 100%。</p>
+      </div>
+      <div class="ak-card ak-card--danger">
+        <h3 class="ak-card__title">需要关注</h3>
+        <p class="ak-card__desc">连续 3 天未复习，建议尽快恢复节奏。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">层级与交互</div>
+    <div class="grid-2">
+      <div class="ak-card ak-card--elevated">
+        <h3 class="ak-card__title">悬浮卡片</h3>
+        <p class="ak-card__desc">使用阴影浮起，适合弹层或强调内容。</p>
+      </div>
+      <div class="ak-card ak-card--interactive">
+        <h3 class="ak-card__title">可点击卡片</h3>
+        <p class="ak-card__desc">悬停时边框加深并出现轻微阴影，适合列表项导航。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -6,12 +6,12 @@
 
 .learning-shell__content {
   flex: 1;
-  padding: 24px;
+  padding: 32px clamp(24px, 4vw, 56px);
   overflow-y: auto;
 }
 
 @media (max-width: 768px) {
   .learning-shell__content {
-    padding: 16px;
+    padding: 72px 16px 20px;
   }
 }

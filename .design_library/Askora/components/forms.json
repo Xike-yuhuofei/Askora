@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 2,
+  "slug": "forms",
+  "name": "表单 Form",
+  "category": "input",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Form",
+      "evidence": "Inferred from preview/component-forms.html title and component CSS selectors (.ak-field, .ak-input)."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "style-state-density",
+      "values": [
+        ".ak-field",
+        ".ak-label",
+        ".ak-label__required",
+        ".ak-input",
+        ".ak-select",
+        ".ak-textarea",
+        ".ak-input--error",
+        ".ak-textarea--error",
+        ".ak-checkbox",
+        ".ak-radio",
+        ".ak-switch",
+        ".ak-switch__track",
+        ".ak-help",
+        ".ak-error",
+        ".ak-form__row"
+      ],
+      "evidence": "Representative selectors from preview/component-forms.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-forms.html",
+    "representativeSelectors": [
+      ".ak-field",
+      ".ak-label",
+      ".ak-label__required",
+      ".ak-input",
+      ".ak-input:hover",
+      ".ak-input:focus",
+      ".ak-input--error",
+      ".ak-input--error:focus",
+      ".ak-input[disabled]",
+      ".ak-select",
+      ".ak-textarea",
+      ".ak-checkbox",
+      ".ak-radio",
+      ".ak-switch",
+      ".ak-switch__track",
+      ".ak-help",
+      ".ak-error",
+      ".ak-form__row"
+    ],
+    "cssRuleCount": 28
+  },
+  "sizeDeltas": [],
+  "stateCoverage": {
+    "states": [
+      "hover",
+      "focus",
+      "disabled",
+      "error"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-input",
+      "whySelected": "Primary text input atom with focus ring.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-input--error",
+      "whySelected": "Error state with red border and focus ring.",
+      "traits": [],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-switch",
+      "whySelected": "Toggle switch with brand-blue checked track.",
+      "traits": [],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-forms.html",
+    "selectors": [
+      ".ak-field",
+      ".ak-label",
+      ".ak-label__required",
+      ".ak-input",
+      ".ak-select",
+      ".ak-textarea",
+      ".ak-input--error",
+      ".ak-textarea--error",
+      ".ak-checkbox",
+      ".ak-radio",
+      ".ak-switch",
+      ".ak-switch__track",
+      ".ak-help",
+      ".ak-error",
+      ".ak-form__row"
+    ]
+  },
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-forms.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-a.css as the executable rendering contract.",
+    "Use preview/component-forms.html and components-group-a.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-a.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this build pass."
+  ],
+  "tokensConsumed": [
+    "--bg-brand",
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--body-base-font-family",
+    "--body-base-font-size",
+    "--body-base-line-height",
+    "--body-sm-font-family",
+    "--body-sm-font-size",
+    "--body-sm-line-height",
+    "--border-neutral-l1",
+    "--border-neutral-l2",
+    "--border-neutral-l3",
+    "--font-weight-medium",
+    "--radius-8",
+    "--radius-full",
+    "--shadow-1",
+    "--spacer-2",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--spacer-16",
+    "--spacer-32",
+    "--status-error-default",
+    "--status-error-surface-l1",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-disabled",
+    "--text-tertiary"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-forms.html",
+      "classes": [
+        "ak-checkbox",
+        "ak-checkbox--disabled",
+        "ak-error",
+        "ak-field",
+        "ak-form__row",
+        "ak-help",
+        "ak-input",
+        "ak-input--error",
+        "ak-label",
+        "ak-label__required",
+        "ak-radio",
+        "ak-radio--disabled",
+        "ak-select",
+        "ak-switch",
+        "ak-switch__track",
+        "ak-textarea"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-forms.html",
+    "source": "preview/component-forms.html",
+    "css": {
+      "file": "components-group-a.css",
+      "marker": "forms"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
+}

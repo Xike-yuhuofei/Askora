@@ -1,0 +1,38 @@
+.material-destination {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--text-primary) 32%, transparent);
+}
+
+.material-destination__panel {
+  width: min(560px, 100%);
+  max-height: min(88vh, 720px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.material-destination__panel h2,
+.material-destination__panel h3 {
+  margin: 0 0 8px;
+}
+
+.material-destination__panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.material-destination__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

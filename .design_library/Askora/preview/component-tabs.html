@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>标签页 Tabs</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .stack-24 { display: flex; flex-direction: column; gap: var(--spacer-24); }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>标签页 Tabs</h1>
+    <p>
+      用于在同一内容区域内切换视图。激活标签使用系统蓝文字与底部指示条，支持禁用态与内容面板。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">基础标签页</div>
+    <div class="stack-24">
+      <div class="ak-tabs" role="tablist">
+        <button class="ak-tabs__tab ak-tabs__tab--active" role="tab" aria-selected="true">概览</button>
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">学习记录</button>
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">掌握度</button>
+        <button class="ak-tabs__tab ak-tabs__tab--disabled" role="tab" aria-selected="false" disabled>分析（即将上线）</button>
+      </div>
+      <div class="ak-tabs__panel">这里是「概览」面板的内容，展示本周学习进度与关键指标。</div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">多标签示例</div>
+    <div class="stack-24">
+      <div class="ak-tabs" role="tablist">
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">全部</button>
+        <button class="ak-tabs__tab ak-tabs__tab--active" role="tab" aria-selected="true">课程</button>
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">笔记</button>
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">收藏</button>
+        <button class="ak-tabs__tab" role="tab" aria-selected="false">历史</button>
+      </div>
+      <div class="ak-tabs__panel">当前显示「课程」分类下的内容列表。</div>
+    </div>
+  </div>
+</body>
+</html>

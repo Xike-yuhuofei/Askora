@@ -9,7 +9,7 @@
 .evidence-estimate span, .evidence-estimate small { color: var(--text-muted); font-size: 12px; }
 .evidence-estimate strong { font-size: 17px; }
 .evidence-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 0; }
-.evidence-counts div { padding: 12px; border-radius: 10px; background: var(--surface-container); }
+.evidence-counts div { padding: 12px; border-radius: var(--radius-l); background: var(--surface-container); }
 .evidence-counts dt { margin-bottom: 4px; color: var(--text-muted); font-size: 12px; }
 .evidence-counts dd { margin: 0; }
 @media (max-width: 680px) { .evidence-list__heading { flex-direction: column; } .evidence-estimate { align-items: flex-start; text-align: left; } .evidence-counts { grid-template-columns: 1fr 1fr; } }

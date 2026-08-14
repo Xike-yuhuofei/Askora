@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>分页 Pagination</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>分页 Pagination</h1>
+    <p>
+      用于长列表或表格的分页导航。当前页使用系统蓝填充，省略号表示折叠页码，支持上一页 / 下一页与总数信息。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">基础分页</div>
+    <div class="stack-16">
+      <div class="ak-pagination">
+        <button class="ak-pagination__item ak-pagination__prev" aria-label="上一页"><span>‹</span><span>上一页</span></button>
+        <button class="ak-pagination__item">1</button>
+        <button class="ak-pagination__item ak-pagination__item--active">2</button>
+        <button class="ak-pagination__item">3</button>
+        <button class="ak-pagination__item">4</button>
+        <button class="ak-pagination__item">5</button>
+        <button class="ak-pagination__item ak-pagination__next"><span>下一页</span><span>›</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">省略号折叠</div>
+    <div class="stack-16">
+      <div class="ak-pagination">
+        <button class="ak-pagination__item ak-pagination__prev" aria-label="上一页"><span>‹</span><span>上一页</span></button>
+        <button class="ak-pagination__item">1</button>
+        <span class="ak-pagination__ellipsis">…</span>
+        <button class="ak-pagination__item">8</button>
+        <button class="ak-pagination__item ak-pagination__item--active">9</button>
+        <button class="ak-pagination__item">10</button>
+        <span class="ak-pagination__ellipsis">…</span>
+        <button class="ak-pagination__item">24</button>
+        <button class="ak-pagination__item ak-pagination__next"><span>下一页</span><span>›</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">边界状态与信息</div>
+    <div class="stack-16">
+      <div class="ak-pagination">
+        <button class="ak-pagination__item ak-pagination__prev ak-pagination__item--disabled" aria-label="上一页" disabled><span>‹</span><span>上一页</span></button>
+        <button class="ak-pagination__item ak-pagination__item--active">1</button>
+        <button class="ak-pagination__item">2</button>
+        <button class="ak-pagination__item">3</button>
+        <button class="ak-pagination__item ak-pagination__next"><span>下一页</span><span>›</span></button>
+        <span class="ak-pagination__info">共 3 页 · 42 条记录</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

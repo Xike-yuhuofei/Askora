@@ -207,6 +207,45 @@ async def test_exec023_readiness_is_derived_and_blocked_content_cannot_advance(
 
 
 @pytest.mark.asyncio
+async def test_adopt_goal_from_material_does_not_require_user_confirmation(
+    book_learning_db,
+) -> None:
+    db, tmp_path = book_learning_db
+    user, document, _units = await _processed_book(db, tmp_path, "adopt")
+    app = BookLearningApplication(db)
+    readiness = await app.readiness(
+        user=user, document_id=UUID(document.id), correlation_id="adopt-ready"
+    )
+    assert readiness.state == "READY_FOR_GOAL"
+    assert readiness.next_commands == ("AdoptLearningGoalFromMaterial",)
+
+    adopted = await app.adopt_goal_from_material(
+        user=user,
+        document_id=UUID(document.id),
+        idempotency_key="adopt-from-material",
+        correlation_id=uuid4(),
+    )
+    goal = adopted.payload["goal"]
+    assert goal["status"] == "active"
+    assert goal["confirmed_by_user"] is False
+    assert "GOAL_SYSTEM_ADOPTED_FROM_MATERIAL" in goal["reason_codes"]
+
+    after = await app.readiness(
+        user=user, document_id=UUID(document.id), correlation_id="adopt-after"
+    )
+    assert after.state != "READY_FOR_GOAL"
+    assert after.state != "GOAL_CONFIRMATION_REQUIRED"
+
+    document.workspace_id = None
+    await db.flush()
+    blocked = await app.readiness(
+        user=user, document_id=UUID(document.id), correlation_id="adopt-unassigned"
+    )
+    assert blocked.state == "BLOCKED"
+    assert "MATERIAL_UNASSIGNED_CANNOT_START_GROUNDED_LEARNING" in blocked.reason_codes
+
+
+@pytest.mark.asyncio
 async def test_exec023_first_activity_uses_canonical_action_and_real_exec020_bundle(
     book_learning_db,
 ) -> None:

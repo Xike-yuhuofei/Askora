@@ -122,7 +122,7 @@ describe('P107 recovery center', () => {
   it('uses an honest empty state', async () => {
     recoveryApi.listRecoveryIssues.mockResolvedValue({ ...payload, issues: [], active_count: 0 })
     render(<RouterProvider><RecoveryCenter /></RouterProvider>)
-    expect(await screen.findByText('目前没有待处理问题')).toBeInTheDocument()
+    expect(await screen.findByText('目前没有需要恢复的问题')).toBeInTheDocument()
     expect(screen.getByText(/不代表绝对安全/)).toBeInTheDocument()
   })
 

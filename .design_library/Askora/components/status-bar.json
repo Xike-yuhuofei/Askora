@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 2,
+  "slug": "status-bar",
+  "name": "Learning Status Bar",
+  "category": "feedback",
+  "sourceKind": "preview-contract",
+  "confidence": "medium",
+  "semanticTypeCandidates": [
+    {
+      "type": "Learning Status Bar",
+      "evidence": "Inferred from preview/component-status-bar.html: bottom bar with learning session state, progress, and action toggles."
+    }
+  ],
+  "variantDimensions": [
+    {
+      "name": "configuration-state",
+      "values": [
+        ".ak-status-bar",
+        ".ak-status-bar__left",
+        ".ak-status-bar__right",
+        ".ak-status-bar__item",
+        ".ak-status-bar__item.is-brand",
+        ".ak-status-bar__dot.is-busy",
+        ".ak-status-bar__action.is-active"
+      ],
+      "evidence": "Representative selectors from preview/component-status-bar.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-status-bar.html",
+    "representativeSelectors": [
+      ".ak-status-bar",
+      ".ak-status-bar__left",
+      ".ak-status-bar__right",
+      ".ak-status-bar__item",
+      ".ak-status-bar__item.is-interactive",
+      ".ak-status-bar__item.is-interactive:hover",
+      ".ak-status-bar__item.is-brand",
+      ".ak-status-bar__dot",
+      ".ak-status-bar__dot.is-idle",
+      ".ak-status-bar__dot.is-busy",
+      ".ak-status-bar__divider",
+      ".ak-status-bar__action",
+      ".ak-status-bar__action:hover",
+      ".ak-status-bar__action.is-active"
+    ],
+    "cssRuleCount": 17
+  },
+  "sizeDeltas": [
+    {
+      "dimension": "height",
+      "value": "32px",
+      "evidence": "Compact bottom bar height."
+    },
+    {
+      "dimension": "item-height",
+      "value": "24px",
+      "evidence": "Status item height."
+    },
+    {
+      "dimension": "dot-size",
+      "value": "8px",
+      "evidence": "Session state indicator dot."
+    }
+  ],
+  "stateCoverage": {
+    "states": [
+      "default",
+      "hover",
+      "active",
+      "idle",
+      "busy"
+    ]
+  },
+  "representativeVariants": [
+    {
+      "selector": ".ak-status-bar",
+      "whySelected": "Root bottom status bar.",
+      "traits": [
+        "display: flex",
+        "align-items: center",
+        "justify-content: space-between",
+        "height: 32px",
+        "padding: 0 var(--spacer-12)",
+        "background: var(--bg-base-secondary)",
+        "border-top: 1px solid var(--border-neutral-l1)"
+      ],
+      "childrenDigest": [
+        ".ak-status-bar__left",
+        ".ak-status-bar__right"
+      ]
+    },
+    {
+      "selector": ".ak-status-bar__dot.is-busy",
+      "whySelected": "Busy session indicator (e.g. generating explanation).",
+      "traits": [
+        "background: var(--status-warning-default)"
+      ],
+      "childrenDigest": []
+    },
+    {
+      "selector": ".ak-status-bar__action.is-active",
+      "whySelected": "Active right-side toggle action.",
+      "traits": [
+        "color: var(--icon-brand)",
+        "background: var(--status-primary-surface-l1)"
+      ],
+      "childrenDigest": []
+    }
+  ],
+  "anatomy": {
+    "source": "preview/component-status-bar.html",
+    "selectors": [
+      ".ak-status-bar",
+      ".ak-status-bar__left",
+      ".ak-status-bar__right",
+      ".ak-status-bar__item",
+      ".ak-status-bar__dot",
+      ".ak-status-bar__divider",
+      ".ak-status-bar__action"
+    ]
+  },
+  "structurePatterns": [
+    "Bottom-fixed bar (32px) spanning the workspace width.",
+    "Left section: session state dot + current goal + progress.",
+    "Right section: divider + action toggles (面板 / 目标 / 设置).",
+    "Status dot reflects idle (neutral) / busy (warning) / success (green) states.",
+    "Interactive items get a hover overlay; active toggles use system-blue soft surface."
+  ],
+  "usageHints": [
+    "Use as the persistent bottom bar of the learning workspace.",
+    "Left shows session state and current learning goal; right hosts view toggles.",
+    "Use is-busy while the assistant is generating a response.",
+    "Keep right-side actions to 2-3 to avoid clutter."
+  ],
+  "doNotInvent": [
+    "Do not make the status bar taller than 32px.",
+    "Do not add more than 3 right-side actions.",
+    "Do not use the status bar for primary navigation.",
+    "Do not add states absent from the preview marker block."
+  ],
+  "unknowns": [
+    "Exact progress percentage formatting is not frozen in this contract."
+  ],
+  "tokensConsumed": [
+    "--bg-base-secondary",
+    "--bg-overlay-l1",
+    "--border-neutral-l1",
+    "--status-success-default",
+    "--status-warning-default",
+    "--status-primary-surface-l1",
+    "--text-default",
+    "--text-secondary",
+    "--text-tertiary",
+    "--text-brand",
+    "--icon-default",
+    "--icon-tertiary",
+    "--icon-brand",
+    "--radius-6",
+    "--radius-full",
+    "--spacer-4",
+    "--spacer-6",
+    "--spacer-8",
+    "--spacer-12",
+    "--body-sm-font-size"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "div",
+      "source": "preview/component-status-bar.html",
+      "classes": [
+        "ak-status-bar",
+        "ak-status-bar__left",
+        "ak-status-bar__right",
+        "ak-status-bar__item",
+        "ak-status-bar__dot",
+        "ak-status-bar__divider",
+        "ak-status-bar__action"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-status-bar.html",
+    "source": "preview/component-status-bar.html",
+    "css": {
+      "file": "components-group-c.css",
+      "marker": "status-bar"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup."
+  },
+  "assetsConsumed": []
+}

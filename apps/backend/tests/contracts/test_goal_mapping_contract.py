@@ -31,10 +31,18 @@ def _goal(**updates) -> LearningGoalV1:
 
 
 def test_d04_goal_confirmation_cannot_be_asserted_by_candidate_or_model() -> None:
-    with pytest.raises(ValidationError, match="explicit user confirmation"):
-        _goal(status="confirmed", confirmed_by_user=False)
+    with pytest.raises(ValidationError, match="explicit user confirmation or system adoption"):
+        _goal(status="confirmed", confirmed_by_user=False, confirmed_at=NOW)
     with pytest.raises(ValidationError, match="candidate goal cannot"):
         _goal(status="candidate", confirmed_by_user=True)
+    adopted = _goal(
+        status="active",
+        confirmed_by_user=False,
+        confirmed_at=NOW,
+        reason_codes=("GOAL_FORMATION_DETERMINISTIC_FALLBACK", "GOAL_SYSTEM_ADOPTED_FROM_MATERIAL"),
+    )
+    assert adopted.status == "active"
+    assert adopted.confirmed_by_user is False
 
 
 def test_d04_blocked_mapping_requires_bounded_clarification() -> None:

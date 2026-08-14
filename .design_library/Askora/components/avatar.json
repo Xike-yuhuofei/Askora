@@ -2,57 +2,124 @@
   "schemaVersion": 2,
   "slug": "avatar",
   "name": "Avatar",
-  "category": "Data Display",
-  "sourceKind": "from-scratch",
+  "category": "data-display",
+  "sourceKind": "preview-contract",
   "confidence": "medium",
   "semanticTypeCandidates": [
-    { "type": "avatar", "evidence": "User profile image or initials" },
-    { "type": "icon-avatar", "evidence": "AI assistant branded icon avatar" }
+    {
+      "type": "Avatar",
+      "evidence": "Inferred from preview/component-avatar.html title and component CSS selectors."
+    }
   ],
-  "variantDimensions": {
-    "type": ["user", "assistant", "system"],
-    "size": ["xs", "sm", "md", "lg"],
-    "status": ["none", "online", "away", "typing"],
-    "shape": ["circle", "rounded"]
+  "variantDimensions": [
+    {
+      "name": "size",
+      "values": [
+        ".ak-avatar",
+        ".ak-avatar--sm",
+        ".ak-avatar--lg"
+      ],
+      "evidence": "Representative selectors from preview/component-avatar.html."
+    }
+  ],
+  "coverageMatrix": {
+    "source": "preview/component-avatar.html",
+    "representativeSelectors": [
+      ".ak-avatar",
+      ".ak-avatar--sm",
+      ".ak-avatar--lg"
+    ],
+    "cssRuleCount": 3
+  },
+  "sizeDeltas": [
+    {
+      "name": "sm",
+      "size": "24px",
+      "evidence": ".ak-avatar--sm sets width/height 24px."
+    },
+    {
+      "name": "md",
+      "size": "32px",
+      "evidence": "Default .ak-avatar sets width/height 32px."
+    },
+    {
+      "name": "lg",
+      "size": "40px",
+      "evidence": ".ak-avatar--lg sets width/height 40px."
+    }
+  ],
+  "stateCoverage": {
+    "states": []
   },
   "representativeVariants": [
     {
-      "name": "Assistant MD",
-      "whySelected": "AI assistant avatar in chat messages — branded icon style",
-      "traits": { "type": "assistant", "size": "md", "status": "none", "shape": "rounded" },
-      "childrenDigest": "Brand-colored rounded square background with white AI icon, 32px size"
+      "selector": ".ak-avatar",
+      "whySelected": "Representative selector present in preview component CSS.",
+      "traits": [],
+      "childrenDigest": []
     },
     {
-      "name": "User MD",
-      "whySelected": "User avatar in chat and sidebar",
-      "traits": { "type": "user", "size": "md", "status": "online", "shape": "circle" },
-      "childrenDigest": "Circular user image + green online status dot bottom-right, 32px size"
-    },
-    {
-      "name": "Assistant Typing SM",
-      "whySelected": "Small typing indicator avatar in message input area",
-      "traits": { "type": "assistant", "size": "sm", "status": "typing", "shape": "rounded" },
-      "childrenDigest": "Small assistant icon + pulsing animation indicator, 24px size"
-    },
-    {
-      "name": "System XS",
-      "whySelected": "System message indicator icon",
-      "traits": { "type": "system", "size": "xs", "status": "none", "shape": "circle" },
-      "childrenDigest": "Small circular icon with info symbol, muted gray, 16px size"
+      "selector": ".ak-avatar--lg",
+      "whySelected": "Largest size variant for group overflow indicators.",
+      "traits": [],
+      "childrenDigest": []
     }
   ],
-  "anatomy": ["Container / Background", "Image or Icon", "Status Indicator (optional)", "Status Ring (optional)"],
-  "structurePatterns": [
-    "User avatars are circular; assistant avatars use rounded square (Apple icon style)",
-    "Status indicators positioned at bottom-right, overlapping slightly",
-    "Assistant avatars use brand gradient background with white icon"
-  ],
-  "usageHints": {
-    "assistant": "AI response messages, typing indicators, assistant branding",
-    "user": "User messages, profile display, participant list",
-    "system": "System messages, notifications, info indicators"
+  "anatomy": {
+    "source": "preview/component-avatar.html",
+    "selectors": [
+      ".ak-avatar",
+      ".ak-avatar--sm",
+      ".ak-avatar--lg"
+    ]
   },
-  "doNotInvent": ["Avatar group / stack", "Editable avatar uploader", "Avatar with badge count"],
-  "unknowns": ["Assistant icon design (specific AI symbol)", "Status indicator exact positioning"],
-  "keyInsightSeed": "User and AI assistant avatars with status indicators for chat presence and typing state"
+  "structurePatterns": [],
+  "usageHints": [
+    "Copy component markup from preview/component-avatar.html; keep page/demo-only styles outside shared component CSS.",
+    "Use colors_and_type.css + components-group-b.css as the executable rendering contract.",
+    "Use preview/component-avatar.html and components-group-b.css as the executable rendering contract."
+  ],
+  "doNotInvent": [
+    "Do not add variants or states that are absent from the preview marker block without updating the component contract.",
+    "Do not add visual states or component parts not present in the preview or components-group-b.css.",
+    "Do not treat this inferred JSON as original Figma evidence."
+  ],
+  "unknowns": [
+    "Original design evidence was not available during this repair pass."
+  ],
+  "tokensConsumed": [
+    "--bg-overlay-l3",
+    "--body-base-strong-font-family",
+    "--body-base-strong-font-size",
+    "--body-base-strong-font-weight",
+    "--body-base-strong-line-height",
+    "--body-sm-font-size",
+    "--radius-full",
+    "--text-default"
+  ],
+  "domAnatomy": {
+    "root": {
+      "tag": "preview-fragment",
+      "source": "preview/component-avatar.html",
+      "classes": [
+        "ak-avatar",
+        "ak-avatar--lg",
+        "ak-avatar--sm"
+      ]
+    },
+    "componentCssMarker": {
+      "start": "/* @component-css-start */",
+      "end": "/* @component-css-end */"
+    }
+  },
+  "provenance": {
+    "preview": "preview/component-avatar.html",
+    "source": "preview/component-avatar.html",
+    "css": {
+      "file": "components-group-b.css",
+      "marker": "avatar"
+    },
+    "contractBasis": "Derived from the component preview marker block and rendered .ak-* markup; original design evidence was not available."
+  },
+  "assetsConsumed": []
 }

@@ -1,74 +1,49 @@
 .right-rail {
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 100;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   width: var(--rail-width);
-  height: 100vh;
-  border-left: 1px solid var(--border);
-  background: var(--canvas);
+  margin-top: 8px;
+  margin-bottom: 8px;
+  margin-right: 8px;
+  border-radius: var(--radius-l);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  transition: width .18s ease, visibility 0s linear 0s;
 }
 
 .right-rail__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 16px 14px 14px;
+  padding: 12px 10px 12px 12px;
   border-bottom: 1px solid var(--border);
-}
-
-.right-rail-collapse {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.right-rail--collapsed .right-rail__header {
-  flex-direction: column;
-  padding: 12px 8px;
-  border-bottom: 0;
-}
-
-.right-rail--collapsed .right-rail__title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
-.right-rail--collapsed .right-rail__tabs,
-.right-rail--collapsed .right-rail__content {
-  display: none;
-}
-
-.right-rail__title {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .right-rail__tabs {
   display: flex;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .right-rail__tab {
-  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
   background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
   color: var(--text-muted);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color .16s ease, border-color .16s ease;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
 }
 
 .right-rail__tab:hover {
@@ -77,13 +52,57 @@
 }
 
 .right-rail__tab.is-active {
+  background: var(--surface);
+  border-color: var(--border-strong);
   color: var(--text-primary);
-  border-bottom-color: var(--brand-primary);
 }
 
 .right-rail__tab:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.right-rail__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.right-rail-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color .12s ease, background-color .12s ease;
+}
+
+.right-rail-collapse:hover {
+  color: var(--text-primary);
+  background: var(--surface-container);
+}
+
+.right-rail-collapse:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.right-rail--collapsed .right-rail__header {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 12px 8px;
+  border-bottom: 0;
+}
+
+.right-rail--collapsed .right-rail__tabs,
+.right-rail--collapsed .right-rail__content {
+  display: none;
 }
 
 .right-rail__content {
@@ -98,7 +117,7 @@
   margin: 0;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   color: var(--text-muted);
   font-size: .8125rem;
   line-height: 1.5;
@@ -134,7 +153,7 @@
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-m);
   background: var(--surface);
   color: var(--text-primary);
   font-size: 0.8125rem;
@@ -166,7 +185,7 @@
   height: 100%;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-l);
   background: var(--surface);
 }
 
@@ -271,6 +290,15 @@
 .current-material-panel__footer span {
   font-size: 0.6875rem;
   color: var(--text-muted);
+}
+
+/* Desktop: a collapsed rail is fully hidden (no narrow strip); its expand
+   control moves into the window title bar (.app-titlebar in AppShell). */
+@media (min-width: 769px) {
+  .right-rail--collapsed {
+    visibility: hidden;
+    transition: width .18s ease, visibility 0s linear .18s;
+  }
 }
 
 @media (max-width: 768px) {

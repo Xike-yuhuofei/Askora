@@ -1,16 +1,52 @@
 {
-  "schemaVersion": 1,
-  "tokenSource": "css.json",
-  "componentEvidenceIndex": "components/index.json",
-  "uikitPlan": "uikit-plan.json",
-  "recommendedReadOrder": [
-    "SKILL.md",
-    "css.json",
-    "components/index.json",
-    "components/{slug}.json",
-    "preview/component-{slug}.html",
-    "ui_kits/chat-workspace/index.html"
-  ],
-  "coreComponents": ["button", "card", "input", "navigation"],
-  "supportComponents": ["avatar", "tag"]
+  "schemaVersion": 2,
+  "library": "Askora",
+  "consumptionLayers": {
+    "tokens": {
+      "source": "colors_and_type.css",
+      "machineReadable": "css.json",
+      "note": "Askora canonical tokens + TraeWork-compatible aliases pointing to Askora values."
+    },
+    "components": {
+      "source": "components.css",
+      "index": "components/index.json",
+      "classPrefix": ".ak-",
+      "note": "19 components; each preview uses one @component-css-start/end marker block aggregated into components.css."
+    },
+    "icons": {
+      "source": "assets/icons/",
+      "usage": {
+        "mask": "currentColor",
+        "defaultSize": "16px",
+        "compactSize": "14px",
+        "largeSize": "24px",
+        "rule": "Local SVG only; no external icon fonts, libraries, or CDNs."
+      }
+    },
+    "uikit": {
+      "source": "ui_kits/",
+      "note": "Page-level compositions reusing .ak- components; each has a quality-report.json."
+    }
+  },
+  "downstreamScenarios": {
+    "useTokensOnly": {
+      "description": "Consume colors_and_type.css tokens directly for bespoke layouts.",
+      "files": ["colors_and_type.css"]
+    },
+    "buildSingleComponent": {
+      "description": "Copy one component's markup from preview/component-{slug}.html.",
+      "files": ["components.css", "preview/component-{slug}.html"]
+    },
+    "buildFullPageCustomCanvas": {
+      "description": "Compose a full page from .ak- components plus page-level styles.",
+      "files": ["colors_and_type.css", "components.css", "ui_kits/learning-workspace/index.html"]
+    }
+  },
+  "iconUsage": {
+    "mask": "currentColor",
+    "defaultSize": "16px",
+    "compactSize": "14px",
+    "largeSize": "24px",
+    "rule": "Local SVG only; no external icon fonts, libraries, or CDNs."
+  }
 }

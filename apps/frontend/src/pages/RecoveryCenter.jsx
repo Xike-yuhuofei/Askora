@@ -19,6 +19,14 @@ const duplicateCopy = {
   not_applicable: '此动作没有服务端副作用',
 }
 
+function issueStatus(issue) {
+  const actionable = issue.actions || []
+  const hasEnabledServerAction = actionable.some((action) => action.enabled && action.kind !== 'client' && action.kind !== 'wait')
+  if (hasEnabledServerAction) return { label: '可恢复', tone: 'ok' }
+  if (actionable.some((action) => action.kind === 'wait')) return { label: '暂无法恢复', tone: 'warn' }
+  return { label: '需手动处理', tone: 'muted' }
+}
+
 export default function RecoveryCenter() {
   const navigate = useNavigate()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
@@ -95,28 +103,36 @@ export default function RecoveryCenter() {
 
       <p ref={resultRef} className="recovery-result" role="status" tabIndex="-1">{result}</p>
 
-      {state.status === 'loading' && <div className="surface inline-state" role="status"><div className="spinner" /> 正在检查可恢复问题…</div>}
+      {state.status === 'loading' && <div className="surface inline-state" role="status"><div className="spinner" /> 正在读取恢复中心…</div>}
       {state.status === 'error' && (
         <section className="surface recovery-load-error" role="alert">
           <AlertTriangle size={20} />
-          <div><h2>暂时无法读取恢复状态</h2><p>{state.error.message}（{state.error.code}）</p></div>
+          <div><h2>恢复中心暂时无法读取</h2><p>{state.error.message}（{state.error.code}）</p></div>
         </section>
       )}
       {state.status === 'ready' && state.data.issues.length === 0 && (
         <section className="surface recovery-empty">
           <CheckCircle2 size={28} aria-hidden="true" />
-          <h2>目前没有待处理问题</h2>
+          <h2>目前没有需要恢复的问题</h2>
           <p>最近检查：{new Date(state.data.generated_at).toLocaleString('zh-CN')}。这表示当前未检测到已知问题，不代表绝对安全。</p>
         </section>
       )}
       {state.status === 'ready' && state.data.issues.length > 0 && (
-        <div className="recovery-list">
-          {state.data.issues.map((issue) => (
-            <article className={`surface recovery-card recovery-card--${issue.severity}`} key={issue.issue_ref}>
-              <div className="recovery-card__title">
-                <AlertTriangle size={20} aria-hidden="true" />
-                <div><h2>{issue.title}</h2><p>{issue.summary}</p></div>
-              </div>
+        <section className="recovery-section" aria-labelledby="pending-title">
+          <h2 id="pending-title">待处理问题</h2>
+          <div className="recovery-list">
+            {state.data.issues.map((issue) => (
+              <article className={`surface recovery-card recovery-card--${issue.severity}`} key={issue.issue_ref}>
+                <div className="recovery-card__title">
+                  <AlertTriangle size={20} aria-hidden="true" />
+                  <div>
+                    <div className="recovery-card__heading">
+                      <h2>{issue.title}</h2>
+                      <span className={`recovery-badge recovery-badge--${issueStatus(issue).tone}`}>{issueStatus(issue).label}</span>
+                    </div>
+                    <p>{issue.summary}</p>
+                  </div>
+                </div>
               <div className="recovery-facts">
                 <div><span>发生了什么</span><strong>{issue.code}</strong></div>
                 <div><span>数据是否安全</span><strong><ShieldCheck size={15} /> {safetyCopy[issue.data_safety]}</strong></div>
@@ -151,7 +167,8 @@ export default function RecoveryCenter() {
               </details>
             </article>
           ))}
-        </div>
+          </div>
+        </section>
       )}
     </div>
   )

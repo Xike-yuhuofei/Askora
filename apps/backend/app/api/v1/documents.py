@@ -45,6 +45,7 @@ from app.services.documents import get_document_service, get_rag_service
 from app.services.documents.library_management import LibraryManagementService
 from app.services.documents.material_lifecycle import MaterialLifecycleService
 from app.services.documents.ocr import OcrService
+from app.services.owner.canonical_identity import canonical_user_id
 from app.services.owner.dependencies import get_current_owner_projection
 from app.services.workspace.dependencies import get_default_workspace
 from app.services.workspace.repository import WorkspaceRepository
@@ -114,6 +115,36 @@ class UploadResponse(BaseModel):
     document_id: str
     status: str
     message: str
+    assignment_state: Literal["unassigned", "assigned"] = "unassigned"
+    workspace_id: Optional[str] = None
+
+
+class AssignMaterialRequest(BaseModel):
+    workspace_id: str
+    expected_lifecycle_version: int
+    idempotency_key: str = PydanticField(min_length=1, max_length=200)
+
+
+class AssignMaterialResponse(BaseModel):
+    schema_version: str = "1.0"
+    outcome: Literal["ASSIGNED", "ALREADY_ASSIGNED"]
+    material_id: str
+    workspace_id: str
+    assignment_state: Literal["assigned"]
+    lifecycle_version: int
+
+
+class UnassignedMaterialView(BaseModel):
+    document_id: str
+    title: str
+    processing_status: str
+    lifecycle_version: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class UnassignedMaterialListResponse(BaseModel):
+    items: list[UnassignedMaterialView]
 
 
 class ReinspectionResponse(BaseModel):
@@ -178,12 +209,15 @@ async def upload_document(
             file_content=file_content,
             subject=subject,
             knowledge_point_id=knowledge_point_id,
+            unassigned=True,
         )
 
         return UploadResponse(
             document_id=document.id,
             status=document.processing_status,
             message="文档已接收，正在后台处理",
+            assignment_state="assigned" if document.workspace_id else "unassigned",
+            workspace_id=document.workspace_id,
         )
 
     except ValueError as e:
@@ -406,6 +440,27 @@ async def update_document_metadata(
     )
 
 
+@router.get("/unassigned", response_model=UnassignedMaterialListResponse)
+async def list_unassigned_materials(
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    items = await MaterialLifecycleService(db).list_unassigned(user=current_user)
+    return UnassignedMaterialListResponse(
+        items=[
+            UnassignedMaterialView(
+                document_id=item.id,
+                title=item.display_title or item.original_filename,
+                processing_status=item.processing_status,
+                lifecycle_version=item.lifecycle_version,
+                created_at=item.created_at,
+                updated_at=item.updated_at,
+            )
+            for item in items
+        ]
+    )
+
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
@@ -514,6 +569,33 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="文档不存在")
 
     return {"success": True, "message": "文档已删除"}
+
+
+@router.post("/{document_id}/assign", response_model=AssignMaterialResponse)
+async def assign_material_to_workspace(
+    document_id: str,
+    body: AssignMaterialRequest,
+    current_user: User = Depends(get_current_owner_projection),
+    db: AsyncSession = Depends(get_db),
+):
+    workspace = await WorkspaceRepository(db).get_for_owner(
+        str(canonical_user_id(current_user.id)),
+        body.workspace_id,
+    )
+    if workspace is None or workspace.lifecycle != "active":
+        raise HTTPException(status_code=404, detail="空间不存在或不可访问")
+    service = MaterialLifecycleService(db)
+    try:
+        result = await service.assign_to_workspace(
+            user=current_user,
+            material_id=document_id,
+            workspace_id=body.workspace_id,
+            expected_version=body.expected_lifecycle_version,
+            idempotency_key=body.idempotency_key,
+        )
+    except MaterialLifecycleError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    return AssignMaterialResponse(**result)
 
 
 async def _material_workspace_id(db: AsyncSession, user: User) -> str:

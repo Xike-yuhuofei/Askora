@@ -206,7 +206,7 @@ OnboardingStepViewV1:
 
 ```yaml
 OnboardingNextActionV1:
-  action_code: ACKNOWLEDGE_BOUNDARIES|OPEN_MODEL_SETTINGS|OPEN_LIBRARY|SELECT_MATERIAL|OPEN_MATERIAL_LEARNING|CONTINUE_GOAL_SETUP|CONTINUE_DIAGNOSTIC|START_ACTIVITY|RESUME_ACTIVITY|COMPLETE_ACTIVITY|OPEN_TODAY|WAIT|RECOVER|NONE
+  action_code: ACKNOWLEDGE_BOUNDARIES|OPEN_MODEL_SETTINGS|OPEN_LIBRARY|SELECT_MATERIAL|OPEN_MATERIAL_LEARNING|CONTINUE_GOAL_SETUP|CONTINUE_DIAGNOSTIC|START_ACTIVITY|RESUME_ACTIVITY|COMPLETE_ACTIVITY|OPEN_WELCOME|OPEN_TODAY|WAIT|RECOVER|NONE
   kind: command|navigate|wait|recover|none
   label: string
   enabled: boolean
@@ -274,14 +274,19 @@ MODEL 只有在 P1-02 public summary 同时满足 `state=ACTIVE`、`runtime_read
 #### ONBOARD-031 — Material
 
 MATERIAL 只使用 SYS01 current-user current revision 与 Book Learning eligibility。pending/processing 为
-IN_PROGRESS；failed/quarantined 为 BLOCKED；deleted/missing 为 NOT_STARTED 或 STALE。多个 eligible
-资料且无 owner link 可唯一延续时，next action 必须为 SELECT_MATERIAL。
+IN_PROGRESS；本地确定性 parse / structure 已成功即为资料就绪（COMPLETE 的资料条件），不得因尚未
+hybrid LLM extraction 而保持 IN_PROGRESS。failed/quarantined 为 BLOCKED；deleted/missing 为
+NOT_STARTED 或 STALE。多个 eligible 资料且无 owner link 可唯一延续时，next action 必须为
+SELECT_MATERIAL。
 
 #### ONBOARD-032 — Goal
 
 GOAL 只使用 SYS06 按 `PD-RULE-004` 已采纳的 current/active Goal 与 canonical material mapping。draft、archived、
-superseded 或 source mapping unavailable 不算 COMPLETE。系统已采纳的 Goal 不算 incomplete。Onboarding 不创建或修改 Goal，
-也不把确认目标做成必经步骤。
+superseded 或 source mapping unavailable 不算 COMPLETE。系统已采纳的 Goal 不算 incomplete。Onboarding 不创建或修改 Goal。
+
+GOAL 是内部 readiness 投影，**不是用户可见步骤**。`next_action` MUST NOT 为 `CONTINUE_GOAL_SETUP`，
+也 MUST NOT 使用「确认目标 / 说明并确认学习目标」作为用户主操作。Welcome UI MUST NOT 把 GOAL /
+FIRST_ACTIVITY 画成向导步骤。
 
 #### ONBOARD-033 — First activity completion
 
@@ -303,22 +308,28 @@ Attempt 或前端 click 不得替代该投影。
 
 #### ONBOARD-034 — Single next action
 
-服务端 MUST 返回恰好一个 `next_action`。选择优先级：boundary acknowledgment → first incomplete/
-blocked step → completed journey OPEN_TODAY。跨多个候选对象没有唯一 owner link 时 MUST 返回选择页，
-不得隐式挑选。UI MUST NOT 重排或覆盖该决定。
+服务端 MUST 返回恰好一个 `next_action`。用户可见优先级：boundary acknowledgment → MODEL 未就绪 →
+MATERIAL 未就绪/处理中 → 唯一可恢复或可开始的 Activity → 停留 Welcome（`OPEN_WELCOME`）。
+
+不得因 GOAL 未「用户确认」把用户送去目标向导或 `/today`。`OPEN_TODAY` 仅作兼容枚举，新响应 MUST NOT
+再发出；完成或无唯一下一步时用 `OPEN_WELCOME`（`route=/welcome` 或 `/`）。跨多个候选对象没有唯一
+owner link 时 MUST 停在 Welcome 让用户选择，不得隐式挑选。UI MUST NOT 重排或覆盖该决定。
 
 ### 5. Entry Route and Deep Links
 
 #### ONBOARD-040
 
-`/welcome` MUST protected。只有用户 intended route 为 `/` 或 `/today`，且当前 response
-`should_enter_welcome=true` 时 MAY replace 到 `/welcome`。任何其他 explicit route/deep link MUST
-原样继续；onboarding query failure MUST NOT 把用户困在 welcome，也不得伪造 COMPLETE。
+`/` 与 `/welcome` 是打开 App 的稳定 Welcome destination（`UI-ROUTE-001` / `EXP-JOURNEY-002`），
+不是受保护的 first-use 向导。打开 App 必须先到 Welcome，不得根据 `should_enter_welcome` 改送到
+`/today`，也不得自动 resume。
+
+`/today`、`/learning` 只作 compatibility entry，解析到同一 Welcome。任何其他 explicit route/deep
+link MUST 原样继续；onboarding query failure MUST NOT 把用户困在向导，也不得伪造 COMPLETE。
 
 #### ONBOARD-041
 
-`should_enter_welcome=true` 当且仅当 preference ACTIVE、boundary/四步尚未形成 COMPLETE journey，
-且 query 没有阻止可信判断的关键 unauthorized/schema failure。Settings MUST 固定提供 REOPEN。
+`should_enter_welcome` 只表示 first-use 薄提示是否仍相关（模型未就绪、边界说明未确认、尚无资料）。
+它不再控制默认 route。Settings MUST 固定提供 REOPEN，REOPEN 回到 Welcome，不恢复目标向导。
 
 ### 6. Backfill and Lifecycle
 
@@ -365,12 +376,12 @@ zoom/keyboard/live region、deterministic E2E、real-provider main path 与 App 
 
 ### 10. Acceptance Criteria
 
-- `ONBOARD-AC-001`：四步 completion 全部来自 exact owner refs/versions，无 frontend inference。
+- `ONBOARD-AC-001`：MODEL / MATERIAL / GOAL / FIRST_ACTIVITY 投影仍来自 exact owner refs/versions，无 frontend inference。GOAL 不得成为用户可见必经步骤。
 - `ONBOARD-AC-002`：preference 只保存展示状态；dismissed 与 completed 可独立变化。
 - `ONBOARD-AC-003`：first activity 只由 SYS06 accepted-transcript completion projection 证明。
 - `ONBOARD-AC-004`：每个 response 只有一个确定性 next action；ambiguity 导航选择而非猜选。
 - `ONBOARD-AC-005`：existing-user 不被强制 backfill，新用户 active，并发/重启无重复副作用。
-- `ONBOARD-AC-006`：默认入口可进入 welcome，所有 explicit deep links 保留。
+- `ONBOARD-AC-006`：打开 App 进入 Welcome；`/today` `/learning` 兼容解析到 Welcome；explicit deep links 保留。
 - `ONBOARD-AC-007`：错误恢复只使用 stable owner code/P1-07 action，无 secret/path/learner side effect。
 - `ONBOARD-AC-008`：数据/模型说明准确链接真实 P1-02/P1-03 能力，v1 无假样例。
 - `ONBOARD-AC-009`：自动、真实桌面/浏览器和无内部知识首次用户门禁有当前证据。

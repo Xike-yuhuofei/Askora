@@ -473,6 +473,17 @@ class MaterialWorkspaceScopeViolationError(MaterialLifecycleError):
         )
 
 
+class MaterialAlreadyAssignedError(MaterialLifecycleError):
+    """MATERIAL_ALREADY_ASSIGNED_ELSEWHERE (D01-003A)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="资料已归属其他空间，不能改挂",
+            error_code="MATERIAL_ALREADY_ASSIGNED_ELSEWHERE",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
 class MaterialAlreadyTrashedError(MaterialLifecycleError):
     """MATERIAL_ALREADY_TRASHED (MATLIFE-022 idempotent repeat)."""
 

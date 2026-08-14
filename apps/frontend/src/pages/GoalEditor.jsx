@@ -69,6 +69,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
   const [preview, setPreview] = useState(null)
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
+  const [messageFor, setMessageFor] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -135,7 +136,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
   )
 
   const generateCriteria = async () => {
-    if (!form.topic.trim()) { setMessage('请先填写学习主题。'); return }
+    if (!form.topic.trim()) { setMessage('请先填写学习主题。'); setMessageFor('topic'); return }
     setBusy(true); setMessage('')
     try {
       const result = await goalApi.suggestSuccessCriteria({
@@ -159,7 +160,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
 
   const save = async () => {
     if (!form.sourceIds.length || !form.criteria.length) {
-      setMessage('至少选择一份资料并生成一条可测成功标准。'); return
+      setMessage('至少选择一份资料并生成一条可测成功标准。'); setMessageFor('sources'); return
     }
     setBusy(true); setMessage('')
     try {
@@ -184,7 +185,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
   }
 
   const confirmTargets = async () => {
-    if (!selectedTargets.length) { setMessage('请至少勾选一个学习重点。'); return }
+    if (!selectedTargets.length) { setMessage('请至少勾选一个学习重点。'); setMessageFor('targets'); return }
     setBusy(true); setMessage('')
     try {
       const saved = await goalApi.updateGoalDraft(draft.draft_id, {
@@ -240,7 +241,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
   return (
     <div className="goal-editor page-stack">
       <header className="page-header page-header--split">
-        <div><p className="eyebrow">P1-01 · 目标定义</p><h1>{draft ? '编辑目标草稿' : '创建学习目标'}</h1><p>先保存草稿，再明确选择学习重点并审阅计划影响。</p></div>
+        <div><p className="eyebrow">目标定义</p><h1>{draft ? '编辑目标草稿' : '创建学习目标'}</h1><p>先保存草稿，再明确选择学习重点并审阅计划影响。</p></div>
         <button type="button" className="button button--secondary" onClick={() => navigate('/learning/goals')}><ArrowLeft size={16} />返回目标</button>
       </header>
 
@@ -248,7 +249,7 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
         <div className="section-heading"><div><p className="eyebrow">目标内容</p><h2 id="goal-definition-title">定义你要获得的能力</h2></div><Target size={20} /></div>
         <div className="goal-form__grid">
           <label>目标名称<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
-          <label>学习主题<input value={form.topic} onChange={(event) => setForm({ ...form, topic: event.target.value })} /></label>
+          <label>学习主题<input value={form.topic} aria-describedby={messageFor === 'topic' ? 'goal-message' : undefined} onChange={(event) => setForm({ ...form, topic: event.target.value })} /></label>
           <label className="goal-form__wide">目标能力（用顿号分隔）<input value={form.targetCapabilities} onChange={(event) => setForm({ ...form, targetCapabilities: event.target.value })} /></label>
           <label className="goal-form__wide">应用场景<textarea rows="3" value={form.applicationContext} onChange={(event) => setForm({ ...form, applicationContext: event.target.value })} /></label>
           <label>截止日期<input type="date" value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} /></label>
@@ -258,16 +259,19 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
 
       <section className="surface" aria-labelledby="goal-sources-title">
         <div className="section-heading"><div><p className="eyebrow">资料范围</p><h2 id="goal-sources-title">选择一份或多份资料</h2></div><span>{form.sourceIds.length} 已选</span></div>
-        <div className="goal-choice-list">
-          {documents.map((document) => {
-            const availability = sourceAvailability(document)
-            return <label key={document.document_id} className={`goal-choice ${availability.disabled ? 'goal-choice--disabled' : ''}`}>
-              <input type="checkbox" disabled={availability.disabled} checked={form.sourceIds.includes(document.document_id)} onChange={(event) => setForm({ ...form, sourceIds: event.target.checked ? [...form.sourceIds, document.document_id] : form.sourceIds.filter((id) => id !== document.document_id) })} />
-              <span><strong>{document.title || document.filename || '未命名资料'}</strong><small>{availability.label}</small></span>
-            </label>
-          })}
-          {!documents.length && <p>资料库为空，请先上传资料。</p>}
-        </div>
+        <fieldset className="goal-choice-fieldset" aria-describedby={messageFor === 'sources' ? 'goal-message' : undefined}>
+          <legend className="visually-hidden">选择一份或多份资料</legend>
+          <div className="goal-choice-list">
+            {documents.map((document) => {
+              const availability = sourceAvailability(document)
+              return <label key={document.document_id} className={`goal-choice ${availability.disabled ? 'goal-choice--disabled' : ''}`}>
+                <input type="checkbox" disabled={availability.disabled} checked={form.sourceIds.includes(document.document_id)} onChange={(event) => setForm({ ...form, sourceIds: event.target.checked ? [...form.sourceIds, document.document_id] : form.sourceIds.filter((id) => id !== document.document_id) })} />
+                <span><strong>{document.title || document.filename || '未命名资料'}</strong><small>{availability.label}</small></span>
+              </label>
+            })}
+            {!documents.length && <p>资料库为空，请先上传资料。</p>}
+          </div>
+        </fieldset>
       </section>
 
       <section className="surface" aria-labelledby="criteria-title">
@@ -281,13 +285,16 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
 
       {draft && <section className="surface" aria-labelledby="targets-title">
         <div className="section-heading"><div><p className="eyebrow">必须显式确认</p><h2 id="targets-title">学习重点卡片</h2></div><Check size={20} /></div>
-        <div className="goal-target-grid">
-          {targets.map((target) => <label key={target.target_id} className="goal-target-card">
-            <input type="checkbox" checked={selectedTargets.includes(target.target_id)} onChange={(event) => setSelectedTargets(event.target.checked ? [...selectedTargets, target.target_id] : selectedTargets.filter((id) => id !== target.target_id))} />
-            <span><strong>{target.name}</strong><small>来源：{target.source_name}</small><q>{target.evidence_excerpt}</q><em>{target.recommended_reason}</em></span>
-          </label>)}
-          {!targets.length && <p>所选资料尚无可执行的已发布知识，草稿可以保留，但现在不能确认。</p>}
-        </div>
+        <fieldset className="goal-target-fieldset" aria-describedby={messageFor === 'targets' ? 'goal-message' : undefined}>
+          <legend className="visually-hidden">学习重点卡片</legend>
+          <div className="goal-target-grid">
+            {targets.map((target) => <label key={target.target_id} className="goal-target-card">
+              <input type="checkbox" checked={selectedTargets.includes(target.target_id)} onChange={(event) => setSelectedTargets(event.target.checked ? [...selectedTargets, target.target_id] : selectedTargets.filter((id) => id !== target.target_id))} />
+              <span><strong>{target.name}</strong><small>来源：{target.source_name}</small><q>{target.evidence_excerpt}</q><em>{target.recommended_reason}</em></span>
+            </label>)}
+            {!targets.length && <p>所选资料尚无可执行的已发布知识，草稿可以保留，但现在不能确认。</p>}
+          </div>
+        </fieldset>
         <div className="goal-actions"><button className="button button--secondary" disabled={busy || !targets.length} onClick={confirmTargets}>确认所选重点</button><button className="button button--primary" disabled={busy || !draft.targets_confirmed} onClick={buildPreview}>生成变更预览</button></div>
       </section>}
 
@@ -299,10 +306,10 @@ export default function GoalEditor({ draftId = null, editGoalId = null }) {
           <div><dt>计划影响</dt><dd>创建新 mapping 与新 plan；新计划准备好后旧计划才会 supersede。</dd></div>
           <div><dt>字段变更</dt><dd>{preview.field_diffs.map((item) => item.field).join('、') || '首次定义'}</dd></div>
         </dl>
-        <div className="goal-actions"><button className="button button--primary" disabled={busy} onClick={() => apply('normal_boundary')}>{preview.active_activity_ref ? '当前活动完成后切换' : '确认并启用目标'}</button>{preview.active_activity_ref && <button className="button button--danger" disabled={busy} onClick={() => apply('supersede_active')}>结束本项并切换</button>}</div>
+        <div className="goal-actions"><button className="button button--primary" disabled={busy} onClick={() => apply('normal_boundary')}>{preview.active_activity_ref ? '当前活动完成后切换' : '确认并启用目标'}</button>{preview.active_activity_ref && <button className="button button--danger" disabled={busy} onClick={() => { if (window.confirm('确认结束当前活动并切换？')) apply('supersede_active') }}>结束本项并切换</button>}</div>
       </section>}
 
-      {message && <p className="goal-message" role="status">{message}</p>}
+      {message && <p id="goal-message" className="goal-message" role="status">{message}</p>}
     </div>
   )
 }

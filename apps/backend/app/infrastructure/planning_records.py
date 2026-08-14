@@ -66,6 +66,22 @@ class GoalPlanningRepository:
         await self._session.flush()
         return goal
 
+    async def latest_goal_for_document(
+        self, *, user_id: UUID, document_id: UUID
+    ) -> LearningGoalV1 | None:
+        records = (
+            await self._session.scalars(
+                select(LearningGoalRecord)
+                .where(LearningGoalRecord.user_id == str(user_id))
+                .order_by(LearningGoalRecord.created_at.desc(), LearningGoalRecord.version.desc())
+            )
+        ).all()
+        latest: dict[str, LearningGoalRecord] = {}
+        for record in records:
+            latest.setdefault(record.goal_id, record)
+        goals = [LearningGoalV1.model_validate(item.payload) for item in latest.values()]
+        return next((item for item in goals if document_id in item.source_document_ids), None)
+
     async def latest_goal(self, *, goal_id: UUID, user_id: UUID) -> LearningGoalV1 | None:
         record = await self._session.scalar(
             select(LearningGoalRecord)

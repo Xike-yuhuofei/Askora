@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>表单 Form</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacer-24); }
+    .stack-16 { display: flex; flex-direction: column; gap: var(--spacer-16); }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+    .form-demo { max-width: 560px; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>表单 Form</h1>
+    <p>
+      输入控件统一使用系统蓝作为聚焦态。包含文本输入、下拉、多行文本、复选框、单选与开关。错误态使用红色边框与提示。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">文本输入</div>
+    <div class="grid-2">
+      <div class="stack-16">
+        <div class="ak-field">
+          <label class="ak-label" for="f-name">学习目标<span class="ak-label__required">*</span></label>
+          <input class="ak-input" id="f-name" type="text" placeholder="例如：掌握线性代数" />
+          <p class="ak-help">一句话描述你想达成的目标。</p>
+        </div>
+        <div class="ak-field">
+          <label class="ak-label" for="f-email">邮箱</label>
+          <input class="ak-input" id="f-email" type="email" placeholder="name@example.com" />
+        </div>
+        <div class="ak-field">
+          <label class="ak-label" for="f-disabled">禁用输入</label>
+          <input class="ak-input" id="f-disabled" type="text" value="只读内容" disabled />
+        </div>
+      </div>
+      <div class="stack-16">
+        <div class="ak-field">
+          <label class="ak-label" for="f-error">课程名称</label>
+          <input class="ak-input ak-input--error" id="f-error" type="text" value="概率论与数理统计" />
+          <p class="ak-error">该课程名称已存在，请更换。</p>
+        </div>
+        <div class="ak-field">
+          <label class="ak-label" for="f-select">学习频率</label>
+          <select class="ak-select" id="f-select">
+            <option>每天</option>
+            <option>每周三次</option>
+            <option>仅周末</option>
+          </select>
+        </div>
+        <div class="ak-field">
+          <label class="ak-label" for="f-note">学习笔记</label>
+          <textarea class="ak-textarea" id="f-note" placeholder="记录你的想法…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">选择控件</div>
+    <div class="grid-2">
+      <div class="stack-16">
+        <label class="ak-checkbox"><input type="checkbox" checked /> 每日提醒复习</label>
+        <label class="ak-checkbox"><input type="checkbox" /> 同步到日历</label>
+        <label class="ak-checkbox ak-checkbox--disabled"><input type="checkbox" disabled /> 已禁用选项</label>
+      </div>
+      <div class="stack-16">
+        <label class="ak-radio"><input type="radio" name="plan" checked /> 基础计划</label>
+        <label class="ak-radio"><input type="radio" name="plan" /> 进阶计划</label>
+        <label class="ak-radio ak-radio--disabled"><input type="radio" name="plan" disabled /> 已禁用选项</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">开关 Switch</div>
+    <div class="grid-2">
+      <div class="stack-16">
+        <div class="row" style="display:flex; align-items:center; gap: var(--spacer-12);">
+          <label class="ak-switch"><input type="checkbox" checked /><span class="ak-switch__track"></span></label>
+          <span>开启状态</span>
+        </div>
+        <div class="row" style="display:flex; align-items:center; gap: var(--spacer-12);">
+          <label class="ak-switch"><input type="checkbox" /><span class="ak-switch__track"></span></label>
+          <span>关闭状态</span>
+        </div>
+        <div class="row" style="display:flex; align-items:center; gap: var(--spacer-12);">
+          <label class="ak-switch"><input type="checkbox" disabled /><span class="ak-switch__track"></span></label>
+          <span>禁用状态</span>
+        </div>
+      </div>
+      <div class="form-demo">
+        <div class="ak-field">
+          <label class="ak-label" for="f-row-a">姓名</label>
+          <input class="ak-input" id="f-row-a" type="text" placeholder="请输入姓名" />
+        </div>
+        <div class="ak-field" style="margin-top: var(--spacer-16);">
+          <label class="ak-label" for="f-row-b">年龄</label>
+          <input class="ak-input" id="f-row-b" type="number" placeholder="请输入年龄" />
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>菜单 Menu</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../colors_and_type.css" />
+  <style data-preview-shell>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--bg-base-default);
+      color: var(--text-default);
+      font-family: var(--body-base-font-family);
+      font-size: var(--body-base-font-size);
+      line-height: var(--body-base-line-height);
+      font-weight: var(--body-base-font-weight);
+      letter-spacing: var(--body-base-letter-spacing);
+      min-height: 100%;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body { padding: var(--spacer-32); }
+    .pv-header { margin-bottom: var(--spacer-32); padding-bottom: var(--spacer-16); border-bottom: 1px solid var(--border-neutral-l1); }
+    .pv-header h1 { font-family: var(--heading-lg-font-family); font-size: var(--heading-lg-font-size); line-height: var(--heading-lg-line-height); font-weight: var(--heading-lg-font-weight); margin-bottom: var(--spacer-4); }
+    .pv-header p { color: var(--text-secondary); font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); }
+    .pv-section { margin-bottom: var(--spacer-32); }
+    .pv-section__title { font-family: var(--heading-sm-font-family); font-size: var(--heading-sm-font-size); line-height: var(--heading-sm-line-height); font-weight: var(--heading-sm-font-weight); margin-bottom: var(--spacer-12); color: var(--text-default); }
+    .pv-section__sub { font-size: var(--body-base-font-size); line-height: var(--body-base-line-height); color: var(--text-tertiary); margin-bottom: var(--spacer-12); }
+    .row { display: flex; gap: var(--spacer-32); flex-wrap: wrap; align-items: flex-start; }
+    @media (max-width: 720px) {
+      body { padding: var(--spacer-16); }
+    }
+  </style>
+  <link rel="stylesheet" href="../components-group-a.css" />
+  <style>
+    body { width: min(100%, 1184px); margin: 0 auto; padding: var(--spacer-40) var(--spacer-32) var(--spacer-48); }
+    .pv-section { padding-top: var(--spacer-24); border-top: 1px solid var(--border-neutral-l1); }
+    .pv-header + .pv-section { padding-top: 0; border-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="pv-header">
+    <h1>菜单 Menu</h1>
+    <p>
+      用于操作列表或导航的浮层容器。包含分组标题、分隔线、快捷键、激活态与禁用态。
+    </p>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">基础菜单</div>
+    <div class="row">
+      <div class="ak-menu">
+        <div class="ak-menu__header">文件</div>
+        <button class="ak-menu__item"><span class="ak-icon" aria-hidden="true">✚</span><span>新建学习计划</span><span class="ak-menu__shortcut">⌘N</span></button>
+        <button class="ak-menu__item"><span class="ak-icon" aria-hidden="true">⤓</span><span>导入笔记</span><span class="ak-menu__shortcut">⌘I</span></button>
+        <div class="ak-menu__divider"></div>
+        <button class="ak-menu__item"><span class="ak-icon" aria-hidden="true">⚙</span><span>偏好设置</span><span class="ak-menu__shortcut">⌘,</span></button>
+        <button class="ak-menu__item ak-menu__item--disabled"><span class="ak-icon" aria-hidden="true">🔒</span><span>导出（不可用）</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-section">
+    <div class="pv-section__title">激活与危险操作</div>
+    <div class="row">
+      <div class="ak-menu">
+        <div class="ak-menu__header">视图</div>
+        <button class="ak-menu__item ak-menu__item--active"><span class="ak-icon" aria-hidden="true">✓</span><span>列表视图</span></button>
+        <button class="ak-menu__item"><span class="ak-icon" aria-hidden="true">▦</span><span>网格视图</span></button>
+        <button class="ak-menu__item"><span class="ak-icon" aria-hidden="true">▤</span><span>时间线视图</span></button>
+        <div class="ak-menu__divider"></div>
+        <button class="ak-menu__item" style="color: var(--status-error-default);"><span class="ak-icon" aria-hidden="true">🗑</span><span>删除全部记录</span></button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
